@@ -1,42 +1,64 @@
+/* ============================================
+   CrucibleRPG — Global CSS Variables & Reset
+   ============================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Backgrounds */
+  --bg-main: #0a0e1a;
+  --bg-panel: #0d1120;
+  --bg-card: #111528;
+  --bg-input: #0a0e1a;
+
+  /* Text colors (all WCAG AA — no rgba) */
+  --text-primary: #c8c0b0;
+  --text-heading: #d0c098;
+  --text-secondary: #8a94a8;
+  --text-muted: #7082a4;
+  --text-dim: #6b83a3;
+  --accent-gold: #c9a84c;
+  --accent-bright: #ddb84e;
+  --gold-muted: #9a8545;
+  --gold-footer: #a08a48;
+
+  /* Borders */
+  --border-primary: #1e2540;
+  --border-card: #3a3328;
+
+  /* Fonts */
+  --font-cinzel: 'Cinzel', serif;
+  --font-alegreya: 'Alegreya', serif;
+  --font-alegreya-sans: 'Alegreya Sans', sans-serif;
+  --font-jetbrains: 'JetBrains Mono', monospace;
+  --font-lexie: 'Lexie Readable', sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+html, body {
+  min-height: 100vh;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-family: var(--font-lexie);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); opacity: var(--p-opacity); }
+  50% { transform: translateY(-18px); opacity: calc(var(--p-opacity) * 1.6); }
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
