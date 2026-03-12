@@ -1,0 +1,90 @@
+/* ============================================
+   Landing Page Styles
+   ============================================ */
+
+/* Particle field */
+.particleField {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--accent-gold);
+  animation: float ease-in-out infinite;
+}
+
+/* Primary CTA button */
+.ctaPrimary {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.ctaPrimary:hover {
+  box-shadow: 0 4px 30px rgba(201, 168, 76, 0.45);
+  transform: translateY(-2px);
+}
+
+/* Secondary / ghost CTA button */
+.ctaSecondary {
+  transition: all 0.3s ease;
+}
+
+.ctaSecondary:hover {
+  background: rgba(201, 168, 76, 0.06);
+  border-color: rgba(201, 168, 76, 0.45);
+  color: var(--accent-gold);
+}
+
+/* Nav links */
+.navLink {
+  position: relative;
+  text-decoration: none;
+  transition: color 0.3s;
+  font-family: var(--font-alegreya-sans);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.navLink:hover {
+  color: var(--accent-gold);
+}
+
+/* Nav sign-in button */
+.navSignIn {
+  font-family: var(--font-cinzel);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--bg-main);
+  background: linear-gradient(135deg, var(--accent-gold), var(--accent-bright));
+  border: none;
+  border-radius: 4px;
+  padding: 10px 26px;
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  transition: box-shadow 0.3s;
+}
+
+.navSignIn:hover {
+  box-shadow: 0 0 16px rgba(201, 168, 76, 0.35);
+}
+
+/* Footer links */
+.footerLink {
+  text-decoration: none;
+  transition: color 0.2s;
+  font-family: var(--font-alegreya-sans);
+  font-size: 15px;
+  color: var(--gold-footer);
+}
+
+.footerLink:hover {
+  color: var(--accent-gold);
+}
