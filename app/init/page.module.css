@@ -1,0 +1,77 @@
+/* ============================================
+   Init Wizard Page Styles
+   ============================================ */
+
+/* Selection cards */
+.selectionCard {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  background: rgba(10, 14, 26, 0.5);
+  border: 1px solid rgba(201, 168, 76, 0.06);
+  border-radius: 8px;
+  padding: 18px 20px;
+  transition: all 0.3s;
+}
+
+.selectionCard:hover {
+  border-color: rgba(201, 168, 76, 0.15);
+  background: rgba(201, 168, 76, 0.02);
+}
+
+.selectionCardSelected {
+  composes: selectionCard;
+  background: rgba(201, 168, 76, 0.05);
+  border-color: rgba(201, 168, 76, 0.35);
+}
+
+.selectionCardSelected:hover {
+  background: rgba(201, 168, 76, 0.05);
+  border-color: rgba(201, 168, 76, 0.35);
+}
+
+/* Primary CTA (continue/begin adventure) */
+.btnPrimary {
+  transition: all 0.3s ease;
+}
+
+.btnPrimary:not(:disabled):hover {
+  box-shadow: 0 4px 30px rgba(201, 168, 76, 0.45);
+  transform: translateY(-2px);
+}
+
+/* Back button */
+.btnBack {
+  transition: all 0.2s;
+}
+
+.btnBack:not(:disabled):hover {
+  border-color: rgba(201, 168, 76, 0.3);
+  color: var(--accent-gold);
+}
+
+/* Option toggle buttons (setting questions, personality, pronouns, intensity) */
+.optionToggle {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.optionToggle:hover {
+  border-color: rgba(201, 168, 76, 0.25);
+}
+
+/* Adjust/Lock button */
+.adjustBtn {
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.adjustBtn:hover {
+  border-color: rgba(201, 168, 76, 0.35);
+}
+
+/* Input/textarea focus (global handles border glow, this adds specificity) */
+.wizardInput:focus {
+  border-color: rgba(201, 168, 76, 0.4);
+  box-shadow: 0 0 12px rgba(201, 168, 76, 0.06);
+}
