@@ -189,6 +189,14 @@
   animation: fadeInUp 0.4s ease;
 }
 
+/* Error message */
+.errorMsg {
+  font-family: var(--font-alegreya-sans);
+  font-size: 14px;
+  color: #c07a7a;
+  margin-top: 12px;
+}
+
 /* Footer */
 .footer {
   padding: 32px clamp(24px, 4vw, 56px);

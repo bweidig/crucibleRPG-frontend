@@ -41,15 +41,31 @@ function ParticleField() {
 function PasswordModal({ onClose, onSuccess }) {
   const [value, setValue] = useState("");
   const [shake, setShake] = useState(false);
-  const PASSCODE = "crucible2026";
+  const [checking, setChecking] = useState(false);
 
-  const handleSubmit = () => {
-    if (value === PASSCODE) {
-      onSuccess();
-    } else {
+  const handleSubmit = async () => {
+    if (!value || checking) return;
+    setChecking(true);
+    try {
+      const res = await fetch("/api/auth-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: value }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        onSuccess();
+      } else {
+        setShake(true);
+        setValue("");
+        setTimeout(() => setShake(false), 500);
+      }
+    } catch {
       setShake(true);
       setValue("");
       setTimeout(() => setShake(false), 500);
+    } finally {
+      setChecking(false);
     }
   };
 
@@ -80,6 +96,8 @@ export default function ComingSoon() {
   const [loaded, setLoaded] = useState(false);
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
 
@@ -87,9 +105,26 @@ export default function ComingSoon() {
     setTimeout(() => setLoaded(true), 150);
   }, []);
 
-  const handleEmailSubmit = () => {
-    if (email && email.includes("@")) {
-      setSubmitted(true);
+  const handleEmailSubmit = async () => {
+    if (!email || !email.includes("@") || submitting) return;
+    setEmailError("");
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSubmitted(true);
+      } else {
+        setEmailError(data.error || "Something went wrong. Please try again.");
+      }
+    } catch {
+      setEmailError("Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -201,10 +236,14 @@ export default function ComingSoon() {
                 <button
                   className={styles.waitlistBtn}
                   onClick={handleEmailSubmit}
+                  disabled={submitting}
                 >
-                  JOIN THE WAITLIST
+                  {submitting ? "JOINING..." : "JOIN THE WAITLIST"}
                 </button>
               </div>
+              {emailError && (
+                <div className={styles.errorMsg}>{emailError}</div>
+              )}
             </>
           ) : (
             <div className={styles.successMsg}>
