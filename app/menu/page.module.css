@@ -1,0 +1,73 @@
+/* ============================================
+   Main Menu Page Styles
+   ============================================ */
+
+/* Particle field */
+.particleField {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--accent-gold);
+  animation: float ease-in-out infinite;
+}
+
+/* Primary CTA button */
+.btnPrimary {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.btnPrimary:hover {
+  box-shadow: 0 4px 30px rgba(201, 168, 76, 0.45);
+  transform: translateY(-2px);
+}
+
+/* Secondary / ghost button */
+.btnSecondary {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.btnSecondary:hover {
+  background: rgba(201, 168, 76, 0.06);
+  border-color: rgba(201, 168, 76, 0.45);
+  color: var(--accent-gold);
+}
+
+/* Utility links (Settings, Log Out) */
+.menuLink {
+  transition: color 0.2s ease;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: var(--font-alegreya-sans);
+  font-size: 14px;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.menuLink:hover {
+  color: var(--accent-gold);
+}
+
+/* Continue card */
+.continueCard {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.continueCard:hover {
+  border-color: rgba(201, 168, 76, 0.3);
+  box-shadow: 0 8px 40px rgba(201, 168, 76, 0.08);
+}
