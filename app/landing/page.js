@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import styles from './page.module.css';
 
 const features = [
@@ -64,7 +65,7 @@ function NavBar({ scrolled }) {
         {['Features', 'How It Works', 'FAQ'].map((item) => (
           <a key={item} href={`#${item.toLowerCase().replace(/ /g, '-')}`} className={styles.navLink}>{item}</a>
         ))}
-        <button className={styles.navSignIn}>SIGN IN</button>
+        <Link href="/auth" className={styles.navSignIn}>SIGN IN</Link>
       </div>
     </nav>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
 
 function ParticleField() {
@@ -93,6 +94,7 @@ function PasswordModal({ onClose, onSuccess }) {
 }
 
 export default function ComingSoon() {
+  const router = useRouter();
   const [loaded, setLoaded] = useState(false);
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -104,6 +106,12 @@ export default function ComingSoon() {
   useEffect(() => {
     setTimeout(() => setLoaded(true), 150);
   }, []);
+
+  useEffect(() => {
+    if (authenticated) {
+      router.push("/landing");
+    }
+  }, [authenticated, router]);
 
   const handleEmailSubmit = async () => {
     if (!email || !email.includes("@") || submitting) return;
@@ -135,10 +143,7 @@ export default function ComingSoon() {
         <div className={styles.authContent}>
           <div className={styles.authWelcome}>Welcome back.</div>
           <div className={styles.authRedirect}>
-            Redirecting to auth page...
-          </div>
-          <div className={styles.authNote}>
-            (In production, this navigates to /auth)
+            Redirecting...
           </div>
         </div>
       </div>
