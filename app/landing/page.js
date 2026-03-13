@@ -225,7 +225,7 @@ function CTASection() {
       <h2 style={{
         fontFamily: 'var(--font-cinzel)', fontSize: 'clamp(26px, 3.5vw, 36px)',
         fontWeight: 700, color: 'var(--text-heading)', marginBottom: 18, position: 'relative',
-      }}>Every Hero Needs a Crucible.</h2>
+      }}>Every Hero Needs a Crucible. Yours is waiting.</h2>
       <p style={{
         fontFamily: 'var(--font-alegreya-sans)', fontSize: 18, fontWeight: 300,
         color: 'var(--text-dim)', lineHeight: 1.7, maxWidth: 500, margin: '0 auto 40px', position: 'relative',
