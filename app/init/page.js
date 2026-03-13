@@ -128,13 +128,13 @@ const Icons = {
 // --- DATA ---
 
 const STORYTELLERS = [
-  { id: 'chronicler', name: 'Chronicler', icon: 'chronicler', tone: 'Grounded and observational', desc: 'The world as it is.' },
-  { id: 'bard', name: 'Bard', icon: 'bard', tone: 'Epic and dramatic', desc: 'You are the hero of this story.' },
-  { id: 'trickster', name: 'Trickster', icon: 'trickster', tone: 'Playful and ironic', desc: 'The world has a sense of humor.' },
-  { id: 'poet', name: 'Poet', icon: 'poet', tone: 'Tender and bittersweet', desc: 'Every victory has a cost.' },
-  { id: 'whisper', name: 'Whisper', icon: 'whisper', tone: 'Warm and unsettling', desc: 'Everything is fine. Almost.' },
-  { id: 'noir', name: 'Noir', icon: 'noir', tone: 'World-weary and sharp', desc: 'Nobody is clean.' },
-  { id: 'custom', name: 'Custom', icon: 'custom_story', tone: 'Your narrative voice', desc: 'Define your own voice.' },
+  { id: 'chronicler', name: 'Chronicler', icon: 'chronicler', tone: 'Grounded and observational', desc: 'The world as it is.', preview: 'You step into a room filled with voices and the smell of cooked meat and bread. A woman with one arm stands behind the counter and fills cups from a brown jug. Four people sit in a corner booth and speak over one another. A man sits alone by the door with a bowl and a spoon. No one greets you.' },
+  { id: 'bard', name: 'Bard', icon: 'bard', tone: 'Epic and dramatic', desc: 'You are the hero of this story.', preview: 'You step into heat, noise, and the smell of food that\'s been cooking all day. A one-armed woman works the counter with steady efficiency, sliding cups across the wood while a group in the corner booth argue like a storm that hasn\'t decided whether to break. Someone sits alone near the door, eating in the calm eye of it all. You stand there a moment, the newest piece on a crowded board. Every story begins somewhere.' },
+  { id: 'trickster', name: 'Trickster', icon: 'trickster', tone: 'Playful and ironic', desc: 'The world has a sense of humor.', preview: 'You step into a loud, warm room thick with the smell of cooking food and the scrape of chairs on the floorboards. A one-armed woman runs the counter with practiced efficiency, which means she\'s doing more work than several two-armed people currently arguing in the corner booth. By the door, someone eats alone with determined focus, as though the meal might escape if left unwatched. No one pays you much attention, which is often the safest way to enter a place like this.' },
+  { id: 'poet', name: 'Poet', icon: 'poet', tone: 'Tender and bittersweet', desc: 'Every victory has a cost.', preview: 'You step into warmth and the heavy scent of food that has been cooking for hours. At the counter, a woman with one arm moves through her work with practiced motions, the empty sleeve at her shoulder shifting when she turns. Voices collide in a corner booth where people lean over a table crowded with cups. By the door, someone eats alone while cold air slips in each time it opens. The room is full, but space gathers quietly around the places where something is missing.' },
+  { id: 'whisper', name: 'Whisper', icon: 'whisper', tone: 'Warm and unsettling', desc: 'Everything is fine. Almost.', preview: 'You step into a warm, lively room where the air smells of fresh bread, roasted meat, and spices drifting from the kitchen. A one-armed woman smiles as she tends the counter, moving cups and plates along with easy familiarity while conversation rolls comfortably through the space. A group debates something spiritedly in a corner booth, and near the door someone sits alone enjoying a quiet meal. From time to time the woman pauses to wipe the counter clean, brushing away the thin dusting of gray ash that settles there every few minutes.' },
+  { id: 'noir', name: 'Noir', icon: 'noir', tone: 'World-weary and sharp', desc: 'Nobody is clean.', preview: 'You step into heat, noise, and the smell of food that sticks to your coat. The one-armed woman behind the counter moves like someone who learned a long time ago that work doesn\'t wait for sympathy. A group in the corner booth argue over something that matters to them and no one else. By the door, a man eats alone with his back to the wall and his eyes on the room; two habits like that usually mean he expects trouble. Smart man.' },
+  { id: 'custom', name: 'Custom', icon: 'custom_story', tone: 'Your narrative voice', desc: 'Define your own voice.', preview: null },
 ];
 
 const SETTINGS = [
@@ -205,23 +205,18 @@ const SETTING_QUESTIONS = {
     { label: 'How broken is reality', options: ['Mostly stable with strange edges', 'Fluid and shifting', 'No rules at all'] },
     { label: 'Is there a "normal" world', options: ["Yes, and you've left it", "It's fading", 'There never was one'] },
   ],
-  'custom': [
-    { label: 'Magic / supernatural power', options: ['None', 'Rare', 'Common', 'Pervasive'] },
-    { label: 'Non-human beings', options: ['Humans only', 'Rare / Hidden', 'Common'] },
-    { label: 'Political structure', options: ['Tribal', 'Feudal', 'City-States', 'Empire', 'Other'] },
-    { label: "Civilization's arc", options: ['Rising', 'Stable', 'Declining', 'Fallen'] },
-  ],
+  'custom': [],
 };
 
 const STEP_NAMES = ['Storyteller', 'Setting', 'Character', 'Attributes', 'Difficulty', 'Scenario'];
 
 const SAMPLE_STATS = [
-  { name: 'Strength', value: 6.5 },
-  { name: 'Dexterity', value: 8.2 },
-  { name: 'Constitution', value: 7.0 },
-  { name: 'Intelligence', value: 11.3 },
-  { name: 'Wisdom', value: 9.8 },
-  { name: 'Charisma', value: 7.4 },
+  { name: 'Strength', emoji: '\u{1F4AA}', value: 6.5 },
+  { name: 'Dexterity', emoji: '\u{1F3C3}', value: 8.2 },
+  { name: 'Constitution', emoji: '\u{1F6E1}\uFE0F', value: 7.0 },
+  { name: 'Intelligence', emoji: '\u{1F9E0}', value: 11.3 },
+  { name: 'Wisdom', emoji: '\u{1F441}\uFE0F', value: 9.8 },
+  { name: 'Charisma', emoji: '\u{1F3AD}', value: 7.4 },
 ];
 
 // --- SHARED COMPONENTS ---
@@ -311,18 +306,35 @@ function Phase1({ selected, onSelect }) {
       }}>You can change your storyteller at any time during play.</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {STORYTELLERS.map(s => (
-          <SelectionCard key={s.id} item={s} selected={selected} onSelect={onSelect}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-              <IconBox name={s.icon} color={selected === s.id ? 'var(--accent-gold)' : 'var(--text-muted)'} />
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
-                  <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 17, fontWeight: 700, color: 'var(--text-heading)' }}>{s.name}</span>
-                  <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-muted)', fontStyle: 'italic' }}>{s.tone}</span>
+          <div key={s.id}>
+            <SelectionCard item={s} selected={selected} onSelect={onSelect}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                <IconBox name={s.icon} color={selected === s.id ? 'var(--accent-gold)' : 'var(--text-muted)'} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
+                    <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 17, fontWeight: 700, color: 'var(--text-heading)' }}>{s.name}</span>
+                    <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-muted)', fontStyle: 'italic' }}>{s.tone}</span>
+                  </div>
+                  <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>{s.desc}</p>
                 </div>
-                <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>{s.desc}</p>
               </div>
-            </div>
-          </SelectionCard>
+            </SelectionCard>
+            {selected === s.id && s.preview && (
+              <div style={{
+                margin: '-1px 0 0 0', padding: '18px 24px',
+                background: '#0d1120',
+                border: '1px solid rgba(201,168,76,0.12)',
+                borderTop: 'none',
+                borderLeft: '3px solid var(--accent-gold)',
+                borderRadius: '0 0 8px 8px',
+              }}>
+                <p style={{
+                  fontFamily: 'var(--font-alegreya)', fontSize: 15.5, fontStyle: 'italic',
+                  color: '#b0b8cc', lineHeight: 1.8, margin: 0,
+                }}>{s.preview}</p>
+              </div>
+            )}
+          </div>
         ))}
       </div>
       {selected === 'custom' && (
@@ -340,7 +352,7 @@ function Phase1({ selected, onSelect }) {
 
 function SettingQuestions({ settingId, answers, setAnswers }) {
   const questions = SETTING_QUESTIONS[settingId];
-  if (!questions) return null;
+  if (!questions || questions.length === 0) return null;
 
   const handleSelect = (label, value) => {
     setAnswers(prev => ({ ...prev, [label]: prev[label] === value ? null : value }));
@@ -592,84 +604,147 @@ function Phase4({ stats: initialStats }) {
 
   const hasDeviation = stats.some((s, i) => Math.abs(s.value - initialStats[i].value) > 2.0);
 
-  const handleStatChange = (name, newVal) => {
-    const parsed = parseFloat(newVal);
-    if (isNaN(parsed)) return;
-    const clamped = Math.min(20.0, Math.max(1.0, Math.round(parsed * 10) / 10));
-    setStats(prev => prev.map(s => s.name === name ? { ...s, value: clamped } : s));
+  const handleStatChange = (name, delta) => {
+    setStats(prev => prev.map(s => {
+      if (s.name !== name) return s;
+      const newVal = Math.min(20.0, Math.max(1.0, Math.round((s.value + delta) * 10) / 10));
+      return { ...s, value: newVal };
+    }));
   };
+
+  const getTier = (val) => {
+    if (val >= 21) return 'Ascendant';
+    if (val >= 16) return 'Peak Mortal';
+    if (val >= 11) return 'Elite';
+    if (val >= 6) return 'Professional';
+    if (val >= 3) return 'Gifted Beginner';
+    return 'Novice';
+  };
+
+  const statTotal = stats.reduce((sum, s) => sum + s.value, 0);
 
   return (
     <div>
       <PhaseTitle title="Your Attributes" subtitle="Derived from your backstory. These are who you are." />
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div style={{
+          fontFamily: 'var(--font-jetbrains)', fontSize: 13,
+          color: '#7082a4',
+        }}>
+          Total: <span style={{ color: 'var(--text-heading)', fontWeight: 500 }}>{statTotal.toFixed(1)}</span>
+        </div>
         <button onClick={() => setEditing(!editing)} className={styles.adjustBtn} style={{
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 500,
-          color: editing ? 'var(--accent-gold)' : 'var(--text-muted)',
-          background: editing ? 'rgba(201,168,76,0.08)' : 'transparent',
-          border: `1px solid ${editing ? 'rgba(201,168,76,0.35)' : 'rgba(201,168,76,0.12)'}`,
-          borderRadius: 5, padding: '8px 20px',
-        }}>{editing ? 'Lock' : 'Adjust'}</button>
+          fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 700,
+          color: editing ? 'var(--bg-main)' : 'var(--text-secondary)', letterSpacing: '0.08em',
+          background: editing ? 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))' : 'transparent',
+          border: `1px solid ${editing ? 'transparent' : '#1e2540'}`,
+          borderRadius: 5, padding: '9px 24px',
+        }}>{editing ? 'LOCK' : 'ADJUST'}</button>
       </div>
 
       <div style={{
-        background: 'rgba(10,14,26,0.5)', border: '1px solid rgba(201,168,76,0.08)', borderRadius: 8, padding: 24, marginBottom: 20,
+        background: '#111528', border: '1px solid #1e2540', borderRadius: 10, padding: '8px 0',
+        marginBottom: 20,
       }}>
-        {stats.map(s => {
+        {stats.map((s, i) => {
           const pct = (s.value / 20) * 100;
+          const changed = Math.abs(s.value - initialStats[i].value) > 0.05;
+          const delta = s.value - initialStats[i].value;
           return (
-            <div key={s.name} style={{ marginBottom: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 16, fontWeight: 500, color: 'var(--text-secondary)' }}>
-                  {s.name}
-                </span>
+            <div key={s.name} style={{
+              padding: '16px 24px',
+              borderBottom: i < stats.length - 1 ? '1px solid #1e2540' : 'none',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{s.emoji}</span>
+                <span style={{
+                  fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 700,
+                  color: 'var(--text-heading)', flex: 1,
+                }}>{s.name}</span>
+                <span style={{
+                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 12,
+                  color: '#7082a4', fontStyle: 'italic', marginRight: 8,
+                }}>{getTier(s.value)}</span>
+
                 {editing ? (
-                  <input
-                    type="number"
-                    value={s.value}
-                    min="1.0"
-                    max="20.0"
-                    step="0.1"
-                    onChange={e => handleStatChange(s.name, e.target.value)}
-                    style={{
-                      width: 64, textAlign: 'right',
-                      fontFamily: 'var(--font-jetbrains)', fontSize: 16, fontWeight: 500,
-                      color: 'var(--accent-gold)', background: 'rgba(201,168,76,0.06)',
-                      border: '1px solid rgba(201,168,76,0.25)', borderRadius: 4,
-                      padding: '4px 8px', outline: 'none', boxSizing: 'border-box',
-                    }}
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                    <button onClick={() => handleStatChange(s.name, -0.5)} className={styles.statStepBtn} style={{
+                      width: 32, height: 32, borderRadius: '6px 0 0 6px',
+                      background: '#0d1120', border: '1px solid #1e2540',
+                      color: 'var(--text-secondary)', fontSize: 18, fontWeight: 700,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>{'\u2212'}</button>
+                    <div style={{
+                      width: 56, height: 32,
+                      background: 'var(--bg-main)', borderTop: '1px solid #1e2540', borderBottom: '1px solid #1e2540',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontFamily: 'var(--font-jetbrains)', fontSize: 15, fontWeight: 500,
+                      color: changed ? 'var(--accent-gold)' : 'var(--text-heading)',
+                    }}>{s.value.toFixed(1)}</div>
+                    <button onClick={() => handleStatChange(s.name, 0.5)} className={styles.statStepBtn} style={{
+                      width: 32, height: 32, borderRadius: '0 6px 6px 0',
+                      background: '#0d1120', border: '1px solid #1e2540',
+                      color: 'var(--text-secondary)', fontSize: 18, fontWeight: 700,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>+</button>
+                    {changed && (
+                      <span style={{
+                        fontFamily: 'var(--font-jetbrains)', fontSize: 11,
+                        color: delta > 0 ? '#8aba7a' : '#e8845a',
+                        marginLeft: 8, minWidth: 36,
+                      }}>{delta > 0 ? '+' : ''}{delta.toFixed(1)}</span>
+                    )}
+                  </div>
                 ) : (
-                  <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 16, fontWeight: 500, color: 'var(--text-heading)' }}>
-                    {s.value.toFixed(1)}
-                  </span>
+                  <span style={{
+                    fontFamily: 'var(--font-jetbrains)', fontSize: 17, fontWeight: 500,
+                    color: 'var(--text-heading)', minWidth: 40, textAlign: 'right',
+                  }}>{s.value.toFixed(1)}</span>
                 )}
               </div>
-              <div style={{ height: 6, background: 'rgba(201,168,76,0.06)', borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%', width: `${pct}%`, borderRadius: 3,
-                  background: 'linear-gradient(90deg, #5a6a88, #c9a84c)',
-                  transition: 'width 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                }} />
+
+              <div style={{ height: 8, background: 'var(--bg-main)', borderRadius: 4, overflow: 'hidden', marginLeft: 34 }}>
+                {editing && changed ? (
+                  <div style={{ position: 'relative', height: '100%' }}>
+                    <div style={{
+                      position: 'absolute', top: 0, left: 0,
+                      height: '100%', width: `${(initialStats[i].value / 20) * 100}%`,
+                      background: '#1e2540', borderRadius: 4,
+                    }} />
+                    <div style={{
+                      position: 'absolute', top: 0, left: 0,
+                      height: '100%', width: `${pct}%`, borderRadius: 4,
+                      background: 'linear-gradient(90deg, #5a6a88, #c9a84c)',
+                      transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                    }} />
+                  </div>
+                ) : (
+                  <div style={{
+                    height: '100%', width: `${pct}%`, borderRadius: 4,
+                    background: 'linear-gradient(90deg, #5a6a88, #c9a84c)',
+                    transition: 'width 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                  }} />
+                )}
               </div>
             </div>
           );
         })}
       </div>
+
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <div style={{
-          background: 'rgba(10,14,26,0.5)', border: '1px solid rgba(201,168,76,0.08)', borderRadius: 6, padding: '10px 16px',
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)',
+          background: '#111528', border: '1px solid #1e2540', borderRadius: 6, padding: '10px 16px',
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4',
         }}>
-          <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Skills: </span>
+          <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Skills: </span>
           Streetwise 1.0, Lockpicking 1.0, Blade Work 1.0
         </div>
         <div style={{
-          background: 'rgba(10,14,26,0.5)', border: '1px solid rgba(201,168,76,0.08)', borderRadius: 6, padding: '10px 16px',
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)',
+          background: '#111528', border: '1px solid #1e2540', borderRadius: 6, padding: '10px 16px',
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4',
         }}>
-          <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Inventory Slots: </span>
+          <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Inventory Slots: </span>
           {(stats.find(s => s.name === 'Strength')?.value || 6.5) + 5} (STR {stats.find(s => s.name === 'Strength')?.value.toFixed(1)} + 5)
         </div>
       </div>
@@ -689,10 +764,10 @@ function Phase4({ stats: initialStats }) {
 
       {editing && !hasDeviation && (
         <p style={{
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-dim)',
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4',
           marginTop: 16, lineHeight: 1.6,
         }}>
-          Stats must be between 1.0 and 20.0. Inventory slots update with Strength.
+          Adjust in increments of 0.5. Stats must be between 1.0 and 20.0. Inventory slots update with Strength.
         </p>
       )}
 

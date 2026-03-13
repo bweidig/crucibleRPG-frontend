@@ -70,6 +70,16 @@
   border-color: rgba(201, 168, 76, 0.35);
 }
 
+/* Stat +/- step buttons */
+.statStepBtn {
+  transition: all 0.15s;
+}
+
+.statStepBtn:hover {
+  background: #1a1e30;
+  color: var(--accent-gold);
+}
+
 /* Input/textarea focus (global handles border glow, this adds specificity) */
 .wizardInput:focus {
   border-color: rgba(201, 168, 76, 0.4);
