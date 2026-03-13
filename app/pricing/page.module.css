@@ -1,0 +1,83 @@
+/* ============================================
+   Pricing Page Styles
+   ============================================ */
+
+/* Particle field */
+.particleField {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--accent-gold);
+  animation: float ease-in-out infinite;
+}
+
+/* Primary CTA button */
+.btnPrimary {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.btnPrimary:hover {
+  box-shadow: 0 4px 30px rgba(201, 168, 76, 0.45);
+  transform: translateY(-2px);
+}
+
+/* Secondary / ghost button */
+.btnSecondary {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.btnSecondary:hover {
+  background: rgba(201, 168, 76, 0.06);
+  border-color: rgba(201, 168, 76, 0.45);
+  color: var(--accent-gold);
+}
+
+/* Pricing card */
+.priceCard {
+  transition: all 0.3s ease;
+}
+
+.priceCard:hover {
+  border-color: rgba(201, 168, 76, 0.25);
+  box-shadow: 0 8px 40px rgba(201, 168, 76, 0.06);
+}
+
+/* Top-up card */
+.topupCard {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.topupCard:hover {
+  border-color: rgba(201, 168, 76, 0.3);
+  background: rgba(201, 168, 76, 0.04);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .particle {
+    animation: none;
+  }
+
+  .btnPrimary,
+  .btnSecondary,
+  .priceCard,
+  .topupCard {
+    transition: none;
+  }
+
+  .btnPrimary:hover {
+    transform: none;
+  }
+}
