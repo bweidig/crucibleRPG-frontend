@@ -1,0 +1,115 @@
+/* ============================================
+   Saved Games Page Styles
+   ============================================ */
+
+/* Particle field */
+.particleField {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--accent-gold);
+  animation: float ease-in-out infinite;
+}
+
+/* Save card */
+.saveCard {
+  transition: all 0.3s ease;
+}
+
+.saveCard:hover {
+  border-color: var(--border-card-hover);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Primary CTA button (LOAD) */
+.btnPrimary {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.btnPrimary:hover {
+  box-shadow: 0 4px 24px rgba(201, 168, 76, 0.35);
+  transform: translateY(-1px);
+}
+
+/* Back link */
+.btnBack {
+  transition: all 0.2s ease;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btnBack:hover {
+  color: var(--accent-gold);
+}
+
+/* Delete text button */
+.btnDanger {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.btnDanger:hover {
+  color: var(--color-danger);
+}
+
+/* Delete confirm button */
+.deleteConfirmBtn {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.deleteConfirmBtn:hover {
+  background: #c83a3a;
+  box-shadow: 0 4px 20px rgba(200, 58, 58, 0.3);
+}
+
+/* Delete cancel button */
+.deleteCancelBtn {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.deleteCancelBtn:hover {
+  border-color: var(--border-card);
+  color: var(--text-primary);
+}
+
+/* Story toggle row */
+.storyToggle {
+  transition: color 0.2s ease;
+  cursor: pointer;
+}
+
+.storyToggle:hover {
+  color: var(--accent-gold);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .particle {
+    animation: none;
+  }
+
+  .saveCard,
+  .btnPrimary,
+  .btnBack,
+  .btnDanger,
+  .deleteConfirmBtn,
+  .deleteCancelBtn {
+    transition: none;
+  }
+
+  .btnPrimary:hover {
+    transform: none;
+  }
+}
