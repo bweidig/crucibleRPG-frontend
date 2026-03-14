@@ -16,7 +16,7 @@ export async function POST(request) {
   const res = await fetch("https://api.buttondown.com/v1/subscribers", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Token ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ email_address: email }),
@@ -30,6 +30,9 @@ export async function POST(request) {
     // Already subscribed — treat as success
     return Response.json({ success: true });
   }
+
+  const body = await res.text();
+  console.error(`Buttondown API error: ${res.status} ${res.statusText}`, body);
 
   return Response.json(
     { error: "Something went wrong. Please try again." },
