@@ -5,17 +5,17 @@ import Link from 'next/link';
 import styles from './page.module.css';
 
 const features = [
-  { title: 'A Storyteller That Listens', desc: 'Choose your narrator\'s voice — epic, gritty, unsettling, playful — and step into a world that responds to every decision you make. No scripts. No rails. Just your choices and what happens next.' },
-  { title: 'Real Mechanics Under the Hood', desc: 'Six core stats. Skills earned through play. Dice rolls resolved with tenth-decimal precision on the server. This isn\'t a chatbot pretending to be a game — it\'s a game engine wearing a storyteller\'s mask.' },
+  { title: 'A Storyteller That Listens', desc: 'Choose your narrator\'s voice: epic, gritty, unsettling, playful. Step into a world that responds to every decision you make. No scripts. No rails. Just your choices and what happens next.' },
+  { title: 'Real Mechanics Under the Hood', desc: 'Six core stats. Skills earned through play. Dice rolls resolved with tenth-decimal precision on the server. This isn\'t a chatbot pretending to be a game. It\'s a game engine wearing a storyteller\'s mask.' },
   { title: 'Any World. Any Genre.', desc: 'Swords and sorcery. Steam and revolution. Neon and chrome. Post-apocalyptic wastelands. Surreal dreamscapes. Pick a setting or build your own from scratch.' },
   { title: 'Consequences That Stick', desc: 'Injuries don\'t vanish between scenes. Gear degrades. Resources run out. NPCs remember how you treated them. The world moves forward whether you\'re ready or not.' },
 ];
 
 const steps = [
   { num: '01', title: 'Choose Your World', desc: 'Swords and sorcery? Neon-lit dystopia? Something no one\'s built before? Pick a genre, answer a few questions to give it texture, or write the whole thing yourself. The world is yours to define.' },
-  { num: '02', title: 'Create Your Character', desc: 'Describe who they are in your own words, answer a few guided questions, or grab a prefab and go. Your character\'s backstory shapes their stats, skills, and starting gear — not a class dropdown.' },
+  { num: '02', title: 'Create Your Character', desc: 'Describe who they are in your own words, answer a few guided questions, or grab a prefab and go. Your character\'s backstory shapes their stats, skills, and starting gear. Not a class dropdown.' },
   { num: '03', title: 'Play', desc: 'The AI narrates. You decide. A full tabletop engine handles stats, dice, inventory, conditions, and consequences behind the scenes. You just play.' },
-  { num: '04', title: 'Your Story Unfolds', desc: 'Every session builds on the last. The world remembers your choices, tracks your reputation, and evolves around you. Share your story when you\'re ready — or keep it yours.' },
+  { num: '04', title: 'Your Story Unfolds', desc: 'Every session builds on the last. The world remembers your choices, tracks your reputation, and evolves around you. Share your story when you\'re ready. Or keep it yours.' },
 ];
 
 function ParticleField() {

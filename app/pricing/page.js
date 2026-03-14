@@ -176,7 +176,7 @@ export default function PricingPage() {
           color: 'var(--text-muted)', maxWidth: 480, margin: '0 auto', lineHeight: 1.7,
           opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(16px)',
           transition: 'all 1s cubic-bezier(0.16,1,0.3,1) 0.3s',
-        }}>Every storyteller. Every setting. Every feature. Start free or dive right in.</p>
+        }}>Every storyteller. Every setting. Every feature. Start free or jump right in.</p>
       </div>
 
       {/* Pricing cards */}
