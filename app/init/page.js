@@ -715,14 +715,14 @@ function Phase4({ stats: initialStats }) {
                     <div style={{
                       position: 'absolute', top: 0, left: 0,
                       height: '100%', width: `${pct}%`, borderRadius: 4,
-                      background: 'linear-gradient(90deg, #5a6a88, #c9a84c)',
+                      background: 'linear-gradient(90deg, #7082a4, #c9a84c)',
                       transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
                     }} />
                   </div>
                 ) : (
                   <div style={{
                     height: '100%', width: `${pct}%`, borderRadius: 4,
-                    background: 'linear-gradient(90deg, #5a6a88, #c9a84c)',
+                    background: 'linear-gradient(90deg, #7082a4, #c9a84c)',
                     transition: 'width 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
                   }} />
                 )}

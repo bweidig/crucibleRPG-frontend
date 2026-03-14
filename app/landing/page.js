@@ -136,7 +136,7 @@ function HeroSection() {
         }}>START YOUR ADVENTURE</button>
         <a href="#how-it-works" style={{ textDecoration: 'none' }}>
           <button className={styles.ctaSecondary} style={{
-            fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 600, color: '#6a7a9a',
+            fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 600, color: '#7082a4',
             background: 'transparent', border: '1px solid rgba(201,168,76,0.2)',
             borderRadius: 6, padding: '16px 40px', cursor: 'pointer', letterSpacing: '0.1em',
           }}>SEE HOW IT WORKS</button>
