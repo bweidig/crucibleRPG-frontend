@@ -6,7 +6,7 @@ import styles from './page.module.css';
 
 function ParticleField() {
   const [particles] = useState(() =>
-    Array.from({ length: 20 }, (_, i) => ({
+    Array.from({ length: 35 }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
       y: Math.random() * 100,
@@ -142,8 +142,8 @@ export default function AuthPage() {
 
       {/* Radial glow */}
       <div style={{
-        position: 'absolute', width: 500, height: 500, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(201,168,76,0.04) 0%, transparent 70%)',
+        position: 'absolute', width: 600, height: 600, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(201,168,76,0.05) 0%, transparent 60%)',
         top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none',
       }} />
 
