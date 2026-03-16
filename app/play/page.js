@@ -245,7 +245,7 @@ function useSSE(gameId, onEvent) {
     const es = new EventSource(url);
     esRef.current = es;
 
-    es.onopen = () => { setConnected(true); setReconnecting(false); };
+    es.onopen = () => { console.log('SSE connected:', url); setConnected(true); setReconnecting(false); };
 
     es.onmessage = (e) => {
       try {
@@ -269,7 +269,8 @@ function useSSE(gameId, onEvent) {
       });
     });
 
-    es.onerror = () => {
+    es.onerror = (err) => {
+      console.error('SSE connection error:', err, `(readyState: ${es.readyState}, url: ${url})`);
       setConnected(false);
       es.close();
       setReconnecting(true);
@@ -2769,13 +2770,16 @@ function PlayPageInner() {
   }, [authChecked, gameId, router]);
 
   // --- Fetch game state ---
+  const gameLoadedRef = useRef(false);
   useEffect(() => {
     if (!authChecked || !gameId) return;
+    let cancelled = false;
     const fetchGame = async () => {
       setLoading(true);
       setError(null);
       try {
         const data = await api.get(`/api/games/${gameId}`);
+        if (cancelled) return;
         setGameState(data);
         // Transform recentNarrative into turns format
         const rawNarrative = Array.isArray(data.recentNarrative) ? data.recentNarrative : [];
@@ -2791,10 +2795,12 @@ function PlayPageInner() {
         setBookmarks(loadBookmarks(gameId));
         // Character from game state (basic — full data comes from /character endpoint)
         if (data.character) {
-          setCharacter({
+          const charData = {
             ...data.character,
             stats: transformStats(data.character.stats),
-          });
+          };
+          console.log('setCharacter [game state fetch]:', charData);
+          setCharacter(charData);
         }
         // Extract game settings for the settings modal
         setGameSettings({
@@ -2802,59 +2808,79 @@ function PlayPageInner() {
           difficultyPreset: data.difficultyPreset || data.difficulty || 'standard',
           dials: data.dials || {},
         });
-        // NPCs, locations, objectives not available at this endpoint
         // TODO: No backend endpoint for NPCs list
         // TODO: No backend endpoint for objectives list
+        gameLoadedRef.current = true;
       } catch (err) {
+        if (cancelled) return;
         setError(err.message || 'Failed to load game.');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     fetchGame();
+    return () => { cancelled = true; };
   }, [authChecked, gameId]);
 
-  // --- Fetch supplementary data on load ---
+  // --- Fetch supplementary data after game state loads ---
   useEffect(() => {
-    if (!authChecked || !gameId || loading || error) return;
+    if (!gameLoadedRef.current || !authChecked || !gameId || loading || error) return;
+    let cancelled = false;
     const fetchSuppData = async () => {
       // Character + inventory (detailed)
       try {
         const res = await api.get(`/api/game/${gameId}/character`);
+        if (cancelled) return;
         if (res.character) {
-          setCharacter(prev => ({
-            ...(prev || {}),
-            ...res.character,
-            stats: transformStats(res.stats || prev?.stats),
-            skills: Array.isArray(res.skills) ? res.skills : [],
-            conditions: Array.isArray(res.conditions) ? res.conditions : [],
-            companions: Array.isArray(res.companions) ? res.companions : [],
-          }));
+          console.log('setCharacter [character endpoint]:', { character: res.character, stats: res.stats, skills: res.skills, conditions: res.conditions });
+          setCharacter(prev => {
+            const merged = {
+              ...(prev || {}),
+              ...res.character,
+              stats: transformStats(res.stats || prev?.stats),
+              skills: Array.isArray(res.skills) ? res.skills : (prev?.skills || []),
+              conditions: Array.isArray(res.conditions) ? res.conditions : (prev?.conditions || []),
+              companions: Array.isArray(res.companions) ? res.companions : [],
+            };
+            console.log('setCharacter [character endpoint] merged result:', merged);
+            return merged;
+          });
+        } else {
+          console.warn('Character endpoint returned no character field:', res);
         }
-        if (res.inventory) {
+        if (!cancelled && res.inventory) {
           setInventory(res.inventory);
           setEquipped(Array.isArray(res.inventory.equipped) ? res.inventory.equipped : []);
           setCurrencyLabel(res.inventory.currency?.display || 'Coins');
         }
-      } catch { /* endpoint may not be available */ }
+      } catch (err) {
+        // Character endpoint failed — keep whatever data we got from game state fetch
+        console.error('Character fetch failed:', err.message || err, `(GET /api/game/${gameId}/character)`);
+      }
+      if (cancelled) return;
       // Glossary
       try {
         const res = await api.get(`/api/game/${gameId}/glossary`);
-        setGlossary(Array.isArray(res.entries) ? res.entries : []);
-      } catch { /* endpoint may not be available */ }
+        if (!cancelled) setGlossary(Array.isArray(res.entries) ? res.entries : []);
+      } catch (err) { console.error('Glossary fetch failed:', err.message || err); }
+      if (cancelled) return;
       // Map
       try {
         const res = await api.get(`/api/game/${gameId}/map`);
-        setLocations(Array.isArray(res.locations) ? res.locations : []);
-        setRoutes(Array.isArray(res.routes) ? res.routes : []);
-      } catch { /* endpoint may not be available */ }
+        if (!cancelled) {
+          setLocations(Array.isArray(res.locations) ? res.locations : []);
+          setRoutes(Array.isArray(res.routes) ? res.routes : []);
+        }
+      } catch (err) { console.error('Map fetch failed:', err.message || err); }
+      if (cancelled) return;
       // Entity notes
       try {
         const res = await api.get(`/api/game/${gameId}/notes`);
-        setEntityNotes(Array.isArray(res.notes) ? res.notes : []);
-      } catch { /* endpoint may not be available */ }
+        if (!cancelled) setEntityNotes(Array.isArray(res.notes) ? res.notes : []);
+      } catch (err) { console.error('Notes fetch failed:', err.message || err); }
     };
     fetchSuppData();
+    return () => { cancelled = true; };
   }, [authChecked, gameId, loading, error]);
 
   // --- SSE event handler ---
