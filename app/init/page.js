@@ -1923,11 +1923,36 @@ function InitWizardInner() {
   };
 
   const generateProposal = async () => {
+    const STAT_META = {
+      STR: { name: 'Strength', emoji: '\u{1F4AA}' },
+      DEX: { name: 'Dexterity', emoji: '\u{1F3C3}' },
+      CON: { name: 'Constitution', emoji: '\u{1F6E1}\uFE0F' },
+      INT: { name: 'Intelligence', emoji: '\u{1F9E0}' },
+      WIS: { name: 'Wisdom', emoji: '\u{1F441}\uFE0F' },
+      CHA: { name: 'Charisma', emoji: '\u{1F3AD}' },
+      POT: { name: 'Potency', emoji: '\u2728' },
+    };
     setProposalLoading(true);
     setAdjustedStats(null);
     try {
       const res = await api.post(`/api/init/${gameId}/generate-proposal`);
-      setProposal(res);
+      const p = res.proposal || res;
+      const rawStats = p.stats || {};
+      const statsArray = Object.entries(rawStats)
+        .filter(([abbr]) => STAT_META[abbr])
+        .map(([abbr, value]) => ({
+          name: STAT_META[abbr].name,
+          abbr,
+          emoji: STAT_META[abbr].emoji,
+          value,
+        }));
+      setProposal({
+        stats: statsArray.length > 0 ? statsArray : SAMPLE_STATS,
+        foundationalSkills: p.foundationalSkills || null,
+        startingLoadout: p.startingLoadout || null,
+        factionStandings: p.factionStandings || null,
+        _fallback: statsArray.length === 0,
+      });
     } catch (err) {
       // TODO: remove SAMPLE_STATS fallback when API is stable
       console.log('Proposal generation failed, using fallback:', err.message);
