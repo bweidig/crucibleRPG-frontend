@@ -2789,6 +2789,7 @@ function PlayPageInner() {
 
   // --- Fetch game state ---
   const gameLoadedRef = useRef(false);
+  const firstTurnFired = useRef(false);
   useEffect(() => {
     if (!authChecked || !gameId) return;
     let cancelled = false;
@@ -3013,6 +3014,30 @@ function PlayPageInner() {
     authChecked && gameId && !loading && !error ? gameId : null,
     handleSSEEvent
   );
+
+  // --- Auto-trigger first turn for new games ---
+  useEffect(() => {
+    if (firstTurnFired.current) return;
+    if (!gameLoadedRef.current || !connected || !gameId) return;
+    // Only fire if no turns exist (fresh game)
+    const isFreshGame = turns.length === 0 && !streamingTurn && !isStreaming;
+    const noTurnsOnServer = !gameState?.clock?.totalTurn;
+    if (isFreshGame && noTurnsOnServer) {
+      firstTurnFired.current = true;
+      console.log('Auto-triggering first turn for new game');
+      setWaiting(true);
+      setStreamingTurn({
+        turn: 1, location: null, time: null, weather: null,
+        resolution: null, narrative: [], statusChanges: [], options: [],
+      });
+      api.post(`/api/game/${gameId}/action`, { type: 'custom', text: 'Begin the adventure' })
+        .catch(err => {
+          console.error('First turn trigger failed:', err.message || err);
+          setWaiting(false);
+          setStreamingTurn(null);
+        });
+    }
+  }, [connected, gameId, turns.length, streamingTurn, isStreaming, gameState]);
 
   // --- Action submission ---
   const handleSubmitAction = useCallback(async (action) => {
