@@ -672,9 +672,22 @@ function NarrativeText({ t, sz, segments, streaming }) {
   if (!segments || segments.length === 0) {
     return streaming ? <span style={{ color: t.accent }}>|</span> : null;
   }
+
+  // Extract display text from a segment, handling various shapes
+  const getSegText = (seg) => {
+    if (typeof seg === 'string') return seg;
+    if (typeof seg?.text === 'string') return seg.text;
+    if (typeof seg?.content === 'string') return seg.content;
+    if (typeof seg?.narrative === 'string') return seg.narrative;
+    if (typeof seg?.chunk === 'string') return seg.chunk;
+    return '';
+  };
+
   return (
     <span>
       {segments.map((seg, i) => {
+        const displayText = getSegText(seg);
+        if (!displayText) return null;
         if (seg.entity) {
           return (
             <span
@@ -692,10 +705,10 @@ function NarrativeText({ t, sz, segments, streaming }) {
                 e.currentTarget.style.color = '';
                 e.currentTarget.style.borderBottomColor = 'transparent';
               }}
-            >{seg.text}</span>
+            >{displayText}</span>
           );
         }
-        return <span key={i}>{seg.text}</span>;
+        return <span key={i}>{displayText}</span>;
       })}
       {streaming && <span style={{ color: t.accent, animation: 'blink 1s step-end infinite' }}>|</span>}
     </span>
@@ -2822,7 +2835,7 @@ function PlayPageInner() {
         const rawNarrative = Array.isArray(data.recentNarrative) ? data.recentNarrative : [];
         const history = rawNarrative.map((entry, i) => ({
           turn: entry.turn || 0,
-          narrative: [{ text: entry.content || '' }],
+          narrative: [{ text: (entry.content || '').replace(/\\n/g, '\n') }],
           resolution: null,
           statusChanges: [],
           options: (i === rawNarrative.length - 1) ? mappedOptions : [],
@@ -2961,11 +2974,12 @@ function PlayPageInner() {
         options: prev?.options || [],
       }));
     } else if (type === 'turn:narrative') {
+      console.log('turn:narrative event:', { chunkType: typeof event.chunk, textType: typeof event.text, keys: Object.keys(event), chunk: typeof event.chunk === 'string' ? event.chunk.slice(0, 100) : event.chunk });
       setStreamingTurn(prev => {
         if (!prev) return prev;
         const rawChunk = event.chunk || event.text || '';
         // Ensure chunk is a string — never append objects or JSON to narrative
-        const chunk = typeof rawChunk === 'string' ? rawChunk : '';
+        const chunk = typeof rawChunk === 'string' ? rawChunk.replace(/\\n/g, '\n') : '';
         if (!chunk) return prev;
         const narrative = [...(prev.narrative || [])];
         // Append to last segment or create new one
@@ -3053,6 +3067,8 @@ function PlayPageInner() {
   // --- Process sync action response into turn display ---
   const processSyncActionResponse = useCallback((res) => {
     if (!res) return;
+    console.log('processSyncActionResponse called with:', JSON.stringify(res).slice(0, 500));
+    console.log('res.narrative type:', typeof res.narrative, 'value:', typeof res.narrative === 'string' ? res.narrative.slice(0, 200) : res.narrative);
     // Map options from backend shape ({ label, text }) to frontend shape ({ id, text })
     const options = Array.isArray(res.options) ? res.options.map(opt => ({
       id: opt.label || opt.id || opt.key,
@@ -3071,7 +3087,7 @@ function PlayPageInner() {
       time: null,
       weather: null,
       resolution: res.resolution ? transformResolution(res.resolution) : null,
-      narrative: typeof res.narrative === 'string' ? [{ text: res.narrative }] : [],
+      narrative: typeof res.narrative === 'string' ? [{ text: res.narrative.replace(/\\n/g, '\n') }] : [],
       statusChanges: [],
       options,
     };
