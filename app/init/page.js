@@ -1963,8 +1963,11 @@ function InitWizardInner() {
   };
 
   const saveAttributes = async () => {
+    const statsArray = adjustedStats || proposal?.stats || SAMPLE_STATS;
+    const statsObject = {};
+    statsArray.forEach(s => { statsObject[s.abbr || s.name.slice(0, 3).toUpperCase()] = s.value; });
     await api.post(`/api/init/${gameId}/adjust-proposal`, {
-      stats: adjustedStats || proposal?.stats || SAMPLE_STATS,
+      stats: statsObject,
       accepted: true,
     });
   };

@@ -65,6 +65,7 @@
 - **Remaining init API contract fixes:** Three phases fixed in `app/init/page.js`. (1) `saveCharacter`: `pronouns` renamed to `gender`, uses `customPronouns` value when present. (2) `fetchScenarios`: intensity value capitalized before sending (e.g., 'calm' → 'Calm'). (3) `saveScenario`: `scenarioKey` renamed to `scenarioIndex`, values remapped (A→0, B→1, C→2, D→'custom'), `customStart` wrapped in `{ description: "..." }` object.
 - **World-status polling response field fix:** `pollWorldStatus()` in `app/init/page.js`. Checked `res.world_gen_status` but backend returns `{ status: 'complete', ready: true }`. Changed to `res.status === 'complete'`.
 - **Generate-proposal response handling fix:** `generateProposal()` in `app/init/page.js`. Extracts `res.proposal`, transforms `stats` from backend object format (`{ STR: 4, DEX: 5.5, ... }`) into array format Phase4 expects (`[{ name, abbr, emoji, value }]`). Includes POT (Potency) when present. Stores `foundationalSkills`, `startingLoadout`, `factionStandings` on proposal object for future use. Falls back to SAMPLE_STATS if transform yields empty array.
+- **Adjust-proposal stats format fix:** `saveAttributes()` in `app/init/page.js`. Transforms stats array back to object format (`{ STR: 4, DEX: 5.5, ... }`) before POSTing, using `abbr` field as key. Backend expects object, frontend was sending display array.
 
 ---
 
