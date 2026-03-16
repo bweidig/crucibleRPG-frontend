@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import styles from './page.module.css';
 
@@ -103,7 +104,9 @@ function LoadingRing({ progress }) {
   );
 }
 
-export default function LoadingScreen() {
+function LoadingScreenInner() {
+  const searchParams = useSearchParams();
+  const gameId = searchParams.get('gameId') || searchParams.get('id');
   const [progress, setProgress] = useState(0);
   const [tipIndex, setTipIndex] = useState(0);
   const [loreIndex, setLoreIndex] = useState(0);
@@ -224,7 +227,7 @@ export default function LoadingScreen() {
           transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
           pointerEvents: complete ? 'auto' : 'none',
         }}>
-          <Link href="/play" className={complete ? styles.enterBtnShimmer : styles.enterBtn}>
+          <Link href={gameId ? `/play?gameId=${gameId}` : '/menu'} className={complete ? styles.enterBtnShimmer : styles.enterBtn}>
             ENTER THE WORLD
           </Link>
         </div>
@@ -272,5 +275,13 @@ export default function LoadingScreen() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function LoadingScreen() {
+  return (
+    <Suspense fallback={null}>
+      <LoadingScreenInner />
+    </Suspense>
   );
 }

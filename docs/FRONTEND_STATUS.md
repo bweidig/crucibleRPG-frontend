@@ -66,6 +66,7 @@
 - **World-status polling response field fix:** `pollWorldStatus()` in `app/init/page.js`. Checked `res.world_gen_status` but backend returns `{ status: 'complete', ready: true }`. Changed to `res.status === 'complete'`.
 - **Generate-proposal response handling fix:** `generateProposal()` in `app/init/page.js`. Extracts `res.proposal`, transforms `stats` from backend object format (`{ STR: 4, DEX: 5.5, ... }`) into array format Phase4 expects (`[{ name, abbr, emoji, value }]`). Includes POT (Potency) when present. Stores `foundationalSkills`, `startingLoadout`, `factionStandings` on proposal object for future use. Falls back to SAMPLE_STATS if transform yields empty array.
 - **Adjust-proposal stats format fix:** `saveAttributes()` in `app/init/page.js`. Transforms stats array back to object format (`{ STR: 4, DEX: 5.5, ... }`) before POSTing, using `abbr` field as key. Backend expects object, frontend was sending display array.
+- **Loading page gameId passthrough fix:** `app/loading/page.js`. Page ignored `?gameId=` param from init wizard and linked to `/play` with no gameId, causing redirect to `/menu`. Now reads gameId from URL params and passes it to `/play?gameId=...`. Falls back to `/menu` if no gameId. Added Suspense wrapper for `useSearchParams`.
 
 ---
 
