@@ -262,8 +262,12 @@ function useSSE(gameId, onEvent) {
       try {
         const data = JSON.parse(e.data);
         if (data.type === 'heartbeat') return;
-        onEventRef.current(data);
-      } catch { /* ignore parse errors */ }
+        // Only process messages with recognized turn event types
+        // Named SSE events are handled by addEventListener above
+        if (data.type && data.type.startsWith('turn:')) {
+          onEventRef.current(data);
+        }
+      } catch { /* ignore parse errors — non-JSON messages are not for us */ }
     };
 
     // Named event handlers
@@ -2959,7 +2963,10 @@ function PlayPageInner() {
     } else if (type === 'turn:narrative') {
       setStreamingTurn(prev => {
         if (!prev) return prev;
-        const chunk = event.chunk || event.text || '';
+        const rawChunk = event.chunk || event.text || '';
+        // Ensure chunk is a string — never append objects or JSON to narrative
+        const chunk = typeof rawChunk === 'string' ? rawChunk : '';
+        if (!chunk) return prev;
         const narrative = [...(prev.narrative || [])];
         // Append to last segment or create new one
         if (narrative.length > 0 && !narrative[narrative.length - 1].entity) {
@@ -3003,7 +3010,13 @@ function PlayPageInner() {
         }));
       }
     } else if (type === 'turn:actions') {
-      setStreamingTurn(prev => prev ? { ...prev, options: event.options || [] } : prev);
+      const rawOptions = Array.isArray(event.options) ? event.options : [];
+      const mappedOptions = rawOptions.map(opt => ({
+        id: opt.label || opt.id || opt.key,
+        text: opt.text || '',
+        ...opt,
+      }));
+      setStreamingTurn(prev => prev ? { ...prev, options: mappedOptions } : prev);
     } else if (type === 'turn:complete') {
       // Finalize the streaming turn and add it to history
       setStreamingTurn(prev => {
@@ -3058,12 +3071,11 @@ function PlayPageInner() {
       time: null,
       weather: null,
       resolution: res.resolution ? transformResolution(res.resolution) : null,
-      narrative: res.narrative ? [{ text: res.narrative }] : [],
+      narrative: typeof res.narrative === 'string' ? [{ text: res.narrative }] : [],
       statusChanges: [],
       options,
     };
 
-    syncResponseHandled.current = true;
     setStreamingTurn(null);
     setTurns(prev => [...prev, completedTurn]);
     setIsStreaming(false);
