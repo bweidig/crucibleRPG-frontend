@@ -1899,7 +1899,7 @@ function InitWizardInner() {
   const pollWorldStatus = async () => {
     try {
       const res = await api.get(`/api/init/${gameId}/world-status`);
-      if (res.world_gen_status === 'complete') {
+      if (res.status === 'complete') {
         setWorldGenStatus('complete');
         return;
       }

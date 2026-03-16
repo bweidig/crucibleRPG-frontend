@@ -63,6 +63,7 @@
 - **Storyteller selection capitalization fix:** Backend expects capitalized storyteller names (e.g., 'Bard'), frontend was sending lowercase ids (e.g., 'bard'). Added capitalization to POST body.
 - **Setting POST body field name fix:** `saveSetting()` in `app/init/page.js`. Three mismatches: `settingType` renamed to `selection` (now sends display name via SETTINGS lookup, e.g., 'Sword & Soil'), `freeformText` renamed to `customText`, `parameters` renamed to `answers`.
 - **Remaining init API contract fixes:** Three phases fixed in `app/init/page.js`. (1) `saveCharacter`: `pronouns` renamed to `gender`, uses `customPronouns` value when present. (2) `fetchScenarios`: intensity value capitalized before sending (e.g., 'calm' → 'Calm'). (3) `saveScenario`: `scenarioKey` renamed to `scenarioIndex`, values remapped (A→0, B→1, C→2, D→'custom'), `customStart` wrapped in `{ description: "..." }` object.
+- **World-status polling response field fix:** `pollWorldStatus()` in `app/init/page.js`. Checked `res.world_gen_status` but backend returns `{ status: 'complete', ready: true }`. Changed to `res.status === 'complete'`.
 
 ---
 
