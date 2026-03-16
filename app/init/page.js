@@ -1412,18 +1412,22 @@ function Phase3({ character, onChange, hasArchetypes, availableArchetypes, chara
   );
 }
 
-function Phase4({ stats: initialStats }) {
+function Phase4({ stats: initialStats, onStatsChange }) {
   const [editing, setEditing] = useState(false);
   const [stats, setStats] = useState(initialStats);
 
   const hasDeviation = stats.some((s, i) => Math.abs(s.value - initialStats[i].value) > 2.0);
 
   const handleStatChange = (name, delta) => {
-    setStats(prev => prev.map(s => {
-      if (s.name !== name) return s;
-      const newVal = Math.min(20.0, Math.max(1.0, Math.round((s.value + delta) * 10) / 10));
-      return { ...s, value: newVal };
-    }));
+    setStats(prev => {
+      const next = prev.map(s => {
+        if (s.name !== name) return s;
+        const newVal = Math.min(20.0, Math.max(1.0, Math.round((s.value + delta) * 10) / 10));
+        return { ...s, value: newVal };
+      });
+      if (onStatsChange) onStatsChange(next);
+      return next;
+    });
   };
 
   const getTier = (val) => {
@@ -1718,7 +1722,9 @@ function Phase6({ intensity, setIntensity, scenario, setScenario, customStartTex
 function InitWizardInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const gameId = searchParams.get('gameId');
+  const urlGameId = searchParams.get('gameId') || searchParams.get('id');
+  const [createdGameId, setCreatedGameId] = useState(null);
+  const gameId = urlGameId || createdGameId;
 
   // --- Core wizard state ---
   const [phase, setPhase] = useState(0);
@@ -1746,12 +1752,25 @@ function InitWizardInner() {
   const [worldGenStatus, setWorldGenStatus] = useState(null); // null, 'generating', 'complete', 'error'
   const [proposalLoading, setProposalLoading] = useState(false);
   const [proposal, setProposal] = useState(null);
+  const [adjustedStats, setAdjustedStats] = useState(null);
   const worldPollRef = useRef(null);
 
-  // --- Create game if no gameId in URL ---
-  // TODO: When no gameId is present, POST /api/games to create a new game
-  // and set gameId from the response. For now, the wizard works without one
-  // and API calls will fail gracefully with error messages.
+  // --- Create game on mount if no gameId in URL ---
+  useEffect(() => {
+    if (urlGameId || createdGameId) return;
+    const createGame = async () => {
+      try {
+        const res = await api.post('/api/games/new', {});
+        if (res.id || res.gameId) {
+          setCreatedGameId(res.id || res.gameId);
+        }
+      } catch (err) {
+        // Game creation failed -- wizard still works locally, API calls will fail gracefully
+        console.log('Game creation not available:', err.message);
+      }
+    };
+    createGame();
+  }, [urlGameId, createdGameId]);
 
   // --- Fetch world snapshots on mount ---
   useEffect(() => {
@@ -1859,6 +1878,7 @@ function InitWizardInner() {
 
   const generateProposal = async () => {
     setProposalLoading(true);
+    setAdjustedStats(null);
     try {
       const res = await api.post(`/api/games/${gameId}/init/generate-proposal`);
       setProposal(res);
@@ -1872,9 +1892,8 @@ function InitWizardInner() {
   };
 
   const saveAttributes = async () => {
-    // TODO: send actual adjusted stats from Phase4 component
     await api.post(`/api/games/${gameId}/init/adjust-proposal`, {
-      stats: proposal?.stats || SAMPLE_STATS,
+      stats: adjustedStats || proposal?.stats || SAMPLE_STATS,
       accepted: true,
     });
   };
@@ -1913,8 +1932,7 @@ function InitWizardInner() {
   const handleNext = async () => {
     if (!canAdvance() || saving) return;
 
-    // If no gameId, skip API calls and advance locally
-    // TODO: remove this bypass once game creation is wired up from /menu
+    // If no gameId yet (creation pending or failed), advance locally
     if (!gameId) {
       if (phase === 5) {
         router.push('/loading');
@@ -2062,7 +2080,7 @@ function InitWizardInner() {
               </div>
             </div>
           ) : (
-            <Phase4 stats={proposal?.stats || SAMPLE_STATS} />
+            <Phase4 stats={proposal?.stats || SAMPLE_STATS} onStatsChange={setAdjustedStats} />
           )
         )}
         {phase === 4 && <Phase5 selected={difficulty} onSelect={setDifficulty} />}
