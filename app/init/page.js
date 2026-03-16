@@ -1902,7 +1902,7 @@ function InitWizardInner() {
     switch (phase) {
       case 0: return !!storyteller;
       case 1: return !!setting;
-      case 2: return character.name.trim().length > 0 && worldGenStatus === 'complete';
+      case 2: return character.name.trim().length > 0 && (!gameId || worldGenStatus === 'complete');
       case 3: return !proposalLoading;
       case 4: return !!difficulty;
       case 5: return !!scenario;
@@ -1912,6 +1912,17 @@ function InitWizardInner() {
 
   const handleNext = async () => {
     if (!canAdvance() || saving) return;
+
+    // If no gameId, skip API calls and advance locally
+    // TODO: remove this bypass once game creation is wired up from /menu
+    if (!gameId) {
+      if (phase === 5) {
+        router.push('/loading');
+      } else {
+        setPhase(p => p + 1);
+      }
+      return;
+    }
 
     setSaving(true);
     setError(null);
