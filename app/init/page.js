@@ -1657,7 +1657,7 @@ function Phase5({ selected, onSelect }) {
   );
 }
 
-function Phase6({ intensity, setIntensity, scenario, setScenario, customStartText, setCustomStartText }) {
+function Phase6({ intensity, setIntensity, scenario, setScenario, customStartText, setCustomStartText, scenariosLoading, displayScenarios }) {
   return (
     <div>
       <PhaseTitle title="Your Opening Scene" subtitle="How does your story begin?" />
@@ -1688,25 +1688,37 @@ function Phase6({ intensity, setIntensity, scenario, setScenario, customStartTex
         color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase',
         display: 'block', marginBottom: 14,
       }}>Starting Scenario</label>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {SCENARIOS.map(s => (
-          <SelectionCard key={s.key} item={s} selected={scenario} onSelect={setScenario}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-              <IconBox name={s.icon} color={scenario === s.key ? 'var(--accent-gold)' : 'var(--text-muted)'} />
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
-                  <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 700, color: 'var(--accent-gold)' }}>Option {s.key}</span>
-                  <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 17, fontWeight: 600, color: 'var(--text-heading)' }}>{s.name}</span>
-                  <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>{s.type}</span>
-                </div>
-                <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>{s.desc}</p>
-              </div>
-            </div>
-          </SelectionCard>
-        ))}
-      </div>
 
-      {scenario === 'D' && (
+      {scenariosLoading ? (
+        <div style={{ textAlign: 'center', padding: '48px 0' }}>
+          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 17, color: 'var(--accent-gold)' }}>
+            Generating scenarios...
+          </div>
+          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-muted)', marginTop: 10 }}>
+            Crafting opening scenes for your adventure
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {displayScenarios.map(s => (
+            <SelectionCard key={s.key} item={s} selected={scenario} onSelect={setScenario}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                <IconBox name={s.icon} color={scenario === s.key ? 'var(--accent-gold)' : 'var(--text-muted)'} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
+                    <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 700, color: 'var(--accent-gold)' }}>Option {s.key}</span>
+                    <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 17, fontWeight: 600, color: 'var(--text-heading)' }}>{s.name}</span>
+                    <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>{s.type}</span>
+                  </div>
+                  <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>{s.desc}</p>
+                </div>
+              </div>
+            </SelectionCard>
+          ))}
+        </div>
+      )}
+
+      {scenario === 'D' && !scenariosLoading && (
         <textarea value={customStartText} onChange={e => setCustomStartText(e.target.value)} placeholder="Describe how your story begins..." className={styles.wizardInput} style={{
           width: '100%', minHeight: 90, marginTop: 14, background: 'var(--bg-main)', border: '1px solid var(--border-gold-faint)',
           borderRadius: 8, padding: 16, fontFamily: 'var(--font-alegreya)', fontSize: 16,
@@ -1753,7 +1765,14 @@ function InitWizardInner() {
   const [proposalLoading, setProposalLoading] = useState(false);
   const [proposal, setProposal] = useState(null);
   const [adjustedStats, setAdjustedStats] = useState(null);
+  const [scenariosLoading, setScenariosLoading] = useState(false);
+  const [generatedScenarios, setGeneratedScenarios] = useState(null);
+  const [scenariosFetchedIntensity, setScenariosFetchedIntensity] = useState(null);
   const worldPollRef = useRef(null);
+
+  // --- Connection state ---
+  const [connectionFailed, setConnectionFailed] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
   // --- Create game on mount if no gameId in URL ---
   useEffect(() => {
@@ -1763,14 +1782,32 @@ function InitWizardInner() {
         const res = await api.post('/api/games/new', {});
         if (res.id || res.gameId) {
           setCreatedGameId(res.id || res.gameId);
+          setConnectionFailed(false);
+        } else {
+          setConnectionFailed(true);
         }
       } catch (err) {
-        // Game creation failed -- wizard still works locally, API calls will fail gracefully
         console.log('Game creation not available:', err.message);
+        setConnectionFailed(true);
       }
     };
     createGame();
   }, [urlGameId, createdGameId]);
+
+  const retryConnection = async () => {
+    setRetrying(true);
+    try {
+      const res = await api.post('/api/games/new', {});
+      if (res.id || res.gameId) {
+        setCreatedGameId(res.id || res.gameId);
+        setConnectionFailed(false);
+      }
+    } catch (err) {
+      console.log('Retry failed:', err.message);
+    } finally {
+      setRetrying(false);
+    }
+  };
 
   // --- Fetch world snapshots on mount ---
   useEffect(() => {
@@ -1796,6 +1833,13 @@ function InitWizardInner() {
       generateProposal();
     }
   }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // --- Fetch scenarios when entering Phase 6 or when intensity changes ---
+  useEffect(() => {
+    if (phase === 5 && gameId && intensity !== scenariosFetchedIntensity) {
+      fetchScenarios(intensity);
+    }
+  }, [phase, intensity]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Clear error on phase change or input ---
   useEffect(() => {
@@ -1905,10 +1949,42 @@ function InitWizardInner() {
     });
   };
 
+  const fetchScenarios = async (intensityId) => {
+    setScenariosLoading(true);
+    setScenario(null);
+    try {
+      const res = await api.post(`/api/games/${gameId}/init/generate-scenarios`, {
+        intensity: intensityId,
+      });
+      const scenarios = res.scenarios || res;
+      if (Array.isArray(scenarios) && scenarios.length > 0) {
+        // Map API response to match SCENARIOS shape (key, name, type, icon, desc)
+        const mapped = scenarios.map((s, i) => ({
+          key: s.key || String.fromCharCode(65 + i),
+          name: s.name || s.title || `Scenario ${String.fromCharCode(65 + i)}`,
+          type: s.type || s.category || '',
+          icon: s.icon || SCENARIOS[i]?.icon || 'custom_start',
+          desc: s.desc || s.description || '',
+        }));
+        // Always include Option D (Custom Start) if API didn't provide it
+        if (!mapped.find(s => s.key === 'D')) {
+          mapped.push(SCENARIOS[3]); // Custom Start
+        }
+        setGeneratedScenarios(mapped);
+      } else {
+        setGeneratedScenarios(null); // fall back to SCENARIOS
+      }
+      setScenariosFetchedIntensity(intensityId);
+    } catch (err) {
+      console.log('Scenario generation failed, using fallback:', err.message);
+      setGeneratedScenarios(null);
+      setScenariosFetchedIntensity(intensityId);
+    } finally {
+      setScenariosLoading(false);
+    }
+  };
+
   const saveScenario = async () => {
-    await api.post(`/api/games/${gameId}/init/generate-scenarios`, {
-      intensity: intensity,
-    });
     const body = scenario === 'D'
       ? { scenarioKey: 'D', customStart: customStartText }
       : { scenarioKey: scenario };
@@ -1924,7 +2000,7 @@ function InitWizardInner() {
       case 2: return character.name.trim().length > 0 && (!gameId || worldGenStatus === 'complete');
       case 3: return !proposalLoading;
       case 4: return !!difficulty;
-      case 5: return !!scenario;
+      case 5: return !!scenario && !scenariosLoading;
       default: return false;
     }
   };
@@ -2003,6 +2079,38 @@ function InitWizardInner() {
           </span>
         </Link>
       </div>
+
+      {/* Offline banner */}
+      {connectionFailed && !gameId && (
+        <div style={{
+          width: '100%', maxWidth: 740, margin: '0 auto', padding: '12px 28px 0',
+          boxSizing: 'border-box',
+        }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+            background: '#1a1610', border: '1px solid #3d3322', borderRadius: 6,
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#d4a84b',
+          }}>
+            <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>&#9888;</span>
+            <span style={{ flex: 1 }}>
+              Unable to connect to the server. Your progress won't be saved. Check your connection and refresh to try again.
+            </span>
+            <button
+              onClick={retryConnection}
+              disabled={retrying}
+              style={{
+                fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600,
+                color: retrying ? 'var(--text-dim)' : '#d4a84b',
+                background: 'transparent', border: '1px solid #3d3322', borderRadius: 4,
+                padding: '6px 14px', cursor: retrying ? 'default' : 'pointer',
+                letterSpacing: '0.04em', whiteSpace: 'nowrap', flexShrink: 0,
+              }}
+            >
+              {retrying ? 'RETRYING...' : 'RETRY CONNECTION'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div style={{
@@ -2084,7 +2192,7 @@ function InitWizardInner() {
           )
         )}
         {phase === 4 && <Phase5 selected={difficulty} onSelect={setDifficulty} />}
-        {phase === 5 && <Phase6 intensity={intensity} setIntensity={setIntensity} scenario={scenario} setScenario={setScenario} customStartText={customStartText} setCustomStartText={setCustomStartText} />}
+        {phase === 5 && <Phase6 intensity={intensity} setIntensity={setIntensity} scenario={scenario} setScenario={setScenario} customStartText={customStartText} setCustomStartText={setCustomStartText} scenariosLoading={scenariosLoading} displayScenarios={generatedScenarios || SCENARIOS} />}
       </div>
 
       {/* Bottom Nav */}
