@@ -62,6 +62,52 @@ const SIZE_OPTIONS = [
   { id: 'xlarge', label: 'X-Large', narrative: 19, ui: 15, sidebar: 420 },
 ];
 
+const STAT_META = {
+  STR: { name: 'Strength', emoji: '\u{1F4AA}' },
+  DEX: { name: 'Dexterity', emoji: '\u{1F3C3}' },
+  CON: { name: 'Constitution', emoji: '\u{1F6E1}\uFE0F' },
+  INT: { name: 'Intelligence', emoji: '\u{1F9E0}' },
+  WIS: { name: 'Wisdom', emoji: '\u{1F441}\uFE0F' },
+  CHA: { name: 'Charisma', emoji: '\u{1F3AD}' },
+  POT: { name: 'Potency', emoji: '\u2728' },
+};
+
+function transformStats(statsObj) {
+  if (!statsObj || typeof statsObj !== 'object') return [];
+  if (Array.isArray(statsObj)) return statsObj;
+  return Object.entries(statsObj)
+    .filter(([abbr]) => STAT_META[abbr])
+    .map(([abbr, val]) => ({
+      name: STAT_META[abbr].name,
+      abbr,
+      emoji: STAT_META[abbr].emoji,
+      base: typeof val === 'object' ? val.base : val,
+      effective: typeof val === 'object' ? val.effective : val,
+    }));
+}
+
+function transformResolution(res) {
+  if (!res) return null;
+  if (res.text || res.compressed) return res;
+  return {
+    text: res.tierName || (res.tier ? `${res.tier}: ${res.tierName || ''}` : ''),
+    details: {
+      action: res.action || null,
+      stat: res.stat || null,
+      skill: res.skillUsed || null,
+      dc: res.dc || null,
+      total: res.total || null,
+      result: res.tierName || null,
+      d20Roll: Array.isArray(res.diceRolled) ? res.diceRolled.join(', ') : res.dieSelected || null,
+      crucibleRoll: res.dieSelected || null,
+    },
+    margin: res.margin,
+    tier: res.tier,
+    tierName: res.tierName,
+    isCombat: res.isCombat,
+  };
+}
+
 const SIDEBAR_TABS = [
   { id: 'character', label: 'Character' },
   { id: 'inventory', label: 'Inventory' },
@@ -669,8 +715,8 @@ function ActionPanel({ t, sz, options, onSubmit, waiting }) {
     <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
       {options.map(opt => (
         <button
-          key={opt.key}
-          onClick={() => onSubmit({ type: 'option', key: opt.key })}
+          key={opt.id || opt.key}
+          onClick={() => onSubmit({ type: 'option', key: opt.id || opt.key })}
           style={{
             display: 'flex', alignItems: 'flex-start', gap: 12,
             padding: '12px 16px', textAlign: 'left',
@@ -684,7 +730,7 @@ function ActionPanel({ t, sz, options, onSubmit, waiting }) {
           <span style={{
             fontFamily: "var(--font-cinzel)", fontSize: sz.narrative, fontWeight: 700,
             color: t.accent, flexShrink: 0, width: 24,
-          }}>{opt.key}</span>
+          }}>{opt.id || opt.key}</span>
           <span style={{
             fontFamily: 'inherit', fontSize: sz.narrative, color: t.actionText,
             lineHeight: 1.5,
@@ -884,7 +930,7 @@ function ConditionCard({ t, sz, condition, onClick }) {
         {'\u26A0\uFE0F'} {condition.name}: {condition.penalty} {condition.stat}
       </div>
       <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: t.textMuted, marginTop: 2 }}>
-        {condition.duration}{condition.escalation && condition.escalation !== 'None' ? ` \u00B7 Escalates: ${condition.escalation}` : ''}
+        {condition.durationType || condition.duration}{condition.escalation && condition.escalation !== 'None' ? ` \u00B7 Escalates: ${condition.escalation}` : ''}
       </div>
     </div>
   );
@@ -903,7 +949,7 @@ function SkillRow({ t, sz, skill, onClick }) {
         {skill.emoji || ''} {skill.name}
       </span>
       <span style={{ fontFamily: "var(--font-jetbrains)", fontSize: sz.ui, color: t.accent, fontWeight: 500 }}>
-        +{typeof skill.value === 'number' ? skill.value.toFixed(1) : skill.value}
+        +{typeof (skill.modifier ?? skill.value) === 'number' ? (skill.modifier ?? skill.value).toFixed(1) : (skill.modifier ?? skill.value)}
       </span>
     </div>
   );
@@ -924,10 +970,10 @@ function AbilityCard({ t, sz, ability }) {
 function CharacterTab({ t, sz, character, onEntityClick }) {
   if (!character) return <div style={{ fontFamily: "var(--font-alegreya)", fontSize: sz.ui, fontStyle: 'italic', color: t.textDim, textAlign: 'center', paddingTop: 30 }}>No character data</div>;
 
-  const stats = character.stats || [];
-  const skills = character.skills || [];
-  const abilities = character.abilities || [];
-  const conditions = character.conditions || [];
+  const stats = Array.isArray(character.stats) ? character.stats : transformStats(character.stats);
+  const skills = Array.isArray(character.skills) ? character.skills : [];
+  const abilities = Array.isArray(character.abilities) ? character.abilities : [];
+  const conditions = Array.isArray(character.conditions) ? character.conditions : [];
 
   return (
     <div>
@@ -1031,7 +1077,7 @@ function Paperdoll({ t, sz, equipped, onEntityClick }) {
 function ResourceBoxes({ t, sz, inventory, currencyLabel }) {
   const rations = inventory?.rations ?? 0;
   const water = inventory?.water ?? 0;
-  const coins = inventory?.coins ?? 0;
+  const coins = inventory?.currency?.raw ?? inventory?.coins ?? 0;
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 12 }}>
       {[
@@ -1100,7 +1146,7 @@ function InventoryItemRow({ t, sz, item, onClick }) {
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, marginLeft: 6 }}>
         <span style={{ fontFamily: "var(--font-jetbrains)", fontSize: 10, color: durColor, fontWeight: 600 }}>{item.durability}/{item.maxDurability}</span>
-        <span style={{ fontFamily: "var(--font-jetbrains)", fontSize: 10, color: t.textDim }}>{(item.slots || 0).toFixed(1)}</span>
+        <span style={{ fontFamily: "var(--font-jetbrains)", fontSize: 10, color: t.textDim }}>{(item.slotCost ?? item.slots ?? 0).toFixed(1)}</span>
       </div>
     </div>
   );
@@ -1109,9 +1155,9 @@ function InventoryItemRow({ t, sz, item, onClick }) {
 function InventoryTab({ t, sz, inventory, equipped, currencyLabel, onEntityClick }) {
   if (!inventory) return <div style={{ fontFamily: "var(--font-alegreya)", fontSize: sz.ui, fontStyle: 'italic', color: t.textDim, textAlign: 'center', paddingTop: 30 }}>No inventory data</div>;
 
-  const items = inventory.items || [];
-  const current = inventory.current ?? 0;
-  const max = inventory.max ?? 10;
+  const items = Array.isArray(inventory.carried) ? inventory.carried : Array.isArray(inventory.items) ? inventory.items : [];
+  const current = inventory.usedSlots ?? inventory.current ?? 0;
+  const max = inventory.maxSlots ?? inventory.max ?? 10;
 
   return (
     <div>
@@ -1357,7 +1403,7 @@ function GlossaryTab({ t, sz, glossary, onEntityClick }) {
 // TODO: Replace with interactive node map from node-map-v2.jsx
 
 function MapTab({ t, sz, locations, routes, onEntityClick }) {
-  const currentLoc = (locations || []).find(l => l.current);
+  const currentLoc = (locations || []).find(l => l.status === 'current' || l.current);
 
   return (
     <div>
@@ -1385,14 +1431,14 @@ function MapTab({ t, sz, locations, routes, onEntityClick }) {
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
         >
           <div style={{
-            width: loc.current ? 10 : 7, height: loc.current ? 10 : 7,
+            width: (loc.status === 'current' || loc.current) ? 10 : 7, height: (loc.status === 'current' || loc.current) ? 10 : 7,
             borderRadius: '50%', flexShrink: 0,
-            background: loc.current ? t.accent : t.textDim,
-            border: loc.current ? `2px solid ${t.accent}` : 'none',
+            background: (loc.status === 'current' || loc.current) ? t.accent : t.textDim,
+            border: (loc.status === 'current' || loc.current) ? `2px solid ${t.accent}` : 'none',
           }} />
           <span style={{
             fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui,
-            color: loc.current ? t.accent : t.textMuted, fontWeight: loc.current ? 600 : 400,
+            color: (loc.status === 'current' || loc.current) ? t.accent : t.textMuted, fontWeight: (loc.status === 'current' || loc.current) ? 600 : 400,
           }}>{loc.name}</span>
           {loc.type && <span style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 2, color: t.textFaint, fontStyle: 'italic', marginLeft: 'auto' }}>{loc.type}</span>}
         </div>
@@ -1401,14 +1447,19 @@ function MapTab({ t, sz, locations, routes, onEntityClick }) {
       {/* Routes */}
       {routes && routes.length > 0 && (
         <PanelSection t={t} title="Routes" defaultOpen={false}>
-          {routes.map((route, i) => (
-            <div key={i} style={{
-              fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: t.textDim,
-              padding: '4px 0',
-            }}>
-              {route.from} {'\u2192'} {route.to}{route.travelTime ? ` (${route.travelTime})` : ''}
-            </div>
-          ))}
+          {routes.map((route, i) => {
+            const fromName = route.from || (locations || []).find(l => l.id === route.origin)?.name || route.origin;
+            const toName = route.to || (locations || []).find(l => l.id === route.destination)?.name || route.destination;
+            const travel = route.travelTime || (route.travelDays ? `${route.travelDays}d` : null);
+            return (
+              <div key={route.id || i} style={{
+                fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: t.textDim,
+                padding: '4px 0',
+              }}>
+                {fromName} {'\u2192'} {toName}{travel ? ` (${travel})` : ''}
+              </div>
+            );
+          })}
         </PanelSection>
       )}
     </div>
@@ -1695,9 +1746,10 @@ function SettingsModal({ t, sz, gameId, onClose, displaySettings, updateDisplay,
     if (!gameId) return;
     setSaving(true);
     try {
+      const capitalized = storyteller.charAt(0).toUpperCase() + storyteller.slice(1);
       const body = storyteller === 'custom'
-        ? { selection: 'custom', customText: customStorytellerText }
-        : { selection: storyteller };
+        ? { selection: 'Custom', customText: customStorytellerText }
+        : { selection: capitalized };
       await api.put(`/api/game/${gameId}/settings/storyteller`, body);
       setFeedback('Storyteller updated');
       setTimeout(() => setFeedback(null), 2000);
@@ -1709,7 +1761,7 @@ function SettingsModal({ t, sz, gameId, onClose, displaySettings, updateDisplay,
     if (!gameId) return;
     setSaving(true);
     try {
-      await api.put(`/api/game/${gameId}/settings/difficulty`, { preset: diffPreset, ...dials });
+      await api.put(`/api/game/${gameId}/settings/difficulty`, { preset: diffPreset, dials });
       setFeedback('Difficulty updated');
       setTimeout(() => setFeedback(null), 2000);
     } catch { setFeedback('Failed to save'); }
@@ -2725,21 +2777,34 @@ function PlayPageInner() {
       try {
         const data = await api.get(`/api/games/${gameId}`);
         setGameState(data);
-        // Parse turn history from game state
-        const history = data.narrative || data.turns || data.recentHistory || [];
+        // Transform recentNarrative into turns format
+        const rawNarrative = Array.isArray(data.recentNarrative) ? data.recentNarrative : [];
+        const history = rawNarrative.map(entry => ({
+          turn: entry.turn || 0,
+          narrative: [{ text: entry.content || '' }],
+          resolution: null,
+          statusChanges: [],
+          options: [],
+        }));
         setTurns(history);
-        setSessionRecap(data.session_recap || data.sessionRecap || null);
+        setSessionRecap(data.sessionRecap || null);
         setBookmarks(loadBookmarks(gameId));
-        // Character + inventory
-        setCharacter(data.character || null);
-        setInventory(data.character?.inventory || data.inventory || null);
-        setEquipped(data.character?.equipped || data.equipped || {});
-        setCurrencyLabel(data.world?.currencyLabel || data.currencyLabel || 'Coins');
-        // NPCs, locations, objectives
-        setNpcs(data.npcs || []);
-        setLocations(data.locations || data.map?.locations || []);
-        setRoutes(data.routes || data.map?.routes || []);
-        setObjectives(data.objectives || data.quests || []);
+        // Character from game state (basic — full data comes from /character endpoint)
+        if (data.character) {
+          setCharacter({
+            ...data.character,
+            stats: transformStats(data.character.stats),
+          });
+        }
+        // Extract game settings for the settings modal
+        setGameSettings({
+          storyteller: data.storyteller?.toLowerCase() || 'chronicler',
+          difficultyPreset: data.difficultyPreset || data.difficulty || 'standard',
+          dials: data.dials || {},
+        });
+        // NPCs, locations, objectives not available at this endpoint
+        // TODO: No backend endpoint for NPCs list
+        // TODO: No backend endpoint for objectives list
       } catch (err) {
         setError(err.message || 'Failed to load game.');
       } finally {
@@ -2753,21 +2818,40 @@ function PlayPageInner() {
   useEffect(() => {
     if (!authChecked || !gameId || loading || error) return;
     const fetchSuppData = async () => {
+      // Character + inventory (detailed)
+      try {
+        const res = await api.get(`/api/game/${gameId}/character`);
+        if (res.character) {
+          setCharacter(prev => ({
+            ...(prev || {}),
+            ...res.character,
+            stats: transformStats(res.stats || prev?.stats),
+            skills: Array.isArray(res.skills) ? res.skills : [],
+            conditions: Array.isArray(res.conditions) ? res.conditions : [],
+            companions: Array.isArray(res.companions) ? res.companions : [],
+          }));
+        }
+        if (res.inventory) {
+          setInventory(res.inventory);
+          setEquipped(Array.isArray(res.inventory.equipped) ? res.inventory.equipped : []);
+          setCurrencyLabel(res.inventory.currency?.display || 'Coins');
+        }
+      } catch { /* endpoint may not be available */ }
       // Glossary
       try {
         const res = await api.get(`/api/game/${gameId}/glossary`);
-        setGlossary(res.entries || res.glossary || res || []);
+        setGlossary(Array.isArray(res.entries) ? res.entries : []);
       } catch { /* endpoint may not be available */ }
       // Map
       try {
         const res = await api.get(`/api/game/${gameId}/map`);
-        setLocations(res.locations || []);
-        setRoutes(res.routes || []);
+        setLocations(Array.isArray(res.locations) ? res.locations : []);
+        setRoutes(Array.isArray(res.routes) ? res.routes : []);
       } catch { /* endpoint may not be available */ }
       // Entity notes
       try {
         const res = await api.get(`/api/game/${gameId}/notes`);
-        setEntityNotes(res.notes || res || []);
+        setEntityNotes(Array.isArray(res.notes) ? res.notes : []);
       } catch { /* endpoint may not be available */ }
     };
     fetchSuppData();
@@ -2778,17 +2862,28 @@ function PlayPageInner() {
     const type = event.type || '';
 
     if (type === 'turn:resolution') {
+      // Backend sends { turn: { number, sessionTurn }, resolution: { ... } }
+      const turnInfo = event.turn || {};
+      const turnNumber = typeof turnInfo === 'object' ? turnInfo.number : turnInfo;
       setIsStreaming(true);
       setStreamingTurn(prev => ({
         ...(prev || {}),
-        turn: event.turn || prev?.turn,
+        turn: turnNumber || prev?.turn,
         total: event.total || prev?.total,
         location: event.location || prev?.location,
         time: event.time || prev?.time,
         timeEmoji: event.timeEmoji || prev?.timeEmoji,
         weather: event.weather || prev?.weather,
         weatherEmoji: event.weatherEmoji || prev?.weatherEmoji,
-        resolution: event.resolution || null,
+        resolution: transformResolution(event.resolution) || null,
+        diceRoll: event.resolution ? {
+          die: event.resolution.dieSelected,
+          category: event.resolution.isCombat ? 'COMBAT' : 'MATCHED',
+          mortal: Array.isArray(event.resolution.diceRolled) && event.resolution.diceRolled.length > 1
+            ? { die1: event.resolution.diceRolled[0], die2: event.resolution.diceRolled[1] }
+            : null,
+          kept: event.resolution.dieSelected,
+        } : null,
         narrative: prev?.narrative || [],
         statusChanges: prev?.statusChanges || [],
         options: prev?.options || [],
@@ -2796,7 +2891,7 @@ function PlayPageInner() {
     } else if (type === 'turn:narrative') {
       setStreamingTurn(prev => {
         if (!prev) return prev;
-        const chunk = event.text || event.chunk || '';
+        const chunk = event.chunk || event.text || '';
         const narrative = [...(prev.narrative || [])];
         // Append to last segment or create new one
         if (narrative.length > 0 && !narrative[narrative.length - 1].entity) {
@@ -2807,12 +2902,26 @@ function PlayPageInner() {
         return { ...prev, narrative };
       });
     } else if (type === 'turn:state_changes') {
-      const changes = event.changes || event.statusChanges || [];
+      // Backend sends { conditions, inventory, clock, quests, factions, stats }
+      // Build status change badges from the structured data
+      const changes = [];
+      if (event.conditions) {
+        (Array.isArray(event.conditions.added) ? event.conditions.added : []).forEach(c =>
+          changes.push({ type: 'condition_new', label: c.name || c, stat: c.stat, detail: c.penalty ? `${c.penalty} ${c.stat}` : null })
+        );
+        (Array.isArray(event.conditions.removed) ? event.conditions.removed : []).forEach(c =>
+          changes.push({ type: 'condition_cleared', label: c.name || c, stat: c.stat })
+        );
+      }
+      if (event.inventory) {
+        (Array.isArray(event.inventory.added) ? event.inventory.added : []).forEach(item =>
+          changes.push({ type: 'inventory_gained', label: item.name || item })
+        );
+        (Array.isArray(event.inventory.removed) ? event.inventory.removed : []).forEach(item =>
+          changes.push({ type: 'inventory_lost', label: item.name || item })
+        );
+      }
       setStreamingTurn(prev => prev ? { ...prev, statusChanges: changes } : prev);
-      // Update character/inventory from state changes
-      if (event.character) setCharacter(event.character);
-      if (event.inventory) setInventory(event.inventory);
-      if (event.equipped) setEquipped(event.equipped);
       // Update badge counts for new items/entities
       const invCount = changes.filter(c => c.type === 'inventory_gained').length;
       const npcCount = changes.filter(c => c.type === 'npc_introduced').length;
@@ -2965,7 +3074,7 @@ function PlayPageInner() {
   if (loading) return <LoadingState t={t} />;
   if (error) return <ErrorState t={t} message={error} />;
 
-  const worldName = gameState?.world?.name || gameState?.setting?.settingName || gameState?.settingName || null;
+  const worldName = gameState?.setting || null;
   const diceMode = displaySettings.instantMode ? 'instant' : 'efficient';
 
   return (
