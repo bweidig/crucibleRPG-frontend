@@ -1859,7 +1859,7 @@ function InitWizardInner() {
     const body = storyteller === 'custom'
       ? { selection: 'custom', customText: customStorytellerText }
       : { selection: storyteller };
-    await api.post(`/api/games/${gameId}/init/storyteller`, body);
+    await api.post(`/api/init/${gameId}/storyteller`, body);
   };
 
   const saveSetting = async () => {
@@ -1888,7 +1888,7 @@ function InitWizardInner() {
         freeformText: anythingElseText || null,
       };
     }
-    await api.post(`/api/games/${gameId}/init/setting`, body);
+    await api.post(`/api/init/${gameId}/setting`, body);
     // Start world generation polling
     setWorldGenStatus('generating');
     pollWorldStatus();
@@ -1896,7 +1896,7 @@ function InitWizardInner() {
 
   const pollWorldStatus = async () => {
     try {
-      const res = await api.get(`/api/games/${gameId}/init/world-status`);
+      const res = await api.get(`/api/init/${gameId}/world-status`);
       if (res.world_gen_status === 'complete') {
         setWorldGenStatus('complete');
         return;
@@ -1908,7 +1908,7 @@ function InitWizardInner() {
   };
 
   const saveCharacter = async () => {
-    await api.post(`/api/games/${gameId}/init/character`, {
+    await api.post(`/api/init/${gameId}/character`, {
       name: character.name.trim(),
       backstory: character.backstory || null,
       personality: character.personality || null,
@@ -1924,7 +1924,7 @@ function InitWizardInner() {
     setProposalLoading(true);
     setAdjustedStats(null);
     try {
-      const res = await api.post(`/api/games/${gameId}/init/generate-proposal`);
+      const res = await api.post(`/api/init/${gameId}/generate-proposal`);
       setProposal(res);
     } catch (err) {
       // TODO: remove SAMPLE_STATS fallback when API is stable
@@ -1936,7 +1936,7 @@ function InitWizardInner() {
   };
 
   const saveAttributes = async () => {
-    await api.post(`/api/games/${gameId}/init/adjust-proposal`, {
+    await api.post(`/api/init/${gameId}/adjust-proposal`, {
       stats: adjustedStats || proposal?.stats || SAMPLE_STATS,
       accepted: true,
     });
@@ -1944,7 +1944,7 @@ function InitWizardInner() {
 
   const saveDifficulty = async () => {
     // TODO: Use API presets when available, fall back to DIFFICULTIES
-    await api.post(`/api/games/${gameId}/init/difficulty`, {
+    await api.post(`/api/init/${gameId}/difficulty`, {
       preset: difficulty,
     });
   };
@@ -1953,7 +1953,7 @@ function InitWizardInner() {
     setScenariosLoading(true);
     setScenario(null);
     try {
-      const res = await api.post(`/api/games/${gameId}/init/generate-scenarios`, {
+      const res = await api.post(`/api/init/${gameId}/generate-scenarios`, {
         intensity: intensityId,
       });
       const scenarios = res.scenarios || res;
@@ -1988,7 +1988,7 @@ function InitWizardInner() {
     const body = scenario === 'D'
       ? { scenarioKey: 'D', customStart: customStartText }
       : { scenarioKey: scenario };
-    await api.post(`/api/games/${gameId}/init/select-scenario`, body);
+    await api.post(`/api/init/${gameId}/select-scenario`, body);
   };
 
   // --- Navigation ---

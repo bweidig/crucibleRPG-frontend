@@ -59,6 +59,7 @@
 - **Full API integration audit:** Audited every page and component. Results: Gameplay page (`/play`) fully wired. Init wizard phases all conditional on gameId (now working post-fix). Saved Games page entirely mock data. Loading page hardcoded. Glossary/map/notes silent fail by design.
 - **Offline banner:** `app/init/page.js`. Shows persistent amber warning banner when `POST /api/games/new` fails. Includes "Retry Connection" button. Banner auto-dismisses on successful retry or if gameId arrives via URL. Wizard still navigable in offline mode.
 - **Phase 6 scenario generation wired to API:** `app/init/page.js`. Root cause: `saveScenario()` called `generate-scenarios` and `select-scenario` at the same time on Continue click. The generate-scenarios response was never used; users always saw hardcoded SCENARIOS. Fix: `fetchScenarios()` now fires when entering Phase 6 or when intensity changes (gated on gameId). API response mapped to SCENARIOS shape. Loading state shown during fetch. Intensity changes clear selection and re-fetch. Hardcoded SCENARIOS kept as fallback. `saveScenario()` now only calls `select-scenario`.
+- **Init API base path fix:** `app/init/page.js`. All 9 init wizard API calls used `/api/games/{gameId}/init/...` but the backend mounts at `/api/init/{gameId}/...`. Every call was 404ing. Find-and-replace across all init endpoints.
 
 ---
 
@@ -167,15 +168,15 @@ All pending rgba/color fixes from previous sessions have been completed.
 ### Init Wizard (`/init`)
 | Endpoint | Method | Status |
 |----------|--------|--------|
-| `/api/games/:id/init/storyteller` | POST | Wired (skipped when no gameId) |
-| `/api/games/:id/init/setting` | POST | Wired |
-| `/api/games/:id/init/world-status` | GET | Wired (polls every 2s) |
-| `/api/games/:id/init/character` | POST | Wired |
-| `/api/games/:id/init/generate-proposal` | POST | Wired (fallback to SAMPLE_STATS) |
-| `/api/games/:id/init/adjust-proposal` | POST | Wired |
-| `/api/games/:id/init/difficulty` | POST | Wired |
-| `/api/games/:id/init/generate-scenarios` | POST | Wired (fires on phase entry + intensity change, fallback to hardcoded) |
-| `/api/games/:id/init/select-scenario` | POST | Wired |
+| `/api/init/:id/storyteller` | POST | Wired (skipped when no gameId) |
+| `/api/init/:id/setting` | POST | Wired |
+| `/api/init/:id/world-status` | GET | Wired (polls every 2s) |
+| `/api/init/:id/character` | POST | Wired |
+| `/api/init/:id/generate-proposal` | POST | Wired (fallback to SAMPLE_STATS) |
+| `/api/init/:id/adjust-proposal` | POST | Wired |
+| `/api/init/:id/difficulty` | POST | Wired |
+| `/api/init/:id/generate-scenarios` | POST | Wired (fires on phase entry + intensity change, fallback to hardcoded) |
+| `/api/init/:id/select-scenario` | POST | Wired |
 | `/api/world-snapshots` | GET | Wired (fails silently if unavailable) |
 
 ### Game Layout (`/play`)
