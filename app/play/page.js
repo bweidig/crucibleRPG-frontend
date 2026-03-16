@@ -2790,7 +2790,7 @@ function PlayPageInner() {
   // --- Fetch game state ---
   const gameLoadedRef = useRef(false);
   const firstTurnFired = useRef(false);
-  const syncResponseHandled = useRef(false);
+  const firstTurnSyncHandled = useRef(false);
   useEffect(() => {
     if (!authChecked || !gameId) return;
     let cancelled = false;
@@ -2920,13 +2920,11 @@ function PlayPageInner() {
   // --- SSE event handler ---
   const handleSSEEvent = useCallback((event) => {
     const type = event.type || '';
-    console.log('SSE event received:', type, 'syncResponseHandled:', syncResponseHandled.current);
 
-    // Skip turn events if the sync response is handling this turn
-    if (syncResponseHandled.current && (type.startsWith('turn:') && type !== 'turn:error')) {
+    // Skip SSE turn events if the first turn was already handled by sync response
+    if (firstTurnSyncHandled.current && type.startsWith('turn:')) {
       if (type === 'turn:complete') {
-        // Reset flag after the SSE stream finishes for this turn
-        syncResponseHandled.current = false;
+        firstTurnSyncHandled.current = false;
       }
       return;
     }
@@ -3081,7 +3079,6 @@ function PlayPageInner() {
     const noTurnsOnServer = !gameState?.clock?.totalTurn;
     if (isFreshGame && noTurnsOnServer) {
       firstTurnFired.current = true;
-      syncResponseHandled.current = true;
       console.log('Auto-triggering first turn for new game');
       setWaiting(true);
       setStreamingTurn({
@@ -3090,15 +3087,15 @@ function PlayPageInner() {
       });
       api.post(`/api/game/${gameId}/action`, { custom: 'Begin the adventure' })
         .then(res => {
-          // If response has narrative, process it as a sync response
-          if (res && (res.narrative || res.options)) {
+          // If sync response has full narrative, use it and block SSE duplicate
+          if (res && res.narrative && res.narrative.length > 100) {
+            firstTurnSyncHandled.current = true;
             processSyncActionResponse(res);
           }
           // Otherwise SSE will deliver the turn data
         })
         .catch(err => {
           console.error('First turn trigger failed:', err.message || err);
-          syncResponseHandled.current = false;
           setWaiting(false);
           setStreamingTurn(null);
         });
@@ -3128,7 +3125,6 @@ function PlayPageInner() {
       resolution: null, narrative: [], statusChanges: [], options: [],
     });
 
-    syncResponseHandled.current = true;
     try {
       // Translate frontend action format to backend expected shape
       let body;
@@ -3139,22 +3135,16 @@ function PlayPageInner() {
       } else {
         body = action;
       }
-      const res = await api.post(`/api/game/${gameId}/action`, body);
-      // If response has narrative, process as sync response; otherwise SSE delivers it
-      if (res && (res.narrative || res.options)) {
-        processSyncActionResponse(res);
-      }
+      await api.post(`/api/game/${gameId}/action`, body);
+      // Sync response is just an acknowledgment — SSE delivers the turn content
     } catch (err) {
       const message = err.message || 'Failed to submit action.';
-      // Check for custom action rejection
       if (err.customActionRejected || message.includes('rejected')) {
         setActionError(message);
-        // Re-enable previous options
         setTurns(prev => {
           if (prev.length === 0) return prev;
           const updated = [...prev];
-          const last = updated[updated.length - 1];
-          // Options were cleared above - server should resend them via SSE
+          updated[updated.length - 1] = { ...updated[updated.length - 1] };
           return updated;
         });
         setStreamingTurn(null);
@@ -3162,7 +3152,6 @@ function PlayPageInner() {
         setActionError(message);
         setStreamingTurn(null);
       }
-      syncResponseHandled.current = false;
       setWaiting(false);
       setIsStreaming(false);
     }
