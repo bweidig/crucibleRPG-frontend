@@ -1033,10 +1033,378 @@ function EntityPopup({ t, sz, entity, glossary, gameId, onClose }) {
 }
 
 // =============================================================================
+// NPCs Tab
+// =============================================================================
+
+const DISPOSITION_COLORS = { Friendly: '#7aba7a', Neutral: '#8a94a8', Wary: '#e8c45a', Hostile: '#c84a4a' };
+
+function NPCCard({ t, sz, npc, onClick }) {
+  const dispColor = DISPOSITION_COLORS[npc.disposition] || t.textMuted;
+  const relPct = Math.max(0, Math.min(100, (npc.relationship || 0.5) * 100));
+  return (
+    <div onClick={() => onClick({ id: npc.name.toLowerCase(), type: 'NPC', name: npc.name })} style={{
+      padding: '10px 0', borderBottom: `1px solid ${t.borderLight}`, cursor: 'pointer',
+      transition: 'background 0.2s',
+    }}
+      onMouseEnter={e => { e.currentTarget.style.background = t.bgCard; }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+        <span style={{ fontFamily: "var(--font-cinzel)", fontSize: sz.ui + 1, fontWeight: 600, color: t.heading }}>{npc.name}</span>
+        <span style={{
+          fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: dispColor,
+          background: `${dispColor}18`, padding: '2px 8px', borderRadius: 3,
+        }}>{npc.disposition}</span>
+      </div>
+      <div style={{ height: 3, background: t.borderLight, borderRadius: 2, overflow: 'hidden', marginBottom: 4 }}>
+        <div style={{
+          height: '100%', width: `${relPct}%`, borderRadius: 2,
+          background: 'linear-gradient(90deg, #c84a4a, #e8c45a, #7aba7a)', backgroundSize: '300% 100%',
+          backgroundPosition: `${relPct}% 0`,
+        }} />
+      </div>
+      {npc.notes && <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: t.textMuted, marginTop: 3, lineHeight: 1.4 }}>{npc.notes}</div>}
+      <div style={{ fontFamily: "var(--font-jetbrains)", fontSize: sz.ui - 2, color: t.textFaint, marginTop: 3 }}>
+        Last seen: {npc.lastSeen || 'Unknown'}
+      </div>
+    </div>
+  );
+}
+
+function NPCsTab({ t, sz, npcs, onEntityClick }) {
+  if (!npcs || npcs.length === 0) {
+    return <div style={{ fontFamily: "var(--font-alegreya)", fontSize: sz.ui, fontStyle: 'italic', color: t.textDim, textAlign: 'center', paddingTop: 30 }}>No NPCs encountered yet</div>;
+  }
+  return (
+    <div>
+      {npcs.map(npc => <NPCCard key={npc.name} t={t} sz={sz} npc={npc} onClick={onEntityClick} />)}
+    </div>
+  );
+}
+
+// =============================================================================
+// Glossary Tab
+// =============================================================================
+
+const GLOSSARY_CATEGORIES = [
+  { id: 'all', label: 'All' },
+  { id: 'NPC', label: 'People' },
+  { id: 'Location', label: 'Places' },
+  { id: 'Faction', label: 'Factions' },
+  { id: 'Item', label: 'Items' },
+];
+
+function GlossaryTab({ t, sz, glossary, onEntityClick }) {
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('all');
+  const debounceRef = useRef(null);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [search]);
+
+  const filtered = (glossary || [])
+    .filter(e => category === 'all' || e.category === category)
+    .filter(e => !debouncedSearch || e.term?.toLowerCase().includes(debouncedSearch.toLowerCase()) || e.definition?.toLowerCase().includes(debouncedSearch.toLowerCase()))
+    .sort((a, b) => (a.term || '').localeCompare(b.term || ''));
+
+  return (
+    <div>
+      {/* Search */}
+      <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." style={{
+        width: '100%', padding: '8px 10px', marginBottom: 10,
+        background: t.bgInput, border: `1px solid ${t.border}`, borderRadius: 4,
+        fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.text, outline: 'none',
+        boxSizing: 'border-box',
+      }} />
+
+      {/* Category filters */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 12, flexWrap: 'wrap' }}>
+        {GLOSSARY_CATEGORIES.map(cat => (
+          <button key={cat.id} onClick={() => setCategory(cat.id)} style={{
+            padding: '4px 10px', borderRadius: 4, cursor: 'pointer',
+            fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1,
+            color: category === cat.id ? t.accent : t.textMuted,
+            background: category === cat.id ? t.bgCard : 'transparent',
+            border: `1px solid ${category === cat.id ? t.accent : t.border}`,
+            transition: 'all 0.2s',
+          }}>{cat.label}</button>
+        ))}
+      </div>
+
+      {/* Entries */}
+      {filtered.length === 0 ? (
+        <div style={{ fontFamily: "var(--font-alegreya)", fontSize: sz.ui, fontStyle: 'italic', color: t.textDim, textAlign: 'center', paddingTop: 20 }}>
+          {debouncedSearch ? 'No matching entries' : 'No glossary entries yet'}
+        </div>
+      ) : filtered.map(entry => (
+        <div key={entry.term} onClick={() => onEntityClick({ id: entry.term?.toLowerCase(), type: entry.category, name: entry.term })} style={{
+          padding: '8px 0', borderBottom: `1px solid ${t.borderLight}`, cursor: 'pointer', transition: 'background 0.2s',
+        }}
+          onMouseEnter={e => { e.currentTarget.style.background = t.bgCard; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+        >
+          <div style={{ fontFamily: "var(--font-cinzel)", fontSize: sz.ui + 1, fontWeight: 600, color: t.heading, marginBottom: 3 }}>{entry.term}</div>
+          <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.textMuted, lineHeight: 1.45 }}>{entry.definition}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// =============================================================================
+// Map Tab (simplified list view)
+// =============================================================================
+
+// TODO: Replace with interactive node map from node-map-v2.jsx
+
+function MapTab({ t, sz, locations, routes, onEntityClick }) {
+  const currentLoc = (locations || []).find(l => l.current);
+
+  return (
+    <div>
+      {/* Current location */}
+      {currentLoc && (
+        <div style={{
+          padding: '10px 12px', marginBottom: 12,
+          background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 6,
+        }}>
+          <span style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.accent }}>
+            {'\uD83D\uDCCD'} Current: {currentLoc.name}
+          </span>
+        </div>
+      )}
+
+      {/* Location list */}
+      {(!locations || locations.length === 0) ? (
+        <div style={{ fontFamily: "var(--font-alegreya)", fontSize: sz.ui, fontStyle: 'italic', color: t.textDim, textAlign: 'center', paddingTop: 20 }}>No locations discovered</div>
+      ) : locations.map((loc, i) => (
+        <div key={loc.name || i} onClick={() => onEntityClick({ id: loc.name?.toLowerCase(), type: 'Location', name: loc.name })} style={{
+          display: 'flex', alignItems: 'center', gap: 8, padding: '7px 4px',
+          borderBottom: `1px solid ${t.borderLight}`, cursor: 'pointer', transition: 'background 0.2s',
+        }}
+          onMouseEnter={e => { e.currentTarget.style.background = t.bgCard; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+        >
+          <div style={{
+            width: loc.current ? 10 : 7, height: loc.current ? 10 : 7,
+            borderRadius: '50%', flexShrink: 0,
+            background: loc.current ? t.accent : t.textDim,
+            border: loc.current ? `2px solid ${t.accent}` : 'none',
+          }} />
+          <span style={{
+            fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui,
+            color: loc.current ? t.accent : t.textMuted, fontWeight: loc.current ? 600 : 400,
+          }}>{loc.name}</span>
+          {loc.type && <span style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 2, color: t.textFaint, fontStyle: 'italic', marginLeft: 'auto' }}>{loc.type}</span>}
+        </div>
+      ))}
+
+      {/* Routes */}
+      {routes && routes.length > 0 && (
+        <PanelSection t={t} title="Routes" defaultOpen={false}>
+          {routes.map((route, i) => (
+            <div key={i} style={{
+              fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: t.textDim,
+              padding: '4px 0',
+            }}>
+              {route.from} {'\u2192'} {route.to}{route.travelTime ? ` (${route.travelTime})` : ''}
+            </div>
+          ))}
+        </PanelSection>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// Journal Tab
+// =============================================================================
+
+function ObjectiveCard({ t, sz, obj, isServer, onAbandon, onDrop }) {
+  const [confirmAbandon, setConfirmAbandon] = useState(false);
+  const [hovering, setHovering] = useState(false);
+  const hasProgress = obj.progress !== undefined && obj.total !== undefined;
+
+  return (
+    <div style={{
+      padding: '10px 12px', background: t.bgCard, border: `1px solid ${t.border}`,
+      borderRadius: 6, marginBottom: 8, position: 'relative',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+        <span style={{ color: isServer ? t.accent : t.textDim, fontSize: sz.ui, flexShrink: 0, marginTop: 1 }}>
+          {isServer ? '\u25C6' : '\u25CB'}
+        </span>
+        <div style={{ flex: 1 }}
+          onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}
+        >
+          <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.text, lineHeight: 1.4 }}>{obj.text}</div>
+          {hasProgress && (
+            <div style={{ marginTop: 6 }}>
+              <div style={{ height: 4, background: t.borderLight, borderRadius: 2, overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%', width: `${obj.total > 0 ? (obj.progress / obj.total) * 100 : 0}%`,
+                  background: 'linear-gradient(90deg, #907f5e, #c9a84c)', borderRadius: 2,
+                }} />
+              </div>
+              <span style={{ fontFamily: "var(--font-jetbrains)", fontSize: 10, color: t.textDim, marginTop: 2, display: 'inline-block' }}>
+                [{obj.progress}/{obj.total}]
+              </span>
+            </div>
+          )}
+          {isServer && !confirmAbandon && (
+            <button onClick={() => setConfirmAbandon(true)} style={{
+              fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 2, color: t.textFaint,
+              background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', marginTop: 4,
+              textDecoration: 'underline',
+            }}>Abandon</button>
+          )}
+          {!isServer && hovering && (
+            <button onClick={() => onDrop && onDrop(obj.id)} style={{
+              position: 'absolute', top: 8, right: 10,
+              fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: t.textFaint,
+              background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1,
+            }}>{'\u00D7'}</button>
+          )}
+        </div>
+      </div>
+
+      {confirmAbandon && (
+        <div style={{
+          marginTop: 8, padding: '8px 10px', background: t.bgInput, border: `1px solid ${t.danger}`,
+          borderRadius: 4, fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: t.danger,
+          lineHeight: 1.5,
+        }}>
+          Abandoning triggers consequences: standing penalties, narrative fallout, and a permanent record. This is not a quiet delete.
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <button onClick={() => { onAbandon && onAbandon(obj.id); setConfirmAbandon(false); }} style={{
+              fontFamily: "var(--font-cinzel)", fontSize: 11, fontWeight: 600, color: '#ffffff',
+              background: '#b83a3a', border: 'none', borderRadius: 4, padding: '5px 14px', cursor: 'pointer',
+            }}>Confirm</button>
+            <button onClick={() => setConfirmAbandon(false)} style={{
+              fontFamily: "var(--font-cinzel)", fontSize: 11, fontWeight: 600, color: t.textMuted,
+              background: 'transparent', border: `1px solid ${t.border}`, borderRadius: 4, padding: '5px 14px', cursor: 'pointer',
+            }}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function JournalTab({ t, sz, objectives, entityNotes, gameId, onSubmitAction }) {
+  const [newObjective, setNewObjective] = useState('');
+  const [scratchpad, setScratchpad] = useState('');
+  const scratchLoaded = useRef(false);
+
+  // Load scratchpad from localStorage
+  useEffect(() => {
+    if (scratchLoaded.current || !gameId) return;
+    setScratchpad(localStorage.getItem(`crucible_scratchpad_${gameId}`) || '');
+    scratchLoaded.current = true;
+  }, [gameId]);
+
+  // Save scratchpad
+  const saveScratchpad = useCallback((text) => {
+    setScratchpad(text);
+    if (gameId) localStorage.setItem(`crucible_scratchpad_${gameId}`, text);
+  }, [gameId]);
+
+  const serverObjectives = (objectives || []).filter(o => o.source === 'server' || o.isServer);
+  const playerObjectives = (objectives || []).filter(o => o.source === 'player' || !o.isServer);
+
+  const handleAddObjective = () => {
+    if (!newObjective.trim()) return;
+    // Post as bracket command
+    if (onSubmitAction) onSubmitAction({ type: 'custom', text: `[set_objective ${newObjective.trim()}]` });
+    setNewObjective('');
+  };
+
+  const handleAbandon = (objId) => {
+    if (onSubmitAction) onSubmitAction({ type: 'custom', text: `[abandon_objective ${objId}]` });
+  };
+
+  const handleDropPlayerObjective = async (objId) => {
+    try {
+      await api.del(`/api/game/${gameId}/notes/${objId}`);
+    } catch { /* silent */ }
+  };
+
+  return (
+    <div>
+      <PanelSection t={t} title="Objectives">
+        {serverObjectives.length === 0 && playerObjectives.length === 0 ? (
+          <div style={{ fontFamily: "var(--font-alegreya)", fontSize: sz.ui, fontStyle: 'italic', color: t.textDim }}>
+            No active objectives. The world is yours to direct.
+          </div>
+        ) : (
+          <>
+            {serverObjectives.map(obj => (
+              <ObjectiveCard key={obj.id || obj.text} t={t} sz={sz} obj={obj} isServer onAbandon={handleAbandon} />
+            ))}
+            {playerObjectives.map(obj => (
+              <ObjectiveCard key={obj.id || obj.text} t={t} sz={sz} obj={obj} isServer={false} onDrop={handleDropPlayerObjective} />
+            ))}
+          </>
+        )}
+        {/* Add objective input */}
+        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+          <input value={newObjective} onChange={e => setNewObjective(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleAddObjective(); }}
+            placeholder="Add a personal objective..."
+            style={{
+              flex: 1, padding: '7px 10px', background: t.bgInput, border: `1px solid ${t.border}`,
+              borderRadius: 4, fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui,
+              color: t.text, outline: 'none', boxSizing: 'border-box',
+            }}
+          />
+          <button onClick={handleAddObjective} disabled={!newObjective.trim()} style={{
+            padding: '7px 12px', background: t.bgCard, border: `1px solid ${t.border}`,
+            borderRadius: 4, cursor: newObjective.trim() ? 'pointer' : 'default',
+            fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui,
+            color: newObjective.trim() ? t.accent : t.textFaint,
+          }}>+</button>
+        </div>
+      </PanelSection>
+
+      <PanelSection t={t} title="Entity Notes" defaultOpen={(entityNotes || []).length > 0}>
+        {(!entityNotes || entityNotes.length === 0) ? (
+          <div style={{ fontFamily: "var(--font-alegreya)", fontSize: sz.ui, fontStyle: 'italic', color: t.textDim }}>
+            Add notes to any NPC, location, or item from their popup.
+          </div>
+        ) : entityNotes.map((note, i) => (
+          <div key={note.entityId || i} style={{ padding: '8px 0', borderBottom: `1px solid ${t.borderLight}` }}>
+            <div style={{ fontFamily: "var(--font-cinzel)", fontSize: sz.ui, fontWeight: 600, color: t.heading, marginBottom: 2 }}>{note.entityName || note.entityId}</div>
+            <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.textMuted, lineHeight: 1.4 }}>{note.text}</div>
+            {note.turn && <div style={{ fontFamily: "var(--font-jetbrains)", fontSize: 10, color: t.textFaint, marginTop: 2 }}>Turn {note.turn}</div>}
+          </div>
+        ))}
+      </PanelSection>
+
+      <PanelSection t={t} title="Scratchpad">
+        <textarea value={scratchpad} onChange={e => saveScratchpad(e.target.value)}
+          placeholder="Freeform notes..."
+          style={{
+            width: '100%', minHeight: 100, padding: '8px 10px',
+            background: t.bgInput, border: `1px solid ${t.border}`, borderRadius: 4,
+            fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.text,
+            outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+          }}
+        />
+        <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 10, color: t.textFaint, marginTop: 4 }}>Auto-saved</div>
+      </PanelSection>
+    </div>
+  );
+}
+
+// =============================================================================
 // Sidebar
 // =============================================================================
 
-function Sidebar({ t, sz, width, activeTab, setActiveTab, badges, character, inventory, equipped, currencyLabel, glossary, gameId, onEntityClick }) {
+function Sidebar({ t, sz, width, activeTab, setActiveTab, badges, character, inventory, equipped, currencyLabel, glossary, gameId, onEntityClick, npcs, locations, routes, objectives, entityNotes, onSubmitAction }) {
   return (
     <div style={{
       width, minWidth: 260, maxWidth: 600,
@@ -1083,11 +1451,10 @@ function Sidebar({ t, sz, width, activeTab, setActiveTab, badges, character, inv
       <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
         {activeTab === 'character' && <CharacterTab t={t} sz={sz} character={character} onEntityClick={onEntityClick} />}
         {activeTab === 'inventory' && <InventoryTab t={t} sz={sz} inventory={inventory} equipped={equipped} currencyLabel={currencyLabel} onEntityClick={onEntityClick} />}
-        {activeTab !== 'character' && activeTab !== 'inventory' && (
-          <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.textDim, textAlign: 'center', paddingTop: 40 }}>
-            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} content
-          </div>
-        )}
+        {activeTab === 'npcs' && <NPCsTab t={t} sz={sz} npcs={npcs} onEntityClick={onEntityClick} />}
+        {activeTab === 'glossary' && <GlossaryTab t={t} sz={sz} glossary={glossary} onEntityClick={onEntityClick} />}
+        {activeTab === 'map' && <MapTab t={t} sz={sz} locations={locations} routes={routes} onEntityClick={onEntityClick} />}
+        {activeTab === 'journal' && <JournalTab t={t} sz={sz} objectives={objectives} entityNotes={entityNotes} gameId={gameId} onSubmitAction={onSubmitAction} />}
       </div>
       <div style={{ padding: '10px 12px', borderTop: `1px solid ${t.border}`, display: 'flex', gap: 8, flexShrink: 0 }}>
         <button style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 0', background: 'none', border: `1px solid ${t.border}`, borderRadius: 4, cursor: 'pointer', fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.textMuted }}>
@@ -1195,6 +1562,11 @@ function PlayPageInner() {
   const [equipped, setEquipped] = useState({});
   const [currencyLabel, setCurrencyLabel] = useState('Coins');
   const [glossary, setGlossary] = useState([]);
+  const [npcs, setNpcs] = useState([]);
+  const [locations, setLocations] = useState([]);
+  const [routes, setRoutes] = useState([]);
+  const [objectives, setObjectives] = useState([]);
+  const [entityNotes, setEntityNotes] = useState([]);
   const [entityPopup, setEntityPopup] = useState(null);
 
   // --- UI state ---
@@ -1237,6 +1609,11 @@ function PlayPageInner() {
         setInventory(data.character?.inventory || data.inventory || null);
         setEquipped(data.character?.equipped || data.equipped || {});
         setCurrencyLabel(data.world?.currencyLabel || data.currencyLabel || 'Coins');
+        // NPCs, locations, objectives
+        setNpcs(data.npcs || []);
+        setLocations(data.locations || data.map?.locations || []);
+        setRoutes(data.routes || data.map?.routes || []);
+        setObjectives(data.objectives || data.quests || []);
       } catch (err) {
         setError(err.message || 'Failed to load game.');
       } finally {
@@ -1246,16 +1623,28 @@ function PlayPageInner() {
     fetchGame();
   }, [authChecked, gameId]);
 
-  // --- Fetch glossary on load ---
+  // --- Fetch supplementary data on load ---
   useEffect(() => {
     if (!authChecked || !gameId || loading || error) return;
-    const fetchGlossary = async () => {
+    const fetchSuppData = async () => {
+      // Glossary
       try {
         const res = await api.get(`/api/game/${gameId}/glossary`);
         setGlossary(res.entries || res.glossary || res || []);
-      } catch { /* glossary endpoint may not be available */ }
+      } catch { /* endpoint may not be available */ }
+      // Map
+      try {
+        const res = await api.get(`/api/game/${gameId}/map`);
+        setLocations(res.locations || []);
+        setRoutes(res.routes || []);
+      } catch { /* endpoint may not be available */ }
+      // Entity notes
+      try {
+        const res = await api.get(`/api/game/${gameId}/notes`);
+        setEntityNotes(res.notes || res || []);
+      } catch { /* endpoint may not be available */ }
     };
-    fetchGlossary();
+    fetchSuppData();
   }, [authChecked, gameId, loading, error]);
 
   // --- SSE event handler ---
@@ -1536,7 +1925,9 @@ function PlayPageInner() {
             <ResizeHandle onDrag={handleResize} t={t} />
             <Sidebar t={t} sz={sz} width={sidebarWidth} activeTab={activeTab} setActiveTab={setActiveTab} badges={badges}
               character={character} inventory={inventory} equipped={equipped} currencyLabel={currencyLabel}
-              glossary={glossary} gameId={gameId} onEntityClick={handleEntityClick} />
+              glossary={glossary} gameId={gameId} onEntityClick={handleEntityClick}
+              npcs={npcs} locations={locations} routes={routes}
+              objectives={objectives} entityNotes={entityNotes} onSubmitAction={handleSubmitAction} />
           </>
         )}
       </div>
