@@ -2920,8 +2920,9 @@ function PlayPageInner() {
   // --- SSE event handler ---
   const handleSSEEvent = useCallback((event) => {
     const type = event.type || '';
+    console.log('SSE event received:', type, 'syncResponseHandled:', syncResponseHandled.current);
 
-    // Skip turn events if the sync response already handled this turn
+    // Skip turn events if the sync response is handling this turn
     if (syncResponseHandled.current && (type.startsWith('turn:') && type !== 'turn:error')) {
       if (type === 'turn:complete') {
         // Reset flag after the SSE stream finishes for this turn
@@ -3080,6 +3081,7 @@ function PlayPageInner() {
     const noTurnsOnServer = !gameState?.clock?.totalTurn;
     if (isFreshGame && noTurnsOnServer) {
       firstTurnFired.current = true;
+      syncResponseHandled.current = true;
       console.log('Auto-triggering first turn for new game');
       setWaiting(true);
       setStreamingTurn({
@@ -3096,6 +3098,7 @@ function PlayPageInner() {
         })
         .catch(err => {
           console.error('First turn trigger failed:', err.message || err);
+          syncResponseHandled.current = false;
           setWaiting(false);
           setStreamingTurn(null);
         });
@@ -3125,6 +3128,7 @@ function PlayPageInner() {
       resolution: null, narrative: [], statusChanges: [], options: [],
     });
 
+    syncResponseHandled.current = true;
     try {
       // Translate frontend action format to backend expected shape
       let body;
@@ -3158,6 +3162,7 @@ function PlayPageInner() {
         setActionError(message);
         setStreamingTurn(null);
       }
+      syncResponseHandled.current = false;
       setWaiting(false);
       setIsStreaming(false);
     }
