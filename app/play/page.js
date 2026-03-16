@@ -2218,6 +2218,11 @@ function TalkToGM({ t, sz, gameId }) {
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false }; }
   static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidUpdate(prevProps) {
+    if (this.state.hasError && prevProps.children !== this.props.children) {
+      this.setState({ hasError: false });
+    }
+  }
   render() {
     if (this.state.hasError) {
       const t = this.props.t || THEMES.dark;
@@ -2613,7 +2618,7 @@ function Sidebar({ t, sz, width, activeTab, setActiveTab, badges, character, inv
         })}
       </div>
       <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
-        <ErrorBoundary t={t}>
+        <ErrorBoundary key={activeTab} t={t}>
           {activeTab === 'character' && <CharacterTab t={t} sz={sz} character={character} onEntityClick={onEntityClick} />}
           {activeTab === 'inventory' && <InventoryTab t={t} sz={sz} inventory={inventory} equipped={equipped} currencyLabel={currencyLabel} onEntityClick={onEntityClick} />}
           {activeTab === 'npcs' && <NPCsTab t={t} sz={sz} npcs={npcs} onEntityClick={onEntityClick} />}
