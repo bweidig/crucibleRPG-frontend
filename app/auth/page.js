@@ -1,10 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Script from 'next/script';
 import Link from 'next/link';
 import { post, setToken, setUser } from '@/lib/api';
 import styles from './page.module.css';
+
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
 function ParticleField() {
   const [particles] = useState(() =>
@@ -81,15 +84,6 @@ function Divider({ text }) {
   );
 }
 
-function SocialButton({ icon, label }) {
-  return (
-    <button className={styles.socialButton} disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
-      <span style={{ fontSize: 18 }}>{icon}</span>
-      {label}
-    </button>
-  );
-}
-
 function PasswordStrength({ password }) {
   if (!password) return null;
 
@@ -137,14 +131,61 @@ export default function AuthPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [gsiReady, setGsiReady] = useState(false);
+
+  const googleBtnRef = useRef(null);
+  // Use a ref so the Google callback always reads the latest mode/inviteCode
+  const modeRef = useRef(mode);
+  const inviteCodeRef = useRef(inviteCode);
+  useEffect(() => { modeRef.current = mode; }, [mode]);
+  useEffect(() => { inviteCodeRef.current = inviteCode; }, [inviteCode]);
+
+  const handleGoogleResponse = useCallback(async (response) => {
+    setError('');
+    setLoading(true);
+    try {
+      const code = modeRef.current === 'signup' ? inviteCodeRef.current.trim() : null;
+      const data = await post('/api/auth/google', {
+        credential: response.credential,
+        inviteCode: code,
+      });
+      setToken(data.token);
+      if (data.user) setUser(data.user);
+      router.push('/menu');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [router]);
+
+  // Render the Google button once GSI script loads
+  useEffect(() => {
+    if (!gsiReady || !GOOGLE_CLIENT_ID || !googleBtnRef.current) return;
+    try {
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleResponse,
+      });
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        type: 'standard',
+        theme: 'filled_black',
+        size: 'large',
+        text: 'continue_with',
+        width: 368,
+        logo_alignment: 'left',
+      });
+    } catch (e) {
+      console.error('Google Sign-In init error:', e);
+    }
+  }, [gsiReady, handleGoogleResponse]);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
 
-    if (mode === 'forgot') return; // placeholder — no endpoint yet
+    if (mode === 'forgot') return;
 
-    // Client-side validation
     if (mode === 'signup') {
       if (!displayName.trim()) { setError('Display name is required.'); return; }
       if (!email.trim()) { setError('Email is required.'); return; }
@@ -187,6 +228,15 @@ export default function AuthPage() {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       position: 'relative', overflow: 'hidden',
     }}>
+      {/* Google Identity Services script */}
+      {GOOGLE_CLIENT_ID && (
+        <Script
+          src="https://accounts.google.com/gsi/client"
+          strategy="afterInteractive"
+          onLoad={() => setGsiReady(true)}
+        />
+      )}
+
       <ParticleField />
 
       {/* Radial glow */}
@@ -258,11 +308,31 @@ export default function AuthPage() {
           </div>
         )}
 
-        {/* Social logins (placeholder) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <SocialButton icon="G" label="Continue with Google" />
-          <SocialButton icon="&#127822;" label="Continue with Apple" />
-        </div>
+        {/* Invite code — shown above Google button on signup so user fills it first */}
+        {mode === 'signup' && (
+          <InputField
+            label="Invite Code"
+            placeholder="Enter your invite code"
+            value={inviteCode}
+            onChange={e => setInviteCode(e.target.value)}
+            autoComplete="off"
+          />
+        )}
+
+        {/* Google Sign-In button */}
+        {mode !== 'forgot' && GOOGLE_CLIENT_ID && (
+          <div style={{ marginBottom: 0 }}>
+            <div ref={googleBtnRef} style={{
+              display: 'flex', justifyContent: 'center', minHeight: 44,
+            }} />
+            {mode === 'signup' && (
+              <p style={{
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 12,
+                color: 'var(--text-dim)', textAlign: 'center', marginTop: 8, marginBottom: 0,
+              }}>Enter your invite code above before signing in with Google.</p>
+            )}
+          </div>
+        )}
 
         <Divider text="or" />
 
@@ -278,13 +348,6 @@ export default function AuthPage() {
         {/* Sign Up form */}
         {mode === 'signup' && (
           <>
-            <InputField
-              label="Invite Code"
-              placeholder="Enter your invite code"
-              value={inviteCode}
-              onChange={e => setInviteCode(e.target.value)}
-              autoComplete="off"
-            />
             <InputField
               label="Display Name"
               placeholder="What other players will see"
@@ -330,7 +393,7 @@ export default function AuthPage() {
                 onClick={() => setAgreedToTerms(!agreedToTerms)}
                 style={{
                   width: 20, height: 20, borderRadius: 4, flexShrink: 0, marginTop: 1,
-                  border: `1px solid ${agreedToTerms ? 'var(--accent-gold)' : 'var(--border-gold-light)'}`,
+                  border: `1px solid ${agreedToTerms ? 'var(--accent-gold)' : 'var(--text-dim)'}`,
                   background: agreedToTerms ? 'var(--bg-gold-light)' : 'transparent',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   cursor: 'pointer', transition: 'all 0.2s',
