@@ -1748,12 +1748,10 @@ function InitWizardInner() {
   const [proposal, setProposal] = useState(null);
   const worldPollRef = useRef(null);
 
-  // --- Redirect if no gameId ---
-  useEffect(() => {
-    if (!gameId) {
-      router.push('/menu');
-    }
-  }, [gameId, router]);
+  // --- Create game if no gameId in URL ---
+  // TODO: When no gameId is present, POST /api/games to create a new game
+  // and set gameId from the response. For now, the wizard works without one
+  // and API calls will fail gracefully with error messages.
 
   // --- Fetch world snapshots on mount ---
   useEffect(() => {
