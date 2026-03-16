@@ -628,10 +628,415 @@ function SessionRecap({ t, sz, text }) {
 }
 
 // =============================================================================
-// Sidebar (unchanged from Prompt 1)
+// Sidebar Content Components
 // =============================================================================
 
-function Sidebar({ t, sz, width, activeTab, setActiveTab, badges }) {
+function PanelSection({ t, title, children, defaultOpen = true }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={{ marginBottom: 4 }}>
+      <button onClick={() => setOpen(!open)} style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+        background: 'transparent', border: 'none', borderBottom: `1px solid ${t.borderLight}`,
+        padding: '10px 0', cursor: 'pointer',
+      }}>
+        <span style={{ fontFamily: "var(--font-cinzel)", fontSize: 11, fontWeight: 600, color: t.textMuted, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{title}</span>
+        <span style={{ color: t.textDim, fontSize: 11, transform: open ? 'rotate(0)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}>{'\u25BC'}</span>
+      </button>
+      {open && <div style={{ padding: '10px 0' }}>{children}</div>}
+    </div>
+  );
+}
+
+function StatBar({ t, sz, stat, onClick }) {
+  const pct = Math.min(100, (stat.effective / 20) * 100);
+  const basePct = Math.min(100, (stat.base / 20) * 100);
+  const hasCondition = stat.effective < stat.base;
+  return (
+    <div style={{ marginBottom: 10, cursor: 'pointer' }} onClick={() => onClick({ id: stat.name.toLowerCase(), type: 'Stat' })}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
+        <span style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.text }}>
+          {stat.emoji} {stat.name}
+        </span>
+        <span style={{ fontFamily: "var(--font-jetbrains)", fontSize: sz.ui, color: hasCondition ? t.danger : t.heading, fontWeight: 500 }}>
+          {stat.effective.toFixed(1)}
+          {hasCondition && <span style={{ color: t.textDim, fontSize: sz.ui - 2 }}> / {stat.base.toFixed(1)}</span>}
+        </span>
+      </div>
+      <div style={{ height: 4, background: t.borderLight, borderRadius: 2, overflow: 'hidden', position: 'relative' }}>
+        {hasCondition && (
+          <div style={{ position: 'absolute', height: '100%', width: `${basePct}%`, background: t.border, borderRadius: 2 }} />
+        )}
+        <div style={{
+          height: '100%', width: `${pct}%`, position: 'relative',
+          background: hasCondition ? 'linear-gradient(90deg, #e8845a, #c96a3a)' : 'linear-gradient(90deg, #907f5e, #b8a88a)',
+          borderRadius: 2, transition: 'width 0.5s ease',
+        }} />
+      </div>
+    </div>
+  );
+}
+
+function ConditionCard({ t, sz, condition, onClick }) {
+  const isCon = condition.stat === 'CON';
+  const borderColor = isCon ? '#e85a5a' : t.danger;
+  return (
+    <div onClick={() => onClick({ id: condition.name.toLowerCase(), type: 'Condition' })} style={{
+      background: t.bgInput, border: `1px solid ${borderColor}`, borderRadius: 6,
+      padding: '7px 10px', marginBottom: 6, cursor: 'pointer', transition: 'border-color 0.2s',
+    }}>
+      <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, fontWeight: 700, color: borderColor }}>
+        {'\u26A0\uFE0F'} {condition.name}: {condition.penalty} {condition.stat}
+      </div>
+      <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: t.textMuted, marginTop: 2 }}>
+        {condition.duration}{condition.escalation && condition.escalation !== 'None' ? ` \u00B7 Escalates: ${condition.escalation}` : ''}
+      </div>
+    </div>
+  );
+}
+
+function SkillRow({ t, sz, skill, onClick }) {
+  return (
+    <div onClick={() => onClick({ id: skill.name.toLowerCase(), type: 'Skill' })} style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '5px 4px', cursor: 'pointer', transition: 'background 0.2s', borderRadius: 3,
+    }}
+      onMouseEnter={e => { e.currentTarget.style.background = t.bgCard; }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+    >
+      <span style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.text }}>
+        {skill.emoji || ''} {skill.name}
+      </span>
+      <span style={{ fontFamily: "var(--font-jetbrains)", fontSize: sz.ui, color: t.accent, fontWeight: 500 }}>
+        +{typeof skill.value === 'number' ? skill.value.toFixed(1) : skill.value}
+      </span>
+    </div>
+  );
+}
+
+function AbilityCard({ t, sz, ability }) {
+  return (
+    <div style={{ padding: '8px 10px', background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 6, marginBottom: 6 }}>
+      <div style={{ fontFamily: "var(--font-cinzel)", fontSize: sz.ui, fontWeight: 600, color: t.heading, marginBottom: 3 }}>
+        {ability.emoji || ''} {ability.name}
+      </div>
+      <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: t.textMuted, marginBottom: 2 }}>{ability.effect}</div>
+      {ability.strain && <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: t.danger }}>{ability.strain}</div>}
+    </div>
+  );
+}
+
+function CharacterTab({ t, sz, character, onEntityClick }) {
+  if (!character) return <div style={{ fontFamily: "var(--font-alegreya)", fontSize: sz.ui, fontStyle: 'italic', color: t.textDim, textAlign: 'center', paddingTop: 30 }}>No character data</div>;
+
+  const stats = character.stats || [];
+  const skills = character.skills || [];
+  const abilities = character.abilities || [];
+  const conditions = character.conditions || [];
+
+  return (
+    <div>
+      {/* Character header */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontFamily: "var(--font-cinzel)", fontSize: sz.ui + 4, fontWeight: 700, color: t.heading }}>{character.name || 'Unknown'}</div>
+        {character.title && <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.textMuted, marginTop: 2 }}>{character.title}</div>}
+      </div>
+
+      <PanelSection t={t} title="Attributes">
+        {stats.map(stat => <StatBar key={stat.name} t={t} sz={sz} stat={stat} onClick={onEntityClick} />)}
+      </PanelSection>
+
+      <PanelSection t={t} title="Skills" defaultOpen={skills.length <= 8}>
+        {skills.length === 0
+          ? <div style={{ fontFamily: "var(--font-alegreya)", fontSize: sz.ui, fontStyle: 'italic', color: t.textDim }}>No skills yet</div>
+          : skills.map(skill => <SkillRow key={skill.name} t={t} sz={sz} skill={skill} onClick={onEntityClick} />)
+        }
+      </PanelSection>
+
+      {abilities.length > 0 && (
+        <PanelSection t={t} title="Abilities">
+          {abilities.map(a => <AbilityCard key={a.name} t={t} sz={sz} ability={a} />)}
+        </PanelSection>
+      )}
+
+      <PanelSection t={t} title="Conditions">
+        {conditions.length === 0
+          ? <div style={{ fontFamily: "var(--font-alegreya)", fontSize: sz.ui, fontStyle: 'italic', color: t.textDim }}>No active conditions</div>
+          : conditions.map(c => <ConditionCard key={c.name} t={t} sz={sz} condition={c} onClick={onEntityClick} />)
+        }
+      </PanelSection>
+    </div>
+  );
+}
+
+// --- Paperdoll + Inventory ---
+
+const EQUIP_SLOTS = [
+  { id: 'helm', label: 'Helm', row: 0, col: 1 },
+  { id: 'chest', label: 'Chest', row: 1, col: 1 },
+  { id: 'mainHand', label: 'Main Hand', row: 1, col: 0 },
+  { id: 'offHand', label: 'Off Hand', row: 1, col: 2 },
+  { id: 'gloves', label: 'Gloves', row: 2, col: 0 },
+  { id: 'boots', label: 'Boots', row: 2, col: 2 },
+  { id: 'acc1', label: 'Accessory', row: 0, col: 0 },
+  { id: 'acc2', label: 'Accessory', row: 0, col: 2 },
+  { id: 'acc3', label: 'Accessory', row: 2, col: 1 },
+];
+
+function durabilityColor(cur, max) {
+  if (max === 0) return '#8a94a8';
+  const pct = cur / max;
+  if (pct <= 0) return '#8a3a3a';
+  if (pct <= 0.25) return '#e85a5a';
+  if (pct <= 0.50) return '#e8845a';
+  if (pct <= 0.75) return '#e8c45a';
+  return '#8a94a8';
+}
+
+function Paperdoll({ t, sz, equipped, onEntityClick }) {
+  const slots = equipped || {};
+  return (
+    <div style={{
+      display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 4,
+      marginBottom: 12,
+    }}>
+      {EQUIP_SLOTS.map(slot => {
+        const item = slots[slot.id];
+        return (
+          <div key={slot.id}
+            onClick={() => item && onEntityClick({ id: item.name?.toLowerCase(), type: 'Item' })}
+            style={{
+              padding: '6px 8px', borderRadius: 4,
+              background: item ? t.bgCard : 'transparent',
+              border: item ? `1px solid ${t.border}` : `1px dashed ${t.borderLight}`,
+              cursor: item ? 'pointer' : 'default',
+              minHeight: 40, display: 'flex', flexDirection: 'column', justifyContent: 'center',
+              transition: 'border-color 0.2s',
+              gridRow: slot.row + 1, gridColumn: slot.col + 1,
+            }}
+          >
+            {item ? (
+              <>
+                <div style={{
+                  fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: t.heading,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>{item.name}</div>
+                {item.tag && <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 2, color: t.textDim, fontStyle: 'italic' }}>{item.tag}</div>}
+              </>
+            ) : (
+              <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 2, color: t.textFaint, textAlign: 'center' }}>{slot.label}</div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ResourceBoxes({ t, sz, inventory, currencyLabel }) {
+  const rations = inventory?.rations ?? 0;
+  const water = inventory?.water ?? 0;
+  const coins = inventory?.coins ?? 0;
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 12 }}>
+      {[
+        { icon: '\uD83C\uDF5E', value: rations, label: 'Rations' },
+        { icon: '\uD83D\uDCA7', value: water, label: 'Water' },
+        { icon: '\uD83E\uDE99', value: coins, label: currencyLabel || 'Coins' },
+      ].map(r => (
+        <div key={r.label} style={{
+          padding: '8px 6px', background: t.bgCard, border: `1px solid ${t.border}`,
+          borderRadius: 4, textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 14 }}>{r.icon}</div>
+          <div style={{ fontFamily: "var(--font-jetbrains)", fontSize: sz.ui + 1, color: t.heading, fontWeight: 600 }}>{r.value}</div>
+          <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 2, color: t.textDim }}>{r.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CapacityBar({ t, sz, current, max }) {
+  const pct = max > 0 ? Math.min(100, (current / max) * 100) : 0;
+  const over = current > max;
+  const near = pct > 80 && !over;
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+        <span style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.textMuted }}>
+          {'\uD83C\uDF92'} Capacity
+        </span>
+        <span style={{ fontFamily: "var(--font-jetbrains)", fontSize: sz.ui, color: over ? '#e85a5a' : t.heading, fontWeight: 500 }}>
+          {current}/{max}
+        </span>
+      </div>
+      <div style={{ height: 5, background: t.borderLight, borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{
+          height: '100%', width: `${Math.min(pct, 100)}%`, borderRadius: 3,
+          background: over ? 'linear-gradient(90deg, #e85a5a, #c84a4a)' : near ? 'linear-gradient(90deg, #e8c45a, #e8845a)' : 'linear-gradient(90deg, #8aba7a, #7aba7a)',
+          transition: 'width 0.5s ease',
+        }} />
+      </div>
+    </div>
+  );
+}
+
+function InventoryItemRow({ t, sz, item, onClick }) {
+  const pct = item.maxDurability > 0 ? (item.durability / item.maxDurability) * 100 : 100;
+  const durColor = durabilityColor(item.durability, item.maxDurability);
+  const broken = item.durability === 0;
+  return (
+    <div onClick={() => onClick({ id: item.name.toLowerCase(), type: 'Item' })} style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '6px 4px', borderBottom: `1px solid ${t.borderLight}`,
+      cursor: 'pointer', transition: 'background 0.2s', opacity: broken ? 0.5 : 1,
+    }}
+      onMouseEnter={e => { e.currentTarget.style.background = t.bgCard; }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
+        <span style={{
+          fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.heading,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          textDecoration: broken ? 'line-through' : 'none',
+        }}>{item.name}</span>
+        {item.tag && <span style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: t.textDim, fontStyle: 'italic', flexShrink: 0 }}>({item.tag})</span>}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, marginLeft: 6 }}>
+        <span style={{ fontFamily: "var(--font-jetbrains)", fontSize: 10, color: durColor, fontWeight: 600 }}>{item.durability}/{item.maxDurability}</span>
+        <span style={{ fontFamily: "var(--font-jetbrains)", fontSize: 10, color: t.textDim }}>{(item.slots || 0).toFixed(1)}</span>
+      </div>
+    </div>
+  );
+}
+
+function InventoryTab({ t, sz, inventory, equipped, currencyLabel, onEntityClick }) {
+  if (!inventory) return <div style={{ fontFamily: "var(--font-alegreya)", fontSize: sz.ui, fontStyle: 'italic', color: t.textDim, textAlign: 'center', paddingTop: 30 }}>No inventory data</div>;
+
+  const items = inventory.items || [];
+  const current = inventory.current ?? 0;
+  const max = inventory.max ?? 10;
+
+  return (
+    <div>
+      <Paperdoll t={t} sz={sz} equipped={equipped} onEntityClick={onEntityClick} />
+      <ResourceBoxes t={t} sz={sz} inventory={inventory} currencyLabel={currencyLabel} />
+      <CapacityBar t={t} sz={sz} current={current} max={max} />
+
+      <PanelSection t={t} title="Carried Items">
+        {items.length === 0
+          ? <div style={{ fontFamily: "var(--font-alegreya)", fontSize: sz.ui, fontStyle: 'italic', color: t.textDim }}>Nothing carried</div>
+          : items.map(item => <InventoryItemRow key={item.name} t={t} sz={sz} item={item} onClick={onEntityClick} />)
+        }
+      </PanelSection>
+    </div>
+  );
+}
+
+// =============================================================================
+// Entity Popup Modal
+// =============================================================================
+
+function EntityPopup({ t, sz, entity, glossary, gameId, onClose }) {
+  const [note, setNote] = useState('');
+  const [saving, setSaving] = useState(false);
+  const noteLoaded = useRef(false);
+
+  // Find glossary entry
+  const entry = (glossary || []).find(g => g.term?.toLowerCase() === entity?.id?.toLowerCase() || g.term?.toLowerCase() === entity?.name?.toLowerCase());
+
+  // Load player note
+  useEffect(() => {
+    if (!entity || noteLoaded.current) return;
+    const fetchNote = async () => {
+      try {
+        const res = await api.get(`/api/game/${gameId}/notes?entity=${encodeURIComponent(entity.id || entity.name || '')}`);
+        setNote(res.note || res.text || '');
+      } catch { /* no note yet */ }
+      noteLoaded.current = true;
+    };
+    if (gameId) fetchNote();
+  }, [entity, gameId]);
+
+  const saveNote = async () => {
+    if (!gameId) return;
+    setSaving(true);
+    try {
+      await api.post(`/api/game/${gameId}/notes`, { entityId: entity.id || entity.name, entityType: entity.type, text: note });
+    } catch { /* silently fail */ }
+    setSaving(false);
+  };
+
+  if (!entity) return null;
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 300,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }} onClick={onClose}>
+      <div style={{ position: 'absolute', inset: 0, background: '#000000aa' }} />
+      <div onClick={e => e.stopPropagation()} style={{
+        background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 10,
+        padding: '24px 28px', maxWidth: 420, width: '90%', position: 'relative', zIndex: 1,
+        maxHeight: '80vh', overflow: 'auto',
+      }}>
+        {/* Close */}
+        <button onClick={onClose} style={{
+          position: 'absolute', top: 12, right: 14, background: 'none', border: 'none',
+          cursor: 'pointer', fontSize: 16, color: t.textDim,
+        }}>{'\u2715'}</button>
+
+        <div style={{ fontFamily: "var(--font-cinzel)", fontSize: 18, fontWeight: 700, color: t.heading, marginBottom: 8, paddingRight: 24 }}>
+          {entity.name || entity.id || 'Unknown'}
+        </div>
+
+        {entity.type && <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 12, color: t.textDim, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{entity.type}</div>}
+
+        {entry?.definition && (
+          <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.textMuted, lineHeight: 1.6, marginBottom: 16 }}>{entry.definition}</div>
+        )}
+
+        {/* Item-specific: durability */}
+        {entry?.durability !== undefined && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+              <span style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: t.textMuted }}>Durability</span>
+              <span style={{ fontFamily: "var(--font-jetbrains)", fontSize: sz.ui, color: durabilityColor(entry.durability, entry.maxDurability), fontWeight: 600 }}>
+                {entry.durability}/{entry.maxDurability}
+              </span>
+            </div>
+            <div style={{ height: 4, background: t.borderLight, borderRadius: 2, overflow: 'hidden' }}>
+              <div style={{
+                height: '100%', width: `${entry.maxDurability > 0 ? (entry.durability / entry.maxDurability) * 100 : 0}%`,
+                background: durabilityColor(entry.durability, entry.maxDurability), borderRadius: 2,
+              }} />
+            </div>
+            {entry.quality && <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: t.textDim, marginTop: 4 }}>Quality: {entry.quality}</div>}
+          </div>
+        )}
+
+        {/* Player notes */}
+        <div style={{ marginTop: 8 }}>
+          <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: t.textMuted, marginBottom: 6 }}>Your notes</div>
+          <textarea value={note} onChange={e => setNote(e.target.value)} onBlur={saveNote} placeholder="Add a note..." style={{
+            width: '100%', minHeight: 60, padding: '8px 10px',
+            background: t.bgInput, border: `1px solid ${t.border}`, borderRadius: 4,
+            fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.text,
+            outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+          }} />
+          {saving && <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 10, color: t.textFaint, marginTop: 2 }}>Saving...</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Sidebar
+// =============================================================================
+
+function Sidebar({ t, sz, width, activeTab, setActiveTab, badges, character, inventory, equipped, currencyLabel, glossary, gameId, onEntityClick }) {
   return (
     <div style={{
       width, minWidth: 260, maxWidth: 600,
@@ -676,9 +1081,13 @@ function Sidebar({ t, sz, width, activeTab, setActiveTab, badges }) {
         })}
       </div>
       <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
-        <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.textDim, textAlign: 'center', paddingTop: 40 }}>
-          {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} content
-        </div>
+        {activeTab === 'character' && <CharacterTab t={t} sz={sz} character={character} onEntityClick={onEntityClick} />}
+        {activeTab === 'inventory' && <InventoryTab t={t} sz={sz} inventory={inventory} equipped={equipped} currencyLabel={currencyLabel} onEntityClick={onEntityClick} />}
+        {activeTab !== 'character' && activeTab !== 'inventory' && (
+          <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.textDim, textAlign: 'center', paddingTop: 40 }}>
+            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} content
+          </div>
+        )}
       </div>
       <div style={{ padding: '10px 12px', borderTop: `1px solid ${t.border}`, display: 'flex', gap: 8, flexShrink: 0 }}>
         <button style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 0', background: 'none', border: `1px solid ${t.border}`, borderRadius: 4, cursor: 'pointer', fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.textMuted }}>
@@ -775,15 +1184,28 @@ function PlayPageInner() {
   // --- Narrative state ---
   const [turns, setTurns] = useState([]);
   const [sessionRecap, setSessionRecap] = useState(null);
-  const [streamingTurn, setStreamingTurn] = useState(null); // turn being built from SSE
+  const [streamingTurn, setStreamingTurn] = useState(null);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [waiting, setWaiting] = useState(false); // waiting for server after action submission
+  const [waiting, setWaiting] = useState(false);
   const [actionError, setActionError] = useState(null);
+
+  // --- Character + Inventory state ---
+  const [character, setCharacter] = useState(null);
+  const [inventory, setInventory] = useState(null);
+  const [equipped, setEquipped] = useState({});
+  const [currencyLabel, setCurrencyLabel] = useState('Coins');
+  const [glossary, setGlossary] = useState([]);
+  const [entityPopup, setEntityPopup] = useState(null);
 
   // --- UI state ---
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState(sz.sidebar);
-  const [activeTab, setActiveTab] = useState('character');
+  const [activeTab, setActiveTabRaw] = useState('character');
+  const setActiveTab = useCallback((tab) => {
+    setActiveTabRaw(tab);
+    // Clear badge for viewed tab
+    setBadges(prev => prev[tab] > 0 ? { ...prev, [tab]: 0 } : prev);
+  }, []);
   const [badges, setBadges] = useState({ character: 0, inventory: 0, npcs: 0, glossary: 0, map: 0, journal: 0 });
   const [bookmarks, setBookmarks] = useState({});
   const containerRef = useRef(null);
@@ -810,6 +1232,11 @@ function PlayPageInner() {
         setTurns(history);
         setSessionRecap(data.session_recap || data.sessionRecap || null);
         setBookmarks(loadBookmarks(gameId));
+        // Character + inventory
+        setCharacter(data.character || null);
+        setInventory(data.character?.inventory || data.inventory || null);
+        setEquipped(data.character?.equipped || data.equipped || {});
+        setCurrencyLabel(data.world?.currencyLabel || data.currencyLabel || 'Coins');
       } catch (err) {
         setError(err.message || 'Failed to load game.');
       } finally {
@@ -818,6 +1245,18 @@ function PlayPageInner() {
     };
     fetchGame();
   }, [authChecked, gameId]);
+
+  // --- Fetch glossary on load ---
+  useEffect(() => {
+    if (!authChecked || !gameId || loading || error) return;
+    const fetchGlossary = async () => {
+      try {
+        const res = await api.get(`/api/game/${gameId}/glossary`);
+        setGlossary(res.entries || res.glossary || res || []);
+      } catch { /* glossary endpoint may not be available */ }
+    };
+    fetchGlossary();
+  }, [authChecked, gameId, loading, error]);
 
   // --- SSE event handler ---
   const handleSSEEvent = useCallback((event) => {
@@ -853,7 +1292,24 @@ function PlayPageInner() {
         return { ...prev, narrative };
       });
     } else if (type === 'turn:state_changes') {
-      setStreamingTurn(prev => prev ? { ...prev, statusChanges: event.changes || event.statusChanges || [] } : prev);
+      const changes = event.changes || event.statusChanges || [];
+      setStreamingTurn(prev => prev ? { ...prev, statusChanges: changes } : prev);
+      // Update character/inventory from state changes
+      if (event.character) setCharacter(event.character);
+      if (event.inventory) setInventory(event.inventory);
+      if (event.equipped) setEquipped(event.equipped);
+      // Update badge counts for new items/entities
+      const invCount = changes.filter(c => c.type === 'inventory_gained').length;
+      const npcCount = changes.filter(c => c.type === 'npc_introduced').length;
+      const glossCount = changes.filter(c => c.type === 'glossary_added').length;
+      if (invCount || npcCount || glossCount) {
+        setBadges(prev => ({
+          ...prev,
+          inventory: prev.inventory + invCount,
+          npcs: prev.npcs + npcCount,
+          glossary: prev.glossary + glossCount,
+        }));
+      }
     } else if (type === 'turn:actions') {
       setStreamingTurn(prev => prev ? { ...prev, options: event.options || [] } : prev);
     } else if (type === 'turn:complete') {
@@ -931,6 +1387,11 @@ function PlayPageInner() {
       setIsStreaming(false);
     }
   }, [gameId, waiting, turns, streamingTurn]);
+
+  // --- Entity popup ---
+  const handleEntityClick = useCallback((entity) => {
+    setEntityPopup(entity);
+  }, []);
 
   // --- Bookmark toggle ---
   const toggleBookmark = useCallback((turnNum) => {
@@ -1073,10 +1534,17 @@ function PlayPageInner() {
         {sidebarOpen && (
           <>
             <ResizeHandle onDrag={handleResize} t={t} />
-            <Sidebar t={t} sz={sz} width={sidebarWidth} activeTab={activeTab} setActiveTab={setActiveTab} badges={badges} />
+            <Sidebar t={t} sz={sz} width={sidebarWidth} activeTab={activeTab} setActiveTab={setActiveTab} badges={badges}
+              character={character} inventory={inventory} equipped={equipped} currencyLabel={currencyLabel}
+              glossary={glossary} gameId={gameId} onEntityClick={handleEntityClick} />
           </>
         )}
       </div>
+
+      {/* Entity popup modal */}
+      {entityPopup && (
+        <EntityPopup t={t} sz={sz} entity={entityPopup} glossary={glossary} gameId={gameId} onClose={() => setEntityPopup(null)} />
+      )}
     </div>
   );
 }
