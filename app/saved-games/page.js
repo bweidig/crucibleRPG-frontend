@@ -217,7 +217,7 @@ function DeleteModal({ save, onConfirm, onCancel }) {
         {/* Warning icon */}
         <div style={{
           width: 48, height: 48, borderRadius: '50%',
-          background: 'rgba(232,90,90,0.1)', border: '1px solid rgba(232,90,90,0.2)',
+          background: '#201620', border: '1px solid #361d27',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           margin: '0 auto 20px',
         }}>
@@ -254,7 +254,7 @@ function DeleteModal({ save, onConfirm, onCancel }) {
           placeholder={save.characterName}
           style={{
             width: '100%', padding: '10px 14px',
-            background: 'var(--bg-main)', border: `1px solid ${matches ? 'rgba(232,90,90,0.5)' : 'var(--border-primary)'}`,
+            background: 'var(--bg-main)', border: `1px solid ${matches ? '#79343a' : 'var(--border-primary)'}`,
             borderRadius: 6, fontFamily: 'var(--font-alegreya-sans)', fontSize: 15,
             color: 'var(--text-primary)', outline: 'none',
             transition: 'border-color 0.2s',

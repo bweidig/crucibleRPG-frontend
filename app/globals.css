@@ -43,6 +43,16 @@
   --border-card-hover: #564b2e;
   --border-card-separator: #2a2622;
 
+  /* Solid gold-tinted borders (computed on --bg-main, no rgba) */
+  --border-gold-faint: #16181e;
+  --border-gold-subtle: #1f1f21;
+  --border-gold-light: #272522;
+
+  /* Solid gold-tinted backgrounds (computed on --bg-main, no rgba) */
+  --bg-gold-faint: #0e111b;
+  --bg-gold-subtle: #13151d;
+  --bg-gold-light: #191a1e;
+
   /* Difficulty badges */
   --badge-forgiving-text: #7aba7a;
   --badge-forgiving-bg: #142018;

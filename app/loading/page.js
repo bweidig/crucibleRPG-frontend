@@ -80,7 +80,7 @@ function LoadingRing({ progress }) {
   return (
     <div style={{ position: 'relative', width: 140, height: 140 }}>
       <svg width="140" height="140" style={{ transform: 'rotate(-90deg)', animation: 'ringPulse 3s ease-in-out infinite' }}>
-        <circle cx="70" cy="70" r={radius} fill="none" stroke="rgba(201,168,76,0.06)" strokeWidth="3" />
+        <circle cx="70" cy="70" r={radius} fill="none" stroke="#16181e" strokeWidth="3" />
         <circle cx="70" cy="70" r={radius} fill="none" stroke="url(#goldGrad)" strokeWidth="3"
           strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset}
           style={{ transition: 'stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1)' }}
@@ -97,7 +97,7 @@ function LoadingRing({ progress }) {
         position: 'absolute', top: '50%', left: '50%',
         animation: 'd20Hover 4s ease-in-out infinite',
       }}>
-        <D20Icon size={38} color="rgba(201,168,76,0.5)" />
+        <D20Icon size={38} color="#6a5b33" />
       </div>
     </div>
   );
@@ -178,7 +178,7 @@ export default function LoadingScreen() {
           {summaryItems.map((item, i) => (
             <div key={i} style={{
               textAlign: 'center', padding: '0 20px',
-              borderRight: i < 3 ? '1px solid rgba(201,168,76,0.08)' : 'none',
+              borderRight: i < 3 ? '1px solid var(--border-gold-faint)' : 'none',
             }}>
               <div style={{
                 fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, fontWeight: 600,
@@ -236,7 +236,7 @@ export default function LoadingScreen() {
         }}>
           <div style={{
             width: 40, height: 1,
-            background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.12), transparent)',
+            background: 'linear-gradient(90deg, transparent, var(--border-gold-subtle), transparent)',
           }} />
           <div style={{
             fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, fontWeight: 600,

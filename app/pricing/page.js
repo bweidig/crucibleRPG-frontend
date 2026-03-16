@@ -141,8 +141,8 @@ export default function PricingPage() {
           className={styles.btnSecondary}
           style={{
             fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
-            color: 'var(--text-muted)', letterSpacing: '0.08em',
-            background: 'transparent', border: '1px solid rgba(201,168,76,0.15)',
+            color: 'var(--accent-gold)', letterSpacing: '0.08em',
+            background: 'transparent', border: '1px solid var(--border-card)',
             borderRadius: 4, padding: '8px 20px',
           }}
         >SIGN IN</button>
@@ -190,8 +190,8 @@ export default function PricingPage() {
 
         {/* Free Trial */}
         <div className={styles.priceCard} style={{
-          background: 'rgba(201,168,76,0.02)',
-          border: '1px solid rgba(201,168,76,0.1)',
+          background: 'var(--bg-gold-faint)',
+          border: '1px solid var(--border-gold-subtle)',
           borderRadius: 10, padding: '36px 32px',
           width: 300, display: 'flex', flexDirection: 'column',
         }}>
@@ -214,7 +214,7 @@ export default function PricingPage() {
           <div style={{
             fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
             color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 28,
-            paddingBottom: 24, borderBottom: '1px solid rgba(201,168,76,0.08)',
+            paddingBottom: 24, borderBottom: '1px solid var(--border-gold-faint)',
           }}>No credit card. No commitment. Just jump in.</div>
 
           <div style={{ flex: 1 }}>
@@ -228,8 +228,8 @@ export default function PricingPage() {
             className={styles.btnSecondary}
             style={{
               fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
-              color: 'var(--text-muted)', letterSpacing: '0.1em',
-              background: 'transparent', border: '1px solid rgba(201,168,76,0.2)',
+              color: 'var(--accent-gold)', letterSpacing: '0.1em',
+              background: 'transparent', border: '1px solid var(--border-card)',
               borderRadius: 5, padding: '14px 24px', width: '100%',
               marginTop: 24,
             }}
@@ -238,8 +238,8 @@ export default function PricingPage() {
 
         {/* Subscription */}
         <div className={styles.priceCard} style={{
-          background: 'rgba(201,168,76,0.04)',
-          border: '1px solid rgba(201,168,76,0.2)',
+          background: 'var(--bg-gold-subtle)',
+          border: '1px solid var(--border-card-separator)',
           borderRadius: 10, padding: '36px 32px',
           width: 300, display: 'flex', flexDirection: 'column',
           position: 'relative',
@@ -279,7 +279,7 @@ export default function PricingPage() {
           <div style={{
             fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
             color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 28,
-            paddingBottom: 24, borderBottom: '1px solid rgba(201,168,76,0.08)',
+            paddingBottom: 24, borderBottom: '1px solid var(--border-gold-faint)',
           }}>Your monthly turns. Spend them however you want. Resets every billing cycle. Cancel anytime.</div>
 
           <div style={{ flex: 1 }}>
@@ -327,8 +327,8 @@ export default function PricingPage() {
         }}>
           {PRICING.topups.map((pack, i) => (
             <div key={i} className={styles.topupCard} style={{
-              background: 'rgba(201,168,76,0.02)',
-              border: '1px solid rgba(201,168,76,0.1)',
+              background: 'var(--bg-gold-faint)',
+              border: '1px solid var(--border-gold-subtle)',
               borderRadius: 8, padding: '20px 24px',
               textAlign: 'center', flex: '1 1 160px', maxWidth: 190,
             }}>
@@ -368,7 +368,7 @@ export default function PricingPage() {
           <div key={i} style={{
             marginBottom: 28,
             paddingBottom: 28,
-            borderBottom: i < FAQ_ITEMS.length - 1 ? '1px solid rgba(201,168,76,0.06)' : 'none',
+            borderBottom: i < FAQ_ITEMS.length - 1 ? '1px solid var(--border-gold-faint)' : 'none',
           }}>
             <div style={{
               fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 700,

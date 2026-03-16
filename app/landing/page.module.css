@@ -36,8 +36,8 @@
 }
 
 .ctaSecondary:hover {
-  background: rgba(201, 168, 76, 0.06);
-  border-color: rgba(201, 168, 76, 0.45);
+  background: var(--bg-gold-subtle);
+  border-color: var(--border-card-hover);
   color: var(--accent-gold);
 }
 

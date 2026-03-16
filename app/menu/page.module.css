@@ -38,8 +38,8 @@
 }
 
 .btnSecondary:hover {
-  background: rgba(201, 168, 76, 0.06);
-  border-color: rgba(201, 168, 76, 0.45);
+  background: var(--bg-gold-subtle);
+  border-color: var(--border-card-hover);
   color: var(--accent-gold);
 }
 
@@ -68,6 +68,6 @@
 }
 
 .continueCard:hover {
-  border-color: rgba(201, 168, 76, 0.3);
+  border-color: var(--border-card);
   box-shadow: 0 8px 40px rgba(201, 168, 76, 0.08);
 }

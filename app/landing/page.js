@@ -54,7 +54,7 @@ function NavBar({ scrolled }) {
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       background: scrolled ? 'rgba(10, 14, 26, 0.94)' : 'transparent',
       backdropFilter: scrolled ? 'blur(16px)' : 'none',
-      borderBottom: scrolled ? '1px solid rgba(201, 168, 76, 0.08)' : '1px solid transparent',
+      borderBottom: scrolled ? '1px solid var(--border-gold-faint)' : '1px solid transparent',
       transition: 'all 0.5s ease',
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
@@ -136,8 +136,8 @@ function HeroSection() {
         }}>START YOUR ADVENTURE</button>
         <a href="#how-it-works" style={{ textDecoration: 'none' }}>
           <button className={styles.ctaSecondary} style={{
-            fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 600, color: '#7082a4',
-            background: 'transparent', border: '1px solid rgba(201,168,76,0.2)',
+            fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 600, color: 'var(--accent-gold)',
+            background: 'transparent', border: '1px solid var(--border-card)',
             borderRadius: 6, padding: '16px 40px', cursor: 'pointer', letterSpacing: '0.1em',
           }}>SEE HOW IT WORKS</button>
         </a>
@@ -156,8 +156,8 @@ function FeaturesSection() {
         {features.map((f, i) => (
           <div key={i} style={{
             padding: '36px 32px', borderRadius: 8,
-            border: '1px solid rgba(201,168,76,0.06)',
-            background: 'rgba(201,168,76,0.015)',
+            border: '1px solid var(--border-gold-faint)',
+            background: 'var(--bg-gold-faint)',
           }}>
             <h3 style={{
               fontFamily: 'var(--font-cinzel)', fontSize: 19, fontWeight: 700,
@@ -183,7 +183,7 @@ function HowItWorksSection() {
       <div style={{ position: 'relative' }}>
         <div style={{
           position: 'absolute', left: 27, top: 28, bottom: 28, width: 1,
-          background: 'linear-gradient(to bottom, rgba(201,168,76,0.2), rgba(201,168,76,0.03))',
+          background: 'linear-gradient(to bottom, var(--border-card-separator), var(--bg-gold-faint))',
         }} />
         {steps.map((step, i) => (
           <div key={i} style={{
@@ -192,7 +192,7 @@ function HowItWorksSection() {
           }}>
             <div style={{
               width: 56, height: 56, borderRadius: '50%',
-              border: '1px solid rgba(201,168,76,0.2)', background: 'var(--bg-main)',
+              border: '1px solid var(--border-card-separator)', background: 'var(--bg-main)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700,
               color: 'var(--accent-gold)', flexShrink: 0, position: 'relative', zIndex: 1,
@@ -244,7 +244,7 @@ function Footer() {
   return (
     <footer style={{
       padding: '40px clamp(24px, 4vw, 56px) 36px',
-      borderTop: '1px solid rgba(201,168,76,0.1)',
+      borderTop: '1px solid var(--border-gold-subtle)',
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       maxWidth: 1200, margin: '0 auto', flexWrap: 'wrap', gap: 16,
     }}>
