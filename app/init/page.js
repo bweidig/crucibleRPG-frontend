@@ -1864,29 +1864,30 @@ function InitWizardInner() {
   };
 
   const saveSetting = async () => {
+    const displayName = SETTINGS.find(s => s.id === setting)?.name || setting;
     let body;
     if (selectedWorld) {
       body = {
-        settingType: setting,
+        selection: displayName,
         prebuiltWorldId: selectedWorld,
-        freeformText: anythingElseText || null,
+        customText: anythingElseText || null,
       };
     } else if (setting === 'custom') {
       body = {
-        settingType: 'custom',
-        freeformText: customWorldText || null,
+        selection: 'Custom',
+        customText: customWorldText || null,
       };
     } else if (setting === 'your-worlds') {
       body = {
-        settingType: 'your-worlds',
+        selection: 'your-worlds',
         snapshotId: selectedSnapshot,
-        freeformText: anythingElseText || null,
+        customText: anythingElseText || null,
       };
     } else {
       body = {
-        settingType: setting,
-        parameters: settingAnswers,
-        freeformText: anythingElseText || null,
+        selection: displayName,
+        answers: settingAnswers,
+        customText: anythingElseText || null,
       };
     }
     await api.post(`/api/init/${gameId}/setting`, body);
@@ -1915,7 +1916,7 @@ function InitWizardInner() {
       personality: character.personality || null,
       personalityCustom: character.personalityCustom || null,
       appearance: character.appearance || null,
-      pronouns: character.pronouns || null,
+      gender: character.customPronouns || character.pronouns || null,
       customPronouns: character.customPronouns || null,
       archetypeId: selectedArchetype || null,
     });
@@ -1955,7 +1956,7 @@ function InitWizardInner() {
     setScenario(null);
     try {
       const res = await api.post(`/api/init/${gameId}/generate-scenarios`, {
-        intensity: intensityId,
+        intensity: intensityId.charAt(0).toUpperCase() + intensityId.slice(1),
       });
       const scenarios = res.scenarios || res;
       if (Array.isArray(scenarios) && scenarios.length > 0) {
@@ -1986,9 +1987,10 @@ function InitWizardInner() {
   };
 
   const saveScenario = async () => {
+    const indexMap = { A: 0, B: 1, C: 2 };
     const body = scenario === 'D'
-      ? { scenarioKey: 'D', customStart: customStartText }
-      : { scenarioKey: scenario };
+      ? { scenarioIndex: 'custom', customStart: { description: customStartText } }
+      : { scenarioIndex: indexMap[scenario] };
     await api.post(`/api/init/${gameId}/select-scenario`, body);
   };
 
