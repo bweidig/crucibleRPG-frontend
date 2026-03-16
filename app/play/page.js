@@ -77,13 +77,24 @@ function transformStats(statsObj) {
   if (Array.isArray(statsObj)) return statsObj;
   return Object.entries(statsObj)
     .filter(([abbr]) => STAT_META[abbr])
-    .map(([abbr, val]) => ({
-      name: STAT_META[abbr].name,
-      abbr,
-      emoji: STAT_META[abbr].emoji,
-      base: typeof val === 'object' ? val.base : val,
-      effective: typeof val === 'object' ? val.effective : val,
-    }));
+    .map(([abbr, val]) => {
+      let base = 0;
+      let effective = 0;
+      if (val != null && typeof val === 'object') {
+        base = typeof val.base === 'number' ? val.base : 0;
+        effective = typeof val.effective === 'number' ? val.effective : base;
+      } else if (typeof val === 'number') {
+        base = val;
+        effective = val;
+      }
+      return {
+        name: STAT_META[abbr].name,
+        abbr,
+        emoji: STAT_META[abbr].emoji,
+        base,
+        effective,
+      };
+    });
 }
 
 function transformResolution(res) {
@@ -891,9 +902,11 @@ function PanelSection({ t, title, children, defaultOpen = true }) {
 }
 
 function StatBar({ t, sz, stat, onClick }) {
-  const pct = Math.min(100, (stat.effective / 20) * 100);
-  const basePct = Math.min(100, (stat.base / 20) * 100);
-  const hasCondition = stat.effective < stat.base;
+  const eff = typeof stat.effective === 'number' ? stat.effective : 0;
+  const base = typeof stat.base === 'number' ? stat.base : 0;
+  const pct = Math.min(100, (eff / 20) * 100);
+  const basePct = Math.min(100, (base / 20) * 100);
+  const hasCondition = eff < base;
   return (
     <div style={{ marginBottom: 10, cursor: 'pointer' }} onClick={() => onClick({ id: stat.name.toLowerCase(), type: 'Stat' })}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
@@ -901,8 +914,8 @@ function StatBar({ t, sz, stat, onClick }) {
           {stat.emoji} {stat.name}
         </span>
         <span style={{ fontFamily: "var(--font-jetbrains)", fontSize: sz.ui, color: hasCondition ? t.danger : t.heading, fontWeight: 500 }}>
-          {stat.effective.toFixed(1)}
-          {hasCondition && <span style={{ color: t.textDim, fontSize: sz.ui - 2 }}> / {stat.base.toFixed(1)}</span>}
+          {typeof stat.effective === 'number' ? eff.toFixed(1) : '\u2014'}
+          {hasCondition && <span style={{ color: t.textDim, fontSize: sz.ui - 2 }}> / {base.toFixed(1)}</span>}
         </span>
       </div>
       <div style={{ height: 4, background: t.borderLight, borderRadius: 2, overflow: 'hidden', position: 'relative' }}>
