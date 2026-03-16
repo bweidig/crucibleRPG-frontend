@@ -715,7 +715,7 @@ function ActionPanel({ t, sz, options, onSubmit, waiting }) {
     );
   }
 
-  if (!options || options.length === 0) return null;
+  const hasOptions = options && options.length > 0;
 
   const handleCustomSubmit = () => {
     if (!customText.trim()) return;
@@ -725,7 +725,7 @@ function ActionPanel({ t, sz, options, onSubmit, waiting }) {
 
   return (
     <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {options.map(opt => (
+      {hasOptions && options.map(opt => (
         <button
           key={opt.id || opt.key}
           onClick={() => onSubmit({ type: 'option', key: opt.id || opt.key })}
@@ -2798,17 +2798,30 @@ function PlayPageInner() {
       setLoading(true);
       setError(null);
       try {
-        const data = await api.get(`/api/games/${gameId}`);
+        const [data, stateData] = await Promise.all([
+          api.get(`/api/games/${gameId}`),
+          api.get(`/api/game/${gameId}/state`).catch(err => {
+            console.error('Game state endpoint failed:', err.message || err);
+            return null;
+          }),
+        ]);
         if (cancelled) return;
         setGameState(data);
+        // Extract available actions from /state endpoint
+        const lastOptions = stateData?.narrative?.availableActions?.options;
+        const mappedOptions = Array.isArray(lastOptions) ? lastOptions.map(opt => ({
+          id: opt.label || opt.id || opt.key,
+          text: opt.text || '',
+          ...opt,
+        })) : [];
         // Transform recentNarrative into turns format
         const rawNarrative = Array.isArray(data.recentNarrative) ? data.recentNarrative : [];
-        const history = rawNarrative.map(entry => ({
+        const history = rawNarrative.map((entry, i) => ({
           turn: entry.turn || 0,
           narrative: [{ text: entry.content || '' }],
           resolution: null,
           statusChanges: [],
-          options: [],
+          options: (i === rawNarrative.length - 1) ? mappedOptions : [],
         }));
         setTurns(history);
         setSessionRecap(data.sessionRecap || null);
