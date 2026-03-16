@@ -320,6 +320,184 @@ function TurnTimeline({ t, turns, bookmarks, onScrollToTurn }) {
 }
 
 // =============================================================================
+// Dice Animation
+// =============================================================================
+
+const GLOW_COLORS = { none: 'transparent', gold: '#c9a84c', tarnished: '#8a6a3a', crimson: '#c84a4a' };
+
+const DICE_TIMINGS = {
+  cinematic: { crucible: 600, mortalSpin: 900, mortalLand: 1500, resolved: 1800, transition: 2800, stream: 3200 },
+  efficient: { crucible: 400, mortalSpin: 600, mortalLand: 1000, resolved: 1200, transition: 1800, stream: 2100 },
+  instant: null,
+};
+
+function MiniD20({ value, size = 72, glow = 'none', spinning = false, ghost = false, hideValue = false }) {
+  const glowColor = GLOW_COLORS[glow] || 'transparent';
+  const hasGlow = glow !== 'none' && !ghost;
+  const valueColor = value === 20 ? '#c9a84c' : value === 1 ? '#e85a5a' : '#d0c098';
+
+  return (
+    <div style={{
+      width: size, height: size, position: 'relative',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      opacity: ghost ? 0.2 : 1, transition: 'opacity 0.5s',
+    }}>
+      {hasGlow && (
+        <div style={{
+          position: 'absolute', inset: -4, borderRadius: '50%',
+          boxShadow: `0 0 16px 4px ${glowColor}55, 0 0 6px 2px ${glowColor}33`,
+          border: `2px solid ${glowColor}`,
+        }} />
+      )}
+      <svg width={size} height={size} viewBox="0 0 100 100" style={{
+        animation: spinning ? 'diceSpin 0.6s linear infinite' : 'none',
+      }}>
+        <polygon
+          points="50,5 95,35 82,88 18,88 5,35"
+          fill="#111528" stroke={hasGlow ? glowColor : '#1e2540'} strokeWidth="2"
+        />
+      </svg>
+      <span style={{
+        position: 'absolute', fontFamily: "var(--font-jetbrains)",
+        fontSize: size * 0.3, fontWeight: 700,
+        color: (spinning || hideValue) ? '#7082a4' : valueColor,
+      }}>
+        {spinning || hideValue ? '?' : value}
+      </span>
+    </div>
+  );
+}
+
+function InlineDicePanel({ t, sz, diceRoll, resolution, diceMode, onComplete }) {
+  const [phase, setPhase] = useState(0);
+  const timerRef = useRef(null);
+
+  const roll = diceRoll || {};
+  const category = roll.category || 'MATCHED';
+  const isMatched = category === 'MATCHED';
+  const isOutmatched = category === 'OUTMATCHED';
+  const isDominant = category === 'DOMINANT';
+  const hasCrucible = !isMatched;
+
+  const timing = diceMode === 'instant' ? null : DICE_TIMINGS[diceMode] || DICE_TIMINGS.efficient;
+
+  // Auto-advance through phases
+  useEffect(() => {
+    if (!timing || !diceRoll) {
+      setPhase(7);
+      return;
+    }
+    setPhase(1);
+    const advance = (nextPhase, delay) => {
+      timerRef.current = setTimeout(() => setPhase(nextPhase), delay);
+    };
+    advance(2, timing.crucible);
+    setTimeout(() => advance(3, 0), timing.mortalSpin);
+    setTimeout(() => advance(4, 0), timing.mortalLand);
+    setTimeout(() => advance(5, 0), timing.resolved);
+    setTimeout(() => advance(6, 0), timing.transition);
+    setTimeout(() => { setPhase(7); if (onComplete) onComplete(); }, timing.stream);
+
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [diceRoll, timing, onComplete]);
+
+  if (phase >= 7 || !diceRoll) return null;
+
+  const crucibleValue = roll.crucible || roll.die;
+  const mortalDie1 = roll.mortal?.die1 || roll.die;
+  const mortalDie2 = roll.mortal?.die2;
+  const keptValue = roll.kept || roll.die;
+  const isNat20 = crucibleValue === 20;
+  const isNat1 = crucibleValue === 1;
+
+  // Category banner colors
+  const catColor = isNat20 ? '#c9a84c' : isNat1 ? '#e85a5a' : category === 'DOMINANT' ? '#8a6a3a' : '#8a94a8';
+
+  // Determine glow for mortal dice (phase 4+)
+  const die1Glow = phase >= 4 ? (isOutmatched && mortalDie1 === keptValue ? 'gold' : isDominant && mortalDie1 === keptValue ? 'tarnished' : 'none') : 'none';
+  const die2Glow = phase >= 4 && mortalDie2 ? (isOutmatched && mortalDie2 === keptValue ? 'gold' : isDominant && mortalDie2 === keptValue ? 'tarnished' : 'none') : 'none';
+  const die1Ghost = phase >= 4 && mortalDie2 && mortalDie1 !== keptValue;
+  const die2Ghost = phase >= 4 && mortalDie2 && mortalDie2 !== keptValue;
+
+  // Result text for phase 5
+  const resultText = resolution?.details?.result || resolution?.text || '';
+
+  return (
+    <div style={{
+      padding: '16px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+      opacity: phase === 6 ? 0 : 1, transform: phase === 6 ? 'scaleY(0.8)' : 'scaleY(1)',
+      transition: 'opacity 0.4s ease, transform 0.4s ease',
+      overflow: 'hidden', maxHeight: phase === 6 ? 0 : 200,
+    }}>
+      {/* Category banner */}
+      {phase >= 2 && hasCrucible && (
+        <div style={{
+          fontFamily: "var(--font-cinzel)", fontSize: 11, fontWeight: 700,
+          color: catColor, letterSpacing: '0.15em',
+          animation: 'fadeIn 0.3s ease',
+        }}>{category}{isNat20 ? ' (NAT 20)' : isNat1 ? ' (NAT 1)' : ''}</div>
+      )}
+
+      {/* Dice row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        {/* Crucible die (Outmatched/Dominant only) */}
+        {hasCrucible && phase >= 1 && (
+          <MiniD20
+            value={crucibleValue}
+            size={phase <= 1 ? 80 : 56}
+            spinning={phase <= 1}
+            hideValue={phase < 2}
+            glow={isNat20 ? 'gold' : isNat1 ? 'crimson' : 'none'}
+          />
+        )}
+
+        {/* Mortal dice */}
+        {(isMatched || phase >= 3) && (
+          <>
+            <MiniD20
+              value={isMatched ? keptValue : mortalDie1}
+              size={72}
+              spinning={phase < (isMatched ? 2 : 4)}
+              hideValue={phase < (isMatched ? 2 : 4)}
+              glow={isMatched ? (phase >= 2 ? 'gold' : 'none') : die1Glow}
+              ghost={die1Ghost}
+            />
+            {!isMatched && mortalDie2 !== undefined && (
+              <MiniD20
+                value={mortalDie2}
+                size={72}
+                spinning={phase < 4}
+                hideValue={phase < 4}
+                glow={die2Glow}
+                ghost={die2Ghost}
+              />
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Result flash */}
+      {phase >= 5 && resultText && (
+        <div style={{
+          fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui + 1, fontWeight: 600,
+          color: resultText.toLowerCase().includes('success') ? t.success : t.danger,
+          animation: 'fadeIn 0.3s ease',
+        }}>{resultText}</div>
+      )}
+
+      {/* Debt indicator */}
+      {roll.debt && phase >= 4 && (
+        <div style={{
+          fontFamily: "var(--font-jetbrains)", fontSize: 10, color: t.danger,
+          padding: '2px 8px', background: t.bgCard, border: `1px solid ${t.danger}`,
+          borderRadius: 3,
+        }}>DEBT: {roll.debt}</div>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
 // Resolution Block
 // =============================================================================
 
@@ -538,7 +716,9 @@ function ActionPanel({ t, sz, options, onSubmit, waiting }) {
 // Turn Block
 // =============================================================================
 
-function TurnBlock({ t, sz, turn, isLatest, isStreaming, bookmarked, onToggleBookmark, onSubmitAction, waiting }) {
+function TurnBlock({ t, sz, turn, isLatest, isStreaming, bookmarked, onToggleBookmark, onSubmitAction, waiting, diceMode }) {
+  const [diceComplete, setDiceComplete] = useState(!isLatest || !turn.diceRoll);
+
   return (
     <div id={`turn-${turn.turn}`} style={{ marginBottom: 32 }}>
       {/* Turn header */}
@@ -578,8 +758,14 @@ function TurnBlock({ t, sz, turn, isLatest, isStreaming, bookmarked, onToggleBoo
         </span>
       </div>
 
-      {/* Resolution */}
-      <ResolutionBlock t={t} sz={sz} resolution={turn.resolution} />
+      {/* Dice animation (latest turn only, when roll exists) */}
+      {isLatest && turn.diceRoll && (
+        <InlineDicePanel t={t} sz={sz} diceRoll={turn.diceRoll} resolution={turn.resolution}
+          diceMode={diceMode} onComplete={() => setDiceComplete(true)} />
+      )}
+
+      {/* Resolution (shows after dice animation completes or for history turns) */}
+      {(diceComplete || !isLatest) && <ResolutionBlock t={t} sz={sz} resolution={turn.resolution} />}
 
       {/* Narrative text */}
       <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>
@@ -1401,6 +1587,556 @@ function JournalTab({ t, sz, objectives, entityNotes, gameId, onSubmitAction }) 
 }
 
 // =============================================================================
+// Settings Modal
+// =============================================================================
+
+const STORYTELLER_OPTIONS = [
+  { id: 'chronicler', label: 'Chronicler', desc: 'The world as it is.' },
+  { id: 'bard', label: 'Bard', desc: 'Every moment a legend in the making.' },
+  { id: 'trickster', label: 'Trickster', desc: 'The world has a sense of humor.' },
+  { id: 'poet', label: 'Poet', desc: 'Beauty in the breaking.' },
+  { id: 'whisper', label: 'Whisper', desc: 'Everything is fine. Almost.' },
+  { id: 'noir', label: 'Noir', desc: 'The city always wins.' },
+  { id: 'custom', label: 'Custom', desc: 'Your voice, your rules.' },
+];
+
+const DIFFICULTY_PRESETS = {
+  forgiving: { dcOffset: -2, progressionSpeed: 1.0, encounterPressure: 'low', survival: false, durability: false, fortuneBalance: true, simplifiedOutcomes: false },
+  standard: { dcOffset: 0, progressionSpeed: 1.0, encounterPressure: 'standard', survival: true, durability: true, fortuneBalance: true, simplifiedOutcomes: false },
+  harsh: { dcOffset: 2, progressionSpeed: 1.0, encounterPressure: 'high', survival: true, durability: true, fortuneBalance: true, simplifiedOutcomes: false },
+  brutal: { dcOffset: 4, progressionSpeed: 0.75, encounterPressure: 'high', survival: true, durability: true, fortuneBalance: true, simplifiedOutcomes: false },
+};
+
+const DIFF_COLORS = { forgiving: '#7aba7a', standard: '#8a94a8', harsh: '#e8c45a', brutal: '#e85a5a' };
+
+function SelectorRow({ t, sz, options, value, onChange }) {
+  return (
+    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+      {options.map(opt => (
+        <button key={opt.id || opt} onClick={() => onChange(opt.id || opt)} style={{
+          padding: '5px 12px', borderRadius: 4, cursor: 'pointer',
+          fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui,
+          color: (value === (opt.id || opt)) ? t.accent : t.textMuted,
+          background: (value === (opt.id || opt)) ? t.bgCard : 'transparent',
+          border: `1px solid ${(value === (opt.id || opt)) ? t.accent : t.border}`,
+          transition: 'all 0.2s',
+        }}>{opt.label || opt}</button>
+      ))}
+    </div>
+  );
+}
+
+function Toggle({ t, value, onChange }) {
+  return (
+    <button onClick={() => onChange(!value)} style={{
+      width: 36, height: 20, borderRadius: 10, cursor: 'pointer',
+      background: value ? t.accent : t.border, border: 'none',
+      position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+    }}>
+      <div style={{
+        width: 16, height: 16, borderRadius: '50%',
+        background: '#ffffff', position: 'absolute', top: 2,
+        left: value ? 18 : 2, transition: 'left 0.2s',
+      }} />
+    </button>
+  );
+}
+
+function SettingsModal({ t, sz, gameId, onClose, displaySettings, updateDisplay, gameSettings, setGameSettings }) {
+  const [tab, setTab] = useState('game');
+  const [storyteller, setStoryteller] = useState(gameSettings?.storyteller || 'chronicler');
+  const [customStorytellerText, setCustomStorytellerText] = useState(gameSettings?.customStorytellerText || '');
+  const [diffPreset, setDiffPreset] = useState(gameSettings?.difficultyPreset || 'standard');
+  const [dials, setDials] = useState(gameSettings?.dials || DIFFICULTY_PRESETS.standard);
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState(null);
+
+  // Checkpoint state
+  const [checkpoints, setCheckpoints] = useState([
+    { slot: 1, label: 'Slot 1', saved: false },
+    { slot: 2, label: 'Slot 2', saved: false },
+    { slot: 3, label: 'Slot 3', saved: false },
+  ]);
+  const [editingSlot, setEditingSlot] = useState(null);
+  const [editLabel, setEditLabel] = useState('');
+
+  // Fetch checkpoints on mount
+  useEffect(() => {
+    if (!gameId) return;
+    const fetchCheckpoints = async () => {
+      try {
+        const res = await api.get(`/api/game/${gameId}/checkpoints`);
+        if (res.checkpoints) setCheckpoints(res.checkpoints.map((c, i) => ({ slot: i + 1, ...c })));
+      } catch { /* endpoint may not exist */ }
+    };
+    fetchCheckpoints();
+  }, [gameId]);
+
+  const selectPreset = (preset) => {
+    setDiffPreset(preset);
+    setDials(DIFFICULTY_PRESETS[preset] || DIFFICULTY_PRESETS.standard);
+  };
+
+  const updateDial = (key, value) => {
+    setDials(prev => ({ ...prev, [key]: value }));
+    setDiffPreset('custom');
+  };
+
+  const saveStoryteller = async () => {
+    if (!gameId) return;
+    setSaving(true);
+    try {
+      const body = storyteller === 'custom'
+        ? { selection: 'custom', customText: customStorytellerText }
+        : { selection: storyteller };
+      await api.put(`/api/game/${gameId}/settings/storyteller`, body);
+      setFeedback('Storyteller updated');
+      setTimeout(() => setFeedback(null), 2000);
+    } catch { setFeedback('Failed to save'); }
+    setSaving(false);
+  };
+
+  const saveDifficulty = async () => {
+    if (!gameId) return;
+    setSaving(true);
+    try {
+      await api.put(`/api/game/${gameId}/settings/difficulty`, { preset: diffPreset, ...dials });
+      setFeedback('Difficulty updated');
+      setTimeout(() => setFeedback(null), 2000);
+    } catch { setFeedback('Failed to save'); }
+    setSaving(false);
+  };
+
+  const handleCheckpointAction = async (slot, action) => {
+    if (!gameId) return;
+    try {
+      if (action === 'save') {
+        await api.post(`/api/game/${gameId}/action`, { type: 'custom', text: `[checkpoint ${slot}]` });
+        setCheckpoints(prev => prev.map(c => c.slot === slot ? { ...c, saved: true } : c));
+      } else if (action === 'load') {
+        await api.post(`/api/game/${gameId}/action`, { type: 'custom', text: `[restore_checkpoint ${slot}]` });
+      } else if (action === 'clear') {
+        await api.post(`/api/game/${gameId}/action`, { type: 'custom', text: `[delete_checkpoint ${slot}]` });
+        setCheckpoints(prev => prev.map(c => c.slot === slot ? { ...c, saved: false, label: `Slot ${slot}` } : c));
+      }
+    } catch { /* silent */ }
+  };
+
+  const handleShare = async (mode) => {
+    if (!gameId) return;
+    try {
+      const res = await api.post(`/api/game/${gameId}/snapshots`, { type: mode });
+      if (res.shareUrl || res.token) {
+        const url = res.shareUrl || `crucibleRPG.com/snapshot/${res.token}`;
+        await navigator.clipboard.writeText(url);
+        setFeedback('Link copied!');
+        setTimeout(() => setFeedback(null), 2500);
+      }
+    } catch { setFeedback('Failed to create snapshot'); }
+  };
+
+  const handleSaveSnapshot = async () => {
+    if (!gameId) return;
+    try {
+      await api.post(`/api/game/${gameId}/snapshots`, { type: 'branch', name: 'Manual Save' });
+      setFeedback('Snapshot saved!');
+      setTimeout(() => setFeedback(null), 2500);
+    } catch { setFeedback('Failed to save snapshot'); }
+  };
+
+  const dcWarning = dials.dcOffset < -2 || dials.dcOffset > 4;
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
+      <div style={{ position: 'absolute', inset: 0, background: '#000000aa' }} />
+      <div onClick={e => e.stopPropagation()} style={{
+        background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 10,
+        padding: '24px 28px', maxWidth: 460, width: '90%', position: 'relative', zIndex: 1,
+        maxHeight: '85vh', overflow: 'auto',
+      }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 12, right: 14, background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: t.textDim }}>{'\u2715'}</button>
+
+        <div style={{ fontFamily: "var(--font-cinzel)", fontSize: 18, fontWeight: 700, color: t.heading, marginBottom: 16 }}>Settings</div>
+
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: `1px solid ${t.border}`, paddingBottom: 8 }}>
+          {[{ id: 'game', label: 'Game' }, { id: 'display', label: 'Display' }, { id: 'world', label: 'World' }].map(st => (
+            <button key={st.id} onClick={() => setTab(st.id)} style={{
+              padding: '6px 16px', borderRadius: 4, cursor: 'pointer',
+              fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, fontWeight: 600,
+              color: tab === st.id ? t.accent : t.textMuted,
+              background: tab === st.id ? t.bgPanel : 'transparent',
+              border: 'none',
+            }}>{st.label}</button>
+          ))}
+        </div>
+
+        {/* Game settings tab */}
+        {tab === 'game' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Storyteller */}
+            <div>
+              <div style={{ fontFamily: "var(--font-cinzel)", fontSize: 12, fontWeight: 600, color: t.textMuted, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Storyteller</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {STORYTELLER_OPTIONS.map(s => (
+                  <button key={s.id} onClick={() => setStoryteller(s.id)} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '8px 12px', borderRadius: 4, cursor: 'pointer',
+                    background: storyteller === s.id ? t.bgPanel : 'transparent',
+                    border: `1px solid ${storyteller === s.id ? t.accent : t.border}`,
+                    fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: storyteller === s.id ? t.accent : t.text,
+                    transition: 'all 0.2s',
+                  }}>
+                    <span style={{ fontWeight: 600 }}>{s.label}</span>
+                    <span style={{ fontSize: sz.ui - 1, color: t.textDim, fontStyle: 'italic' }}>{s.desc}</span>
+                  </button>
+                ))}
+              </div>
+              {storyteller === 'custom' && (
+                <div style={{ marginTop: 8, position: 'relative' }}>
+                  <textarea value={customStorytellerText} onChange={e => { if (e.target.value.length <= 500) setCustomStorytellerText(e.target.value); }}
+                    placeholder="Describe your narrative voice, or name storytellers to blend."
+                    style={{
+                      width: '100%', minHeight: 60, padding: '8px 10px',
+                      background: t.bgInput, border: `1px solid ${t.border}`, borderRadius: 4,
+                      fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.text,
+                      outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+                    }}
+                  />
+                  <span style={{ fontFamily: "var(--font-jetbrains)", fontSize: 10, color: customStorytellerText.length > 450 ? t.danger : t.textFaint, position: 'absolute', bottom: 6, right: 8 }}>
+                    {customStorytellerText.length}/500
+                  </span>
+                </div>
+              )}
+              <button onClick={saveStoryteller} disabled={saving} style={{
+                marginTop: 8, padding: '6px 16px', borderRadius: 4, cursor: 'pointer',
+                fontFamily: "var(--font-cinzel)", fontSize: 11, fontWeight: 600,
+                color: t.accent, background: 'transparent', border: `1px solid ${t.accent}`,
+              }}>{saving ? 'Saving...' : 'Save Storyteller'}</button>
+            </div>
+
+            {/* Difficulty */}
+            <div>
+              <div style={{ fontFamily: "var(--font-cinzel)", fontSize: 12, fontWeight: 600, color: t.textMuted, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+                Difficulty{diffPreset === 'custom' && <span style={{ color: t.danger, marginLeft: 8, fontSize: 10, fontFamily: "var(--font-alegreya-sans)", textTransform: 'none' }}>Custom</span>}
+              </div>
+              <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
+                {['forgiving', 'standard', 'harsh', 'brutal'].map(p => (
+                  <button key={p} onClick={() => selectPreset(p)} style={{
+                    flex: 1, padding: '6px 0', borderRadius: 4, cursor: 'pointer',
+                    fontFamily: "var(--font-cinzel)", fontSize: 11, fontWeight: 700,
+                    color: diffPreset === p ? '#0a0e1a' : DIFF_COLORS[p],
+                    background: diffPreset === p ? DIFF_COLORS[p] : 'transparent',
+                    border: `1px solid ${DIFF_COLORS[p]}`,
+                    textTransform: 'capitalize',
+                  }}>{p}</button>
+                ))}
+              </div>
+              {/* DC Offset slider */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: t.textMuted }}>DC Offset</span>
+                  <span style={{ fontFamily: "var(--font-jetbrains)", fontSize: sz.ui, color: t.heading }}>{dials.dcOffset > 0 ? '+' : ''}{dials.dcOffset}</span>
+                </div>
+                <input type="range" min={-10} max={10} step={1} value={dials.dcOffset} onChange={e => updateDial('dcOffset', Number(e.target.value))} style={{ width: '100%', accentColor: t.accent }} />
+                {dcWarning && <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 11, color: t.danger, marginTop: 4 }}>Beyond designed range. Encounter balance may feel off.</div>}
+              </div>
+              {/* Progression Speed */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: t.textMuted }}>Progression Speed</span>
+                  <span style={{ fontFamily: "var(--font-jetbrains)", fontSize: sz.ui, color: t.heading }}>{dials.progressionSpeed?.toFixed(2)}x</span>
+                </div>
+                <input type="range" min={0} max={5} step={0.25} value={dials.progressionSpeed || 1} onChange={e => updateDial('progressionSpeed', Number(e.target.value))} style={{ width: '100%', accentColor: t.accent }} />
+              </div>
+              {/* Encounter Pressure */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: t.textMuted, marginBottom: 6 }}>Encounter Pressure</div>
+                <SelectorRow t={t} sz={sz} options={[{ id: 'low', label: 'Low' }, { id: 'standard', label: 'Standard' }, { id: 'high', label: 'High' }]} value={dials.encounterPressure} onChange={v => updateDial('encounterPressure', v)} />
+              </div>
+              {/* Toggles */}
+              {[
+                { key: 'survival', label: 'Survival', desc: 'Track rations, water, and malnourishment' },
+                { key: 'durability', label: 'Durability', desc: 'Items degrade with use' },
+                { key: 'fortuneBalance', label: "Fortune's Balance", desc: 'Outmatched/Matched/Dominant dice' },
+                { key: 'simplifiedOutcomes', label: 'Simplified Outcomes', desc: 'Binary pass/fail' },
+              ].map(tog => (
+                <div key={tog.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <div>
+                    <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.text }}>{tog.label}</div>
+                    <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 2, color: t.textDim }}>{tog.desc}</div>
+                  </div>
+                  <Toggle t={t} value={!!dials[tog.key]} onChange={v => updateDial(tog.key, v)} />
+                </div>
+              ))}
+              <button onClick={saveDifficulty} disabled={saving} style={{
+                marginTop: 4, padding: '6px 16px', borderRadius: 4, cursor: 'pointer',
+                fontFamily: "var(--font-cinzel)", fontSize: 11, fontWeight: 600,
+                color: t.accent, background: 'transparent', border: `1px solid ${t.accent}`,
+              }}>{saving ? 'Saving...' : 'Save Difficulty'}</button>
+            </div>
+
+            <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 11, color: t.textFaint, fontStyle: 'italic' }}>
+              Changes take effect on the next relevant game event. No retroactive recalculation.
+            </div>
+          </div>
+        )}
+
+        {/* Display tab */}
+        {tab === 'display' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.textMuted, marginBottom: 8 }}>Theme</div>
+              <SelectorRow t={t} sz={sz} options={Object.values(THEMES).map(th => ({ id: th.id, label: th.label }))} value={displaySettings.theme} onChange={v => updateDisplay('theme', v)} />
+            </div>
+            <div>
+              <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.textMuted, marginBottom: 8 }}>Font</div>
+              <SelectorRow t={t} sz={sz} options={FONT_OPTIONS} value={displaySettings.font} onChange={v => updateDisplay('font', v)} />
+            </div>
+            <div>
+              <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.textMuted, marginBottom: 8 }}>Text Size</div>
+              <SelectorRow t={t} sz={sz} options={SIZE_OPTIONS} value={displaySettings.textSize} onChange={v => updateDisplay('textSize', v)} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.text }}>Click to Roll</div>
+                <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 2, color: t.textDim }}>Require click to start dice animation</div>
+              </div>
+              <Toggle t={t} value={displaySettings.clickToRoll || false} onChange={v => updateDisplay('clickToRoll', v)} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.text }}>Instant Mode</div>
+                <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 2, color: t.textDim }}>Skip dice animation entirely</div>
+              </div>
+              <Toggle t={t} value={displaySettings.instantMode || false} onChange={v => updateDisplay('instantMode', v)} />
+            </div>
+          </div>
+        )}
+
+        {/* World tab */}
+        {tab === 'world' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Share */}
+            <div>
+              <div style={{ fontFamily: "var(--font-cinzel)", fontSize: 12, fontWeight: 600, color: t.textMuted, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Share This World</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => handleShare('fresh_start')} style={{
+                  flex: 1, padding: '10px 8px', borderRadius: 4, cursor: 'pointer',
+                  fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.text,
+                  background: t.bgPanel, border: `1px solid ${t.border}`,
+                }}>As it began</button>
+                <button onClick={() => handleShare('branch')} style={{
+                  flex: 1, padding: '10px 8px', borderRadius: 4, cursor: 'pointer',
+                  fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.text,
+                  background: t.bgPanel, border: `1px solid ${t.border}`,
+                }}>As it is now</button>
+              </div>
+            </div>
+            {/* Save snapshot */}
+            <div>
+              <div style={{ fontFamily: "var(--font-cinzel)", fontSize: 12, fontWeight: 600, color: t.textMuted, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Save World Snapshot</div>
+              <button onClick={handleSaveSnapshot} style={{
+                padding: '8px 20px', borderRadius: 4, cursor: 'pointer',
+                fontFamily: "var(--font-cinzel)", fontSize: 11, fontWeight: 600,
+                color: t.accent, background: 'transparent', border: `1px solid ${t.accent}`,
+              }}>Save Snapshot</button>
+            </div>
+            {/* Checkpoints */}
+            <div>
+              <div style={{ fontFamily: "var(--font-cinzel)", fontSize: 12, fontWeight: 600, color: t.textMuted, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Checkpoints</div>
+              {checkpoints.map(cp => (
+                <div key={cp.slot} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                  padding: '8px 0', borderBottom: `1px solid ${t.borderLight}`,
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {editingSlot === cp.slot ? (
+                      <input value={editLabel} onChange={e => setEditLabel(e.target.value)}
+                        onBlur={() => { setCheckpoints(prev => prev.map(c => c.slot === cp.slot ? { ...c, label: editLabel } : c)); setEditingSlot(null); }}
+                        onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); }}
+                        autoFocus
+                        style={{
+                          width: '100%', padding: '2px 4px', background: t.bgInput,
+                          border: `1px solid ${t.border}`, borderRadius: 3,
+                          fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.text, outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    ) : (
+                      <span onClick={() => { setEditingSlot(cp.slot); setEditLabel(cp.label); }} style={{
+                        fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: cp.saved ? t.text : t.textDim,
+                        cursor: 'pointer',
+                      }}>
+                        {cp.label}{cp.turn ? ` \u2014 T${cp.turn}` : ''}{cp.location ? `, ${cp.location}` : ''}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {!cp.saved ? (
+                      <button onClick={() => handleCheckpointAction(cp.slot, 'save')} style={{
+                        padding: '3px 10px', borderRadius: 3, cursor: 'pointer',
+                        fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: t.accent,
+                        background: 'transparent', border: `1px solid ${t.accent}`,
+                      }}>Save</button>
+                    ) : (
+                      <>
+                        <button onClick={() => handleCheckpointAction(cp.slot, 'load')} style={{
+                          padding: '3px 10px', borderRadius: 3, cursor: 'pointer',
+                          fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: t.success,
+                          background: 'transparent', border: `1px solid ${t.success}`,
+                        }}>Load</button>
+                        <button onClick={() => handleCheckpointAction(cp.slot, 'clear')} style={{
+                          padding: '3px 10px', borderRadius: 3, cursor: 'pointer',
+                          fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: t.danger,
+                          background: 'transparent', border: `1px solid ${t.danger}`,
+                        }}>Clear</button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Feedback */}
+        {feedback && <div style={{ marginTop: 12, fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.success, textAlign: 'center' }}>{feedback}</div>}
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Talk to GM
+// =============================================================================
+
+function TalkToGM({ t, sz, gameId }) {
+  const [open, setOpen] = useState(false);
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [canEscalate, setCanEscalate] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!input.trim() || !gameId || loading) return;
+    const question = input.trim();
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', text: question }]);
+    setLoading(true);
+    setCanEscalate(false);
+    try {
+      const res = await api.post(`/api/game/${gameId}/talk-to-gm`, { question });
+      setMessages(prev => [...prev, { role: 'gm', text: res.answer || res.response || 'No response.' }]);
+      setCanEscalate(res.canEscalate !== false);
+    } catch (err) {
+      setMessages(prev => [...prev, { role: 'gm', text: err.message || 'Something went wrong.' }]);
+    }
+    setLoading(false);
+  };
+
+  const handleEscalate = async () => {
+    if (!gameId || loading) return;
+    setLoading(true);
+    setCanEscalate(false);
+    setMessages(prev => [...prev, { role: 'system', text: 'Escalating to AI (costs one turn)...' }]);
+    try {
+      const res = await api.post(`/api/game/${gameId}/talk-to-gm/escalate`);
+      setMessages(prev => [...prev, { role: 'gm', text: res.answer || res.response || 'No response.' }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { role: 'gm', text: err.message || 'Escalation failed.' }]);
+    }
+    setLoading(false);
+  };
+
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} aria-label="Talk to GM" style={{
+        position: 'absolute', bottom: 20, right: 20,
+        width: 40, height: 40, borderRadius: '50%',
+        background: t.bgCard, border: `1px solid ${t.border}`,
+        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: `0 2px 12px ${t.border}`,
+        zIndex: 10,
+      }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={t.textMuted} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      </button>
+    );
+  }
+
+  return (
+    <div style={{
+      position: 'absolute', bottom: 20, right: 20,
+      width: 320, maxHeight: 400,
+      background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 10,
+      display: 'flex', flexDirection: 'column',
+      boxShadow: `0 4px 24px ${t.border}`, zIndex: 10,
+    }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '10px 14px', borderBottom: `1px solid ${t.border}`,
+      }}>
+        <span style={{ fontFamily: "var(--font-cinzel)", fontSize: 13, fontWeight: 600, color: t.heading }}>Talk to GM</span>
+        <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.textDim, fontSize: 14 }}>{'\u2715'}</button>
+      </div>
+
+      {/* Messages */}
+      <div style={{ flex: 1, overflow: 'auto', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 260 }}>
+        {messages.length === 0 && (
+          <div style={{ fontFamily: "var(--font-alegreya)", fontSize: sz.ui, fontStyle: 'italic', color: t.textDim, textAlign: 'center', paddingTop: 20 }}>
+            Ask about rules, mechanics, or your situation. First question is free.
+          </div>
+        )}
+        {messages.map((msg, i) => (
+          <div key={i} style={{
+            fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, lineHeight: 1.5,
+            color: msg.role === 'user' ? t.text : msg.role === 'system' ? t.textDim : t.textMuted,
+            fontStyle: msg.role === 'system' ? 'italic' : 'normal',
+            padding: msg.role === 'gm' ? '8px 10px' : '4px 0',
+            background: msg.role === 'gm' ? t.bgPanel : 'transparent',
+            borderRadius: msg.role === 'gm' ? 6 : 0,
+          }}>
+            {msg.role === 'user' && <span style={{ color: t.accent, fontWeight: 600 }}>You: </span>}
+            {msg.text}
+          </div>
+        ))}
+        {loading && <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.textDim, fontStyle: 'italic' }}>Thinking...</div>}
+        {canEscalate && !loading && (
+          <button onClick={handleEscalate} style={{
+            padding: '6px 12px', borderRadius: 4, cursor: 'pointer', alignSelf: 'flex-start',
+            fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1,
+            color: t.danger, background: 'transparent', border: `1px solid ${t.danger}`,
+          }}>Ask the AI (costs 1 turn)</button>
+        )}
+      </div>
+
+      {/* Input */}
+      <div style={{ padding: '8px 10px', borderTop: `1px solid ${t.border}`, display: 'flex', gap: 6 }}>
+        <input value={input} onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }}
+          placeholder="Ask the GM a question..."
+          style={{
+            flex: 1, padding: '7px 10px', background: t.bgInput,
+            border: `1px solid ${t.border}`, borderRadius: 4,
+            fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.text, outline: 'none',
+            boxSizing: 'border-box',
+          }}
+        />
+        <button onClick={handleSubmit} disabled={!input.trim() || loading} style={{
+          padding: '7px 12px', borderRadius: 4, cursor: input.trim() ? 'pointer' : 'default',
+          fontFamily: "var(--font-cinzel)", fontSize: 11, fontWeight: 700,
+          color: input.trim() ? t.accent : t.textFaint,
+          background: 'transparent', border: `1px solid ${input.trim() ? t.accent : t.border}`,
+        }}>{'\u2192'}</button>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
 // Sidebar
 // =============================================================================
 
@@ -1568,6 +2304,8 @@ function PlayPageInner() {
   const [objectives, setObjectives] = useState([]);
   const [entityNotes, setEntityNotes] = useState([]);
   const [entityPopup, setEntityPopup] = useState(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [gameSettings, setGameSettings] = useState(null);
 
   // --- UI state ---
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -1834,6 +2572,7 @@ function PlayPageInner() {
   if (error) return <ErrorState t={t} message={error} />;
 
   const worldName = gameState?.world?.name || gameState?.setting?.settingName || gameState?.settingName || null;
+  const diceMode = displaySettings.instantMode ? 'instant' : 'efficient';
 
   return (
     <div ref={containerRef} style={{
@@ -1842,11 +2581,16 @@ function PlayPageInner() {
       fontFamily: fontOption.family, fontSize: sz.narrative,
       overflow: 'hidden',
     }}>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes blink { 50% { opacity: 0; } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes blink { 50% { opacity: 0; } }
+        @keyframes diceSpin { 0% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(180deg) scale(1.05); } 100% { transform: rotate(360deg) scale(1); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      `}</style>
 
       <TopBar t={t} worldName={worldName} sidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen(prev => !prev)}
-        onOpenSettings={() => { /* TODO: Open settings modal */ }}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
 
       <TurnTimeline t={t} turns={allTurns} bookmarks={bookmarks} onScrollToTurn={scrollToTurn} />
@@ -1865,6 +2609,7 @@ function PlayPageInner() {
         <div ref={narrativeRef} style={{
           flex: 1, overflow: 'auto', padding: '24px 28px',
           display: 'flex', flexDirection: 'column',
+          position: 'relative',
         }}>
           <div style={{
             maxWidth: 720, width: '100%', margin: '0 auto',
@@ -1905,6 +2650,7 @@ function PlayPageInner() {
                   onToggleBookmark={toggleBookmark}
                   onSubmitAction={handleSubmitAction}
                   waiting={waiting}
+                  diceMode={diceMode}
                 />
               );
             })}
@@ -1918,6 +2664,9 @@ function PlayPageInner() {
               }}>Your adventure is about to begin...</div>
             )}
           </div>
+
+          {/* Talk to GM button */}
+          <TalkToGM t={t} sz={sz} gameId={gameId} />
         </div>
 
         {sidebarOpen && (
@@ -1935,6 +2684,13 @@ function PlayPageInner() {
       {/* Entity popup modal */}
       {entityPopup && (
         <EntityPopup t={t} sz={sz} entity={entityPopup} glossary={glossary} gameId={gameId} onClose={() => setEntityPopup(null)} />
+      )}
+
+      {/* Settings modal */}
+      {settingsOpen && (
+        <SettingsModal t={t} sz={sz} gameId={gameId} onClose={() => setSettingsOpen(false)}
+          displaySettings={displaySettings} updateDisplay={updateDisplay}
+          gameSettings={gameSettings} setGameSettings={setGameSettings} />
       )}
     </div>
   );
