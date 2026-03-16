@@ -2790,6 +2790,7 @@ function PlayPageInner() {
   // --- Fetch game state ---
   const gameLoadedRef = useRef(false);
   const firstTurnFired = useRef(false);
+  const syncResponseHandled = useRef(false);
   useEffect(() => {
     if (!authChecked || !gameId) return;
     let cancelled = false;
@@ -2906,6 +2907,15 @@ function PlayPageInner() {
   // --- SSE event handler ---
   const handleSSEEvent = useCallback((event) => {
     const type = event.type || '';
+
+    // Skip turn events if the sync response already handled this turn
+    if (syncResponseHandled.current && (type.startsWith('turn:') && type !== 'turn:error')) {
+      if (type === 'turn:complete') {
+        // Reset flag after the SSE stream finishes for this turn
+        syncResponseHandled.current = false;
+      }
+      return;
+    }
 
     if (type === 'turn:resolution') {
       // Backend sends { turn: { number, sessionTurn }, resolution: { ... } }
@@ -3041,6 +3051,7 @@ function PlayPageInner() {
       options,
     };
 
+    syncResponseHandled.current = true;
     setStreamingTurn(null);
     setTurns(prev => [...prev, completedTurn]);
     setIsStreaming(false);
