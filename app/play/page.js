@@ -1786,12 +1786,12 @@ function SettingsModal({ t, sz, gameId, onClose, displaySettings, updateDisplay,
     if (!gameId) return;
     try {
       if (action === 'save') {
-        await api.post(`/api/game/${gameId}/action`, { type: 'custom', text: `[checkpoint ${slot}]` });
+        await api.post(`/api/game/${gameId}/action`, { command: `checkpoint ${slot}` });
         setCheckpoints(prev => prev.map(c => c.slot === slot ? { ...c, saved: true } : c));
       } else if (action === 'load') {
-        await api.post(`/api/game/${gameId}/action`, { type: 'custom', text: `[restore_checkpoint ${slot}]` });
+        await api.post(`/api/game/${gameId}/action`, { command: `restore_checkpoint ${slot}` });
       } else if (action === 'clear') {
-        await api.post(`/api/game/${gameId}/action`, { type: 'custom', text: `[delete_checkpoint ${slot}]` });
+        await api.post(`/api/game/${gameId}/action`, { command: `delete_checkpoint ${slot}` });
         setCheckpoints(prev => prev.map(c => c.slot === slot ? { ...c, saved: false, label: `Slot ${slot}` } : c));
       }
     } catch { /* silent */ }
@@ -3030,7 +3030,7 @@ function PlayPageInner() {
         turn: 1, location: null, time: null, weather: null,
         resolution: null, narrative: [], statusChanges: [], options: [],
       });
-      api.post(`/api/game/${gameId}/action`, { type: 'custom', text: 'Begin the adventure' })
+      api.post(`/api/game/${gameId}/action`, { custom: 'Begin the adventure' })
         .catch(err => {
           console.error('First turn trigger failed:', err.message || err);
           setWaiting(false);
@@ -3063,7 +3063,16 @@ function PlayPageInner() {
     });
 
     try {
-      await api.post(`/api/game/${gameId}/action`, action);
+      // Translate frontend action format to backend expected shape
+      let body;
+      if (action.type === 'custom') {
+        body = { custom: action.text };
+      } else if (action.type === 'option') {
+        body = { choice: action.key };
+      } else {
+        body = action;
+      }
+      await api.post(`/api/game/${gameId}/action`, body);
       // Server returns 202 when SSE is connected - data comes via SSE events
     } catch (err) {
       const message = err.message || 'Failed to submit action.';
