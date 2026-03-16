@@ -3015,6 +3015,38 @@ function PlayPageInner() {
     handleSSEEvent
   );
 
+  // --- Process sync action response into turn display ---
+  const processSyncActionResponse = useCallback((res) => {
+    if (!res) return;
+    // Map options from backend shape ({ label, text }) to frontend shape ({ id, text })
+    const options = Array.isArray(res.options) ? res.options.map(opt => ({
+      id: opt.label || opt.id || opt.key,
+      text: opt.text || '',
+      ...opt,
+    })) : Array.isArray(res.nextActions?.options) ? res.nextActions.options.map(opt => ({
+      id: opt.id || opt.label || opt.key,
+      text: opt.text || '',
+      ...opt,
+    })) : [];
+
+    const turnNumber = res.turn?.number || res.turnNumber || (turns.length > 0 ? turns[turns.length - 1].turn + 1 : 1);
+    const completedTurn = {
+      turn: turnNumber,
+      location: null,
+      time: null,
+      weather: null,
+      resolution: res.resolution ? transformResolution(res.resolution) : null,
+      narrative: res.narrative ? [{ text: res.narrative }] : [],
+      statusChanges: [],
+      options,
+    };
+
+    setStreamingTurn(null);
+    setTurns(prev => [...prev, completedTurn]);
+    setIsStreaming(false);
+    setWaiting(false);
+  }, [turns]);
+
   // --- Auto-trigger first turn for new games ---
   useEffect(() => {
     if (firstTurnFired.current) return;
@@ -3031,13 +3063,20 @@ function PlayPageInner() {
         resolution: null, narrative: [], statusChanges: [], options: [],
       });
       api.post(`/api/game/${gameId}/action`, { custom: 'Begin the adventure' })
+        .then(res => {
+          // If response has narrative, process it as a sync response
+          if (res && (res.narrative || res.options)) {
+            processSyncActionResponse(res);
+          }
+          // Otherwise SSE will deliver the turn data
+        })
         .catch(err => {
           console.error('First turn trigger failed:', err.message || err);
           setWaiting(false);
           setStreamingTurn(null);
         });
     }
-  }, [connected, gameId, turns.length, streamingTurn, isStreaming, gameState]);
+  }, [connected, gameId, turns.length, streamingTurn, isStreaming, gameState, processSyncActionResponse]);
 
   // --- Action submission ---
   const handleSubmitAction = useCallback(async (action) => {
@@ -3072,8 +3111,11 @@ function PlayPageInner() {
       } else {
         body = action;
       }
-      await api.post(`/api/game/${gameId}/action`, body);
-      // Server returns 202 when SSE is connected - data comes via SSE events
+      const res = await api.post(`/api/game/${gameId}/action`, body);
+      // If response has narrative, process as sync response; otherwise SSE delivers it
+      if (res && (res.narrative || res.options)) {
+        processSyncActionResponse(res);
+      }
     } catch (err) {
       const message = err.message || 'Failed to submit action.';
       // Check for custom action rejection
