@@ -2852,15 +2852,16 @@ function PlayPageInner() {
         if (res.character) {
           console.log('setCharacter [character endpoint]:', { character: res.character, stats: res.stats, skills: res.skills, conditions: res.conditions });
           setCharacter(prev => {
+            const newStats = transformStats(res.stats);
             const merged = {
               ...(prev || {}),
               ...res.character,
-              stats: transformStats(res.stats || prev?.stats),
+              stats: newStats.length > 0 ? newStats : (prev?.stats || []),
               skills: Array.isArray(res.skills) ? res.skills : (prev?.skills || []),
               conditions: Array.isArray(res.conditions) ? res.conditions : (prev?.conditions || []),
               companions: Array.isArray(res.companions) ? res.companions : [],
             };
-            console.log('setCharacter [character endpoint] merged result:', merged);
+            console.log('setCharacter [character endpoint] merged result:', merged, '(newStats from endpoint:', newStats, ')');
             return merged;
           });
         } else {
