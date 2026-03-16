@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import * as api from '@/lib/api';
@@ -246,7 +246,8 @@ function useSSE(gameId, onEvent) {
 // Top Bar
 // =============================================================================
 
-function TopBar({ t, worldName, sidebarOpen, onToggleSidebar, onOpenSettings }) {
+function TopBar({ t, worldName, sidebarOpen, onToggleSidebar, onOpenSettings, connected, reconnecting, debugMode }) {
+  const connColor = connected ? '#8aba7a' : reconnecting ? '#e8c45a' : '#e85a5a';
   return (
     <div style={{
       height: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -264,8 +265,16 @@ function TopBar({ t, worldName, sidebarOpen, onToggleSidebar, onOpenSettings }) 
             <span style={{ fontFamily: 'inherit', fontSize: 13, color: t.textDim }}>{worldName}</span>
           </>
         )}
+        {debugMode && (
+          <span style={{ fontFamily: "var(--font-cinzel)", fontSize: 9, fontWeight: 700, color: '#e85a5a', background: '#2a0e0e', padding: '2px 8px', borderRadius: 3, letterSpacing: '0.1em' }}>DEBUG</span>
+        )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        {/* Connection status dot */}
+        <div title={connected ? 'Connected' : reconnecting ? 'Reconnecting' : 'Disconnected'} style={{
+          width: 7, height: 7, borderRadius: '50%', background: connColor, marginRight: 6,
+          boxShadow: `0 0 4px ${connColor}`,
+        }} />
         <button onClick={onOpenSettings} aria-label="Settings" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }}>
           {BarIcons.settings(t.textMuted)}
         </button>
@@ -2137,10 +2146,363 @@ function TalkToGM({ t, sz, gameId }) {
 }
 
 // =============================================================================
+// Error Boundary
+// =============================================================================
+
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false }; }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      const t = this.props.t || THEMES.dark;
+      return (
+        <div style={{ padding: 20, textAlign: 'center' }}>
+          <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: t.danger, marginBottom: 8 }}>Something went wrong in this panel.</div>
+          <button onClick={() => this.setState({ hasError: false })} style={{
+            fontFamily: "var(--font-alegreya-sans)", fontSize: 12, color: t.textMuted,
+            background: 'none', border: `1px solid ${t.border}`, borderRadius: 4, padding: '4px 12px', cursor: 'pointer',
+          }}>Try again</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// =============================================================================
+// Debug Panel
+// =============================================================================
+
+function DebugPanel({ t, sz, turns, debugData, gameId }) {
+  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState('dice');
+  const [selectedTurn, setSelectedTurn] = useState(null);
+
+  const currentTurn = selectedTurn || (turns.length > 0 ? turns[turns.length - 1]?.turn : 0);
+  const turnData = debugData[currentTurn] || {};
+
+  const tabs = [
+    { id: 'dice', label: 'Dice Math' },
+    { id: 'diff', label: 'State Diff' },
+    { id: 'manifest', label: 'Context' },
+    { id: 'tokens', label: 'Tokens' },
+    { id: 'json', label: 'Server JSON' },
+    { id: 'ai', label: 'AI Prompt' },
+  ];
+
+  const exportSession = () => {
+    const data = JSON.stringify({ gameId, turns: debugData, exportedAt: new Date().toISOString() }, null, 2);
+    navigator.clipboard.writeText(data).catch(() => {});
+  };
+
+  return (
+    <div style={{ flexShrink: 0, borderTop: `2px solid #e85a5a` }}>
+      {/* Handle bar */}
+      <button onClick={() => setOpen(!open)} style={{
+        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '6px 16px', background: '#1a0e0e', border: 'none', cursor: 'pointer',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontFamily: "var(--font-cinzel)", fontSize: 10, fontWeight: 700, color: '#e85a5a', letterSpacing: '0.1em' }}>DEBUG</span>
+          <span style={{ fontFamily: "var(--font-jetbrains)", fontSize: 10, color: t.textDim }}>T{currentTurn}</span>
+          {turnData.tokens && <span style={{ fontFamily: "var(--font-jetbrains)", fontSize: 10, color: t.textDim }}>{turnData.tokens?.thisTurn?.totalTokens || 0} tok</span>}
+        </div>
+        <span style={{ color: t.textDim, fontSize: 10 }}>{open ? '\u25BC' : '\u25B2'}</span>
+      </button>
+
+      {open && (
+        <div style={{ background: '#0d0808', maxHeight: 400, overflow: 'auto' }}>
+          {/* Header with turn selector + export */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderBottom: `1px solid #2a1a1a` }}>
+            <select value={currentTurn} onChange={e => setSelectedTurn(Number(e.target.value))} style={{
+              background: '#1a0e0e', border: `1px solid #3a1a1a`, borderRadius: 3, padding: '3px 8px',
+              fontFamily: "var(--font-jetbrains)", fontSize: 11, color: t.textMuted, outline: 'none',
+            }}>
+              {turns.map(turn => <option key={turn.turn} value={turn.turn}>Turn {turn.turn}</option>)}
+            </select>
+            <button onClick={exportSession} style={{
+              marginLeft: 'auto', padding: '3px 10px', borderRadius: 3, cursor: 'pointer',
+              fontFamily: "var(--font-alegreya-sans)", fontSize: 10, color: t.textMuted,
+              background: 'transparent', border: `1px solid #3a1a1a`,
+            }}>Export Session</button>
+          </div>
+
+          {/* Tabs */}
+          <div style={{ display: 'flex', borderBottom: `1px solid #2a1a1a`, padding: '0 8px' }}>
+            {tabs.map(dt => (
+              <button key={dt.id} onClick={() => setTab(dt.id)} style={{
+                padding: '6px 12px', border: 'none', cursor: 'pointer',
+                fontFamily: "var(--font-alegreya-sans)", fontSize: 10,
+                color: tab === dt.id ? '#e85a5a' : t.textDim,
+                background: 'transparent',
+                borderBottom: tab === dt.id ? '2px solid #e85a5a' : '2px solid transparent',
+              }}>{dt.label}</button>
+            ))}
+          </div>
+
+          {/* Tab content */}
+          <div style={{ padding: 16, fontFamily: "var(--font-jetbrains)", fontSize: 11, color: t.textMuted, lineHeight: 1.6 }}>
+            {tab === 'dice' && (
+              turnData.diceMath ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div>Category: <span style={{ color: '#e85a5a' }}>{turnData.diceMath.category}</span></div>
+                  {turnData.diceMath.reason && <div style={{ color: t.textDim }}>{turnData.diceMath.reason}</div>}
+                  {turnData.diceMath.stat && <div>Stat: {turnData.diceMath.stat.emoji} {turnData.diceMath.stat.name} {turnData.diceMath.stat.effective} (base {turnData.diceMath.stat.base}{turnData.diceMath.stat.penalty ? `, penalty ${turnData.diceMath.stat.penalty}` : ''})</div>}
+                  {turnData.diceMath.skill && <div>Skill: {turnData.diceMath.skill.name} +{turnData.diceMath.skill.value}</div>}
+                  {turnData.diceMath.formula && <div>Formula: {turnData.diceMath.formula}</div>}
+                  {turnData.diceMath.dc && <div>DC: {turnData.diceMath.dc.final} ({turnData.diceMath.dc.source})</div>}
+                  {turnData.diceMath.margin !== undefined && <div>Margin: <span style={{ color: turnData.diceMath.margin >= 0 ? t.success : t.danger }}>{turnData.diceMath.margin > 0 ? '+' : ''}{turnData.diceMath.margin}</span></div>}
+                  {turnData.diceMath.tier && <div>Tier: {turnData.diceMath.tier.number} ({turnData.diceMath.tier.label})</div>}
+                  {turnData.diceMath.debt && <div style={{ color: t.danger }}>Debt: {turnData.diceMath.debt.amount} ({turnData.diceMath.debt.source})</div>}
+                </div>
+              ) : <div style={{ color: t.textDim, fontStyle: 'italic' }}>No dice data for this turn</div>
+            )}
+
+            {tab === 'diff' && (
+              turnData.stateDiff && turnData.stateDiff.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {turnData.stateDiff.map((d, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 8, padding: '4px 0', borderBottom: '1px solid #1a1010' }}>
+                      <span style={{ color: t.textDim, width: 80, flexShrink: 0 }}>{d.field}</span>
+                      <span style={{ color: t.textFaint }}>{d.before || '(none)'}</span>
+                      <span style={{ color: t.textDim }}>{'\u2192'}</span>
+                      <span style={{ color: d.delta?.startsWith('+') ? t.success : d.delta?.startsWith('-') ? '#e85a5a' : '#e8c45a' }}>{d.after || '(none)'}</span>
+                      {d.delta && <span style={{ color: t.textFaint, marginLeft: 'auto' }}>{d.delta}</span>}
+                    </div>
+                  ))}
+                </div>
+              ) : <div style={{ color: t.textDim, fontStyle: 'italic' }}>No state changes this turn</div>
+            )}
+
+            {tab === 'manifest' && (
+              turnData.manifest ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div>Budget: {turnData.manifest.budget?.used || 0} / {turnData.manifest.budget?.total || 0} tokens</div>
+                  <div style={{ height: 6, background: '#1a1010', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', borderRadius: 3,
+                      width: `${turnData.manifest.budget?.total ? (turnData.manifest.budget.used / turnData.manifest.budget.total) * 100 : 0}%`,
+                      background: 'linear-gradient(90deg, #8aba7a, #e8c45a, #e85a5a)',
+                    }} />
+                  </div>
+                  {['L1', 'L2', 'L3', 'L4'].map(layer => {
+                    const l = turnData.manifest.layers?.[layer];
+                    if (!l) return null;
+                    return (
+                      <div key={layer} style={{ padding: '4px 0' }}>
+                        <div style={{ color: '#e85a5a', marginBottom: 2 }}>{layer}: {l.label} ({l.total} tok)</div>
+                        {l.sections?.map((s, i) => <div key={i} style={{ paddingLeft: 12, color: t.textDim }}>{s.name}: {s.tokens}</div>)}
+                        {l.triggers?.map((tr, i) => <div key={i} style={{ paddingLeft: 12, color: t.textDim }}>{tr.type}: {tr.entity} ({tr.tokens})</div>)}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : <div style={{ color: t.textDim, fontStyle: 'italic' }}>No context manifest data</div>
+            )}
+
+            {tab === 'tokens' && (
+              turnData.tokens ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ color: '#e85a5a', marginBottom: 4 }}>This Turn</div>
+                  <div>Prompt: {turnData.tokens.thisTurn?.promptTokens || 0} (cached: {turnData.tokens.thisTurn?.cachedPromptTokens || 0})</div>
+                  <div>Completion: {turnData.tokens.thisTurn?.completionTokens || 0}</div>
+                  <div>Total: {turnData.tokens.thisTurn?.totalTokens || 0}</div>
+                  <div>Model: {turnData.tokens.thisTurn?.model || 'unknown'}</div>
+                  <div>Cost: ${turnData.tokens.thisTurn?.estimatedCost?.toFixed(4) || '0.0000'}</div>
+                  {turnData.tokens.session && (
+                    <>
+                      <div style={{ color: '#e85a5a', marginTop: 8, marginBottom: 4 }}>Session</div>
+                      <div>Turns: {turnData.tokens.session.turns || 0}</div>
+                      <div>Total tokens: {turnData.tokens.session.totalTokens || 0}</div>
+                      <div>Total cost: ${turnData.tokens.session.totalCost?.toFixed(4) || '0.0000'}</div>
+                      <div>Avg/turn: {turnData.tokens.session.avgTokensPerTurn || 0} tok, ${turnData.tokens.session.avgCostPerTurn?.toFixed(4) || '0.0000'}</div>
+                    </>
+                  )}
+                </div>
+              ) : <div style={{ color: t.textDim, fontStyle: 'italic' }}>No token data</div>
+            )}
+
+            {tab === 'json' && (
+              <div>
+                {turnData.serverRequest && (
+                  <details style={{ marginBottom: 8 }}>
+                    <summary style={{ color: '#e85a5a', cursor: 'pointer' }}>Request</summary>
+                    <pre style={{ padding: 8, background: '#0a0606', borderRadius: 4, overflow: 'auto', maxHeight: 200, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(turnData.serverRequest, null, 2)}</pre>
+                  </details>
+                )}
+                {turnData.serverResponse && (
+                  <details>
+                    <summary style={{ color: '#e85a5a', cursor: 'pointer' }}>Response</summary>
+                    <pre style={{ padding: 8, background: '#0a0606', borderRadius: 4, overflow: 'auto', maxHeight: 200, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(turnData.serverResponse, null, 2)}</pre>
+                  </details>
+                )}
+                {!turnData.serverRequest && !turnData.serverResponse && <div style={{ color: t.textDim, fontStyle: 'italic' }}>No server data</div>}
+              </div>
+            )}
+
+            {tab === 'ai' && (
+              <div>
+                {turnData.aiSystemPrompt && (
+                  <details style={{ marginBottom: 8 }}>
+                    <summary style={{ color: '#e85a5a', cursor: 'pointer' }}>System Prompt ({turnData.aiSystemPrompt.length} chars)</summary>
+                    <pre style={{ padding: 8, background: '#0a0606', borderRadius: 4, overflow: 'auto', maxHeight: 200, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{turnData.aiSystemPrompt}</pre>
+                  </details>
+                )}
+                {turnData.aiUserMessage && (
+                  <details style={{ marginBottom: 8 }} open>
+                    <summary style={{ color: '#e85a5a', cursor: 'pointer' }}>User Message</summary>
+                    <pre style={{ padding: 8, background: '#0a0606', borderRadius: 4, overflow: 'auto', maxHeight: 150, whiteSpace: 'pre-wrap' }}>{turnData.aiUserMessage}</pre>
+                  </details>
+                )}
+                {turnData.aiResponse && (
+                  <details open>
+                    <summary style={{ color: '#e85a5a', cursor: 'pointer' }}>AI Response</summary>
+                    <pre style={{ padding: 8, background: '#0a0606', borderRadius: 4, overflow: 'auto', maxHeight: 200, whiteSpace: 'pre-wrap' }}>{turnData.aiResponse}</pre>
+                  </details>
+                )}
+                {!turnData.aiSystemPrompt && !turnData.aiResponse && <div style={{ color: t.textDim, fontStyle: 'italic' }}>No AI data</div>}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// Report Modal (Bug Report / Suggest)
+// =============================================================================
+
+const BUG_CATEGORIES = ['Dice / Resolution', 'Story / Narrative', 'UI / Display', 'Inventory / Items', 'NPCs / Factions', 'Other'];
+const SUGGEST_CATEGORIES = ['New Feature', 'UI Improvement', 'Game Balance', 'Storytelling', 'Other'];
+
+function ReportModal({ t, sz, mode, gameId, gameState, character, onClose }) {
+  const [category, setCategory] = useState(null);
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [contextOpen, setContextOpen] = useState(false);
+
+  const isBug = mode === 'bug';
+  const accentColor = isBug ? '#e85a5a' : t.accent;
+  const categories = isBug ? BUG_CATEGORIES : SUGGEST_CATEGORIES;
+  const endpoint = isBug ? '/api/bug-report' : '/api/suggestion';
+
+  const contextItems = isBug ? [
+    { label: 'Game', value: gameId || 'Unknown' },
+    { label: 'Character', value: character?.name || 'Unknown' },
+    { label: 'Turn', value: String(gameState?.currentTurn || '?') },
+    { label: 'Location', value: gameState?.location || '?' },
+    { label: 'Storyteller', value: gameState?.storyteller || '?' },
+    { label: 'Difficulty', value: gameState?.difficulty || '?' },
+    { label: 'Active Conditions', value: (character?.conditions || []).map(c => c.name).join(', ') || 'None' },
+  ] : [
+    { label: 'Game', value: gameId || 'Unknown' },
+    { label: 'Character', value: character?.name || 'Unknown' },
+    { label: 'Turn', value: String(gameState?.currentTurn || '?') },
+    { label: 'Storyteller', value: gameState?.storyteller || '?' },
+    { label: 'Difficulty', value: gameState?.difficulty || '?' },
+  ];
+
+  const handleSubmit = async () => {
+    if (!category || !message.trim()) return;
+    setSending(true);
+    try {
+      await api.post(endpoint, { gameId, category, message: message.trim(), context: Object.fromEntries(contextItems.map(c => [c.label, c.value])) });
+    } catch { /* best effort */ }
+    setSending(false);
+    setSent(true);
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
+      <div style={{ position: 'absolute', inset: 0, background: '#000000aa' }} />
+      <div onClick={e => e.stopPropagation()} style={{
+        background: t.bgCard, border: `1px solid ${accentColor}44`, borderRadius: 10,
+        padding: '24px 28px', maxWidth: 440, width: '90%', position: 'relative', zIndex: 1,
+        maxHeight: '85vh', overflow: 'auto',
+      }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 12, right: 14, background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: t.textDim }}>{'\u2715'}</button>
+
+        {sent ? (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>{isBug ? '\uD83D\uDC1B' : '\uD83D\uDCA1'}</div>
+            <div style={{ fontFamily: "var(--font-alegreya)", fontSize: 16, color: t.text, marginBottom: 8 }}>
+              {isBug ? 'Thanks for helping us squash bugs. We\'ll look into it.' : 'Thanks for the idea. We read every suggestion.'}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+              <span style={{ fontSize: 18 }}>{isBug ? '\uD83D\uDC1B' : '\uD83D\uDCA1'}</span>
+              <span style={{ fontFamily: "var(--font-cinzel)", fontSize: 18, fontWeight: 700, color: accentColor }}>
+                {isBug ? 'Bug Report' : 'Suggestion'}
+              </span>
+            </div>
+
+            {/* Categories */}
+            <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1, color: t.textMuted, marginBottom: 8 }}>Category</div>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 16 }}>
+              {categories.map(cat => (
+                <button key={cat} onClick={() => setCategory(cat)} style={{
+                  padding: '5px 10px', borderRadius: 4, cursor: 'pointer',
+                  fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 1,
+                  color: category === cat ? accentColor : t.textMuted,
+                  background: category === cat ? `${accentColor}15` : 'transparent',
+                  border: `1px solid ${category === cat ? accentColor : t.border}`,
+                }}>{cat}</button>
+              ))}
+            </div>
+
+            {/* Message */}
+            <textarea value={message} onChange={e => setMessage(e.target.value)}
+              placeholder={isBug ? 'Describe what went wrong. What did you expect to happen?' : 'What would make the game better? Describe your idea.'}
+              style={{
+                width: '100%', minHeight: 80, padding: '10px 12px', marginBottom: 12,
+                background: t.bgInput, border: `1px solid ${t.border}`, borderRadius: 6,
+                fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.text,
+                outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+              }}
+            />
+
+            {/* Context preview */}
+            <button onClick={() => setContextOpen(!contextOpen)} style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui - 2, color: t.textDim,
+              padding: 0, marginBottom: 8, textDecoration: 'underline',
+            }}>{contextOpen ? 'Hide' : 'See'} what&apos;s attached</button>
+            {contextOpen && (
+              <div style={{ padding: '8px 10px', background: t.bgPanel, border: `1px solid ${t.borderLight}`, borderRadius: 4, marginBottom: 12, fontSize: sz.ui - 1 }}>
+                {contextItems.map(c => (
+                  <div key={c.label} style={{ display: 'flex', gap: 8, padding: '2px 0', fontFamily: "var(--font-alegreya-sans)", color: t.textDim }}>
+                    <span style={{ color: t.textMuted, width: 100, flexShrink: 0 }}>{c.label}</span>
+                    <span>{c.value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Submit */}
+            <button onClick={handleSubmit} disabled={!category || !message.trim() || sending} style={{
+              width: '100%', padding: '10px 0', borderRadius: 6, cursor: (category && message.trim()) ? 'pointer' : 'default',
+              fontFamily: "var(--font-cinzel)", fontSize: 13, fontWeight: 700,
+              color: (category && message.trim()) ? '#0a0e1a' : t.textDim,
+              background: (category && message.trim()) ? accentColor : t.bgPanel,
+              border: 'none', letterSpacing: '0.08em',
+            }}>{sending ? 'Sending...' : isBug ? 'Send Report' : 'Send Suggestion'}</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
 // Sidebar
 // =============================================================================
 
-function Sidebar({ t, sz, width, activeTab, setActiveTab, badges, character, inventory, equipped, currencyLabel, glossary, gameId, onEntityClick, npcs, locations, routes, objectives, entityNotes, onSubmitAction }) {
+function Sidebar({ t, sz, width, activeTab, setActiveTab, badges, character, inventory, equipped, currencyLabel, glossary, gameId, onEntityClick, npcs, locations, routes, objectives, entityNotes, onSubmitAction, onBugReport, onSuggest }) {
   return (
     <div style={{
       width, minWidth: 260, maxWidth: 600,
@@ -2185,18 +2547,20 @@ function Sidebar({ t, sz, width, activeTab, setActiveTab, badges, character, inv
         })}
       </div>
       <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
-        {activeTab === 'character' && <CharacterTab t={t} sz={sz} character={character} onEntityClick={onEntityClick} />}
-        {activeTab === 'inventory' && <InventoryTab t={t} sz={sz} inventory={inventory} equipped={equipped} currencyLabel={currencyLabel} onEntityClick={onEntityClick} />}
-        {activeTab === 'npcs' && <NPCsTab t={t} sz={sz} npcs={npcs} onEntityClick={onEntityClick} />}
-        {activeTab === 'glossary' && <GlossaryTab t={t} sz={sz} glossary={glossary} onEntityClick={onEntityClick} />}
-        {activeTab === 'map' && <MapTab t={t} sz={sz} locations={locations} routes={routes} onEntityClick={onEntityClick} />}
-        {activeTab === 'journal' && <JournalTab t={t} sz={sz} objectives={objectives} entityNotes={entityNotes} gameId={gameId} onSubmitAction={onSubmitAction} />}
+        <ErrorBoundary t={t}>
+          {activeTab === 'character' && <CharacterTab t={t} sz={sz} character={character} onEntityClick={onEntityClick} />}
+          {activeTab === 'inventory' && <InventoryTab t={t} sz={sz} inventory={inventory} equipped={equipped} currencyLabel={currencyLabel} onEntityClick={onEntityClick} />}
+          {activeTab === 'npcs' && <NPCsTab t={t} sz={sz} npcs={npcs} onEntityClick={onEntityClick} />}
+          {activeTab === 'glossary' && <GlossaryTab t={t} sz={sz} glossary={glossary} onEntityClick={onEntityClick} />}
+          {activeTab === 'map' && <MapTab t={t} sz={sz} locations={locations} routes={routes} onEntityClick={onEntityClick} />}
+          {activeTab === 'journal' && <JournalTab t={t} sz={sz} objectives={objectives} entityNotes={entityNotes} gameId={gameId} onSubmitAction={onSubmitAction} />}
+        </ErrorBoundary>
       </div>
       <div style={{ padding: '10px 12px', borderTop: `1px solid ${t.border}`, display: 'flex', gap: 8, flexShrink: 0 }}>
-        <button style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 0', background: 'none', border: `1px solid ${t.border}`, borderRadius: 4, cursor: 'pointer', fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.textMuted }}>
+        <button onClick={onBugReport} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 0', background: 'none', border: `1px solid ${t.border}`, borderRadius: 4, cursor: 'pointer', fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.textMuted }}>
           {BarIcons.bug(t.textMuted)} Bug
         </button>
-        <button style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 0', background: 'none', border: `1px solid ${t.border}`, borderRadius: 4, cursor: 'pointer', fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.textMuted }}>
+        <button onClick={onSuggest} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 0', background: 'none', border: `1px solid ${t.border}`, borderRadius: 4, cursor: 'pointer', fontFamily: "var(--font-alegreya-sans)", fontSize: sz.ui, color: t.textMuted }}>
           {BarIcons.lightbulb(t.textMuted)} Suggest
         </button>
       </div>
@@ -2306,6 +2670,9 @@ function PlayPageInner() {
   const [entityPopup, setEntityPopup] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [gameSettings, setGameSettings] = useState(null);
+  const [reportMode, setReportMode] = useState(null); // 'bug' | 'suggest' | null
+  const [debugMode, setDebugMode] = useState(false);
+  const [debugData, setDebugData] = useState({});
 
   // --- UI state ---
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -2322,6 +2689,27 @@ function PlayPageInner() {
   const narrativeRef = useRef(null);
   const autoScrollRef = useRef(true);
   const turnRefs = useRef({});
+
+  // --- Debug mode from URL param ---
+  useEffect(() => {
+    if (searchParams.get('debug') === 'true') setDebugMode(true);
+  }, [searchParams]);
+
+  // --- Keyboard shortcuts ---
+  useEffect(() => {
+    const handler = (e) => {
+      // Ctrl+Shift+D = toggle debug
+      if (e.ctrlKey && e.shiftKey && e.key === 'D') { e.preventDefault(); setDebugMode(prev => !prev); return; }
+      // Escape = close modals
+      if (e.key === 'Escape') {
+        if (entityPopup) { setEntityPopup(null); return; }
+        if (settingsOpen) { setSettingsOpen(false); return; }
+        if (reportMode) { setReportMode(null); return; }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [entityPopup, settingsOpen, reportMode]);
 
   // --- Redirect if no game ID ---
   useEffect(() => {
@@ -2454,9 +2842,15 @@ function PlayPageInner() {
       setWaiting(false);
       setActionError(event.message || event.error || 'Something went wrong.');
     } else if (type === 'command:response') {
-      // Non-advancing command response - could show in a toast or inline
-      // For now, just log it
       console.log('Command response:', event);
+    }
+
+    // Capture debug data from any event that includes it
+    if (event.debug && event.turn) {
+      setDebugData(prev => ({
+        ...prev,
+        [event.turn]: { ...(prev[event.turn] || {}), ...event.debug },
+      }));
     }
   }, []);
 
@@ -2591,6 +2985,7 @@ function PlayPageInner() {
       <TopBar t={t} worldName={worldName} sidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen(prev => !prev)}
         onOpenSettings={() => setSettingsOpen(true)}
+        connected={connected} reconnecting={reconnecting} debugMode={debugMode}
       />
 
       <TurnTimeline t={t} turns={allTurns} bookmarks={bookmarks} onScrollToTurn={scrollToTurn} />
@@ -2676,7 +3071,8 @@ function PlayPageInner() {
               character={character} inventory={inventory} equipped={equipped} currencyLabel={currencyLabel}
               glossary={glossary} gameId={gameId} onEntityClick={handleEntityClick}
               npcs={npcs} locations={locations} routes={routes}
-              objectives={objectives} entityNotes={entityNotes} onSubmitAction={handleSubmitAction} />
+              objectives={objectives} entityNotes={entityNotes} onSubmitAction={handleSubmitAction}
+              onBugReport={() => setReportMode('bug')} onSuggest={() => setReportMode('suggest')} />
           </>
         )}
       </div>
@@ -2686,11 +3082,21 @@ function PlayPageInner() {
         <EntityPopup t={t} sz={sz} entity={entityPopup} glossary={glossary} gameId={gameId} onClose={() => setEntityPopup(null)} />
       )}
 
+      {/* Debug panel */}
+      {debugMode && <DebugPanel t={t} sz={sz} turns={allTurns} debugData={debugData} gameId={gameId} />}
+
       {/* Settings modal */}
       {settingsOpen && (
         <SettingsModal t={t} sz={sz} gameId={gameId} onClose={() => setSettingsOpen(false)}
           displaySettings={displaySettings} updateDisplay={updateDisplay}
           gameSettings={gameSettings} setGameSettings={setGameSettings} />
+      )}
+
+      {/* Report modals */}
+      {reportMode && (
+        <ReportModal t={t} sz={sz} mode={reportMode} gameId={gameId}
+          gameState={gameState} character={character}
+          onClose={() => setReportMode(null)} />
       )}
     </div>
   );
