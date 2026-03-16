@@ -1856,9 +1856,10 @@ function InitWizardInner() {
   // --- API save functions ---
 
   const saveStoryteller = async () => {
+    const capitalized = storyteller.charAt(0).toUpperCase() + storyteller.slice(1);
     const body = storyteller === 'custom'
-      ? { selection: 'custom', customText: customStorytellerText }
-      : { selection: storyteller };
+      ? { selection: 'Custom', customText: customStorytellerText }
+      : { selection: capitalized };
     await api.post(`/api/init/${gameId}/storyteller`, body);
   };
 
