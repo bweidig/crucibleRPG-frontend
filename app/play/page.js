@@ -262,15 +262,19 @@ function useSSE(gameId, onEvent) {
       try {
         const data = JSON.parse(e.data);
         if (data.type === 'heartbeat') return;
-        // Only process messages with recognized turn event types
-        // Named SSE events are handled by addEventListener above
-        if (data.type && data.type.startsWith('turn:')) {
+        console.log('SSE onmessage:', data.type || '(no type)', Object.keys(data));
+        // Route by type field — this handles backends that send unnamed messages
+        if (data.type && (data.type.startsWith('turn:') || data.type === 'command:response')) {
           onEventRef.current(data);
+        } else if (data.narrative || data.turnAdvanced) {
+          // Full turn response sent as a single unnamed message — process as sync
+          console.log('SSE received full turn payload as unnamed message');
+          onEventRef.current({ type: 'turn:full_payload', ...data });
         }
       } catch { /* ignore parse errors — non-JSON messages are not for us */ }
     };
 
-    // Named event handlers
+    // Named event handlers (for backends that use SSE event: field)
     const eventTypes = [
       'turn:resolution', 'turn:narrative', 'turn:state_changes',
       'turn:actions', 'turn:complete', 'turn:error', 'command:response',
@@ -279,6 +283,7 @@ function useSSE(gameId, onEvent) {
       es.addEventListener(type, (e) => {
         try {
           const data = JSON.parse(e.data);
+          console.log('SSE named event:', type, Object.keys(data));
           onEventRef.current({ type, ...data });
         } catch { /* ignore */ }
       });
@@ -3039,6 +3044,33 @@ function PlayPageInner() {
         }
         return null;
       });
+      setIsStreaming(false);
+      setWaiting(false);
+    } else if (type === 'turn:full_payload') {
+      // Full turn response received as a single SSE message — process like sync response
+      console.log('Processing full turn payload from SSE');
+      const narrativeText = typeof event.narrative === 'string' ? event.narrative.replace(/\\n/g, '\n') : '';
+      const rawOptions = Array.isArray(event.options) ? event.options :
+        Array.isArray(event.nextActions?.options) ? event.nextActions.options : [];
+      const mappedOptions = rawOptions.map(opt => ({
+        id: opt.label || opt.id || opt.key,
+        text: opt.text || '',
+        ...opt,
+      }));
+      const turnNumber = event.turn?.number || event.turnNumber ||
+        (typeof event.turn === 'number' ? event.turn : 0);
+      const completedTurn = {
+        turn: turnNumber || 1,
+        location: null,
+        time: null,
+        weather: null,
+        resolution: event.resolution ? transformResolution(event.resolution) : null,
+        narrative: narrativeText ? [{ text: narrativeText }] : [],
+        statusChanges: [],
+        options: mappedOptions,
+      };
+      setStreamingTurn(null);
+      setTurns(prev => [...prev, completedTurn]);
       setIsStreaming(false);
       setWaiting(false);
     } else if (type === 'turn:error') {
