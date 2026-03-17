@@ -262,28 +262,18 @@ function useSSE(gameId, onEvent) {
       try {
         const data = JSON.parse(e.data);
         if (data.type === 'heartbeat') return;
-        console.log('SSE onmessage:', data.type || '(no type)', Object.keys(data));
-        // Route by type field — this handles backends that send unnamed messages
-        if (data.type && (data.type.startsWith('turn:') || data.type === 'command:response')) {
+        // Only forward error and command events — turn content comes from sync responses
+        if (data.type === 'turn:error' || data.type === 'command:response') {
           onEventRef.current(data);
-        } else if (data.narrative || data.turnAdvanced) {
-          // Full turn response sent as a single unnamed message — process as sync
-          console.log('SSE received full turn payload as unnamed message');
-          onEventRef.current({ type: 'turn:full_payload', ...data });
         }
-      } catch { /* ignore parse errors — non-JSON messages are not for us */ }
+      } catch { /* ignore parse errors */ }
     };
 
-    // Named event handlers (for backends that use SSE event: field)
-    const eventTypes = [
-      'turn:resolution', 'turn:narrative', 'turn:state_changes',
-      'turn:actions', 'turn:complete', 'turn:error', 'command:response',
-    ];
-    eventTypes.forEach(type => {
+    // Named event handlers — only error and command events
+    ['turn:error', 'command:response'].forEach(type => {
       es.addEventListener(type, (e) => {
         try {
           const data = JSON.parse(e.data);
-          console.log('SSE named event:', type, Object.keys(data));
           onEventRef.current({ type, ...data });
         } catch { /* ignore */ }
       });
@@ -2812,7 +2802,6 @@ function PlayPageInner() {
   // --- Fetch game state ---
   const gameLoadedRef = useRef(false);
   const firstTurnFired = useRef(false);
-  const firstTurnSyncHandled = useRef(false);
   useEffect(() => {
     if (!authChecked || !gameId) return;
     let cancelled = false;
@@ -2940,141 +2929,12 @@ function PlayPageInner() {
   }, [authChecked, gameId, loading, error]);
 
   // --- SSE event handler ---
+  // Turn content now comes from sync POST responses, not SSE.
+  // SSE is kept for connection status, heartbeats, errors, and future features.
   const handleSSEEvent = useCallback((event) => {
     const type = event.type || '';
 
-    // Skip SSE turn events if the first turn was already handled by sync response
-    if (firstTurnSyncHandled.current && type.startsWith('turn:')) {
-      if (type === 'turn:complete') {
-        firstTurnSyncHandled.current = false;
-      }
-      return;
-    }
-
-    if (type === 'turn:resolution') {
-      // Backend sends { turn: { number, sessionTurn }, resolution: { ... } }
-      const turnInfo = event.turn || {};
-      const turnNumber = typeof turnInfo === 'object' ? turnInfo.number : turnInfo;
-      setIsStreaming(true);
-      setStreamingTurn(prev => ({
-        ...(prev || {}),
-        turn: turnNumber || prev?.turn,
-        total: event.total || prev?.total,
-        location: event.location || prev?.location,
-        time: event.time || prev?.time,
-        timeEmoji: event.timeEmoji || prev?.timeEmoji,
-        weather: event.weather || prev?.weather,
-        weatherEmoji: event.weatherEmoji || prev?.weatherEmoji,
-        resolution: transformResolution(event.resolution) || null,
-        diceRoll: event.resolution ? {
-          die: event.resolution.dieSelected,
-          category: event.resolution.isCombat ? 'COMBAT' : 'MATCHED',
-          mortal: Array.isArray(event.resolution.diceRolled) && event.resolution.diceRolled.length > 1
-            ? { die1: event.resolution.diceRolled[0], die2: event.resolution.diceRolled[1] }
-            : null,
-          kept: event.resolution.dieSelected,
-        } : null,
-        narrative: prev?.narrative || [],
-        statusChanges: prev?.statusChanges || [],
-        options: prev?.options || [],
-      }));
-    } else if (type === 'turn:narrative') {
-      console.log('turn:narrative event:', { chunkType: typeof event.chunk, textType: typeof event.text, keys: Object.keys(event), chunk: typeof event.chunk === 'string' ? event.chunk.slice(0, 100) : event.chunk });
-      setStreamingTurn(prev => {
-        if (!prev) return prev;
-        const rawChunk = event.chunk || event.text || '';
-        // Ensure chunk is a string — never append objects or JSON to narrative
-        const chunk = typeof rawChunk === 'string' ? rawChunk.replace(/\\n/g, '\n') : '';
-        if (!chunk) return prev;
-        const narrative = [...(prev.narrative || [])];
-        // Append to last segment or create new one
-        if (narrative.length > 0 && !narrative[narrative.length - 1].entity) {
-          narrative[narrative.length - 1] = { text: narrative[narrative.length - 1].text + chunk };
-        } else {
-          narrative.push({ text: chunk });
-        }
-        return { ...prev, narrative };
-      });
-    } else if (type === 'turn:state_changes') {
-      // Backend sends { conditions, inventory, clock, quests, factions, stats }
-      // Build status change badges from the structured data
-      const changes = [];
-      if (event.conditions) {
-        (Array.isArray(event.conditions.added) ? event.conditions.added : []).forEach(c =>
-          changes.push({ type: 'condition_new', label: c.name || c, stat: c.stat, detail: c.penalty ? `${c.penalty} ${c.stat}` : null })
-        );
-        (Array.isArray(event.conditions.removed) ? event.conditions.removed : []).forEach(c =>
-          changes.push({ type: 'condition_cleared', label: c.name || c, stat: c.stat })
-        );
-      }
-      if (event.inventory) {
-        (Array.isArray(event.inventory.added) ? event.inventory.added : []).forEach(item =>
-          changes.push({ type: 'inventory_gained', label: item.name || item })
-        );
-        (Array.isArray(event.inventory.removed) ? event.inventory.removed : []).forEach(item =>
-          changes.push({ type: 'inventory_lost', label: item.name || item })
-        );
-      }
-      setStreamingTurn(prev => prev ? { ...prev, statusChanges: changes } : prev);
-      // Update badge counts for new items/entities
-      const invCount = changes.filter(c => c.type === 'inventory_gained').length;
-      const npcCount = changes.filter(c => c.type === 'npc_introduced').length;
-      const glossCount = changes.filter(c => c.type === 'glossary_added').length;
-      if (invCount || npcCount || glossCount) {
-        setBadges(prev => ({
-          ...prev,
-          inventory: prev.inventory + invCount,
-          npcs: prev.npcs + npcCount,
-          glossary: prev.glossary + glossCount,
-        }));
-      }
-    } else if (type === 'turn:actions') {
-      const rawOptions = Array.isArray(event.options) ? event.options : [];
-      const mappedOptions = rawOptions.map(opt => ({
-        id: opt.label || opt.id || opt.key,
-        text: opt.text || '',
-        ...opt,
-      }));
-      setStreamingTurn(prev => prev ? { ...prev, options: mappedOptions } : prev);
-    } else if (type === 'turn:complete') {
-      // Finalize the streaming turn and add it to history
-      setStreamingTurn(prev => {
-        if (prev) {
-          setTurns(t => [...t, prev]);
-        }
-        return null;
-      });
-      setIsStreaming(false);
-      setWaiting(false);
-    } else if (type === 'turn:full_payload') {
-      // Full turn response received as a single SSE message — process like sync response
-      console.log('Processing full turn payload from SSE');
-      const narrativeText = typeof event.narrative === 'string' ? event.narrative.replace(/\\n/g, '\n') : '';
-      const rawOptions = Array.isArray(event.options) ? event.options :
-        Array.isArray(event.nextActions?.options) ? event.nextActions.options : [];
-      const mappedOptions = rawOptions.map(opt => ({
-        id: opt.label || opt.id || opt.key,
-        text: opt.text || '',
-        ...opt,
-      }));
-      const turnNumber = event.turn?.number || event.turnNumber ||
-        (typeof event.turn === 'number' ? event.turn : 0);
-      const completedTurn = {
-        turn: turnNumber || 1,
-        location: null,
-        time: null,
-        weather: null,
-        resolution: event.resolution ? transformResolution(event.resolution) : null,
-        narrative: narrativeText ? [{ text: narrativeText }] : [],
-        statusChanges: [],
-        options: mappedOptions,
-      };
-      setStreamingTurn(null);
-      setTurns(prev => [...prev, completedTurn]);
-      setIsStreaming(false);
-      setWaiting(false);
-    } else if (type === 'turn:error') {
-      setIsStreaming(false);
+    if (type === 'turn:error') {
       setWaiting(false);
       setActionError(event.message || event.error || 'Something went wrong.');
     } else if (type === 'command:response') {
@@ -3099,8 +2959,6 @@ function PlayPageInner() {
   // --- Process sync action response into turn display ---
   const processSyncActionResponse = useCallback((res) => {
     if (!res) return;
-    console.log('processSyncActionResponse called with:', JSON.stringify(res).slice(0, 500));
-    console.log('res.narrative type:', typeof res.narrative, 'value:', typeof res.narrative === 'string' ? res.narrative.slice(0, 200) : res.narrative);
     // Map options from backend shape ({ label, text }) to frontend shape ({ id, text })
     const options = Array.isArray(res.options) ? res.options.map(opt => ({
       id: opt.label || opt.id || opt.key,
@@ -3135,32 +2993,21 @@ function PlayPageInner() {
     if (firstTurnFired.current) return;
     if (!gameLoadedRef.current || !connected || !gameId) return;
     // Only fire if no turns exist (fresh game)
-    const isFreshGame = turns.length === 0 && !streamingTurn && !isStreaming;
+    const isFreshGame = turns.length === 0 && !isStreaming;
     const noTurnsOnServer = !gameState?.clock?.totalTurn;
     if (isFreshGame && noTurnsOnServer) {
       firstTurnFired.current = true;
-      console.log('Auto-triggering first turn for new game');
       setWaiting(true);
-      setStreamingTurn({
-        turn: 1, location: null, time: null, weather: null,
-        resolution: null, narrative: [], statusChanges: [], options: [],
-      });
       api.post(`/api/game/${gameId}/action`, { custom: 'Begin the adventure' })
         .then(res => {
-          // If sync response has full narrative, use it and block SSE duplicate
-          if (res && res.narrative && res.narrative.length > 100) {
-            firstTurnSyncHandled.current = true;
-            processSyncActionResponse(res);
-          }
-          // Otherwise SSE will deliver the turn data
+          processSyncActionResponse(res);
         })
         .catch(err => {
           console.error('First turn trigger failed:', err.message || err);
           setWaiting(false);
-          setStreamingTurn(null);
         });
     }
-  }, [connected, gameId, turns.length, streamingTurn, isStreaming, gameState, processSyncActionResponse]);
+  }, [connected, gameId, turns.length, isStreaming, gameState, processSyncActionResponse]);
 
   // --- Action submission ---
   const handleSubmitAction = useCallback(async (action) => {
@@ -3176,15 +3023,6 @@ function PlayPageInner() {
       return updated;
     });
 
-    // Initialize streaming turn with basic info from last turn
-    const lastTurn = turns[turns.length - 1] || streamingTurn;
-    setStreamingTurn({
-      turn: (lastTurn?.turn || 0) + 1,
-      location: lastTurn?.location,
-      time: null, weather: null,
-      resolution: null, narrative: [], statusChanges: [], options: [],
-    });
-
     try {
       // Translate frontend action format to backend expected shape
       let body;
@@ -3195,27 +3033,15 @@ function PlayPageInner() {
       } else {
         body = action;
       }
-      await api.post(`/api/game/${gameId}/action`, body);
-      // Sync response is just an acknowledgment — SSE delivers the turn content
+      const res = await api.post(`/api/game/${gameId}/action`, body);
+      // Process the sync response — full turn data comes here
+      processSyncActionResponse(res);
     } catch (err) {
       const message = err.message || 'Failed to submit action.';
-      if (err.customActionRejected || message.includes('rejected')) {
-        setActionError(message);
-        setTurns(prev => {
-          if (prev.length === 0) return prev;
-          const updated = [...prev];
-          updated[updated.length - 1] = { ...updated[updated.length - 1] };
-          return updated;
-        });
-        setStreamingTurn(null);
-      } else {
-        setActionError(message);
-        setStreamingTurn(null);
-      }
+      setActionError(message);
       setWaiting(false);
-      setIsStreaming(false);
     }
-  }, [gameId, waiting, turns, streamingTurn]);
+  }, [gameId, waiting, processSyncActionResponse]);
 
   // --- Entity popup ---
   const handleEntityClick = useCallback((entity) => {
