@@ -1,0 +1,150 @@
+/* ==============================================
+   ActionPanel — A/B/C options + custom input
+   ============================================== */
+
+.actionPanel {
+  padding: 16px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-primary);
+  flex-shrink: 0;
+}
+
+.actionInner {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ─── Option Buttons ─── */
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.optionButton {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg-main);
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 15px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.optionButton:hover:not(:disabled) {
+  border-color: var(--accent-gold);
+  background: var(--bg-card);
+}
+
+.optionButton:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 1px;
+}
+
+.optionButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.optionKey {
+  font-family: var(--font-cinzel);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-gold);
+  min-width: 20px;
+  flex-shrink: 0;
+}
+
+.optionText {
+  flex: 1;
+}
+
+/* ─── Custom Input Row ─── */
+
+.customRow {
+  display: flex;
+  gap: 8px;
+}
+
+.customInput {
+  flex: 1;
+  padding: 12px 16px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-gold-faint);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 15px;
+}
+
+.customInput::placeholder {
+  color: var(--text-muted);
+}
+
+.customInput:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.2);
+}
+
+.customInput:disabled {
+  opacity: 0.5;
+}
+
+.submitButton {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #c9a84c, #ddb84e);
+  border: none;
+  border-radius: 4px;
+  color: #0a0e1a;
+  font-family: var(--font-cinzel);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  transition: box-shadow 0.15s, transform 0.15s;
+  flex-shrink: 0;
+}
+
+.submitButton:hover:not(:disabled) {
+  box-shadow: 0 4px 30px rgba(201, 168, 76, 0.45);
+  transform: translateY(-1px);
+}
+
+.submitButton:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+.submitButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ─── Status Messages ─── */
+
+.submittingText {
+  text-align: center;
+  color: var(--text-muted);
+  font-family: var(--font-alegreya-sans);
+  font-size: 14px;
+  padding: 12px 0;
+}
+
+.errorText {
+  text-align: center;
+  color: var(--color-danger);
+  font-family: var(--font-alegreya-sans);
+  font-size: 13px;
+  padding: 4px 0 8px;
+}

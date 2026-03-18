@@ -1,0 +1,88 @@
+/* ==============================================
+   TopBar — Header with wordmark and campaign name
+   ============================================== */
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 16px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-primary);
+  flex-shrink: 0;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wordmark {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.crucible {
+  font-family: var(--font-cinzel);
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--accent-gold);
+  letter-spacing: 0.02em;
+}
+
+.rpg {
+  font-family: var(--font-cinzel);
+  font-size: 10px;
+  font-weight: 600;
+  color: #9a8545;
+}
+
+.separator {
+  width: 1px;
+  height: 20px;
+  background: var(--border-primary);
+}
+
+.settingName {
+  font-family: var(--font-alegreya-sans);
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.iconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.iconButton:hover {
+  border-color: var(--border-card);
+}
+
+.iconButton:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 1px;
+}
+
+.connectionDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}

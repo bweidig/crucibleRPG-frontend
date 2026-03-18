@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-03-16
+**Last Updated:** 2026-03-17
 
 > **For Claude Code:** After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, or deferred items. Keep the "Last Updated" line current.
 
@@ -18,7 +18,7 @@
 | Loading Screen | `/loading` | Complete | None | None |
 | Saved Games | `/saved-games` | Complete | None (mock data) | Needs API wiring for real saves |
 | Pricing | `/pricing` | Complete | None (static) | Dollar amounts TBD |
-| Game Layout | `/play` | Complete (6 prompts) | SSE + all gameplay endpoints | Needs live backend for full testing |
+| Game Layout | `/play` | Rewrite Phase 2 | Game state + action + SSE + character + glossary + map + notes | Dice animation, resolution detail, settings modal, entity popup pending |
 | FAQ | `/faq` | Not built | N/A | Page does not exist yet |
 | Rulebook | `/rulebook` | Not built | N/A | Page does not exist yet |
 | Legal (ToS) | TBD | Not built | N/A | Needs starter draft |
@@ -30,7 +30,36 @@
 
 ---
 
-## Recent Work (This Session: 2026-03-16)
+## Recent Work (This Session: 2026-03-17)
+
+### Play Page Rewrite — Phase 2 (Sidebar Tabs)
+- **Sidebar container** (`Sidebar.js`): 6 SVG icon tabs (Character, Inventory, NPCs, Glossary, Map, Notes), notification badges on data changes, drag-to-resize handle on left edge, collapsible via TopBar toggle button
+- **CharacterTab**: Stats with progress bars (effective/20 scale, penalized stats shown in orange), skills grouped by active/foundational, conditions with penalty badges and escalation info. Data: `GET /api/game/:id/character`. Stat keys lowercase from API, displayed uppercase.
+- **InventoryTab**: Header with usedSlots/maxSlots + encumbrance label, `currency.display` only (never raw), equipped/carried item lists with durability bars color-coded (76%+ green, 51-75% yellow, 26-50% orange, 1-25% red, 0% dark red with strikethrough). Data: same `/character` endpoint.
+- **NPCTab**: Filters glossary entries where `category === "npc"`. Shows NPC name, definition, discovered turn. Empty state when no NPCs in glossary.
+- **GlossaryTab**: Search input + category dropdown filter, shows term/definition/category/discoveredAt. Data: `GET /api/game/:id/glossary`.
+- **MapTab**: Location list with current location highlighted (gold dot + "(here)"), discovered/undiscovered styling, routes between locations with terrain and travel days. Data: `GET /api/game/:id/map`.
+- **NotesTab**: Full CRUD. Lists notes with entity name, type, delete button. Add form with entity type dropdown + textarea. `POST /api/game/:id/notes` to create, `DELETE /api/game/:id/notes/:noteId` to delete. Refetches after mutations.
+- **PanelSection**: Shared collapsible section component used by all tabs (Cinzel header, toggle arrow).
+- **TopBar updated**: Sidebar toggle icon button (gold when open, muted when closed).
+- **page.js updated**: Added sidebar state (characterData, glossaryData, mapData, notesData, sidebarOpen, notifications). Step 2 supplementary fetches now wired (character, glossary, map, notes). Turn response handler refetches character on stateChanges and adds notification badges. Layout changed from column to row (narrativeColumn + Sidebar).
+- **Notification system**: stateChanges.conditions changes badge Character tab, stateChanges.inventory changes badge Inventory tab. Clicking a tab clears its badge.
+
+### Play Page Rewrite — Phase 1 (Page Shell + Data Loading)
+- **Full rewrite** of `app/play/page.js`: replaced 3249-line monolith with 338-line orchestrator + 4 components
+- **File structure:** `page.js` + `components/` directory with TopBar, NarrativePanel, TurnBlock, ActionPanel (each with CSS module)
+- **Load flow (Steps 1–4):** Auth guard, GET /api/games/:id for game state, GET /api/game/:id/state for available actions (fire-and-forget), SSE for `connected` + `command:response` only, auto-triggers Turn 1 on fresh games
+- **Turn response handling (Step 5):** Sync POST /api/game/:id/action processes turnAdvanced responses, updates turns array, updates actions from nextActions, updates clock from stateChanges
+- **TopBar:** Wordmark + setting name + SSE connection indicator
+- **NarrativePanel:** Session recap, recentNarrative grouped by turn number, auto-scroll on new turns
+- **TurnBlock:** Turn header (number + clock + weather), player action line, one-line resolution summary (stat + dice + total vs DC + tier), narrative paragraphs, status change badges (conditions/inventory added/removed/modified)
+- **ActionPanel:** A/B/C option buttons, custom text input with Enter submit, disabled state while submitting, error display
+- **Key rules followed:** No mock data, no SSE for turn content, field names from API_CONTRACT.md, no rgba for visible elements, React Strict Mode cancelled flag pattern
+- **Not built yet (future phases):** Sidebar (6 tabs), InlineDicePanel, expandable ResolutionBlock, SettingsModal, TalkToGM, EntityPopup, TurnTimeline, bookmarks
+
+---
+
+## Previous Session Work (2026-03-16)
 
 ### Design System Enforcement
 - Eliminated all `rgba()` violations across 7 CSS modules and 7 page JS files
@@ -187,24 +216,25 @@ All pending rgba/color fixes from previous sessions have been completed.
 | `/api/init/:id/select-scenario` | POST | Wired |
 | `/api/world-snapshots` | GET | Wired (fails silently if unavailable) |
 
-### Game Layout (`/play`)
+### Game Layout (`/play`) — Rewritten
 | Endpoint | Method | Status |
 |----------|--------|--------|
 | `/api/games/:id` | GET | Wired (initial game state load) |
-| `/api/game/:id/stream` | GET (SSE) | Wired (EventSource with auto-reconnect) |
-| `/api/game/:id/action` | POST | Wired (option + custom actions) |
-| `/api/game/:id/glossary` | GET | Wired (cached on load) |
-| `/api/game/:id/map` | GET | Wired |
-| `/api/game/:id/notes` | GET/POST/DELETE | Wired (entity popup + journal tab) |
-| `/api/game/:id/talk-to-gm` | POST | Wired (free lookup) |
-| `/api/game/:id/talk-to-gm/escalate` | POST | Wired (AI escalation) |
-| `/api/game/:id/settings/storyteller` | PUT | Wired (settings modal) |
-| `/api/game/:id/settings/difficulty` | PUT | Wired (settings modal) |
-| `/api/game/:id/checkpoints` | GET | Wired (settings modal world tab) |
-| `/api/game/:id/snapshots` | POST | Wired (share + save snapshot) |
-| `/api/game/:id/character` | GET | Not yet (uses initial load data + SSE) |
-| `/api/bug-report` | POST | Wired |
-| `/api/suggestion` | POST | Wired |
+| `/api/game/:id/state` | GET | Wired (restores availableActions on reload) |
+| `/api/game/:id/stream` | GET (SSE) | Wired (connected + command:response only) |
+| `/api/game/:id/action` | POST | Wired (choice/custom/command, sync response) |
+| `/api/game/:id/character` | GET | Wired (sidebar CharacterTab + InventoryTab, refetch on stateChanges) |
+| `/api/game/:id/glossary` | GET | Wired (sidebar GlossaryTab + NPCTab filter) |
+| `/api/game/:id/map` | GET | Wired (sidebar MapTab) |
+| `/api/game/:id/notes` | GET/POST/DELETE | Wired (sidebar NotesTab CRUD, refetch on mutation) |
+| `/api/game/:id/talk-to-gm` | POST | Stub (button built, API not yet wired) |
+| `/api/game/:id/talk-to-gm/escalate` | POST | Not yet |
+| `/api/game/:id/settings/storyteller` | PUT | Not yet (settings modal Phase 3+) |
+| `/api/game/:id/settings/difficulty` | PUT | Not yet (settings modal Phase 3+) |
+| `/api/game/:id/checkpoints` | GET | Not yet |
+| `/api/game/:id/snapshot` | POST | Not yet |
+| `/api/bug-report` | POST | Not yet |
+| `/api/suggestion` | POST | Not yet |
 
 ---
 

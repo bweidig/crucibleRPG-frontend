@@ -1,0 +1,122 @@
+/* MapTab — Location list with routes */
+
+.regionLabel {
+  font-family: var(--font-cinzel);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-heading);
+  margin-bottom: 12px;
+}
+
+.locationList {
+  list-style: none;
+  padding: 0;
+}
+
+.locationItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--border-light);
+  transition: background-color 0.15s;
+}
+
+.locationItem:hover {
+  background: var(--bg-gold-faint);
+}
+
+.locationDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.locationDotCurrent {
+  background: #e8c45a;
+  border: 2px solid #ffd866;
+  box-shadow: 0 0 8px #e8c45a44;
+}
+
+.locationDotDiscovered {
+  background: var(--brown-faint);
+  border: 1px solid var(--border-card);
+}
+
+.locationDotOther {
+  background: var(--border-primary);
+  border: 1px solid var(--border-card);
+}
+
+.locationInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.locationName {
+  font-family: var(--font-alegreya-sans);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.locationNameCurrent {
+  color: #e8c45a;
+  font-weight: 700;
+}
+
+.locationNameOther {
+  color: var(--text-primary);
+}
+
+.locationMeta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.locationType {
+  font-family: var(--font-alegreya-sans);
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: capitalize;
+}
+
+.locationFaction {
+  font-family: var(--font-alegreya-sans);
+  font-size: 11px;
+  color: var(--brown-muted);
+}
+
+/* Routes */
+.routeItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  font-family: var(--font-alegreya-sans);
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.routeArrow {
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.routeTerrain {
+  font-family: var(--font-jetbrains);
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: capitalize;
+}
+
+.routeDays {
+  font-family: var(--font-jetbrains);
+  font-size: 11px;
+  color: var(--brown-gold);
+  margin-left: auto;
+}

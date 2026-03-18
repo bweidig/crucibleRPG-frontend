@@ -1,0 +1,139 @@
+/* ==============================================
+   TurnBlock — Single turn display
+   ============================================== */
+
+.turnBlock {
+  padding: 0;
+}
+
+/* ─── Turn Header ─── */
+
+.turnHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.turnNumber {
+  font-family: var(--font-cinzel);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.clockInfo {
+  font-family: var(--font-jetbrains);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.weather {
+  font-family: var(--font-alegreya-sans);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* ─── Player Action ─── */
+
+.playerAction {
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  border-left: 2px solid var(--accent-gold);
+  color: var(--text-secondary-bright);
+  font-family: var(--font-alegreya-sans);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ─── Resolution Summary ─── */
+
+.resolution {
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  background: var(--bg-resolution);
+  border-radius: 4px;
+  font-family: var(--font-jetbrains);
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.resolutionStat {
+  color: var(--text-stat-bright);
+  font-weight: 600;
+}
+
+.resolutionDice {
+  color: var(--text-muted);
+}
+
+.resolutionCalc {
+  color: var(--text-secondary);
+}
+
+.resolutionDivider {
+  color: var(--border-primary);
+}
+
+.resolutionSuccess {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.resolutionFailure {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+/* ─── Narrative Text ─── */
+
+.narrativeText {
+  line-height: 1.72;
+  color: var(--text-narrative);
+  font-size: 15px;
+}
+
+.narrativeText p {
+  margin-bottom: 12px;
+}
+
+.narrativeText p:last-child {
+  margin-bottom: 0;
+}
+
+/* ─── Status Change Badges ─── */
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.badge {
+  font-family: var(--font-alegreya-sans);
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  line-height: 1.5;
+}
+
+.badgeAdded {
+  color: var(--color-success);
+  background: #142018;
+  border: 1px solid #7aba7a33;
+}
+
+.badgeRemoved {
+  color: var(--color-danger);
+  background: #201416;
+  border: 1px solid #e85a5a33;
+}
+
+.badgeModified {
+  color: var(--accent-gold);
+  background: var(--bg-gold-subtle);
+  border: 1px solid var(--border-gold-subtle);
+}

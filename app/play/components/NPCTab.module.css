@@ -1,0 +1,43 @@
+/* NPCTab — NPC cards from glossary */
+
+.npcCard {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.npcHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.npcName {
+  font-family: var(--font-cinzel);
+  font-size: 14px;
+  color: var(--text-heading);
+  font-weight: 600;
+}
+
+.npcCategory {
+  font-family: var(--font-alegreya-sans);
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 2px 8px;
+  border-radius: 3px;
+  background: var(--bg-gold-faint);
+}
+
+.npcDefinition {
+  font-family: var(--font-alegreya-sans);
+  font-size: 13px;
+  color: var(--brown-muted);
+  line-height: 1.45;
+}
+
+.npcDiscovered {
+  font-family: var(--font-jetbrains);
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}

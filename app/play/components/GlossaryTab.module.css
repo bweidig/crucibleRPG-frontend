@@ -1,0 +1,91 @@
+/* GlossaryTab — Searchable glossary entries */
+
+.searchRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.searchInput {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-gold-faint);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.searchInput::placeholder {
+  color: var(--text-muted);
+}
+
+.searchInput:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.2);
+}
+
+.categorySelect {
+  padding: 8px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-gold-faint);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: var(--font-alegreya-sans);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.entryCard {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-light);
+  transition: background-color 0.15s;
+  cursor: pointer;
+}
+
+.entryCard:hover {
+  background: var(--bg-gold-faint);
+}
+
+.entryTerm {
+  font-family: var(--font-cinzel);
+  font-size: 14px;
+  color: var(--text-heading);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.entryMeta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 3px;
+}
+
+.entryCategory {
+  font-family: var(--font-alegreya-sans);
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: capitalize;
+}
+
+.entryDiscovered {
+  font-family: var(--font-jetbrains);
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.entryDef {
+  font-family: var(--font-alegreya-sans);
+  font-size: 13px;
+  color: var(--brown-muted);
+  line-height: 1.45;
+}
+
+.resultCount {
+  font-family: var(--font-jetbrains);
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}

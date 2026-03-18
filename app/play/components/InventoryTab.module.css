@@ -1,0 +1,115 @@
+/* InventoryTab — Equipped/carried items, currency, encumbrance */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.slots {
+  font-family: var(--font-jetbrains);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.encumbrance {
+  font-family: var(--font-alegreya-sans);
+  font-size: 12px;
+  color: var(--text-dim);
+  text-transform: capitalize;
+}
+
+.currency {
+  font-family: var(--font-jetbrains);
+  font-size: 13px;
+  color: var(--accent-gold);
+  padding: 6px 0;
+}
+
+/* Item rows */
+.itemRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--border-light);
+  transition: background-color 0.15s;
+}
+
+.itemRow:hover {
+  background: var(--bg-gold-faint);
+}
+
+.itemLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.itemName {
+  color: var(--text-heading);
+  font-family: var(--font-alegreya-sans);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemNameBroken {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.itemQuality {
+  color: var(--text-dim);
+  font-family: var(--font-alegreya-sans);
+  font-size: 11px;
+  font-style: italic;
+  flex-shrink: 0;
+}
+
+.itemRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.itemDurability {
+  font-family: var(--font-jetbrains);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.itemSlots {
+  font-family: var(--font-jetbrains);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Durability bar */
+.durBarTrack {
+  width: 40px;
+  height: 3px;
+  background: var(--border-light);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.durBarFill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.qualityBonus {
+  font-family: var(--font-jetbrains);
+  font-size: 10px;
+  color: var(--text-dim);
+}
