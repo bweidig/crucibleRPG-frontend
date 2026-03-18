@@ -38,23 +38,34 @@ function renderNarrative(text) {
   });
 }
 
+// Format a number for resolution display: show one decimal place
+function fmt(n) {
+  if (n == null) return '?';
+  return typeof n === 'number' ? n.toFixed(1) : String(n);
+}
+
 // One-line resolution summary
+// Format: STAT + Skill(modifier) + d20(dieSelected) = total vs DC dc | margin: tierName
 function ResolutionSummary({ resolution }) {
   if (!resolution) return null;
 
   const stat = (resolution.stat || '').toUpperCase();
   const skill = resolution.skillUsed || null;
+  const modifier = resolution.skillModifier;
   const isSuccess = resolution.margin >= 0;
+  const marginSign = resolution.margin > 0 ? '+' : '';
 
   return (
     <div className={styles.resolution}>
       <span className={styles.resolutionStat}>{stat}</span>
-      {skill && <span>{` + ${skill}`}</span>}
+      {skill && (
+        <span>{` + ${skill}(${modifier != null ? fmt(modifier) : '?'})`}</span>
+      )}
       <span className={styles.resolutionDice}>{` + d20(${resolution.dieSelected})`}</span>
-      <span className={styles.resolutionCalc}>{` = ${resolution.total} vs DC ${resolution.dc}`}</span>
+      <span className={styles.resolutionCalc}>{` = ${fmt(resolution.total)} vs DC ${fmt(resolution.dc)}`}</span>
       <span className={styles.resolutionDivider}>{' | '}</span>
       <span className={isSuccess ? styles.resolutionSuccess : styles.resolutionFailure}>
-        {resolution.margin > 0 ? '+' : ''}{resolution.margin}: {resolution.tierName}
+        {marginSign}{fmt(resolution.margin)}: {resolution.tierName}
       </span>
     </div>
   );
