@@ -47,46 +47,6 @@
   line-height: 1.5;
 }
 
-/* ─── Resolution Summary ─── */
-
-.resolution {
-  padding: 8px 12px;
-  margin-bottom: 12px;
-  background: var(--bg-resolution);
-  border-radius: 4px;
-  font-family: var(--font-jetbrains);
-  font-size: 13px;
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-
-.resolutionStat {
-  color: var(--text-stat-bright);
-  font-weight: 600;
-}
-
-.resolutionDice {
-  color: var(--text-muted);
-}
-
-.resolutionCalc {
-  color: var(--text-secondary);
-}
-
-.resolutionDivider {
-  color: var(--border-primary);
-}
-
-.resolutionSuccess {
-  color: var(--color-success);
-  font-weight: 600;
-}
-
-.resolutionFailure {
-  color: var(--color-danger);
-  font-weight: 600;
-}
-
 /* ─── Narrative Text ─── */
 
 .narrativeText {
@@ -113,27 +73,56 @@
 }
 
 .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-family: var(--font-alegreya-sans);
   font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  line-height: 1.5;
+  padding: 3px 10px;
+  border-radius: 5px;
+  line-height: 1.4;
+  cursor: default;
+  transition: border-color 0.15s;
 }
 
-.badgeAdded {
-  color: var(--color-success);
-  background: #142018;
-  border: 1px solid #7aba7a33;
+/* Condition: added/escalated (orange warning) */
+.badgeCondWarning {
+  color: #e8845a;
+  background: #1e1410;
+  border: 1px solid #3a2418;
 }
 
-.badgeRemoved {
-  color: var(--color-danger);
-  background: #201416;
-  border: 1px solid #e85a5a33;
+/* Condition: CON-related (red danger — CON=0 triggers Fate Check) */
+.badgeCondCon {
+  color: #e85a5a;
+  background: #1e1214;
+  border: 1px solid #3a1820;
 }
 
-.badgeModified {
-  color: var(--accent-gold);
-  background: var(--bg-gold-subtle);
-  border: 1px solid var(--border-gold-subtle);
+/* Condition: cleared (green success) */
+.badgeCondCleared {
+  color: #8aba7a;
+  background: #101e14;
+  border: 1px solid #1a3a20;
+}
+
+/* Inventory: gained (gold) */
+.badgeInvGained {
+  color: #c9a84c;
+  background: #1a1810;
+  border: 1px solid #2e2a18;
+}
+
+/* Inventory: lost (orange) */
+.badgeInvLost {
+  color: #e8845a;
+  background: #1e1410;
+  border: 1px solid #3a2418;
+}
+
+/* Inventory: modified (blue) */
+.badgeInvModified {
+  color: #6a9aba;
+  background: #101418;
+  border: 1px solid #1a2a3a;
 }

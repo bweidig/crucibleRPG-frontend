@@ -65,6 +65,7 @@ export default function Sidebar({
   notifications,
   onClearNotification,
   onNotesChange,
+  onEntityClick,
 }) {
   const [activeTab, setActiveTab] = useState('character');
   const [width, setWidth] = useState(340);
@@ -99,15 +100,15 @@ export default function Sidebar({
   const renderContent = () => {
     switch (activeTab) {
       case 'character':
-        return <CharacterTab data={characterData} />;
+        return <CharacterTab data={characterData} onEntityClick={onEntityClick} />;
       case 'inventory':
-        return <InventoryTab data={characterData} />;
+        return <InventoryTab data={characterData} onEntityClick={onEntityClick} />;
       case 'npcs':
-        return <NPCTab glossaryData={glossaryData} />;
+        return <NPCTab glossaryData={glossaryData} onEntityClick={onEntityClick} />;
       case 'glossary':
-        return <GlossaryTab data={glossaryData} />;
+        return <GlossaryTab data={glossaryData} onEntityClick={onEntityClick} />;
       case 'map':
-        return <MapTab data={mapData} />;
+        return <MapTab data={mapData} onEntityClick={onEntityClick} />;
       case 'notes':
         return <NotesTab data={notesData} gameId={gameId} onNotesChange={onNotesChange} />;
       default:

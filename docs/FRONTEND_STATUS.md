@@ -18,7 +18,7 @@
 | Loading Screen | `/loading` | Complete | None | None |
 | Saved Games | `/saved-games` | Complete | None (mock data) | Needs API wiring for real saves |
 | Pricing | `/pricing` | Complete | None (static) | Dollar amounts TBD |
-| Game Layout | `/play` | Rewrite Phase 2 | Game state + action + SSE + character + glossary + map + notes | Dice animation, resolution detail, settings modal, entity popup pending |
+| Game Layout | `/play` | Rewrite Phase 4 | All gameplay + talk-to-gm + notes CRUD | Polish pass pending |
 | FAQ | `/faq` | Not built | N/A | Page does not exist yet |
 | Rulebook | `/rulebook` | Not built | N/A | Page does not exist yet |
 | Legal (ToS) | TBD | Not built | N/A | Needs starter draft |
@@ -31,6 +31,21 @@
 ---
 
 ## Recent Work (This Session: 2026-03-17)
+
+### Play Page Rewrite — Phase 4 (Settings, Talk to GM, Entity Popup)
+- **SettingsModal** (`SettingsModal.js`): Display settings with three controls: Theme (Dark/Light/Sepia), Body Font (Lexie Readable/System/Alegreya/Georgia/Monospace), Text Size (Small/Medium/Large/X-Large). Persists to localStorage. Applied as CSS variable overrides on the pageContainer element. Settings gear button added to TopBar.
+- **TalkToGM** (`TalkToGM.js`): Full two-phase interaction replacing the stub. Phase 1: POST /api/game/:id/talk-to-gm with free question. Displays response by source type: command (formatted data), rulebook (title + section + content), no match (suggestion + escalate button). Phase 2: POST /api/game/:id/talk-to-gm/escalate processes as a turn response via shared handleTurnResponse. Loading states, Escape to close.
+- **EntityPopup** (`EntityPopup.js`): Modal overlay for entity details. Looks up term in glossary data. Shows: Cinzel header, category, definition. Items show durability bar with color coding. Player notes section at bottom with textarea + save (POST /api/game/:id/notes). Wired to clickable elements: glossary entries, NPC cards, inventory items, stat names, condition names, map locations.
+- **page.js refactored**: Extracted shared `handleTurnResponse` callback (used by both submitAction and TalkToGM escalation). Added display settings state with localStorage persistence. Theme CSS variables applied as inline styles on pageContainer. Entity popup state managed at page level.
+- **Sidebar tabs updated**: All tabs accept `onEntityClick` prop, clickable items trigger EntityPopup.
+- **NarrativePanel cleaned up**: GM stub replaced with TalkToGM component import. Receives `onTurnResponse` for escalation handling.
+- **Theme system**: 3 complete theme definitions (dark/light/sepia) with full CSS variable overrides. Font and text size applied via `--body-font`, `--narrative-size`, `--ui-size` variables.
+
+### Play Page Rewrite — Phase 3 (Dice, Resolution, Status Badges)
+- **InlineDicePanel** (`InlineDicePanel.js`): SVG d20 dice display within turn blocks. Fortune's Balance category tag (Matched/Outmatched/Dominant). Matched: single spinning d20 that reveals dieSelected. Outmatched/Dominant: crucible roll center, two mortal dice with kept/discarded resolution (Outmatched keeps highest with gold glow, Dominant keeps lowest with tarnished glow). Natural Extreme indicators for nat20/nat1 on crucible. Phase-based animation with timeouts. MiniD20 SVG component with glow rings, ghost faces, desaturation.
+- **ResolutionBlock** (`ResolutionBlock.js`): Expandable resolution display. Collapsed: one-line JetBrains Mono summary (action | STAT + skill + d20 = total vs DC | margin: tierName). Expanded: 2-column grid with labeled rows (Action, Stat, Skill, Equipment, Fortune's Balance, Crucible Roll, d20 Roll, DC, Total, Result, Debt). Click anywhere on compressed bar or "?" button to toggle. Green-tinted resolution background/border.
+- **Status badges reworked**: Type-specific badge styling per mockup's StatusChangeBadge. Conditions: added/escalated = orange warning, removed/cleared = green success, CON-related = red danger. Inventory: added = gold, removed = orange, modified = blue. Each badge shows relevant detail text (penalty, stat, escalation).
+- **TurnBlock updated**: Replaced inline ResolutionSummary with InlineDicePanel (above narrative) + ResolutionBlock (below dice, above narrative). Status badges use new type-specific classes.
 
 ### Play Page Rewrite — Phase 2 (Sidebar Tabs)
 - **Sidebar container** (`Sidebar.js`): 6 SVG icon tabs (Character, Inventory, NPCs, Glossary, Map, Notes), notification badges on data changes, drag-to-resize handle on left edge, collapsible via TopBar toggle button
@@ -227,8 +242,8 @@ All pending rgba/color fixes from previous sessions have been completed.
 | `/api/game/:id/glossary` | GET | Wired (sidebar GlossaryTab + NPCTab filter) |
 | `/api/game/:id/map` | GET | Wired (sidebar MapTab) |
 | `/api/game/:id/notes` | GET/POST/DELETE | Wired (sidebar NotesTab CRUD, refetch on mutation) |
-| `/api/game/:id/talk-to-gm` | POST | Stub (button built, API not yet wired) |
-| `/api/game/:id/talk-to-gm/escalate` | POST | Not yet |
+| `/api/game/:id/talk-to-gm` | POST | Wired (Phase 1 free lookup, displays command/rulebook/no-match) |
+| `/api/game/:id/talk-to-gm/escalate` | POST | Wired (Phase 2 escalation, processes as turn response) |
 | `/api/game/:id/settings/storyteller` | PUT | Not yet (settings modal Phase 3+) |
 | `/api/game/:id/settings/difficulty` | PUT | Not yet (settings modal Phase 3+) |
 | `/api/game/:id/checkpoints` | GET | Not yet |

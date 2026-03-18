@@ -14,7 +14,7 @@ function getDurabilityColor(durability, maxDurability) {
   return '#8aba7a';
 }
 
-function ItemRow({ item }) {
+function ItemRow({ item, onEntityClick }) {
   const durPct = item.maxDurability > 0
     ? (item.durability / item.maxDurability) * 100
     : 100;
@@ -22,7 +22,7 @@ function ItemRow({ item }) {
   const broken = item.durability === 0;
 
   return (
-    <div className={styles.itemRow} style={{ opacity: broken ? 0.5 : 1 }}>
+    <div className={styles.itemRow} style={{ opacity: broken ? 0.5 : 1, cursor: 'pointer' }} onClick={() => onEntityClick?.({ term: item.name, type: 'item', id: item.id, durability: item.durability, maxDurability: item.maxDurability })}>
       <div className={styles.itemLeft}>
         <span className={`${styles.itemName} ${broken ? styles.itemNameBroken : ''}`}>
           {item.name}
@@ -52,7 +52,7 @@ function ItemRow({ item }) {
   );
 }
 
-export default function InventoryTab({ data }) {
+export default function InventoryTab({ data, onEntityClick }) {
   if (!data) {
     return <div className={sidebarStyles.loadingState}>Loading inventory...</div>;
   }
@@ -86,7 +86,7 @@ export default function InventoryTab({ data }) {
         {equipped.length === 0 ? (
           <div className={sidebarStyles.emptyState}>Nothing equipped</div>
         ) : (
-          equipped.map(item => <ItemRow key={item.id || item.name} item={item} />)
+          equipped.map(item => <ItemRow key={item.id || item.name} item={item} onEntityClick={onEntityClick} />)
         )}
       </PanelSection>
 
@@ -94,7 +94,7 @@ export default function InventoryTab({ data }) {
         {carried.length === 0 ? (
           <div className={sidebarStyles.emptyState}>Nothing carried</div>
         ) : (
-          carried.map(item => <ItemRow key={item.id || item.name} item={item} />)
+          carried.map(item => <ItemRow key={item.id || item.name} item={item} onEntityClick={onEntityClick} />)
         )}
       </PanelSection>
     </div>

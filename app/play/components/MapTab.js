@@ -2,7 +2,7 @@ import PanelSection from './PanelSection';
 import styles from './MapTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
 
-export default function MapTab({ data }) {
+export default function MapTab({ data, onEntityClick }) {
   if (!data) {
     return <div className={sidebarStyles.loadingState}>Loading map...</div>;
   }
@@ -41,7 +41,7 @@ export default function MapTab({ data }) {
                 : styles.locationDotOther;
 
             return (
-              <li key={loc.id} className={styles.locationItem}>
+              <li key={loc.id} className={styles.locationItem} onClick={() => onEntityClick?.({ term: loc.name, type: 'location', id: loc.id })} style={{ cursor: 'pointer' }}>
                 <div className={`${styles.locationDot} ${dotClass}`} />
                 <div className={styles.locationInfo}>
                   <div className={`${styles.locationName} ${isCurrent ? styles.locationNameCurrent : styles.locationNameOther}`}>

@@ -1,4 +1,6 @@
 import React from 'react';
+import InlineDicePanel from './InlineDicePanel';
+import ResolutionBlock from './ResolutionBlock';
 import styles from './TurnBlock.module.css';
 
 // Format clock data into a readable string
@@ -38,73 +40,101 @@ function renderNarrative(text) {
   });
 }
 
-// Format a number for resolution display: show one decimal place
-function fmt(n) {
-  if (n == null) return '?';
-  return typeof n === 'number' ? n.toFixed(1) : String(n);
-}
+// ─── Status Change Badges ───
+// Conditions: added=warning(orange), removed=cleared(green), modified=escalated(orange)
+// Inventory: added=gained(gold), removed=lost(orange), modified=modified(blue)
+// CON conditions get red instead of orange
 
-// One-line resolution summary
-// Format: STAT + Skill(modifier) + d20(dieSelected) = total vs DC dc | margin: tierName
-function ResolutionSummary({ resolution }) {
-  if (!resolution) return null;
-
-  const stat = (resolution.stat || '').toUpperCase();
-  const skill = resolution.skillUsed || null;
-  const modifier = resolution.skillModifier;
-  const isSuccess = resolution.margin >= 0;
-  const marginSign = resolution.margin > 0 ? '+' : '';
-
-  return (
-    <div className={styles.resolution}>
-      <span className={styles.resolutionStat}>{stat}</span>
-      {skill && (
-        <span>{` + ${skill}(${modifier != null ? fmt(modifier) : '?'})`}</span>
-      )}
-      <span className={styles.resolutionDice}>{` + d20(${resolution.dieSelected})`}</span>
-      <span className={styles.resolutionCalc}>{` = ${fmt(resolution.total)} vs DC ${fmt(resolution.dc)}`}</span>
-      <span className={styles.resolutionDivider}>{' | '}</span>
-      <span className={isSuccess ? styles.resolutionSuccess : styles.resolutionFailure}>
-        {marginSign}{fmt(resolution.margin)}: {resolution.tierName}
-      </span>
-    </div>
-  );
-}
-
-// Status change badges from stateChanges
 function StatusBadges({ stateChanges }) {
   if (!stateChanges) return null;
 
   const badges = [];
 
-  const collect = (group, category) => {
-    if (!group) return;
-    if (Array.isArray(group.added)) {
-      group.added.forEach(item => {
-        badges.push({ type: 'added', text: `+ ${item.name || item}`, key: `${category}-add-${item.name || item}` });
+  // Conditions
+  const conds = stateChanges.conditions;
+  if (conds) {
+    if (Array.isArray(conds.added)) {
+      conds.added.forEach(item => {
+        const name = item.name || item;
+        const isCon = (item.stat || '').toLowerCase() === 'con';
+        badges.push({
+          type: isCon ? 'condConDanger' : 'condAdded',
+          text: `\u26A0 ${name}${item.penalty ? `: ${item.penalty} ${(item.stat || '').toUpperCase()}` : ''}`,
+          key: `cond-add-${name}`,
+        });
       });
     }
-    if (Array.isArray(group.removed)) {
-      group.removed.forEach(item => {
-        badges.push({ type: 'removed', text: `\u2013 ${item.name || item}`, key: `${category}-rm-${item.name || item}` });
+    if (Array.isArray(conds.removed)) {
+      conds.removed.forEach(item => {
+        const name = item.name || item;
+        badges.push({
+          type: 'condRemoved',
+          text: `\u2713 ${name} cleared`,
+          key: `cond-rm-${name}`,
+        });
       });
     }
-    if (Array.isArray(group.modified)) {
-      group.modified.forEach(item => {
-        badges.push({ type: 'modified', text: `~ ${item.name || item}`, key: `${category}-mod-${item.name || item}` });
+    if (Array.isArray(conds.modified)) {
+      conds.modified.forEach(item => {
+        const name = item.name || item;
+        const isCon = (item.stat || '').toLowerCase() === 'con';
+        badges.push({
+          type: isCon ? 'condConDanger' : 'condModified',
+          text: `\u26A0 ${name}${item.previousName ? ` \u2192 ${item.name}` : ' escalated'}`,
+          key: `cond-mod-${name}`,
+        });
       });
     }
-  };
+  }
 
-  collect(stateChanges.conditions, 'cond');
-  collect(stateChanges.inventory, 'inv');
+  // Inventory
+  const inv = stateChanges.inventory;
+  if (inv) {
+    if (Array.isArray(inv.added)) {
+      inv.added.forEach(item => {
+        const name = item.name || item;
+        badges.push({
+          type: 'invAdded',
+          text: `+ ${name}`,
+          key: `inv-add-${name}`,
+        });
+      });
+    }
+    if (Array.isArray(inv.removed)) {
+      inv.removed.forEach(item => {
+        const name = item.name || item;
+        badges.push({
+          type: 'invRemoved',
+          text: `\u2013 ${name}`,
+          key: `inv-rm-${name}`,
+        });
+      });
+    }
+    if (Array.isArray(inv.modified)) {
+      inv.modified.forEach(item => {
+        const name = item.name || item;
+        badges.push({
+          type: 'invModified',
+          text: `~ ${name}`,
+          key: `inv-mod-${name}`,
+        });
+      });
+    }
+  }
 
   if (badges.length === 0) return null;
 
   const badgeClass = (type) => {
-    if (type === 'added') return styles.badgeAdded;
-    if (type === 'removed') return styles.badgeRemoved;
-    return styles.badgeModified;
+    switch (type) {
+      case 'condAdded':    return styles.badgeCondWarning;
+      case 'condModified': return styles.badgeCondWarning;
+      case 'condConDanger':return styles.badgeCondCon;
+      case 'condRemoved':  return styles.badgeCondCleared;
+      case 'invAdded':     return styles.badgeInvGained;
+      case 'invRemoved':   return styles.badgeInvLost;
+      case 'invModified':  return styles.badgeInvModified;
+      default:             return styles.badgeCondWarning;
+    }
   };
 
   return (
@@ -135,7 +165,11 @@ export default function TurnBlock({ turn }) {
         <div className={styles.playerAction}>{turn.playerAction}</div>
       )}
 
-      <ResolutionSummary resolution={turn.resolution} />
+      {/* Dice display — shows Fortune's Balance, animated d20s */}
+      <InlineDicePanel resolution={turn.resolution} />
+
+      {/* Resolution — compressed one-liner with expandable detail */}
+      <ResolutionBlock resolution={turn.resolution} />
 
       <div className={styles.narrativeText}>
         {renderNarrative(turn.narrative)}

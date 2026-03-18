@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import styles from './GlossaryTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
 
-export default function GlossaryTab({ data }) {
+export default function GlossaryTab({ data, onEntityClick }) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
 
@@ -63,7 +63,7 @@ export default function GlossaryTab({ data }) {
       <div className={styles.resultCount}>{filtered.length} entries</div>
 
       {filtered.map(entry => (
-        <div key={entry.id || entry.term} className={styles.entryCard}>
+        <div key={entry.id || entry.term} className={styles.entryCard} onClick={() => onEntityClick?.({ term: entry.term, type: entry.category, id: entry.id })}>
           <div className={styles.entryTerm}>{entry.term}</div>
           <div className={styles.entryMeta}>
             <span className={styles.entryCategory}>{entry.category}</span>

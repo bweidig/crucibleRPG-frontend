@@ -11,7 +11,7 @@ const STAT_FULL = {
   int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma',
 };
 
-function StatBar({ statKey, stat }) {
+function StatBar({ statKey, stat, onEntityClick }) {
   const effective = stat.effective ?? stat.base ?? 0;
   const base = stat.base ?? 0;
   const hasPenalty = effective < base;
@@ -19,9 +19,9 @@ function StatBar({ statKey, stat }) {
   const pctBase = Math.min((base / 20) * 100, 100);
 
   return (
-    <div className={styles.statRow} title={STAT_FULL[statKey]}>
+    <div className={styles.statRow} title={STAT_FULL[statKey]} onClick={() => onEntityClick?.({ term: STAT_LABELS[statKey], type: 'stat' })} style={{ cursor: 'pointer' }}>
       <div className={styles.statHeader}>
-        <span className={styles.statName}>{STAT_LABELS[statKey]} {STAT_FULL[statKey]}</span>
+        <span className={styles.statName}>{STAT_LABELS[statKey]}</span>
         <span className={`${styles.statValue} ${hasPenalty ? styles.statPenalized : styles.statNormal}`}>
           {effective.toFixed(1)}
           {hasPenalty && <span className={styles.statBase}> / {base.toFixed(1)}</span>}
@@ -40,7 +40,7 @@ function StatBar({ statKey, stat }) {
   );
 }
 
-export default function CharacterTab({ data }) {
+export default function CharacterTab({ data, onEntityClick }) {
   if (!data) {
     return <div className={sidebarStyles.loadingState}>Loading character...</div>;
   }
@@ -68,7 +68,7 @@ export default function CharacterTab({ data }) {
         {STAT_ORDER.map(key => {
           const stat = stats[key];
           if (!stat) return null;
-          return <StatBar key={key} statKey={key} stat={stat} />;
+          return <StatBar key={key} statKey={key} stat={stat} onEntityClick={onEntityClick} />;
         })}
       </PanelSection>
 
@@ -106,7 +106,7 @@ export default function CharacterTab({ data }) {
           conditions.map((cond, i) => {
             const isCon = (cond.stat || '').toLowerCase() === 'con';
             return (
-              <div key={cond.id || i} className={styles.conditionCard}>
+              <div key={cond.id || i} className={styles.conditionCard} onClick={() => onEntityClick?.({ term: cond.name, type: 'condition', id: cond.id })} style={{ cursor: 'pointer' }}>
                 <div className={`${styles.conditionHeader} ${isCon ? styles.conditionHeaderCon : ''}`}>
                   {cond.name}: {cond.penalty} {(cond.stat || '').toUpperCase()}
                 </div>

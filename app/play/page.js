@@ -9,9 +9,40 @@ import TopBar from './components/TopBar';
 import NarrativePanel from './components/NarrativePanel';
 import ActionPanel from './components/ActionPanel';
 import Sidebar from './components/Sidebar';
+import SettingsModal, { THEMES, FONTS, SIZES } from './components/SettingsModal';
+import EntityPopup from './components/EntityPopup';
 import styles from './play.module.css';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+const SETTINGS_KEY = 'crucible_display_settings';
+const DEFAULT_SETTINGS = { theme: 'dark', font: 'lexie', textSize: 'medium' };
+
+function loadSettings() {
+  if (typeof window === 'undefined') return DEFAULT_SETTINGS;
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  } catch {}
+  return DEFAULT_SETTINGS;
+}
+
+function saveSettings(settings) {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch {}
+}
+
+// Build CSS variable overrides for the current display settings
+function buildThemeStyle(settings) {
+  const themeVars = THEMES[settings.theme] || THEMES.dark;
+  const font = FONTS.find(f => f.id === settings.font) || FONTS[0];
+  const size = SIZES.find(s => s.id === settings.textSize) || SIZES[1];
+  return {
+    ...themeVars,
+    '--body-font': font.family,
+    '--narrative-size': size.narrative,
+    '--ui-size': size.ui,
+  };
+}
 
 // =============================================================================
 // PlayPage — Main game page with data fetching and state management
@@ -40,8 +71,26 @@ function PlayPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [notifications, setNotifications] = useState({});
 
+  // ─── Display Settings ───
+  const [displaySettings, setDisplaySettings] = useState(DEFAULT_SETTINGS);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // ─── Entity Popup ───
+  const [entityPopup, setEntityPopup] = useState(null);
+
   const sseRef = useRef(null);
   const narrativeRef = useRef(null);
+
+  // Load display settings from localStorage on mount
+  useEffect(() => {
+    setDisplaySettings(loadSettings());
+  }, []);
+
+  // Save display settings when they change
+  const handleSettingsChange = useCallback((newSettings) => {
+    setDisplaySettings(newSettings);
+    saveSettings(newSettings);
+  }, []);
 
   // ─── Refetch helpers ───
   const refetchCharacter = useCallback(() => {
@@ -67,7 +116,6 @@ function PlayPage() {
 
     if (hasChanges(stateChanges.conditions)) notifs.character = 1;
     if (hasChanges(stateChanges.inventory)) notifs.inventory = 1;
-    if (stateChanges.stats) notifs.character = 1;
 
     if (Object.keys(notifs).length > 0) {
       setNotifications(prev => {
@@ -80,6 +128,37 @@ function PlayPage() {
     }
   }, []);
 
+  // ─── Shared turn response handler (used by submitAction + TalkToGM escalation) ───
+  const handleTurnResponse = useCallback((response, playerActionText = null) => {
+    if (!response.turnAdvanced) return;
+
+    setTurns(prev => [...prev, {
+      number: response.turn.number,
+      sessionTurn: response.turn.sessionTurn,
+      narrative: response.narrative,
+      resolution: response.resolution || null,
+      stateChanges: response.stateChanges || null,
+      playerAction: playerActionText,
+      clock: response.stateChanges?.clock || null,
+    }]);
+
+    if (response.nextActions) {
+      setActions(response.nextActions);
+    }
+
+    if (response.stateChanges?.clock) {
+      setGameState(prev => prev ? {
+        ...prev,
+        clock: { ...prev.clock, ...response.stateChanges.clock }
+      } : prev);
+    }
+
+    if (response.stateChanges) {
+      addNotifications(response.stateChanges);
+      refetchCharacter();
+    }
+  }, [addNotifications, refetchCharacter]);
+
   // ─── Submit Action (Step 5 handler) ───
   const submitAction = useCallback(async (actionBody) => {
     if (!gameId || submitting) return;
@@ -90,7 +169,6 @@ function PlayPage() {
       const response = await api.post(`/api/game/${gameId}/action`, actionBody);
 
       if (response.turnAdvanced) {
-        // Determine player action text for display
         let playerActionText = null;
         if (actionBody.choice) {
           const opt = actions?.options?.find(o => o.id === actionBody.choice);
@@ -101,33 +179,7 @@ function PlayPage() {
           playerActionText = `[${actionBody.command}]`;
         }
 
-        setTurns(prev => [...prev, {
-          number: response.turn.number,
-          sessionTurn: response.turn.sessionTurn,
-          narrative: response.narrative,
-          resolution: response.resolution || null,
-          stateChanges: response.stateChanges || null,
-          playerAction: playerActionText,
-          clock: response.stateChanges?.clock || null,
-        }]);
-
-        if (response.nextActions) {
-          setActions(response.nextActions);
-        }
-
-        // Update clock in game state
-        if (response.stateChanges?.clock) {
-          setGameState(prev => prev ? {
-            ...prev,
-            clock: { ...prev.clock, ...response.stateChanges.clock }
-          } : prev);
-        }
-
-        // Update sidebar: add notifications and refetch character data
-        if (response.stateChanges) {
-          addNotifications(response.stateChanges);
-          refetchCharacter();
-        }
+        handleTurnResponse(response, playerActionText);
       }
     } catch (err) {
       console.error('Action failed:', err);
@@ -135,7 +187,7 @@ function PlayPage() {
     } finally {
       setSubmitting(false);
     }
-  }, [gameId, submitting, actions, addNotifications, refetchCharacter]);
+  }, [gameId, submitting, actions, handleTurnResponse]);
 
   // ─── Page Load Flow (Steps 1–4) ───
   useEffect(() => {
@@ -174,17 +226,16 @@ function PlayPage() {
               });
             }
             const t = turnMap.get(entry.turn);
-            if (entry.role === 'narrator') {
-              t.narrative = t.narrative
-                ? t.narrative + '\n\n' + entry.content
-                : entry.content;
-            } else if (entry.role === 'player') {
-              // Hide the auto-trigger text on Turn 1
+            if (entry.role === 'player' || entry.role === 'user') {
               if (entry.turn === 1 && entry.content === 'Begin the adventure') {
                 t.playerAction = null;
               } else {
                 t.playerAction = entry.content;
               }
+            } else {
+              t.narrative = t.narrative
+                ? t.narrative + '\n\n' + entry.content
+                : entry.content;
             }
           }
           setTurns(
@@ -261,7 +312,7 @@ function PlayPage() {
                 narrative: res.narrative,
                 resolution: res.resolution || null,
                 stateChanges: res.stateChanges || null,
-                playerAction: null, // Hide "Begin the adventure" from the player
+                playerAction: null,
                 clock: res.stateChanges?.clock || null,
               }]);
 
@@ -351,13 +402,16 @@ function PlayPage() {
   }
 
   // ─── Main Layout ───
+  const themeStyle = buildThemeStyle(displaySettings);
+
   return (
-    <div className={styles.pageContainer}>
+    <div className={styles.pageContainer} style={themeStyle}>
       <TopBar
         setting={gameState?.setting}
         sseConnected={sseConnected}
         sidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen(prev => !prev)}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
       <div className={styles.mainContent}>
         <div className={styles.narrativeColumn}>
@@ -366,6 +420,7 @@ function PlayPage() {
             turns={turns}
             sessionRecap={gameState?.sessionRecap}
             gameId={gameId}
+            onTurnResponse={handleTurnResponse}
           />
           <ActionPanel
             actions={actions}
@@ -384,8 +439,30 @@ function PlayPage() {
           notifications={notifications}
           onClearNotification={(tabId) => setNotifications(prev => ({ ...prev, [tabId]: 0 }))}
           onNotesChange={refetchNotes}
+          onEntityClick={setEntityPopup}
         />
       </div>
+
+      {/* Settings Modal */}
+      {settingsOpen && (
+        <SettingsModal
+          settings={displaySettings}
+          onSave={handleSettingsChange}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
+
+      {/* Entity Popup */}
+      {entityPopup && (
+        <EntityPopup
+          entity={entityPopup}
+          glossaryData={glossaryData}
+          notesData={notesData}
+          gameId={gameId}
+          onClose={() => setEntityPopup(null)}
+          onNotesChange={refetchNotes}
+        />
+      )}
     </div>
   );
 }

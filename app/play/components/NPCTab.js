@@ -1,7 +1,7 @@
 import styles from './NPCTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
 
-export default function NPCTab({ glossaryData }) {
+export default function NPCTab({ glossaryData, onEntityClick }) {
   if (!glossaryData) {
     return <div className={sidebarStyles.loadingState}>Loading...</div>;
   }
@@ -19,7 +19,7 @@ export default function NPCTab({ glossaryData }) {
   return (
     <div>
       {npcs.map(npc => (
-        <div key={npc.id || npc.term} className={styles.npcCard}>
+        <div key={npc.id || npc.term} className={styles.npcCard} onClick={() => onEntityClick?.({ term: npc.term, type: 'npc', id: npc.id })} style={{ cursor: 'pointer' }}>
           <div className={styles.npcHeader}>
             <span className={styles.npcName}>{npc.term}</span>
             <span className={styles.npcCategory}>NPC</span>

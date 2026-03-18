@@ -1,0 +1,188 @@
+/* ==============================================
+   EntityPopup — Click-for-detail modal overlay
+   ============================================== */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  width: 440px;
+  max-width: 90vw;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.entityName {
+  font-family: var(--font-cinzel);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.closeButton:hover {
+  color: var(--text-primary);
+}
+
+.body {
+  padding: 16px 20px;
+}
+
+.category {
+  font-family: var(--font-alegreya-sans);
+  font-size: 12px;
+  color: var(--text-dim);
+  text-transform: capitalize;
+  margin-bottom: 10px;
+}
+
+.definition {
+  font-family: var(--font-alegreya-sans);
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.55;
+  margin-bottom: 16px;
+}
+
+/* ─── Durability (for items) ─── */
+
+.durabilitySection {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  background: var(--bg-resolution);
+  border-radius: 4px;
+}
+
+.durabilityLabel {
+  font-family: var(--font-alegreya-sans);
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.durBarTrack {
+  height: 6px;
+  background: var(--border-light);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.durBarFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.durValue {
+  font-family: var(--font-jetbrains);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ─── Not Found State ─── */
+
+.notFound {
+  font-family: var(--font-alegreya-sans);
+  font-size: 14px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-bottom: 16px;
+}
+
+/* ─── Player Notes Section ─── */
+
+.notesSection {
+  border-top: 1px solid var(--border-primary);
+  padding-top: 14px;
+}
+
+.notesLabel {
+  font-family: var(--font-cinzel);
+  font-size: 11px;
+  font-weight: 600;
+  color: #9a8545;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.notesList {
+  margin-bottom: 10px;
+}
+
+.existingNote {
+  font-family: var(--font-alegreya-sans);
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-light);
+  line-height: 1.45;
+}
+
+.noteInput {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-gold-faint);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  resize: vertical;
+  min-height: 50px;
+}
+
+.noteInput::placeholder {
+  color: var(--text-muted);
+}
+
+.noteInput:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.2);
+}
+
+.noteSaveButton {
+  margin-top: 8px;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #c9a84c, #ddb84e);
+  border: none;
+  border-radius: 4px;
+  color: #0a0e1a;
+  font-family: var(--font-cinzel);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.noteSaveButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

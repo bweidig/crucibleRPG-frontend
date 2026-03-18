@@ -2,7 +2,7 @@
    NarrativePanel — Scrollable narrative area
    ============================================== */
 
-/* Outer wrapper: relative positioning context for the floating GM button */
+/* Outer wrapper: relative positioning context for TalkToGM floating button */
 .narrativeWrapper {
   flex: 1;
   position: relative;
@@ -58,115 +58,4 @@
   color: var(--text-muted);
   font-family: var(--font-alegreya-sans);
   font-size: 15px;
-}
-
-/* ─── Talk to GM — Floating Button ─── */
-
-.gmButton {
-  position: absolute;
-  bottom: 16px;
-  right: 16px;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #c9a84c, #ddb84e);
-  border: none;
-  color: #0a0e1a;
-  font-family: var(--font-cinzel);
-  font-size: 18px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 2px 12px rgba(201, 168, 76, 0.3);
-  transition: box-shadow 0.15s, transform 0.15s;
-  z-index: 10;
-}
-
-.gmButton:hover {
-  box-shadow: 0 4px 20px rgba(201, 168, 76, 0.5);
-  transform: translateY(-2px);
-}
-
-.gmButton:focus-visible {
-  outline: 2px solid var(--accent-gold);
-  outline-offset: 2px;
-}
-
-/* ─── Talk to GM — Expanded Panel ─── */
-
-.gmPanel {
-  position: absolute;
-  bottom: 16px;
-  right: 16px;
-  width: 320px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-card);
-  border-radius: 8px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.gmHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border-primary);
-}
-
-.gmTitle {
-  font-family: var(--font-cinzel);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--accent-gold);
-  letter-spacing: 0.05em;
-}
-
-.gmCloseButton {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-family: var(--font-alegreya-sans);
-  font-size: 14px;
-  cursor: pointer;
-  padding: 2px 6px;
-}
-
-.gmCloseButton:hover {
-  color: var(--text-primary);
-}
-
-.gmResult {
-  padding: 10px 14px;
-  color: var(--text-secondary);
-  font-family: var(--font-alegreya-sans);
-  font-size: 13px;
-  line-height: 1.5;
-  border-bottom: 1px solid var(--border-primary);
-}
-
-.gmInputRow {
-  padding: 10px 14px;
-}
-
-.gmInput {
-  width: 100%;
-  padding: 8px 12px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-gold-faint);
-  border-radius: 4px;
-  color: var(--text-primary);
-  font-family: inherit;
-  font-size: 14px;
-}
-
-.gmInput::placeholder {
-  color: var(--text-muted);
-}
-
-.gmInput:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.2);
 }
