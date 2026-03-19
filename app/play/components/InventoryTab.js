@@ -14,7 +14,7 @@ function getDurabilityColor(durability, maxDurability) {
   return '#8aba7a';
 }
 
-function ItemRow({ item, onEntityClick }) {
+function ItemRow({ item, isEquipped, onEntityClick }) {
   const durPct = item.maxDurability > 0
     ? (item.durability / item.maxDurability) * 100
     : 100;
@@ -22,11 +22,13 @@ function ItemRow({ item, onEntityClick }) {
   const broken = item.durability === 0;
 
   return (
-    <div className={styles.itemRow} style={{ opacity: broken ? 0.5 : 1, cursor: 'pointer' }} onClick={() => onEntityClick?.({ term: item.name, type: 'item', id: item.id, durability: item.durability, maxDurability: item.maxDurability })}>
+    <div className={isEquipped ? styles.itemRowEquipped : styles.itemRow} style={{ opacity: broken ? 0.5 : 1, cursor: 'pointer' }} onClick={() => onEntityClick?.({ term: item.name, type: 'item', id: item.id, durability: item.durability, maxDurability: item.maxDurability })}>
       <div className={styles.itemLeft}>
+        {isEquipped && <span className={styles.equippedDot} title="Equipped" />}
         <span className={`${styles.itemName} ${broken ? styles.itemNameBroken : ''}`}>
           {item.name}
         </span>
+        {item.heirloom && <span className={styles.heirloomBadge}>heirloom</span>}
         {item.materialQuality && (
           <span className={styles.itemQuality}>{item.materialQuality}</span>
         )}
@@ -86,7 +88,7 @@ export default function InventoryTab({ data, onEntityClick }) {
         {equipped.length === 0 ? (
           <div className={sidebarStyles.emptyState}>Nothing equipped</div>
         ) : (
-          equipped.map(item => <ItemRow key={item.id || item.name} item={item} onEntityClick={onEntityClick} />)
+          equipped.map(item => <ItemRow key={item.id || item.name} item={item} isEquipped onEntityClick={onEntityClick} />)
         )}
       </PanelSection>
 

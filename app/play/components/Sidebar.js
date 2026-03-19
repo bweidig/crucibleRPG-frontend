@@ -108,7 +108,7 @@ export default function Sidebar({
       case 'glossary':
         return <GlossaryTab data={glossaryData} onEntityClick={onEntityClick} />;
       case 'map':
-        return <MapTab data={mapData} onEntityClick={onEntityClick} />;
+        return <MapTab data={mapData} gameId={gameId} onEntityClick={onEntityClick} />;
       case 'notes':
         return <NotesTab data={notesData} gameId={gameId} onNotesChange={onNotesChange} />;
       default:

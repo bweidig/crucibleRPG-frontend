@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-03-18
+**Last Updated:** 2026-03-19
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -30,7 +30,30 @@
 
 ---
 
-## Recent Work (This Session: 2026-03-18)
+## Recent Work (This Session: 2026-03-19)
+
+### Init Wizard: Proposal Skills/Loadout Display (Bugfix)
+- **Root cause:** Phase 4 (attributes review) had hardcoded placeholder skills text ("Streetwise 1.0, Lockpicking 1.0, Blade Work 1.0") instead of using the AI-generated proposal data. `generateProposal()` stored `foundationalSkills`, `startingLoadout`, `factionStandings` but not `skills`, `narrativeBackstory`, `innateTraits`, or `species`. Phase4 component only received `stats` prop, not the rest of the proposal.
+- **Fix:** `generateProposal()` now stores all proposal fields (skills, foundationalSkills, startingLoadout, factionStandings, narrativeBackstory, innateTraits, species) with `Array.isArray()` guards. Phase4 receives and renders: backstory skills (comma list), foundational skills (scope + breadthCategory + stat), starting loadout (name + slotCost + materialQuality), faction standings (name + signed standing). `saveAttributes()` now passes all proposal fields through to `POST /api/init/:id/adjust-proposal` (removed spurious `accepted: true`).
+
+### InventoryTab: Equipped Items Visual Distinction (Bugfix)
+- **Root cause:** InventoryTab already split `equipped`/`carried` arrays into separate PanelSections, but had no visual distinction between equipped and carried items.
+- **Fix:** Equipped items now have a gold left border (`2px solid var(--accent-gold)`) and a gold dot indicator. Heirloom items show a "heirloom" badge. ItemRow accepts `isEquipped` prop; equipped section passes `isEquipped` to each item.
+
+### MapTab: Interactive Node Map (Rewrite)
+- **Full rewrite** of `MapTab.js` (82 lines to 470 lines) from flat text list to interactive SVG node map based on `docs/GameLayout/node-map-v2.jsx` mockup.
+- **Force-directed layout:** Adapted from mockup. Computes node positions from location/route data using repulsion + spring + center-pull physics (250 iterations). Responsive to sidebar width via ResizeObserver.
+- **SVG rendering:** MapNode (status-based sizing: current 16px/visited 12px/discovered 9px, gold glow animation on current, dashed stroke on discovered, "+" indicator on zoomable). MapRoute (terrain-typed dash patterns: road/trail/wilderness/mountain/water/underground, danger-colored with hover brightening, travel days label).
+- **Hierarchical zoom:** Clicking a `hasChildren` location fetches `GET /api/game/:id/map?level=<locationId>` for sub-level data. Zoom out uses `mapData.parent`. Breadcrumb navigation from API response. Zoom +/- buttons. Sidebar passes `gameId` prop to MapTab.
+- **Tooltips:** Fixed-position hover tooltips showing location name/type/danger/faction or route travel days/danger/terrain. Escapes sidebar overflow via `position: fixed`.
+- **Location list:** Below the SVG canvas, sorted by status (current > visited > discovered). Clicking zoomable locations navigates, others trigger `onEntityClick`.
+- **Legend:** Node status indicators + danger level color key with terrain line samples.
+- **Danger level handling:** Supports both numeric (from API: 0-4) and string (from mockup: "safe"/"low"/etc.) danger levels.
+- **MapTab.module.css:** Full rewrite with styles for canvas, breadcrumbs, zoom controls, legend, location list, tooltips.
+
+---
+
+## Previous Session Work (2026-03-18)
 
 ### Debug Panel (New Feature)
 - **DebugPanel** (`DebugPanel.js` + `.module.css`): Slide-up developer tools drawer at bottom of play page. Dark theme (browser devtools style, `#1a1a2e` background) regardless of game theme. JetBrains Mono throughout.
@@ -291,7 +314,7 @@ Items flagged for post-launch or future sessions. Not blocking progress.
 - Mobile responsiveness pass on all pages
 - Genre-adaptive backgrounds (game layout adapts to story genre)
 - Custom difficulty badge color logic
-- Interactive node map (replace list view in /play Map tab with `node-map-v2.jsx`)
+- ~~Interactive node map~~ (done: MapTab rewrite 2026-03-19)
 - Community section on main menu
 - Tutorial card on main menu
 

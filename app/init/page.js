@@ -1412,7 +1412,7 @@ function Phase3({ character, onChange, hasArchetypes, availableArchetypes, chara
   );
 }
 
-function Phase4({ stats: initialStats, onStatsChange }) {
+function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills, startingLoadout, factionStandings }) {
   const [editing, setEditing] = useState(false);
   const [stats, setStats] = useState(initialStats);
 
@@ -1550,21 +1550,81 @@ function Phase4({ stats: initialStats, onStatsChange }) {
         })}
       </div>
 
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+      {/* Skills */}
+      {skills && skills.length > 0 && (
         <div style={{
           background: '#111528', border: '1px solid #1e2540', borderRadius: 6, padding: '10px 16px',
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4',
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4', marginBottom: 10,
         }}>
           <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Skills: </span>
-          Streetwise 1.0, Lockpicking 1.0, Blade Work 1.0
+          {skills.join(', ')}
         </div>
+      )}
+
+      {/* Foundational Skills */}
+      {foundationalSkills && foundationalSkills.length > 0 && (
         <div style={{
           background: '#111528', border: '1px solid #1e2540', borderRadius: 6, padding: '10px 16px',
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4',
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4', marginBottom: 10,
         }}>
-          <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Inventory Slots: </span>
-          {(stats.find(s => s.name === 'Strength')?.value || 6.5) + 5} (STR {stats.find(s => s.name === 'Strength')?.value.toFixed(1)} + 5)
+          <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 6 }}>Foundational Skills</div>
+          {foundationalSkills.map((fs, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '2px 0' }}>
+              <span style={{ color: 'var(--text-heading)' }}>{fs.scope}</span>
+              <span style={{ color: '#7082a4', fontSize: 12 }}>({fs.breadthCategory})</span>
+              <span style={{ color: 'var(--accent-gold)', fontSize: 12, fontFamily: 'var(--font-jetbrains)' }}>{fs.stat}</span>
+            </div>
+          ))}
         </div>
+      )}
+
+      {/* Starting Loadout */}
+      {startingLoadout && startingLoadout.length > 0 && (
+        <div style={{
+          background: '#111528', border: '1px solid #1e2540', borderRadius: 6, padding: '10px 16px',
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4', marginBottom: 10,
+        }}>
+          <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 6 }}>Starting Loadout</div>
+          {startingLoadout.map((item, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 0' }}>
+              <span style={{ color: 'var(--text-heading)' }}>{item.name}</span>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 12, color: '#7082a4' }}>{item.slotCost} slots</span>
+                <span style={{ fontSize: 12, color: '#6b83a3', fontStyle: 'italic' }}>{item.materialQuality}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Faction Standings */}
+      {factionStandings && factionStandings.length > 0 && (
+        <div style={{
+          background: '#111528', border: '1px solid #1e2540', borderRadius: 6, padding: '10px 16px',
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4', marginBottom: 10,
+        }}>
+          <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 6 }}>Faction Standings</div>
+          {factionStandings.map((fs, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+              <span style={{ color: 'var(--text-heading)' }}>{fs.factionName}</span>
+              <span style={{
+                fontFamily: 'var(--font-jetbrains)', fontSize: 13,
+                color: fs.standing > 0 ? '#8aba7a' : fs.standing < 0 ? '#e8845a' : '#8a94a8',
+              }}>
+                {fs.standing > 0 ? '+' : ''}{fs.standing}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Inventory Slots */}
+      <div style={{
+        background: '#111528', border: '1px solid #1e2540', borderRadius: 6, padding: '10px 16px',
+        fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4',
+      }}>
+        <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Inventory Slots: </span>
+        {(stats.find(s => s.name === 'Strength')?.value || 6.5) + 5} (STR {stats.find(s => s.name === 'Strength')?.value.toFixed(1)} + 5)
       </div>
 
       {editing && hasDeviation && (
@@ -1948,9 +2008,13 @@ function InitWizardInner() {
         }));
       setProposal({
         stats: statsArray.length > 0 ? statsArray : SAMPLE_STATS,
-        foundationalSkills: p.foundationalSkills || null,
-        startingLoadout: p.startingLoadout || null,
-        factionStandings: p.factionStandings || null,
+        skills: Array.isArray(p.skills) ? p.skills : [],
+        foundationalSkills: Array.isArray(p.foundationalSkills) ? p.foundationalSkills : [],
+        startingLoadout: Array.isArray(p.startingLoadout) ? p.startingLoadout : [],
+        factionStandings: Array.isArray(p.factionStandings) ? p.factionStandings : [],
+        narrativeBackstory: p.narrativeBackstory || null,
+        innateTraits: Array.isArray(p.innateTraits) ? p.innateTraits : [],
+        species: p.species || null,
         _fallback: statsArray.length === 0,
       });
     } catch (err) {
@@ -1966,10 +2030,14 @@ function InitWizardInner() {
     const statsArray = adjustedStats || proposal?.stats || SAMPLE_STATS;
     const statsObject = {};
     statsArray.forEach(s => { statsObject[s.abbr || s.name.slice(0, 3).toUpperCase()] = s.value; });
-    await api.post(`/api/init/${gameId}/adjust-proposal`, {
-      stats: statsObject,
-      accepted: true,
-    });
+    const body = { stats: statsObject };
+    if (proposal?.skills?.length) body.skills = proposal.skills;
+    if (proposal?.foundationalSkills?.length) body.foundationalSkills = proposal.foundationalSkills;
+    if (proposal?.startingLoadout?.length) body.startingLoadout = proposal.startingLoadout;
+    if (proposal?.factionStandings?.length) body.factionStandings = proposal.factionStandings;
+    if (proposal?.narrativeBackstory) body.narrativeBackstory = proposal.narrativeBackstory;
+    if (proposal?.innateTraits?.length) body.innateTraits = proposal.innateTraits;
+    await api.post(`/api/init/${gameId}/adjust-proposal`, body);
   };
 
   const saveDifficulty = async () => {
@@ -2219,7 +2287,14 @@ function InitWizardInner() {
               </div>
             </div>
           ) : (
-            <Phase4 stats={proposal?.stats || SAMPLE_STATS} onStatsChange={setAdjustedStats} />
+            <Phase4
+              stats={proposal?.stats || SAMPLE_STATS}
+              onStatsChange={setAdjustedStats}
+              skills={proposal?.skills}
+              foundationalSkills={proposal?.foundationalSkills}
+              startingLoadout={proposal?.startingLoadout}
+              factionStandings={proposal?.factionStandings}
+            />
           )
         )}
         {phase === 4 && <Phase5 selected={difficulty} onSelect={setDifficulty} />}

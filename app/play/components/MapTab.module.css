@@ -1,122 +1,274 @@
-/* MapTab — Location list with routes */
+/* MapTab — Interactive node map with hierarchical zoom */
 
-.regionLabel {
-  font-family: var(--font-cinzel);
-  font-size: var(--ui-size, 13px);
-  font-weight: 600;
-  color: var(--text-heading);
-  margin-bottom: 12px;
+.container {
+  position: relative;
 }
 
-.locationList {
-  list-style: none;
+/* Current location header */
+.currentLocation {
+  font-family: var(--font-alegreya-sans);
+  font-size: var(--ui-size, 13px);
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.currentLocationName {
+  color: var(--accent-gold);
+  font-weight: 600;
+}
+
+/* Breadcrumbs */
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.breadcrumbItem {
+  font-family: var(--font-alegreya-sans);
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--text-dim);
+  transition: color 0.15s;
+  background: none;
+  border: none;
   padding: 0;
 }
 
-.locationItem {
+.breadcrumbItem:hover {
+  color: var(--accent-gold);
+}
+
+.breadcrumbCurrent {
+  font-family: var(--font-alegreya-sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-gold);
+}
+
+.breadcrumbSep {
+  color: var(--text-dim);
   display: flex;
   align-items: center;
+}
+
+/* Map canvas */
+.mapCanvas {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1.22;
+  background: var(--bg-main);
+  border-radius: 8px;
+  border: 1px solid var(--border-primary);
+  overflow: hidden;
+}
+
+.mapSvg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Zoom controls */
+.zoomControls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.zoomBtn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.zoomBtn:first-child {
+  border-radius: 4px 4px 0 0;
+  border-bottom: none;
+}
+
+.zoomBtn:last-child {
+  border-radius: 0 0 4px 4px;
+}
+
+.zoomBtn:hover:not(:disabled) {
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.zoomBtn:disabled {
+  color: #2a3050;
+  cursor: default;
+}
+
+/* Level label overlay */
+.levelLabel {
+  position: absolute;
+  bottom: 6px;
+  left: 8px;
+  font-family: var(--font-cinzel);
+  font-size: 9px;
+  font-weight: 600;
+  color: #9a8545;
+  letter-spacing: 0.1em;
+  opacity: 0.6;
+}
+
+.loadingOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-main);
+  font-family: var(--font-alegreya-sans);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* Legend */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  padding: 8px 6px;
-  border-bottom: 1px solid var(--border-light);
-  transition: background-color 0.15s;
+  padding: 8px 0 2px;
+  border-top: 1px solid var(--border-light);
 }
 
-.locationItem:hover {
-  background: var(--bg-gold-faint);
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.locationDot {
-  width: 10px;
-  height: 10px;
+.legendLabel {
+  font-family: var(--font-alegreya-sans);
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+.legendDot {
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-.locationDotCurrent {
-  background: #e8c45a;
-  border: 2px solid #ffd866;
-  box-shadow: 0 0 8px #e8c45a44;
+.legendLine {
+  width: 14px;
+  height: 2px;
+  border-radius: 1px;
+  opacity: 0.6;
 }
 
-.locationDotDiscovered {
-  background: var(--brown-faint);
-  border: 1px solid var(--border-card);
+.legendBreak {
+  width: 100%;
+  height: 0;
 }
 
-.locationDotOther {
-  background: var(--border-primary);
-  border: 1px solid var(--border-card);
-}
-
-.locationInfo {
-  flex: 1;
-  min-width: 0;
-}
-
-.locationName {
+/* Location list */
+.locationListHeader {
   font-family: var(--font-alegreya-sans);
-  font-size: var(--ui-size, 13px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 600;
+  color: #9a8545;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 6px 0;
 }
 
-.locationNameCurrent {
-  color: #e8c45a;
-  font-weight: 700;
-}
-
-.locationNameOther {
-  color: var(--text-primary);
-}
-
-.locationMeta {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.locationType {
-  font-family: var(--font-alegreya-sans);
-  font-size: 11px;
-  color: var(--text-dim);
-  text-transform: capitalize;
-}
-
-.locationFaction {
-  font-family: var(--font-alegreya-sans);
-  font-size: 11px;
-  color: var(--brown-muted);
-}
-
-/* Routes */
-.routeItem {
+.locationListItem {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 6px;
-  font-family: var(--font-alegreya-sans);
-  font-size: 12px;
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--border-light);
+  padding: 5px 4px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s;
 }
 
-.routeArrow {
-  color: var(--text-dim);
+.locationListItem:hover {
+  background: var(--bg-gold-faint);
+}
+
+.locationListDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
-.routeTerrain {
-  font-family: var(--font-jetbrains);
-  font-size: 11px;
-  color: var(--text-dim);
-  text-transform: capitalize;
+.locationListName {
+  font-family: var(--font-alegreya-sans);
+  font-size: var(--ui-size, 13px);
+  flex: 1;
 }
 
-.routeDays {
+.locationListDanger {
   font-family: var(--font-jetbrains);
-  font-size: 11px;
-  color: var(--brown-gold);
-  margin-left: auto;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+/* Tooltip */
+.tooltip {
+  position: fixed;
+  width: 210px;
+  z-index: 200;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 8px 10px;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.tooltipTitle {
+  font-family: var(--font-cinzel);
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+
+.tooltipMeta {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.tooltipBadge {
+  font-size: 9px;
+  font-family: var(--font-alegreya-sans);
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.tooltipType {
+  font-size: 10px;
+  font-family: var(--font-alegreya-sans);
+  color: var(--text-dim);
+}
+
+.tooltipHint {
+  font-family: var(--font-alegreya-sans);
+  font-size: 9px;
+  color: var(--accent-gold);
+  margin-top: 3px;
 }
