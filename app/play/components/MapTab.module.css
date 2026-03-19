@@ -2,7 +2,7 @@
 
 .regionLabel {
   font-family: var(--font-cinzel);
-  font-size: 13px;
+  font-size: var(--ui-size, 13px);
   font-weight: 600;
   color: var(--text-heading);
   margin-bottom: 12px;
@@ -56,7 +56,7 @@
 
 .locationName {
   font-family: var(--font-alegreya-sans);
-  font-size: 13px;
+  font-size: var(--ui-size, 13px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

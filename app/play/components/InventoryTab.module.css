@@ -11,7 +11,7 @@
 
 .slots {
   font-family: var(--font-jetbrains);
-  font-size: 13px;
+  font-size: var(--ui-size, 13px);
   color: var(--text-secondary);
 }
 
@@ -24,7 +24,7 @@
 
 .currency {
   font-family: var(--font-jetbrains);
-  font-size: 13px;
+  font-size: var(--ui-size, 13px);
   color: var(--accent-gold);
   padding: 6px 0;
 }
@@ -54,7 +54,7 @@
 .itemName {
   color: var(--text-heading);
   font-family: var(--font-alegreya-sans);
-  font-size: 13px;
+  font-size: var(--ui-size, 13px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

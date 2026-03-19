@@ -13,13 +13,13 @@
 
 .statName {
   font-family: var(--font-alegreya-sans);
-  font-size: 13px;
+  font-size: var(--ui-size, 13px);
   color: var(--text-primary);
 }
 
 .statValue {
   font-family: var(--font-jetbrains);
-  font-size: 13px;
+  font-size: var(--ui-size, 13px);
   font-weight: 500;
 }
 
@@ -79,7 +79,7 @@
 
 .skillName {
   font-family: var(--font-alegreya-sans);
-  font-size: 13px;
+  font-size: var(--ui-size, 13px);
   color: var(--text-primary);
 }
 
@@ -107,7 +107,7 @@
 
 .conditionHeader {
   font-family: var(--font-alegreya-sans);
-  font-size: 13px;
+  font-size: var(--ui-size, 13px);
   font-weight: 700;
   color: var(--color-danger);
 }

@@ -1,8 +1,8 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-03-17
+**Last Updated:** 2026-03-18
 
-> **For Claude Code:** After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, or deferred items. Keep the "Last Updated" line current.
+> **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
 ---
 
@@ -30,7 +30,19 @@
 
 ---
 
-## Recent Work (This Session: 2026-03-17)
+## Recent Work (This Session: 2026-03-18)
+
+### Bugfixes (Playtesting)
+- **Wordmark links to /menu:** TopBar wordmark wrapped in Next.js `<Link href="/menu">`.
+- **Missing narrative on reload:** `recentNarrative` parsing flipped to treat any non-player role as narrative (fixes backend using `assistant` instead of `narrator`).
+- **Stat labels redundant:** CharacterTab stat display changed from "STR Strength" to just "STR" (full name available in title tooltip).
+- **Notification badge phantom count:** Removed `stateChanges.stats` from notification trigger (always present, caused +1 badge on every turn).
+- **Font/text size settings not working:** Added `font-family: var(--body-font)` to `.pageContainer` so children inherit the override. Replaced hardcoded `font-size: 15px` with `var(--narrative-size, 15px)` in TurnBlock, ActionPanel, NarrativePanel. Replaced hardcoded `font-size: 13px` with `var(--ui-size, 13px)` across all 6 sidebar tab CSS modules.
+- **Talk to GM submitting as player action:** Added auto-focus to GM input when panel opens (prevents typing into ActionPanel's custom input by mistake). Added `e.stopPropagation()` and `e.preventDefault()` on Enter key handler.
+
+---
+
+## Previous Session Work (2026-03-17)
 
 ### Play Page Rewrite — Phase 4 (Settings, Talk to GM, Entity Popup)
 - **SettingsModal** (`SettingsModal.js`): Display settings with three controls: Theme (Dark/Light/Sepia), Body Font (Lexie Readable/System/Alegreya/Georgia/Monospace), Text Size (Small/Medium/Large/X-Large). Persists to localStorage. Applied as CSS variable overrides on the pageContainer element. Settings gear button added to TopBar.
@@ -89,13 +101,8 @@
 - **Prompt 3:** Phase 3 restructured with archetype/full-custom mode toggle, archetype card grid with personality pills and stat leanings
 - **Prompt 4:** All 10 API endpoints wired (storyteller, setting, world-status polling, character, generate-proposal, adjust-proposal, difficulty, scenarios, select-scenario, world-snapshots). Controlled textareas, loading/error states, Suspense boundary.
 
-### /play Page (6 Prompts)
-- **Prompt 1:** Page shell, auth guard, game state loading, top bar, sidebar shell, 3-theme system (dark/light/sepia), font/size selectors, draggable resize handle
-- **Prompt 2:** SSE connection (EventSource with auto-reconnect), narrative panel, TurnBlock (header, resolution, narrative text with entity hover, status badges, actions), streaming cursor, turn timeline scrubber, bookmarks (localStorage), auto-scroll
-- **Prompt 3:** Character tab (stat bars with condition penalties, skills, abilities, conditions), Inventory tab (paperdoll grid, resource boxes, capacity bar, carried items with durability), Entity popup modal with glossary + player notes
-- **Prompt 4:** NPCs tab (disposition badges, relationship bar), Glossary tab (debounced search, category filters), Map tab (list view with current location), Journal tab (objectives with abandon flow, entity notes, scratchpad)
-- **Prompt 5:** Dice animation (MiniD20, 8-state InlineDicePanel, 3 timing modes), Settings modal (3 tabs: game/display/world with storyteller, difficulty dials, checkpoints), Talk to GM (chat bubble with free/escalation flow)
-- **Prompt 6:** Debug panel (6-tab drawer activated by ?debug=true or Ctrl+Shift+D), Bug Report + Suggest modals, ErrorBoundary, connection status indicator, keyboard shortcuts
+### /play Page (Old — Replaced)
+- The original 6-prompt /play page was a 3249-line monolith with assumed API contracts. It was fully replaced by the Phase 1-4 rewrite above (36 component files).
 
 ### Init Wizard Fixes
 - **Phase 4 gameId flow fix:** `app/init/page.js`. Root cause: gameId was read from `?gameId=` param but `/menu` navigates with `?id=` or no param. `generateProposal()` never fired, falling back to hardcoded SAMPLE_STATS every time. Fix: read both `?gameId=` and `?id=`, create game via `POST /api/games/new` on mount if no URL gameId, store in `createdGameId` state. All Phase 1-6 API calls now fire. Commit 048008a.
@@ -170,6 +177,18 @@ These apply to every page. Claude Code should check new work against this list.
 | Input placeholder color: `--text-secondary` to `--text-muted` | Coming Soon | **Done** |
 
 All pending rgba/color fixes from previous sessions have been completed.
+
+---
+
+## Known Bugs
+
+| ID | Description | Page/Component | Severity | Status | Fixed In |
+|----|-------------|----------------|----------|--------|----------|
+
+**Severity levels:**
+- **Blocking** — Prevents playtesting or core functionality. Fix before launch.
+- **Annoying** — Noticeable during play but doesn't stop anything. Fix before launch if time allows.
+- **Cosmetic** — Visual polish. Defer to post-launch unless trivial.
 
 ---
 

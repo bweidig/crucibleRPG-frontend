@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import * as api from '@/lib/api';
 import styles from './TalkToGM.module.css';
 
@@ -8,6 +8,16 @@ export default function TalkToGM({ gameId, onTurnResponse }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [lastQuestion, setLastQuestion] = useState('');
+  const inputRef = useRef(null);
+
+  // Auto-focus input when panel opens
+  useEffect(() => {
+    if (open) {
+      // Small delay to ensure the DOM has rendered
+      const t = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => clearTimeout(t);
+    }
+  }, [open]);
 
   // Close on Escape
   useEffect(() => {
@@ -156,13 +166,18 @@ export default function TalkToGM({ gameId, onTurnResponse }) {
 
       <div className={styles.inputRow}>
         <input
+          ref={inputRef}
           type="text"
           className={styles.input}
           placeholder="Ask a question..."
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => {
-            if (e.key === 'Enter' && input.trim()) handleAsk();
+            e.stopPropagation();
+            if (e.key === 'Enter' && input.trim()) {
+              e.preventDefault();
+              handleAsk();
+            }
           }}
           disabled={loading}
           maxLength={500}

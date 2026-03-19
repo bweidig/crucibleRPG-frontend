@@ -30,7 +30,7 @@
 
 .npcDefinition {
   font-family: var(--font-alegreya-sans);
-  font-size: 13px;
+  font-size: var(--ui-size, 13px);
   color: var(--brown-muted);
   line-height: 1.45;
 }

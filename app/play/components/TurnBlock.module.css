@@ -52,7 +52,7 @@
 .narrativeText {
   line-height: 1.72;
   color: var(--text-narrative);
-  font-size: 15px;
+  font-size: var(--narrative-size, 15px);
 }
 
 .narrativeText p {

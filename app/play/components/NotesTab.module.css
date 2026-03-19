@@ -14,7 +14,7 @@
 
 .noteEntity {
   font-family: var(--font-cinzel);
-  font-size: 13px;
+  font-size: var(--ui-size, 13px);
   color: var(--text-heading);
   font-weight: 600;
 }
@@ -28,7 +28,7 @@
 
 .noteText {
   font-family: var(--font-alegreya-sans);
-  font-size: 13px;
+  font-size: var(--ui-size, 13px);
   color: var(--text-primary);
   line-height: 1.45;
 }
@@ -103,7 +103,7 @@
   border-radius: 4px;
   color: var(--text-primary);
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--ui-size, 13px);
   resize: vertical;
   min-height: 60px;
 }

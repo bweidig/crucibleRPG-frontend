@@ -8,6 +8,7 @@
   height: 100vh;
   background: var(--bg-main);
   overflow: hidden;
+  font-family: var(--body-font);
 }
 
 .mainContent {
