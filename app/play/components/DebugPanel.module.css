@@ -1,0 +1,392 @@
+/* ==============================================
+   DebugPanel — Developer tools drawer
+   Dark theme regardless of game theme (like browser devtools)
+   JetBrains Mono throughout
+   ============================================== */
+
+/* ─── Panel Container ─── */
+
+.panel {
+  position: relative;
+  border-top: 2px solid #3a2018;
+  background: #1a1a2e;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* ─── Drag Handle ─── */
+
+.dragHandle {
+  height: 6px;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a1a2e;
+  flex-shrink: 0;
+}
+
+.dragGrip {
+  width: 40px;
+  height: 3px;
+  border-radius: 2px;
+  background: #4a4a6a;
+  transition: background 0.15s;
+}
+
+.dragHandle:hover .dragGrip {
+  background: #7a7aaa;
+}
+
+/* ─── Header Bar ─── */
+
+.headerBar {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: #22223a;
+  cursor: pointer;
+  flex-shrink: 0;
+  border-bottom: 1px solid #2a2a44;
+  user-select: none;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.headerLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: #e8845a;
+  letter-spacing: 0.08em;
+}
+
+.headerCount {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #6b83a3;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.headerBtn {
+  background: none;
+  border: 1px solid #3a3a5a;
+  border-radius: 3px;
+  padding: 2px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #7082a4;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.headerBtn:hover {
+  color: #c8c0b0;
+  border-color: #5a5a7a;
+}
+
+.headerBtnSuccess {
+  composes: headerBtn;
+  color: #8aba7a;
+  border-color: #4a6a3a;
+}
+
+/* ─── Entry List ─── */
+
+.entryList {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.emptyState {
+  padding: 24px;
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #6b83a3;
+}
+
+/* ─── Entry Row ─── */
+
+.entryRow {
+  border-bottom: 1px solid #2a2a44;
+}
+
+.entrySummary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  transition: background 0.1s;
+}
+
+.entrySummary:hover {
+  background: #22223a;
+}
+
+.entryTime {
+  color: #6b83a3;
+  flex-shrink: 0;
+}
+
+.entrySep {
+  color: #3a3a5a;
+  flex-shrink: 0;
+}
+
+.entryMethod {
+  color: #c8c0b0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.entryStatus {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.entryDuration {
+  color: #8a94a8;
+  flex-shrink: 0;
+}
+
+.entryCost {
+  color: #c9a84c;
+  flex-shrink: 0;
+}
+
+.entryAction {
+  color: #8a94a8;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entryChevron {
+  color: #6b83a3;
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 10px;
+}
+
+/* ─── Entry Detail (Expanded) ─── */
+
+.entryDetail {
+  padding: 12px 16px 16px 32px;
+  background: #14142a;
+  border-top: 1px solid #2a2a44;
+}
+
+.detailActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.copyEntryBtn {
+  background: none;
+  border: 1px solid #3a3a5a;
+  border-radius: 3px;
+  padding: 2px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #7082a4;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.copyEntryBtn:hover {
+  color: #c8c0b0;
+  border-color: #5a5a7a;
+}
+
+.copyEntryBtnSuccess {
+  composes: copyEntryBtn;
+  color: #8aba7a;
+  border-color: #4a6a3a;
+}
+
+/* ─── Section (within detail) ─── */
+
+.section {
+  margin-bottom: 14px;
+}
+
+.sectionTitle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: #c9a84c;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #2a2a44;
+}
+
+/* ─── Key-Value Grid ─── */
+
+.kvGrid {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 2px 12px;
+}
+
+.kvLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #6b83a3;
+  padding: 2px 0;
+}
+
+.kvValue {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #c8c0b0;
+  padding: 2px 0;
+  word-break: break-word;
+}
+
+.kvValueAccent {
+  composes: kvValue;
+  color: #c9a84c;
+}
+
+.kvValueDanger {
+  composes: kvValue;
+  color: #e8845a;
+}
+
+.kvValueWarning {
+  composes: kvValue;
+  color: #e8c45a;
+}
+
+.kvValueSuccess {
+  composes: kvValue;
+  color: #8aba7a;
+}
+
+/* ─── Timing Bar ─── */
+
+.timingBar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 6px;
+  background: #0e0e22;
+}
+
+.timingSegment {
+  height: 100%;
+  min-width: 2px;
+}
+
+.timingLabels {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.timingLabel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #8a94a8;
+}
+
+.timingDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ─── Resolution Block ─── */
+
+.resolutionBlock {
+  background: #0e1420;
+  border: 1px solid #2a2a44;
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+
+/* ─── Context Budget Layers ─── */
+
+.contextLayers {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.layerChip {
+  display: flex;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 3px;
+  border: 1px solid #3a3a5a;
+  background: #0e0e22;
+}
+
+.layerChipAccent {
+  composes: layerChip;
+  border-color: #564b2e;
+}
+
+.layerKey {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: #7082a4;
+}
+
+.layerVal {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #c8c0b0;
+}
+
+.contextRow {
+  display: flex;
+  gap: 12px;
+  padding: 2px 0;
+}
+
+/* ─── Raw JSON Fallback ─── */
+
+.rawJson {
+  background: #0e0e22;
+  border: 1px solid #2a2a44;
+  border-radius: 4px;
+  padding: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #8a94a8;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  max-height: 300px;
+}

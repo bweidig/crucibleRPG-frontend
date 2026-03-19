@@ -17,7 +17,7 @@ function SettingsIcon({ color }) {
   );
 }
 
-export default function TopBar({ setting, sseConnected, sidebarOpen, onToggleSidebar, onOpenSettings }) {
+export default function TopBar({ setting, sseConnected, sidebarOpen, onToggleSidebar, onOpenSettings, debugMode }) {
   return (
     <header className={styles.topBar}>
       <div className={styles.left}>
@@ -33,6 +33,11 @@ export default function TopBar({ setting, sseConnected, sidebarOpen, onToggleSid
         )}
       </div>
       <div className={styles.right}>
+        {debugMode && (
+          <div className={styles.debugBadge} title="Debug mode active (Ctrl+Shift+D to toggle)">
+            DEBUG
+          </div>
+        )}
         <button
           className={styles.iconButton}
           onClick={onOpenSettings}

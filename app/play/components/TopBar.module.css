@@ -81,6 +81,18 @@
   outline-offset: 1px;
 }
 
+.debugBadge {
+  padding: 3px 10px;
+  border-radius: 4px;
+  background: #1a1210;
+  border: 1px solid #3a2018;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: #e8845a;
+  letter-spacing: 0.06em;
+}
+
 .connectionDot {
   width: 8px;
   height: 8px;

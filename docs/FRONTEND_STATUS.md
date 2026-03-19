@@ -32,6 +32,17 @@
 
 ## Recent Work (This Session: 2026-03-18)
 
+### Debug Panel (New Feature)
+- **DebugPanel** (`DebugPanel.js` + `.module.css`): Slide-up developer tools drawer at bottom of play page. Dark theme (browser devtools style, `#1a1a2e` background) regardless of game theme. JetBrains Mono throughout.
+- **Toggle:** Ctrl+Shift+D toggles debug mode on/off. Persists in localStorage (`crucible_debug`). "DEBUG" badge shown in TopBar when active.
+- **Header injection:** `lib/api.js` modified to conditionally add `X-Debug: true` header on all API calls when debug mode is active. Module-level `setDebugMode()`, `onDebugResponse()`, `setNextActionLabel()` exports.
+- **Collection:** Every API response containing `_debug` is logged to session-level array (newest first). Each entry stores timestamp, method, URL, HTTP status, client-side duration, the full `_debug` payload, and action label. `_debug` is stripped from response data before returning to components. Action labels set before POST /action calls (`choice: A`, `custom: I stealth`, `command: long_rest`). Turn numbers enriched via `handleTurnResponse`.
+- **Panel display:** Resizable height via drag handle on top edge (min 100px, max viewport-100px). Collapsible to 36px bar showing "DEBUG — X entries".
+- **Entry summary row:** `[HH:MM:SS] — METHOD /path — status — duration — $cost — Turn N: "action text"`. Status color-coded (green/yellow/red). For GETs, shows row counts instead of action text.
+- **Expandable detail sections** (rendered from `_debug` keys if present): Timing (segmented proportion bar: AI/DB/Parse/Other), AI Call (provider, model, task, tokens, cost, attempts), Resolution (full mechanical breakdown), State Changes (DB tables, conditions, inventory, NPCs, locations, clock, skills), Narrative (response length, options, parse errors, JSON repair flag), Context Budget (L1-L4 layer chips, NPCs/locations in context, anchors), Row Counts (for GET endpoints). Unknown `_debug` keys rendered as raw JSON fallback.
+- **Copy features:** "Copy Entry" per expanded entry, "Copy All" at panel header, "Clear" to reset log. Plain text format designed for pasting into Claude chat (matches spec: `=== TURN N — date ===` header, labeled sections with indented key-value pairs).
+- **Files changed:** `lib/api.js` (debug mode + header injection + timing + callback), `TopBar.js` + `.module.css` (debug badge), `page.js` (state, keyboard listener, callback registration, action labels, turn enrichment, panel render).
+
 ### Bugfixes (Playtesting)
 - **Wordmark links to /menu:** TopBar wordmark wrapped in Next.js `<Link href="/menu">`.
 - **Missing narrative on reload:** `recentNarrative` parsing flipped to treat any non-player role as narrative (fixes backend using `assistant` instead of `narrator`).

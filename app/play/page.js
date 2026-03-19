@@ -11,6 +11,7 @@ import ActionPanel from './components/ActionPanel';
 import Sidebar from './components/Sidebar';
 import SettingsModal, { THEMES, FONTS, SIZES } from './components/SettingsModal';
 import EntityPopup from './components/EntityPopup';
+import DebugPanel from './components/DebugPanel';
 import styles from './play.module.css';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -78,12 +79,48 @@ function PlayPage() {
   // ─── Entity Popup ───
   const [entityPopup, setEntityPopup] = useState(null);
 
+  // ─── Debug Mode ───
+  const [debugMode, setDebugModeState] = useState(false);
+  const [debugLog, setDebugLog] = useState([]);
+
   const sseRef = useRef(null);
   const narrativeRef = useRef(null);
 
   // Load display settings from localStorage on mount
   useEffect(() => {
     setDisplaySettings(loadSettings());
+  }, []);
+
+  // Load debug mode from localStorage and register debug callback
+  useEffect(() => {
+    const stored = localStorage.getItem('crucible_debug');
+    if (stored === 'true') {
+      setDebugModeState(true);
+      api.setDebugMode(true);
+    }
+
+    api.onDebugResponse((entry) => {
+      setDebugLog(prev => [entry, ...prev]);
+    });
+
+    return () => api.onDebugResponse(null);
+  }, []);
+
+  // Keyboard shortcut: Ctrl+Shift+D toggles debug mode
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+        e.preventDefault();
+        setDebugModeState(prev => {
+          const next = !prev;
+          localStorage.setItem('crucible_debug', String(next));
+          api.setDebugMode(next);
+          return next;
+        });
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   // Save display settings when they change
@@ -157,6 +194,15 @@ function PlayPage() {
       addNotifications(response.stateChanges);
       refetchCharacter();
     }
+
+    // Enrich latest debug entry with turn number
+    if (response.turn?.number) {
+      setDebugLog(prev => {
+        if (prev.length === 0) return prev;
+        const [latest, ...rest] = prev;
+        return [{ ...latest, turnNumber: response.turn.number }, ...rest];
+      });
+    }
   }, [addNotifications, refetchCharacter]);
 
   // ─── Submit Action (Step 5 handler) ───
@@ -164,6 +210,15 @@ function PlayPage() {
     if (!gameId || submitting) return;
     setSubmitting(true);
     setError(null);
+
+    // Set debug action label before API call
+    if (actionBody.choice) {
+      api.setNextActionLabel(`choice: ${actionBody.choice}`);
+    } else if (actionBody.custom) {
+      api.setNextActionLabel(`custom: ${actionBody.custom}`);
+    } else if (actionBody.command) {
+      api.setNextActionLabel(`command: ${actionBody.command}`);
+    }
 
     try {
       const response = await api.post(`/api/game/${gameId}/action`, actionBody);
@@ -300,6 +355,7 @@ function PlayPage() {
 
         if (isFreshGame) {
           try {
+            api.setNextActionLabel('custom: Begin the adventure');
             const res = await api.post(`/api/game/${gameId}/action`, {
               custom: 'Begin the adventure',
             });
@@ -412,6 +468,7 @@ function PlayPage() {
         sidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen(prev => !prev)}
         onOpenSettings={() => setSettingsOpen(true)}
+        debugMode={debugMode}
       />
       <div className={styles.mainContent}>
         <div className={styles.narrativeColumn}>
@@ -442,6 +499,14 @@ function PlayPage() {
           onEntityClick={setEntityPopup}
         />
       </div>
+
+      {/* Debug Panel */}
+      {debugMode && (
+        <DebugPanel
+          entries={debugLog}
+          onClear={() => setDebugLog([])}
+        />
+      )}
 
       {/* Settings Modal */}
       {settingsOpen && (
