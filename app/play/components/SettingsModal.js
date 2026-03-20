@@ -1,7 +1,12 @@
-import { useEffect } from 'react';
+'use client';
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import * as api from '@/lib/api';
 import styles from './SettingsModal.module.css';
 
-// ─── Theme Definitions (CSS variable overrides) ───
+// =============================================================================
+// Exports used by page.js — do not remove
+// =============================================================================
 
 export const THEMES = {
   dark: {
@@ -63,67 +68,575 @@ export const SIZES = [
   { id: 'xlarge', label: 'X-Large', narrative: '19px', ui: '15px' },
 ];
 
-export default function SettingsModal({ settings, onSave, onClose }) {
-  // Close on Escape
+// =============================================================================
+// Constants
+// =============================================================================
+
+const STORYTELLERS = [
+  { id: 'Chronicler', name: 'Chronicler', oneLiner: 'The world as it is.' },
+  { id: 'Bard', name: 'Bard', oneLiner: 'Every moment a legend in the making.' },
+  { id: 'Trickster', name: 'Trickster', oneLiner: 'The world has a sense of humor.' },
+  { id: 'Poet', name: 'Poet', oneLiner: 'Beauty in the breaking.' },
+  { id: 'Whisper', name: 'Whisper', oneLiner: 'Everything is fine. Almost.' },
+  { id: 'Noir', name: 'Noir', oneLiner: 'The city always wins.' },
+  { id: 'Custom', name: 'Custom', oneLiner: 'Your voice, your rules.' },
+];
+
+const DIFFICULTY_PRESETS = [
+  { id: 'forgiving', label: 'Forgiving', color: '#7aba7a', bg: '#142018', dcOffset: -2, fateDc: 8, survivalEnabled: false, durabilityEnabled: false, progressionSpeed: 100, encounterPressure: 'low', fortunesBalanceEnabled: true, simplifiedOutcomes: false },
+  { id: 'standard', label: 'Standard', color: '#8a94a8', bg: '#161a20', dcOffset: 0, fateDc: 12, survivalEnabled: true, durabilityEnabled: true, progressionSpeed: 100, encounterPressure: 'standard', fortunesBalanceEnabled: true, simplifiedOutcomes: false },
+  { id: 'harsh', label: 'Harsh', color: '#e8c45a', bg: '#1e1a12', dcOffset: 2, fateDc: 16, survivalEnabled: true, durabilityEnabled: true, progressionSpeed: 100, encounterPressure: 'high', fortunesBalanceEnabled: true, simplifiedOutcomes: false },
+  { id: 'brutal', label: 'Brutal', color: '#e85a5a', bg: '#201416', dcOffset: 4, fateDc: 18, survivalEnabled: true, durabilityEnabled: true, progressionSpeed: 100, encounterPressure: 'high', fortunesBalanceEnabled: true, simplifiedOutcomes: false },
+];
+
+// =============================================================================
+// Shared Sub-Components
+// =============================================================================
+
+function SectionLabel({ children, extra }) {
+  return (
+    <div style={{
+      fontFamily: "'Cinzel', serif", fontSize: 11, fontWeight: 600,
+      color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase',
+      marginBottom: 10, marginTop: 20, display: 'flex', alignItems: 'center',
+    }}>
+      {children}
+      {extra}
+    </div>
+  );
+}
+
+function Toggle({ label, value, onChange, description, disabled }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '8px 0', borderBottom: '1px solid #161c34',
+      opacity: disabled ? 0.5 : 1,
+    }}>
+      <div>
+        <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 14, color: '#c8c0b0' }}>{label}</div>
+        {description && (
+          <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12, color: '#6b83a3', marginTop: 2 }}>{description}</div>
+        )}
+      </div>
+      <button onClick={() => !disabled && onChange(!value)} style={{
+        width: 44, height: 24, borderRadius: 12, cursor: disabled ? 'default' : 'pointer',
+        background: value ? '#c9a84c' : '#111528',
+        border: `1px solid ${value ? '#c9a84c' : '#1e2540'}`,
+        position: 'relative', transition: 'all 0.2s', flexShrink: 0, marginLeft: 12,
+      }}>
+        <div style={{
+          width: 18, height: 18, borderRadius: '50%',
+          background: value ? '#0a0e1a' : '#8a94a8',
+          position: 'absolute', top: 2,
+          left: value ? 22 : 2,
+          transition: 'left 0.2s, background 0.2s',
+        }} />
+      </button>
+    </div>
+  );
+}
+
+function SliderControl({ label, value, min, max, step, format, onChange, description, warning }) {
+  const pct = ((value - min) / (max - min)) * 100;
+  return (
+    <div style={{ padding: '10px 0', borderBottom: '1px solid #161c34' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+        <div>
+          <span style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 14, color: '#c8c0b0' }}>{label}</span>
+          {description && (
+            <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12, color: '#6b83a3', marginTop: 2 }}>{description}</div>
+          )}
+        </div>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 14, fontWeight: 500, color: '#c9a84c', flexShrink: 0 }}>
+          {format ? format(value) : value}
+        </span>
+      </div>
+      <div style={{ position: 'relative', height: 20, display: 'flex', alignItems: 'center' }}>
+        <div style={{
+          position: 'absolute', left: 0, right: 0, height: 4, borderRadius: 2,
+          background: '#111528', border: '1px solid #161c34',
+        }} />
+        <div style={{
+          position: 'absolute', left: 0, height: 4, borderRadius: 2,
+          width: `${pct}%`, background: warning ? '#e8845a' : '#c9a84c', opacity: 0.6,
+          transition: 'width 0.15s',
+        }} />
+        <input type="range" min={min} max={max} step={step} value={value}
+          onChange={e => onChange(parseFloat(e.target.value))} />
+      </div>
+      {warning && (
+        <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 11, color: '#e8845a', marginTop: 4, fontStyle: 'italic' }}>
+          {warning}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SelectorRow({ label, options, value, onChange, description }) {
+  return (
+    <div style={{ padding: '10px 0', borderBottom: '1px solid #161c34' }}>
+      <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 14, color: '#c8c0b0', marginBottom: 6 }}>{label}</div>
+      {description && (
+        <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12, color: '#6b83a3', marginBottom: 8 }}>{description}</div>
+      )}
+      <div style={{ display: 'flex', gap: 4 }}>
+        {options.map(opt => (
+          <button key={opt.id} onClick={() => onChange(opt.id)} style={{
+            flex: 1, padding: '6px 0', cursor: 'pointer', borderRadius: 5,
+            fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13,
+            border: `1px solid ${value === opt.id ? '#c9a84c' : '#1e2540'}`,
+            background: value === opt.id ? '#1a1810' : 'transparent',
+            color: value === opt.id ? '#c9a84c' : '#7082a4',
+            transition: 'all 0.2s',
+          }}>
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Tab 1: Game Settings
+// =============================================================================
+
+function GameSettingsTab({ gameId, gameState }) {
+  // ─── Storyteller State ───
+  const [storyteller, setStoryteller] = useState(gameState?.storyteller || 'Chronicler');
+  const [customDirective, setCustomDirective] = useState('');
+  const [stSaving, setStSaving] = useState(false);
+  const [stError, setStError] = useState(null);
+
+  // ─── Difficulty State ───
+  const dials = gameState?.dials || {};
+  const [preset, setPreset] = useState(gameState?.difficultyPreset || gameState?.difficulty || 'standard');
+  const [dcOffset, setDcOffset] = useState(dials.dcOffset ?? 0);
+  const [survivalEnabled, setSurvivalEnabled] = useState(dials.survivalEnabled ?? true);
+  const [durabilityEnabled, setDurabilityEnabled] = useState(dials.durabilityEnabled ?? true);
+  const [progressionSpeed, setProgressionSpeed] = useState((dials.progressionSpeed ?? 100) / 100);
+  const [encounterPressure, setEncounterPressure] = useState(dials.encounterPressure ?? 'standard');
+  const [fortunesBalanceEnabled, setFortunesBalanceEnabled] = useState(dials.fortunesBalanceEnabled ?? true);
+  const [simplifiedOutcomes, setSimplifiedOutcomes] = useState(dials.simplifiedOutcomes ?? false);
+  const [diffError, setDiffError] = useState(null);
+  const [diffSaving, setDiffSaving] = useState(false);
+  const saveTimeoutRef = useRef(null);
+
+  // ─── Fetch difficulty presets on mount ───
+  useEffect(() => {
+    if (!gameId) return;
+    api.get(`/api/init/${gameId}/difficulty-presets`).then(res => {
+      if (res.current?.preset) setPreset(res.current.preset);
+    }).catch(() => { /* fall back to gameState values */ });
+  }, [gameId]);
+
+  // ─── Storyteller API ───
+  const saveStoryteller = useCallback(async (name, directive) => {
+    if (!gameId) return;
+    setStSaving(true);
+    setStError(null);
+    try {
+      const body = name === 'Custom'
+        ? { selection: 'Custom', customText: directive || '' }
+        : { selection: name };
+      await api.put(`/api/game/${gameId}/settings/storyteller`, body);
+    } catch (err) {
+      setStError(err.message);
+    } finally {
+      setStSaving(false);
+    }
+  }, [gameId]);
+
+  const handleStorytellerSelect = (name) => {
+    setStoryteller(name);
+    setStError(null);
+    if (name !== 'Custom') saveStoryteller(name);
+  };
+
+  const handleDirectiveBlur = () => {
+    if (storyteller === 'Custom') saveStoryteller('Custom', customDirective);
+  };
+
+  // ─── Difficulty API (debounced for sliders) ───
+  const saveDifficulty = useCallback((body) => {
+    if (!gameId) return;
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    setDiffSaving(true);
+    setDiffError(null);
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        await api.put(`/api/game/${gameId}/settings/difficulty`, body);
+      } catch (err) {
+        setDiffError(err.message);
+      } finally {
+        setDiffSaving(false);
+      }
+    }, 400);
+  }, [gameId]);
+
+  useEffect(() => {
+    return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
+  }, []);
+
+  const applyPreset = (p) => {
+    setPreset(p.id);
+    setDcOffset(p.dcOffset);
+    setSurvivalEnabled(p.survivalEnabled);
+    setDurabilityEnabled(p.durabilityEnabled);
+    setProgressionSpeed(p.progressionSpeed / 100);
+    setEncounterPressure(p.encounterPressure);
+    setFortunesBalanceEnabled(p.fortunesBalanceEnabled);
+    setSimplifiedOutcomes(p.simplifiedOutcomes);
+    saveDifficulty({ preset: p.id });
+  };
+
+  const changeDial = (snakeName, value) => {
+    setPreset('custom');
+    saveDifficulty({ overrides: { [snakeName]: value } });
+  };
+
+  const dcWarning = dcOffset > 4 || dcOffset < -2
+    ? 'Beyond designed range; encounter balance may feel off.'
+    : null;
+
+  const selectedST = STORYTELLERS.find(s => s.id === storyteller);
+
+  return (
+    <div>
+      {/* ── Storyteller ── */}
+      <SectionLabel extra={stSaving ? <span className={styles.savingDot} /> : null}>
+        Storyteller
+      </SectionLabel>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+        {STORYTELLERS.map(st => (
+          <button key={st.id} onClick={() => handleStorytellerSelect(st.id)} style={{
+            padding: '6px 12px', cursor: 'pointer', borderRadius: 5,
+            fontFamily: "'Cinzel', serif", fontSize: 12, fontWeight: 600,
+            border: `1px solid ${storyteller === st.id ? '#c9a84c' : '#1e2540'}`,
+            background: storyteller === st.id ? '#1a1810' : 'transparent',
+            color: storyteller === st.id ? '#c9a84c' : '#7082a4',
+            transition: 'all 0.2s', letterSpacing: '0.04em',
+          }}>
+            {st.name}
+          </button>
+        ))}
+      </div>
+      {storyteller !== 'Custom' && selectedST && (
+        <div style={{
+          fontFamily: "'Alegreya', serif", fontSize: 14, fontStyle: 'italic',
+          color: '#8a9ab8', padding: '6px 0 4px',
+        }}>
+          &ldquo;{selectedST.oneLiner}&rdquo;
+        </div>
+      )}
+      {storyteller === 'Custom' && (
+        <div style={{ marginTop: 6 }}>
+          <textarea
+            value={customDirective}
+            onChange={e => { if (e.target.value.length <= 500) setCustomDirective(e.target.value); }}
+            onBlur={handleDirectiveBlur}
+            placeholder="Describe your narrative voice, or name storytellers to blend."
+            maxLength={500}
+            style={{
+              width: '100%', boxSizing: 'border-box', minHeight: 80, padding: '10px 12px',
+              background: '#0a0e1a', border: '1px solid #1e2540', borderRadius: 6,
+              fontFamily: "'Alegreya Sans', sans-serif", fontSize: 14, color: '#c8c0b0',
+              outline: 'none', resize: 'vertical', lineHeight: 1.5,
+            }}
+          />
+          <div style={{
+            fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
+            color: customDirective.length >= 450 ? '#e8845a' : '#6b83a3',
+            textAlign: 'right', marginTop: 4,
+          }}>
+            {customDirective.length}/500
+          </div>
+        </div>
+      )}
+      {stError && <div className={styles.errorText}>{stError}</div>}
+
+      {/* ── Difficulty ── */}
+      <SectionLabel extra={diffSaving ? <span className={styles.savingDot} /> : null}>
+        Difficulty
+      </SectionLabel>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+        {DIFFICULTY_PRESETS.map(p => (
+          <button key={p.id} onClick={() => applyPreset(p)} style={{
+            flex: 1, padding: '8px 0', cursor: 'pointer', borderRadius: 5,
+            fontFamily: "'Cinzel', serif", fontSize: 12, fontWeight: 700,
+            border: `1px solid ${preset === p.id ? p.color + '66' : '#1e2540'}`,
+            background: preset === p.id ? p.bg : 'transparent',
+            color: preset === p.id ? p.color : '#7082a4',
+            transition: 'all 0.2s', letterSpacing: '0.06em',
+          }}>
+            {p.label}
+          </button>
+        ))}
+      </div>
+      {preset === 'custom' && (
+        <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12, color: '#6b83a3', fontStyle: 'italic', marginBottom: 4 }}>
+          Custom; one or more dials adjusted from preset
+        </div>
+      )}
+
+      <SliderControl
+        label="DC Offset" value={dcOffset} min={-4} max={6} step={1}
+        format={v => (v >= 0 ? `+${v}` : `${v}`)}
+        onChange={v => { setDcOffset(v); changeDial('dc_offset', v); }}
+        description="Flat modifier applied to all DCs"
+        warning={dcWarning}
+      />
+      <SliderControl
+        label="Progression Speed" value={progressionSpeed} min={0.25} max={3} step={0.25}
+        format={v => `${v.toFixed(2)}\u00d7`}
+        onChange={v => { setProgressionSpeed(v); changeDial('progression_speed', Math.round(v * 100)); }}
+        description={progressionSpeed === 0 ? 'All stat/skill gains frozen' : 'Multiplier on stat and skill gains'}
+      />
+      <SelectorRow
+        label="Encounter Pressure" value={encounterPressure}
+        options={[{ id: 'low', label: 'Low' }, { id: 'standard', label: 'Standard' }, { id: 'high', label: 'High' }]}
+        onChange={v => { setEncounterPressure(v); changeDial('encounter_pressure', v); }}
+        description="Frequency and tension of random encounters"
+      />
+      <Toggle label="Survival" value={survivalEnabled}
+        onChange={v => { setSurvivalEnabled(v); changeDial('survival_enabled', v); }}
+        description="Track rations, water, and malnourishment" />
+      <Toggle label="Durability" value={durabilityEnabled}
+        onChange={v => { setDurabilityEnabled(v); changeDial('durability_enabled', v); }}
+        description="Items degrade with use and need repair" />
+      <Toggle label="Fortune's Balance" value={fortunesBalanceEnabled}
+        onChange={v => { setFortunesBalanceEnabled(v); changeDial('fortunes_balance_enabled', v); }}
+        description="Outmatched/Matched/Dominant dice categorization" />
+      <Toggle label="Simplified Outcomes" value={simplifiedOutcomes}
+        onChange={v => { setSimplifiedOutcomes(v); changeDial('simplified_outcomes', v); }}
+        description="Binary pass/fail instead of 6-tier system" />
+
+      {diffError && <div className={styles.errorText}>{diffError}</div>}
+
+      <div style={{
+        fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12, color: '#6b83a3',
+        marginTop: 16, fontStyle: 'italic',
+      }}>
+        Changes take effect on the next relevant game event. No retroactive recalculation.
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Tab 2: Display
+// =============================================================================
+
+function DisplayTab({ settings, onSave }) {
+  const update = (key, value) => onSave({ ...settings, [key]: value });
+
+  return (
+    <div>
+      <SectionLabel>Theme</SectionLabel>
+      <div style={{ display: 'flex', gap: 6 }}>
+        {['dark', 'light', 'sepia'].map(t => (
+          <button key={t} onClick={() => update('theme', t)} style={{
+            flex: 1, padding: '10px 0', cursor: 'pointer', borderRadius: 6,
+            fontFamily: "'Alegreya Sans', sans-serif", fontSize: 14,
+            border: `1px solid ${settings.theme === t ? '#c9a84c' : '#1e2540'}`,
+            background: settings.theme === t ? '#1a1810' : 'transparent',
+            color: settings.theme === t ? '#c9a84c' : '#7082a4',
+            transition: 'all 0.2s',
+          }}>
+            {t.charAt(0).toUpperCase() + t.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      <SectionLabel>Body Font</SectionLabel>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {FONTS.map(f => (
+          <button key={f.id} onClick={() => update('font', f.id)} style={{
+            padding: '10px 12px', cursor: 'pointer', borderRadius: 6, textAlign: 'left',
+            border: `1px solid ${settings.font === f.id ? '#c9a84c' : '#1e2540'}`,
+            background: settings.font === f.id ? '#1a1810' : 'transparent',
+            fontFamily: f.family, fontSize: 14,
+            color: settings.font === f.id ? '#c9a84c' : '#c8c0b0',
+            transition: 'all 0.2s',
+          }}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      <SectionLabel>Text Size</SectionLabel>
+      <div style={{ display: 'flex', gap: 6 }}>
+        {SIZES.map(s => (
+          <button key={s.id} onClick={() => update('textSize', s.id)} style={{
+            flex: 1, padding: '8px 0', cursor: 'pointer', borderRadius: 6,
+            fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13,
+            border: `1px solid ${settings.textSize === s.id ? '#c9a84c' : '#1e2540'}`,
+            background: settings.textSize === s.id ? '#1a1810' : 'transparent',
+            color: settings.textSize === s.id ? '#c9a84c' : '#7082a4',
+            transition: 'all 0.2s',
+          }}>
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{
+        fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12, color: '#6b83a3',
+        marginTop: 16, fontStyle: 'italic',
+      }}>
+        Settings are saved automatically and persist across sessions.
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Tab 3: World
+// =============================================================================
+
+function WorldTab() {
+  return (
+    <div>
+      {/* Checkpoints */}
+      <SectionLabel extra={<span className={styles.comingSoonBadge}>Coming Soon</span>}>
+        Checkpoints
+      </SectionLabel>
+      <div style={{
+        background: '#111528', border: '1px solid #1e2540', borderRadius: 8, padding: 16,
+      }}>
+        <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#7082a4', marginBottom: 12 }}>
+          Quick-save up to 3 slots within this session. Save, load, or overwrite at any time.
+        </div>
+        {[1, 2, 3].map(slot => (
+          <div key={slot} style={{
+            padding: '10px 12px', borderRadius: 6, marginBottom: slot < 3 ? 8 : 0,
+            border: '1px solid #161c34', background: 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <span style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#6b83a3' }}>
+              Slot {slot} — Empty
+            </span>
+            <button disabled style={{
+              padding: '4px 14px', borderRadius: 4,
+              fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12, fontWeight: 600,
+              background: '#1a1810', border: '1px solid #1e2540',
+              color: '#7082a4', cursor: 'default', opacity: 0.5,
+            }}>Save</button>
+          </div>
+        ))}
+      </div>
+
+      {/* World Snapshot */}
+      <SectionLabel extra={<span className={styles.comingSoonBadge}>Coming Soon</span>}>
+        Save World Snapshot
+      </SectionLabel>
+      <div style={{
+        background: '#111528', border: '1px solid #1e2540', borderRadius: 8, padding: 16,
+      }}>
+        <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#7082a4', marginBottom: 10 }}>
+          Save the current world state to Your Worlds for reuse in future games.
+        </div>
+        <input
+          type="text" placeholder="Snapshot name..."
+          disabled
+          style={{
+            width: '100%', boxSizing: 'border-box', padding: '8px 12px',
+            background: '#0a0e1a', border: '1px solid #1e2540', borderRadius: 6,
+            fontFamily: "'Alegreya Sans', sans-serif", fontSize: 14, color: '#7082a4',
+            outline: 'none', marginBottom: 10, opacity: 0.5,
+          }}
+        />
+        <button disabled style={{
+          width: '100%', padding: '8px 0', borderRadius: 6,
+          fontFamily: "'Alegreya Sans', sans-serif", fontSize: 14, fontWeight: 600,
+          background: '#1a1810', border: '1px solid #1e2540',
+          color: '#7082a4', cursor: 'default', opacity: 0.5,
+        }}>
+          Save Snapshot
+        </button>
+      </div>
+
+      {/* Share This World */}
+      <SectionLabel extra={<span className={styles.comingSoonBadge}>Coming Soon</span>}>
+        Share This World
+      </SectionLabel>
+      <div style={{
+        background: '#111528', border: '1px solid #1e2540', borderRadius: 8, padding: 16,
+      }}>
+        <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#7082a4', marginBottom: 12 }}>
+          Generate an unlisted link so others can start a game in your world.
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button disabled style={{
+            flex: 1, padding: '10px 8px', borderRadius: 6,
+            background: 'transparent', border: '1px solid #1e2540',
+            fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#7082a4',
+            cursor: 'default', opacity: 0.5,
+          }}>
+            <div style={{ fontWeight: 600, marginBottom: 2 }}>As it began</div>
+            <div style={{ fontSize: 11, color: '#6b83a3' }}>Original world state</div>
+          </button>
+          <button disabled style={{
+            flex: 1, padding: '10px 8px', borderRadius: 6,
+            background: 'transparent', border: '1px solid #1e2540',
+            fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#7082a4',
+            cursor: 'default', opacity: 0.5,
+          }}>
+            <div style={{ fontWeight: 600, marginBottom: 2 }}>As it is now</div>
+            <div style={{ fontSize: 11, color: '#6b83a3' }}>Current world state</div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Main Settings Modal
+// =============================================================================
+
+const TABS = [
+  { id: 'game', label: 'Game Settings' },
+  { id: 'display', label: 'Display' },
+  { id: 'world', label: 'World' },
+];
+
+export default function SettingsModal({ settings, onSave, onClose, gameId, gameState }) {
+  const [activeTab, setActiveTab] = useState('game');
+
   useEffect(() => {
     const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
-  const update = (key, value) => {
-    onSave({ ...settings, [key]: value });
-  };
-
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
-        <div className={styles.header}>
-          <span className={styles.title}>Display Settings</span>
-          <button className={styles.closeButton} onClick={onClose} aria-label="Close">&times;</button>
+      <div className={styles.panel} onClick={e => e.stopPropagation()}>
+        {/* Tab bar */}
+        <div className={styles.tabBar}>
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              className={activeTab === tab.id ? styles.tabButtonActive : styles.tabButton}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+          <div className={styles.tabBarSpacer} />
+          <button className={styles.closeButton} onClick={onClose} aria-label="Close settings">
+            &times;
+          </button>
         </div>
-        <div className={styles.body}>
-          {/* Theme */}
-          <div className={styles.sectionLabel}>Theme</div>
-          <div className={styles.selectorRow}>
-            {['dark', 'light', 'sepia'].map(t => (
-              <button
-                key={t}
-                className={`${styles.selectorButton} ${settings.theme === t ? styles.selectorActive : styles.selectorInactive}`}
-                onClick={() => update('theme', t)}
-              >
-                {t.charAt(0).toUpperCase() + t.slice(1)}
-              </button>
-            ))}
-          </div>
 
-          {/* Font */}
-          <div className={styles.sectionLabel}>Body Font</div>
-          <div className={styles.selectorRow}>
-            {FONTS.map(f => (
-              <button
-                key={f.id}
-                className={`${styles.selectorButton} ${settings.font === f.id ? styles.selectorActive : styles.selectorInactive}`}
-                onClick={() => update('font', f.id)}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Text Size */}
-          <div className={styles.sectionLabel}>Text Size</div>
-          <div className={styles.selectorRow}>
-            {SIZES.map(s => (
-              <button
-                key={s.id}
-                className={`${styles.selectorButton} ${settings.textSize === s.id ? styles.selectorActive : styles.selectorInactive}`}
-                onClick={() => update('textSize', s.id)}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
+        {/* Tab content */}
+        <div className={styles.tabContent}>
+          {activeTab === 'game' && <GameSettingsTab gameId={gameId} gameState={gameState} />}
+          {activeTab === 'display' && <DisplayTab settings={settings} onSave={onSave} />}
+          {activeTab === 'world' && <WorldTab />}
         </div>
       </div>
     </div>

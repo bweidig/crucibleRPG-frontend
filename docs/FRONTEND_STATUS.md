@@ -32,6 +32,20 @@
 
 ## Recent Work (This Session: 2026-03-19)
 
+### Settings Panel: Full Tabbed Rewrite
+- **SettingsModal.js** rewritten from display-only modal (theme/font/size) to full 3-tab settings panel matching `docs/GameLayout/settings-panel-mockup.jsx`.
+- **Tab 1: Game Settings** (live API wiring):
+  - Storyteller selector: 7 options (Chronicler, Bard, Trickster, Poet, Whisper, Noir, Custom). Custom shows textarea with 500-char counter. Saves on button click (`PUT /api/game/:id/settings/storyteller`), custom directive saves on blur. Initial value from `gameState.storyteller`.
+  - Difficulty: 4 preset buttons (Forgiving/Standard/Harsh/Brutal) with design-system color coding. Individual dials: DC Offset (slider -4 to +6), Progression Speed (slider 0.25x to 3.0x, converted to/from percentage for API), Encounter Pressure (Low/Standard/High selector), toggles for Survival, Durability, Fortune's Balance, Simplified Outcomes. Selecting a preset sets all dials + sends `PUT /api/game/:id/settings/difficulty { preset }`. Individual changes switch label to "Custom" + send `{ overrides: { dial_name: value } }`. Debounced 400ms for slider changes. Initial values from `gameState.dials` + `GET /api/init/:id/difficulty-presets` for current preset.
+  - Note at bottom: "Changes take effect on the next relevant game event. No retroactive recalculation."
+  - Loading dots on section headers during API saves. Error messages below each section.
+- **Tab 2: Display** — migrated existing theme/font/text size controls with identical localStorage persistence via `settings`/`onSave` props. Styled to match mockup (wider buttons, font preview, gold active states).
+- **Tab 3: World** — UI structure from mockup: checkpoints (3 slots), save world snapshot, share this world. All buttons disabled with "Coming Soon" badges. Ready for future API wiring (checkpoints, snapshots, share links).
+- **Shared sub-components** (from mockup): SectionLabel, Toggle, SliderControl, SelectorRow. Used across Game Settings tab.
+- **SettingsModal.module.css** rewritten for panel structure (520px, centered, tabbed). Range slider thumb styling via scoped CSS selector. Saving indicator animation, error text, coming-soon badge styles.
+- **page.js** updated to pass `gameId` and `gameState` props to SettingsModal.
+- **API wiring status:** `PUT /settings/storyteller` and `PUT /settings/difficulty` now wired.
+
 ### Init Wizard: Proposal Skills/Loadout Display (Bugfix)
 - **Root cause:** Phase 4 (attributes review) had hardcoded placeholder skills text ("Streetwise 1.0, Lockpicking 1.0, Blade Work 1.0") instead of using the AI-generated proposal data. `generateProposal()` stored `foundationalSkills`, `startingLoadout`, `factionStandings` but not `skills`, `narrativeBackstory`, `innateTraits`, or `species`. Phase4 component only received `stats` prop, not the rest of the proposal.
 - **Fix:** `generateProposal()` now stores all proposal fields (skills, foundationalSkills, startingLoadout, factionStandings, narrativeBackstory, innateTraits, species) with `Array.isArray()` guards. Phase4 receives and renders: backstory skills (comma list), foundational skills (scope + breadthCategory + stat), starting loadout (name + slotCost + materialQuality), faction standings (name + signed standing). `saveAttributes()` now passes all proposal fields through to `POST /api/init/:id/adjust-proposal` (removed spurious `accepted: true`).
@@ -297,8 +311,8 @@ All pending rgba/color fixes from previous sessions have been completed.
 | `/api/game/:id/notes` | GET/POST/DELETE | Wired (sidebar NotesTab CRUD, refetch on mutation) |
 | `/api/game/:id/talk-to-gm` | POST | Wired (Phase 1 free lookup, displays command/rulebook/no-match) |
 | `/api/game/:id/talk-to-gm/escalate` | POST | Wired (Phase 2 escalation, processes as turn response) |
-| `/api/game/:id/settings/storyteller` | PUT | Not yet (settings modal Phase 3+) |
-| `/api/game/:id/settings/difficulty` | PUT | Not yet (settings modal Phase 3+) |
+| `/api/game/:id/settings/storyteller` | PUT | Wired (Settings panel Game Settings tab) |
+| `/api/game/:id/settings/difficulty` | PUT | Wired (Settings panel Game Settings tab, presets + individual dials) |
 | `/api/game/:id/checkpoints` | GET | Not yet |
 | `/api/game/:id/snapshot` | POST | Not yet |
 | `/api/bug-report` | POST | Not yet |

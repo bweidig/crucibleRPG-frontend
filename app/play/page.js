@@ -514,6 +514,8 @@ function PlayPage() {
           settings={displaySettings}
           onSave={handleSettingsChange}
           onClose={() => setSettingsOpen(false)}
+          gameId={gameId}
+          gameState={gameState}
         />
       )}
 
