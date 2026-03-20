@@ -177,6 +177,7 @@ function PlayPage() {
       stateChanges: response.stateChanges || null,
       playerAction: playerActionText,
       clock: response.stateChanges?.clock || null,
+      _isNew: true,
     }]);
 
     if (response.nextActions) {
@@ -370,6 +371,7 @@ function PlayPage() {
                 stateChanges: res.stateChanges || null,
                 playerAction: null,
                 clock: res.stateChanges?.clock || null,
+                _isNew: true,
               }]);
 
               if (res.nextActions) {

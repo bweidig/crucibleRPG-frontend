@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './InlineDicePanel.module.css';
 
 // ─── MiniD20 SVG (from mockup pattern, compact inline size) ───
@@ -90,10 +90,13 @@ function CategoryTag({ category }) {
 //   dieSelected: number (the kept value)
 //   debtPenalty: number
 
-export default function InlineDicePanel({ resolution }) {
-  if (!resolution) return null;
+export default function InlineDicePanel({ resolution, animate = false, onComplete }) {
+  if (!resolution) { onComplete?.(); return null; }
 
-  const [phase, setPhase] = useState(0);
+  const [phase, setPhase] = useState(animate ? -1 : 99);
+  const [extremeFlash, setExtremeFlash] = useState(false);
+  const panelRef = useRef(null);
+  const completedRef = useRef(false);
 
   const category = (resolution.fortunesBalance || 'matched').toLowerCase();
   const isMatched = category === 'matched';
@@ -119,28 +122,77 @@ export default function InlineDicePanel({ resolution }) {
     }
   }
 
+  const fireComplete = useCallback(() => {
+    if (!completedRef.current) {
+      completedRef.current = true;
+      onComplete?.();
+    }
+  }, [onComplete]);
+
   // Animation phases with timeouts
+  // phase -1 = waiting for scroll, 0 = spinning, 1+ = landing phases, 99 = done (no animation)
   useEffect(() => {
-    setPhase(0);
+    if (!animate) {
+      setPhase(99);
+      fireComplete();
+      return;
+    }
+
+    completedRef.current = false;
+    setPhase(-1);
     const timers = [];
-    const t = (p, d) => timers.push(setTimeout(() => setPhase(p), d));
+    const t = (fn, d) => timers.push(setTimeout(fn, d));
+
+    // Scroll into view, then start animation after a pause
+    if (panelRef.current) {
+      panelRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    const scrollDelay = 400;
 
     if (isMatched) {
-      t(1, 500);   // die lands
+      // Scroll → spin → land → hold → complete
+      t(() => setPhase(0), scrollDelay);
+      t(() => setPhase(1), scrollDelay + 800);
+      // Natural extreme flash
+      if (isExtreme) {
+        t(() => setExtremeFlash(true), scrollDelay + 800);
+        t(() => setExtremeFlash(false), scrollDelay + 1400);
+      }
+      t(() => fireComplete(), scrollDelay + 800 + 1000);  // 1s hold
     } else if (hasCC && isExtreme) {
-      t(1, 500);   // crucible lands — extreme!
+      // Crucible lands with extreme
+      t(() => setPhase(0), scrollDelay);
+      t(() => setPhase(1), scrollDelay + 800);
+      t(() => setExtremeFlash(true), scrollDelay + 800);
+      t(() => setExtremeFlash(false), scrollDelay + 1500);
+      t(() => fireComplete(), scrollDelay + 800 + 1200);
     } else if (hasCC && hasMortal) {
-      t(1, 400);   // crucible lands
-      t(2, 600);   // mortal dice appear spinning
-      t(3, 1000);  // mortal dice land
-      t(4, 1300);  // kept/discarded resolved
+      // Scroll → crucible spins → crucible lands → mortal spin → mortal land → resolve → hold
+      t(() => setPhase(0), scrollDelay);
+      t(() => setPhase(1), scrollDelay + 600);   // crucible lands
+      t(() => setPhase(2), scrollDelay + 1000);  // mortal dice appear spinning
+      t(() => setPhase(3), scrollDelay + 1600);  // mortal dice land
+      t(() => setPhase(4), scrollDelay + 2100);  // kept/discarded resolved
+      t(() => fireComplete(), scrollDelay + 2100 + 1000);  // 1s hold
     } else {
-      // fallback: just show immediately
-      t(1, 300);
+      t(() => setPhase(0), scrollDelay);
+      t(() => setPhase(1), scrollDelay + 600);
+      t(() => fireComplete(), scrollDelay + 600 + 1000);
     }
 
     return () => timers.forEach(clearTimeout);
-  }, [resolution.dieSelected, resolution.crucibleRoll]);
+  }, [resolution.dieSelected, resolution.crucibleRoll, animate, fireComplete]);
+
+  // For non-animated (historical) turns, treat any phase >= 1 as "show final state"
+  const p = phase === 99 ? 99 : phase;
+  const showFinal = p >= 1;
+  const showMortalSpin = p >= 2;
+  const showMortalLand = p >= 3;
+  const showResolved = p >= 4;
+  const isSpinning = p === 0 || p === -1;
+
+  // Extreme flash class
+  const flashClass = extremeFlash ? (isNat20 ? styles.extremeFlashGold : styles.extremeFlashRed) : '';
 
   // ─── Matched: single d20 ───
   if (isMatched) {
@@ -149,17 +201,17 @@ export default function InlineDicePanel({ resolution }) {
     const isRollNat1 = val === 1;
 
     return (
-      <div className={styles.dicePanel}>
+      <div ref={panelRef} className={`${styles.dicePanel} ${flashClass}`}>
         <CategoryTag category={category} />
         <div className={styles.diceArea}>
           <MiniD20
             value={val}
             size={52}
-            spinning={phase < 1}
-            glow={phase >= 1 ? (isRollNat20 ? 'gold' : isRollNat1 ? 'crimson' : 'none') : 'none'}
+            spinning={isSpinning}
+            glow={showFinal ? (isRollNat20 ? 'gold' : isRollNat1 ? 'crimson' : 'none') : 'none'}
           />
         </div>
-        {phase >= 1 && (isRollNat20 || isRollNat1) && (
+        {showFinal && (isRollNat20 || isRollNat1) && (
           <div className={`${styles.extremeCallout} ${isRollNat20 ? styles.extremeNat20 : styles.extremeNat1}`}>
             {isRollNat20 ? 'NATURAL 20' : 'NATURAL 1'}
           </div>
@@ -170,24 +222,23 @@ export default function InlineDicePanel({ resolution }) {
 
   // ─── Outmatched / Dominant ───
 
-  // Glow logic: Outmatched → gold on kept; Dominant → tarnished on kept, gold on discarded
   const keptGlow = isOutmatched ? 'gold' : 'tarnished';
   const discGlow = isDominant ? 'gold' : 'none';
 
   // Extreme on crucible: no mortal dice, just the crucible
   if (hasCC && isExtreme) {
     return (
-      <div className={styles.dicePanel}>
+      <div ref={panelRef} className={`${styles.dicePanel} ${flashClass}`}>
         <CategoryTag category={category} />
         <div className={styles.diceArea}>
           <MiniD20
             value={resolution.crucibleRoll}
             size={52}
-            spinning={phase < 1}
-            glow={phase >= 1 ? (isNat20 ? 'gold' : 'crimson') : 'none'}
+            spinning={isSpinning}
+            glow={showFinal ? (isNat20 ? 'gold' : 'crimson') : 'none'}
           />
         </div>
-        {phase >= 1 && (
+        {showFinal && (
           <div className={`${styles.extremeCallout} ${isNat20 ? styles.extremeNat20 : styles.extremeNat1}`}>
             {isNat20 ? 'FATE INTERVENES' : 'FATE STRIKES'}
           </div>
@@ -198,38 +249,38 @@ export default function InlineDicePanel({ resolution }) {
 
   // Normal Outmatched/Dominant with mortal dice
   return (
-    <div className={styles.dicePanel}>
+    <div ref={panelRef} className={`${styles.dicePanel} ${flashClass}`}>
       <CategoryTag category={category} />
       <div className={styles.diceArea}>
         {/* Left mortal die */}
         {hasMortal && (
           <div style={{
-            opacity: phase < 2 ? 0.1 : phase >= 4 ? (diceRolled[0] === discVal ? 0.2 : 1) : 1,
+            opacity: !showMortalSpin ? 0.1 : showResolved ? (diceRolled[0] === discVal ? 0.2 : 1) : 1,
             transition: 'opacity 0.4s, transform 0.3s',
-            transform: phase >= 4 && diceRolled[0] === keptVal ? 'scale(1.08)' : 'scale(1)',
+            transform: showResolved && diceRolled[0] === keptVal ? 'scale(1.08)' : 'scale(1)',
           }}>
             <MiniD20
               value={diceRolled[0]}
               size={42}
-              spinning={phase >= 2 && phase < 3}
-              ghostFaces={phase >= 3}
-              glow={phase >= 4 ? (diceRolled[0] === keptVal ? keptGlow : discGlow) : 'none'}
-              desaturated={phase >= 4 && diceRolled[0] === discVal && isOutmatched}
+              spinning={showMortalSpin && !showMortalLand}
+              ghostFaces={showMortalLand}
+              glow={showResolved ? (diceRolled[0] === keptVal ? keptGlow : discGlow) : 'none'}
+              desaturated={showResolved && diceRolled[0] === discVal && isOutmatched}
             />
           </div>
         )}
 
         {/* Center crucible die */}
         <div style={{
-          opacity: phase >= 2 ? 0.15 : phase >= 1 ? 0.4 : 1,
+          opacity: showMortalSpin ? 0.15 : showFinal ? 0.4 : 1,
           transition: 'opacity 0.4s',
         }}>
           <MiniD20
             value={resolution.crucibleRoll}
-            size={phase >= 2 ? 32 : 42}
-            spinning={phase < 1}
+            size={showMortalSpin ? 32 : 42}
+            spinning={isSpinning}
           />
-          {phase >= 1 && phase < 2 && (
+          {showFinal && !showMortalSpin && (
             <div className={styles.crucibleLabel}>Crucible: {resolution.crucibleRoll}</div>
           )}
         </div>
@@ -237,24 +288,24 @@ export default function InlineDicePanel({ resolution }) {
         {/* Right mortal die */}
         {hasMortal && (
           <div style={{
-            opacity: phase < 2 ? 0.1 : phase >= 4 ? (diceRolled[1] === discVal ? 0.2 : 1) : 1,
+            opacity: !showMortalSpin ? 0.1 : showResolved ? (diceRolled[1] === discVal ? 0.2 : 1) : 1,
             transition: 'opacity 0.4s, transform 0.3s',
-            transform: phase >= 4 && diceRolled[1] === keptVal ? 'scale(1.08)' : 'scale(1)',
+            transform: showResolved && diceRolled[1] === keptVal ? 'scale(1.08)' : 'scale(1)',
           }}>
             <MiniD20
               value={diceRolled[1]}
               size={42}
-              spinning={phase >= 2 && phase < 3}
-              ghostFaces={phase >= 3}
-              glow={phase >= 4 ? (diceRolled[1] === keptVal ? keptGlow : discGlow) : 'none'}
-              desaturated={phase >= 4 && diceRolled[1] === discVal && isOutmatched}
+              spinning={showMortalSpin && !showMortalLand}
+              ghostFaces={showMortalLand}
+              glow={showResolved ? (diceRolled[1] === keptVal ? keptGlow : discGlow) : 'none'}
+              desaturated={showResolved && diceRolled[1] === discVal && isOutmatched}
             />
           </div>
         )}
       </div>
 
       {/* Mortal dice kept/discarded label */}
-      {hasMortal && phase >= 4 && (
+      {hasMortal && showResolved && (
         <div className={styles.mortalLabel}>
           Mortal Dice: <span className={styles.mortalKept}>[{keptVal}]</span>{' '}
           <span className={styles.mortalDiscarded}>{discVal}</span>
@@ -263,7 +314,7 @@ export default function InlineDicePanel({ resolution }) {
       )}
 
       {/* Debt of Effort indicator */}
-      {resolution.debtPenalty > 0 && phase >= 4 && (
+      {resolution.debtPenalty > 0 && showResolved && (
         <div style={{ textAlign: 'center', marginTop: 4 }}>
           <span className={styles.debtTag}>
             -{resolution.debtPenalty.toFixed(1)} DEBT

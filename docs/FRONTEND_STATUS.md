@@ -32,6 +32,14 @@
 
 ## Recent Work (This Session: 2026-03-19)
 
+### Dice Roll Animation Visibility (Bugfix)
+- **Auto-scroll:** InlineDicePanel scrolls into view (`scrollIntoView({ behavior: 'smooth', block: 'center' })`) on new turns before animation starts. 400ms pause after scroll before dice begin spinning.
+- **Slower timings:** Matched: 800ms spin (was 500ms). Outmatched/Dominant: crucible 600ms, mortal appear 1000ms, mortal land 1600ms, resolve 2100ms (was 400/600/1000/1300ms). Total ~2.5s for full sequence (was ~1.3s).
+- **Result hold:** 1s hold after dice land before resolution block + narrative text appear. TurnBlock delays rendering `ResolutionBlock`, narrative, and status badges until `onComplete` callback fires from InlineDicePanel.
+- **Natural Extreme flash:** Gold glow pulse (`flashGold` keyframes) for nat20, red glow pulse (`flashRed`) for nat1. Applied as CSS class on the dicePanel container. 600ms ease-out animation. Respects `prefers-reduced-motion`.
+- **Historical vs new turns:** page.js marks turns from `handleTurnResponse` and first-turn trigger with `_isNew: true`. NarrativePanel passes `isNew` to TurnBlock. TurnBlock passes `animate={isNew && hasResolution}` to InlineDicePanel. Historical turns (page reload) skip animation entirely and show final state immediately.
+- **Files:** `InlineDicePanel.js` (scroll + timing + flash + animate/onComplete props), `InlineDicePanel.module.css` (flash keyframes), `TurnBlock.js` (content gating on animation completion), `NarrativePanel.js` (isNew pass-through), `page.js` (_isNew flag on new turns).
+
 ### Map Tab: Viewport Size + Scroll Zoom + Drag Pan
 - **Canvas height:** Removed `aspect-ratio: 1.22` (~260px), replaced with `min-height: 450px`. ResizeObserver reads actual container height with 450px floor.
 - **Mouse wheel zoom:** 0.5x to 3.0x range. Non-passive wheel listener prevents page scroll. Zoom targets cursor position (point under cursor stays fixed). Step: 0.15 per tick. SVG `viewBox` computed dynamically as `panX panY width/zoom height/zoom`.

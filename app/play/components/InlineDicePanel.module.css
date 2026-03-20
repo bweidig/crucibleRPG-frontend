@@ -138,6 +138,28 @@
   font-weight: 400;
 }
 
+/* ─── Natural Extreme Flash ─── */
+
+.extremeFlashGold {
+  animation: flashGold 0.6s ease-out;
+}
+
+.extremeFlashRed {
+  animation: flashRed 0.6s ease-out;
+}
+
+@keyframes flashGold {
+  0% { box-shadow: inset 0 0 0 0 transparent; }
+  15% { box-shadow: inset 0 0 30px 4px #c9a84c44, 0 0 20px 4px #c9a84c33; }
+  100% { box-shadow: inset 0 0 0 0 transparent; }
+}
+
+@keyframes flashRed {
+  0% { box-shadow: inset 0 0 0 0 transparent; }
+  15% { box-shadow: inset 0 0 30px 4px #e85a5a44, 0 0 20px 4px #e85a5a33; }
+  100% { box-shadow: inset 0 0 0 0 transparent; }
+}
+
 /* ─── Dice Spin Animation ─── */
 
 @keyframes diceSpin {
@@ -146,4 +168,13 @@
   50% { transform: rotate(180deg) scale(1); }
   75% { transform: rotate(270deg) scale(1.04); }
   100% { transform: rotate(360deg) scale(1); }
+}
+
+/* ─── Reduced Motion ─── */
+
+@media (prefers-reduced-motion: reduce) {
+  .extremeFlashGold,
+  .extremeFlashRed {
+    animation: none;
+  }
 }

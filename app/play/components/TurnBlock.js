@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import InlineDicePanel from './InlineDicePanel';
 import ResolutionBlock from './ResolutionBlock';
 import styles from './TurnBlock.module.css';
@@ -148,8 +148,13 @@ function StatusBadges({ stateChanges }) {
   );
 }
 
-export default function TurnBlock({ turn }) {
+export default function TurnBlock({ turn, isNew }) {
   const clockStr = formatClock(turn.clock);
+  const hasResolution = !!turn.resolution;
+  const shouldAnimate = isNew && hasResolution;
+
+  // When animating, delay showing resolution + narrative until dice are done
+  const [showContent, setShowContent] = useState(!shouldAnimate);
 
   return (
     <div className={styles.turnBlock}>
@@ -166,16 +171,24 @@ export default function TurnBlock({ turn }) {
       )}
 
       {/* Dice display — shows Fortune's Balance, animated d20s */}
-      <InlineDicePanel resolution={turn.resolution} />
+      <InlineDicePanel
+        resolution={turn.resolution}
+        animate={shouldAnimate}
+        onComplete={() => setShowContent(true)}
+      />
 
-      {/* Resolution — compressed one-liner with expandable detail */}
-      <ResolutionBlock resolution={turn.resolution} />
+      {/* Resolution + narrative appear after dice animation completes */}
+      {showContent && (
+        <>
+          <ResolutionBlock resolution={turn.resolution} />
 
-      <div className={styles.narrativeText}>
-        {renderNarrative(turn.narrative)}
-      </div>
+          <div className={styles.narrativeText}>
+            {renderNarrative(turn.narrative)}
+          </div>
 
-      <StatusBadges stateChanges={turn.stateChanges} />
+          <StatusBadges stateChanges={turn.stateChanges} />
+        </>
+      )}
     </div>
   );
 }

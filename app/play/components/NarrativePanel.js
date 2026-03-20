@@ -29,7 +29,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({ turns, sessionRecap,
           )}
 
           {turns.map((turn, i) => (
-            <TurnBlock key={turn.number ?? i} turn={turn} />
+            <TurnBlock key={turn.number ?? i} turn={turn} isNew={!!turn._isNew} />
           ))}
 
           <div ref={bottomRef} />
