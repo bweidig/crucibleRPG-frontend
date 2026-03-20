@@ -32,6 +32,12 @@
 
 ## Recent Work (This Session: 2026-03-19)
 
+### TopBar Clock Display + Turn Header Overhaul
+- **TopBar clock:** New `clock` prop from `gameState.clock`. Displays `Day N · H:MM AM/PM · Weather` in compact format between setting name and icon buttons. JetBrains Mono for numbers, Alegreya Sans for weather. Middle-dot separators. Updates live as `gameState.clock` changes after each turn.
+- **Turn header overhaul:** Replaced minimal "TURN N · time" header with full contextual row matching mockup pattern: location pin, day, time (with time-of-day emoji: sunrise/sun/sunset/moon based on hour), weather (with weather emoji: sun/cloud/rain/snow/fog/storm/wind), turn number. Each piece is a `headerChip` with emoji + value. Subtle bottom border. Wraps to two lines on narrow viewports.
+- **Weather/location on turns:** `handleTurnResponse` now snapshots `gameState.clock.weather` and `gameState.world.currentLocation` (when available) onto each new turn entry. Historical turns from page load show just the turn number (no location/weather since that data isn't in `recentNarrative`).
+- **Files:** `page.js` (weather/location on turn entries, clock prop to TopBar, gameState in handleTurnResponse deps), `TopBar.js` + `.module.css` (clock display), `TurnBlock.js` + `.module.css` (header overhaul with emoji helpers).
+
 ### Dice Roll Animation Visibility (Bugfix)
 - **Auto-scroll:** InlineDicePanel scrolls into view (`scrollIntoView({ behavior: 'smooth', block: 'center' })`) on new turns before animation starts. 400ms pause after scroll before dice begin spinning.
 - **Slower timings:** Matched: 800ms spin (was 500ms). Outmatched/Dominant: crucible 600ms, mortal appear 1000ms, mortal land 1600ms, resolve 2100ms (was 400/600/1000/1300ms). Total ~2.5s for full sequence (was ~1.3s).

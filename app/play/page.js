@@ -177,6 +177,8 @@ function PlayPage() {
       stateChanges: response.stateChanges || null,
       playerAction: playerActionText,
       clock: response.stateChanges?.clock || null,
+      weather: gameState?.clock?.weather || null,
+      location: gameState?.world?.currentLocation || null,
       _isNew: true,
     }]);
 
@@ -204,7 +206,7 @@ function PlayPage() {
         return [{ ...latest, turnNumber: response.turn.number }, ...rest];
       });
     }
-  }, [addNotifications, refetchCharacter]);
+  }, [addNotifications, refetchCharacter, gameState]);
 
   // ─── Submit Action (Step 5 handler) ───
   const submitAction = useCallback(async (actionBody) => {
@@ -371,6 +373,8 @@ function PlayPage() {
                 stateChanges: res.stateChanges || null,
                 playerAction: null,
                 clock: res.stateChanges?.clock || null,
+                weather: game.clock?.weather || null,
+                location: null,
                 _isNew: true,
               }]);
 
@@ -466,6 +470,7 @@ function PlayPage() {
     <div className={styles.pageContainer} style={themeStyle}>
       <TopBar
         setting={gameState?.setting}
+        clock={gameState?.clock}
         sseConnected={sseConnected}
         sidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen(prev => !prev)}

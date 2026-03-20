@@ -17,7 +17,20 @@ function SettingsIcon({ color }) {
   );
 }
 
-export default function TopBar({ setting, sseConnected, sidebarOpen, onToggleSidebar, onOpenSettings, debugMode }) {
+function formatTopBarClock(clock) {
+  if (!clock) return null;
+  const hour = clock.hour ?? Math.floor((clock.globalClock || 0) / 60);
+  const minute = clock.minute ?? ((clock.globalClock || 0) % 60);
+  const day = clock.day ?? clock.currentDay;
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour % 12 || 12;
+  const timeStr = `${displayHour}:${String(minute).padStart(2, '0')} ${period}`;
+  return { day, timeStr, weather: clock.weather || null };
+}
+
+export default function TopBar({ setting, clock, sseConnected, sidebarOpen, onToggleSidebar, onOpenSettings, debugMode }) {
+  const clockData = formatTopBarClock(clock);
+
   return (
     <header className={styles.topBar}>
       <div className={styles.left}>
@@ -33,6 +46,19 @@ export default function TopBar({ setting, sseConnected, sidebarOpen, onToggleSid
         )}
       </div>
       <div className={styles.right}>
+        {clockData && (
+          <div className={styles.clockDisplay}>
+            {clockData.day && <span className={styles.clockSegment}>Day {clockData.day}</span>}
+            <span className={styles.clockDot}>{'\u00b7'}</span>
+            <span className={styles.clockSegment}>{clockData.timeStr}</span>
+            {clockData.weather && (
+              <>
+                <span className={styles.clockDot}>{'\u00b7'}</span>
+                <span className={styles.clockWeather}>{clockData.weather}</span>
+              </>
+            )}
+          </div>
+        )}
         {debugMode && (
           <div className={styles.debugBadge} title="Debug mode active (Ctrl+Shift+D to toggle)">
             DEBUG

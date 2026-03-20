@@ -3,23 +3,36 @@ import InlineDicePanel from './InlineDicePanel';
 import ResolutionBlock from './ResolutionBlock';
 import styles from './TurnBlock.module.css';
 
-// Format clock data into a readable string
-// Handles both shapes: { globalClock, currentDay } from game state
-// and { day, hour, minute } from stateChanges.clock
-function formatClock(clock) {
+// Format clock fields for display
+function formatTime(clock) {
   if (!clock) return null;
-
   const hour = clock.hour ?? Math.floor((clock.globalClock || 0) / 60);
   const minute = clock.minute ?? ((clock.globalClock || 0) % 60);
-  const day = clock.day ?? clock.currentDay;
-
   const period = hour >= 12 ? 'PM' : 'AM';
   const displayHour = hour % 12 || 12;
+  return `${displayHour}:${String(minute).padStart(2, '0')} ${period}`;
+}
 
-  const parts = [];
-  if (day) parts.push(`Day ${day}`);
-  parts.push(`${displayHour}:${String(minute).padStart(2, '0')} ${period}`);
-  return parts.join(' \u00b7 ');
+function getTimeEmoji(clock) {
+  if (!clock) return null;
+  const hour = clock.hour ?? Math.floor((clock.globalClock || 0) / 60);
+  if (hour >= 5 && hour < 8) return '\u{1F305}';   // sunrise
+  if (hour >= 8 && hour < 18) return '\u2600\uFE0F'; // sun
+  if (hour >= 18 && hour < 21) return '\u{1F307}';  // sunset
+  return '\u{1F319}';                                 // night
+}
+
+function getWeatherEmoji(weather) {
+  if (!weather) return null;
+  const w = weather.toLowerCase();
+  if (w.includes('clear') || w.includes('sunny')) return '\u2600\uFE0F';
+  if (w.includes('cloud') || w.includes('overcast')) return '\u2601\uFE0F';
+  if (w.includes('storm') || w.includes('thunder')) return '\u26C8\uFE0F';
+  if (w.includes('rain') || w.includes('drizzle')) return '\u{1F327}\uFE0F';
+  if (w.includes('snow') || w.includes('blizzard')) return '\u2744\uFE0F';
+  if (w.includes('fog') || w.includes('mist')) return '\u{1F32B}\uFE0F';
+  if (w.includes('wind')) return '\u{1F32C}\uFE0F';
+  return null;
 }
 
 // Render narrative text: \n\n = paragraph break, \n = <br>
@@ -149,21 +162,46 @@ function StatusBadges({ stateChanges }) {
 }
 
 export default function TurnBlock({ turn, isNew }) {
-  const clockStr = formatClock(turn.clock);
   const hasResolution = !!turn.resolution;
   const shouldAnimate = isNew && hasResolution;
-
-  // When animating, delay showing resolution + narrative until dice are done
   const [showContent, setShowContent] = useState(!shouldAnimate);
+
+  const timeStr = formatTime(turn.clock);
+  const timeEmoji = getTimeEmoji(turn.clock);
+  const day = turn.clock?.day ?? turn.clock?.currentDay;
+  const weatherEmoji = getWeatherEmoji(turn.weather);
 
   return (
     <div className={styles.turnBlock}>
       <div className={styles.turnHeader}>
-        <span className={styles.turnNumber}>TURN {turn.number}</span>
-        {clockStr && <span className={styles.clockInfo}>{clockStr}</span>}
-        {turn.clock?.weather && (
-          <span className={styles.weather}>{turn.clock.weather}</span>
+        {turn.location && (
+          <span className={styles.headerChip}>
+            <span className={styles.headerEmoji}>{'\u{1F4CD}'}</span>
+            <span className={styles.headerValue}>{turn.location}</span>
+          </span>
         )}
+        {day && (
+          <span className={styles.headerChip}>
+            <span className={styles.headerEmoji}>{'\u{1F4C5}'}</span>
+            <span className={styles.headerValue}>Day {day}</span>
+          </span>
+        )}
+        {timeStr && (
+          <span className={styles.headerChip}>
+            <span className={styles.headerEmoji}>{timeEmoji}</span>
+            <span className={styles.headerValue}>{timeStr}</span>
+          </span>
+        )}
+        {turn.weather && (
+          <span className={styles.headerChip}>
+            {weatherEmoji && <span className={styles.headerEmoji}>{weatherEmoji}</span>}
+            <span className={styles.headerValue}>{turn.weather}</span>
+          </span>
+        )}
+        <span className={styles.headerChip}>
+          <span className={styles.headerEmoji}>{'\u{1F504}'}</span>
+          <span className={styles.headerValue}>Turn {turn.number}</span>
+        </span>
       </div>
 
       {turn.playerAction && (

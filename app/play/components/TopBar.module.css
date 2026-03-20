@@ -81,6 +81,33 @@
   outline-offset: 1px;
 }
 
+/* ─── In-Game Clock ─── */
+
+.clockDisplay {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 4px;
+}
+
+.clockSegment {
+  font-family: var(--font-jetbrains);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.clockDot {
+  font-size: 10px;
+  color: var(--text-dim);
+  opacity: 0.5;
+}
+
+.clockWeather {
+  font-family: var(--font-alegreya-sans);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
 .debugBadge {
   padding: 3px 10px;
   border-radius: 4px;

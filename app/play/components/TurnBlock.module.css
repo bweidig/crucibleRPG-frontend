@@ -11,28 +11,35 @@
 .turnHeader {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   margin-bottom: 8px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--border-light);
+  flex-wrap: wrap;
 }
 
-.turnNumber {
-  font-family: var(--font-cinzel);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-  letter-spacing: 0.05em;
+.headerChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.clockInfo {
-  font-family: var(--font-jetbrains);
+.headerEmoji {
   font-size: 12px;
-  color: var(--text-dim);
+  line-height: 1;
+  flex-shrink: 0;
 }
 
-.weather {
+.headerValue {
   font-family: var(--font-alegreya-sans);
-  font-size: 12px;
-  color: var(--text-dim);
+  font-size: 0.92em;
+  color: var(--text-muted);
+}
+
+/* Use monospace for numeric values (day, time, turn) */
+.headerChip:nth-child(n+2) .headerValue {
+  font-family: var(--font-jetbrains);
+  font-size: 11px;
 }
 
 /* ─── Player Action ─── */
