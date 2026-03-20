@@ -58,11 +58,22 @@
 .mapCanvas {
   position: relative;
   width: 100%;
-  aspect-ratio: 1.22;
+  min-height: 450px;
   background: var(--bg-main);
   border-radius: 8px;
   border: 1px solid var(--border-primary);
   overflow: hidden;
+  touch-action: none;
+}
+
+.mapCanvasGrab {
+  composes: mapCanvas;
+  cursor: grab;
+}
+
+.mapCanvasGrabbing {
+  composes: mapCanvas;
+  cursor: grabbing;
 }
 
 .mapSvg {
@@ -96,11 +107,14 @@
 
 .zoomBtn:first-child {
   border-radius: 4px 4px 0 0;
-  border-bottom: none;
 }
 
 .zoomBtn:last-child {
   border-radius: 0 0 4px 4px;
+}
+
+.zoomBtn + .zoomBtn {
+  border-top: none;
 }
 
 .zoomBtn:hover:not(:disabled) {

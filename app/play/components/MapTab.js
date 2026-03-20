@@ -378,6 +378,18 @@ function ChevronIcon() {
   );
 }
 
+function ResetViewIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <line x1="12" y1="2" x2="12" y2="6" />
+      <line x1="12" y1="18" x2="12" y2="22" />
+      <line x1="2" y1="12" x2="6" y2="12" />
+      <line x1="18" y1="12" x2="22" y2="12" />
+    </svg>
+  );
+}
+
 // =============================================================================
 // Main MapTab Component
 // =============================================================================
@@ -390,8 +402,21 @@ export default function MapTab({ data: initialData, gameId, onEntityClick }) {
   const [hoveredRoute, setHoveredRoute] = useState(null);
   const [mousePos, setMousePos] = useState({ clientX: 0, clientY: 0 });
   const [positions, setPositions] = useState({});
-  const [dims, setDims] = useState({ width: 320, height: 260 });
+  const [dims, setDims] = useState({ width: 320, height: 450 });
   const containerRef = useRef(null);
+
+  // ─── Viewport zoom / pan state ───
+  const [zoom, setZoom] = useState(1.0);
+  const [panX, setPanX] = useState(0);
+  const [panY, setPanY] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const dragStartRef = useRef(null);
+
+  const resetView = useCallback(() => {
+    setZoom(1.0);
+    setPanX(0);
+    setPanY(0);
+  }, []);
 
   // Update from props when at top level
   useEffect(() => {
@@ -406,7 +431,8 @@ export default function MapTab({ data: initialData, gameId, onEntityClick }) {
     const observer = new ResizeObserver(entries => {
       for (const entry of entries) {
         const w = Math.floor(entry.contentRect.width);
-        if (w > 0) setDims({ width: w, height: Math.round(w * 0.82) });
+        const h = Math.floor(entry.contentRect.height);
+        if (w > 0 && h > 0) setDims({ width: w, height: Math.max(h, 450) });
       }
     });
     observer.observe(containerRef.current);
@@ -423,12 +449,79 @@ export default function MapTab({ data: initialData, gameId, onEntityClick }) {
     }
   }, [mapData, dims.width, dims.height]);
 
+  // ─── Mouse wheel zoom (non-passive to allow preventDefault) ───
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handleWheel = (e) => {
+      e.preventDefault();
+      const step = e.deltaY > 0 ? -0.15 : 0.15;
+      const newZoom = Math.max(0.5, Math.min(3.0, zoom + step));
+      if (newZoom === zoom) return;
+
+      // Zoom toward cursor position
+      const rect = el.getBoundingClientRect();
+      const mouseRelX = e.clientX - rect.left;
+      const mouseRelY = e.clientY - rect.top;
+      const vw = dims.width / zoom;
+      const vh = dims.height / zoom;
+      const svgX = panX + (mouseRelX / rect.width) * vw;
+      const svgY = panY + (mouseRelY / rect.height) * vh;
+      const newVw = dims.width / newZoom;
+      const newVh = dims.height / newZoom;
+      setPanX(svgX - (mouseRelX / rect.width) * newVw);
+      setPanY(svgY - (mouseRelY / rect.height) * newVh);
+      setZoom(newZoom);
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, [zoom, panX, panY, dims]);
+
+  // ─── Click-and-drag to pan ───
+  const handleCanvasMouseDown = useCallback((e) => {
+    // Only pan when zoomed in past 1x, and only on left button
+    if (zoom <= 1.0 || e.button !== 0) return;
+    e.preventDefault();
+    setDragging(true);
+    dragStartRef.current = { x: e.clientX, y: e.clientY, panX, panY };
+  }, [zoom, panX, panY]);
+
+  const handleCanvasMouseMove = useCallback((e) => {
+    setMousePos({ clientX: e.clientX, clientY: e.clientY });
+    if (!dragging || !dragStartRef.current) return;
+
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const dx = e.clientX - dragStartRef.current.x;
+    const dy = e.clientY - dragStartRef.current.y;
+    const vw = dims.width / zoom;
+    const vh = dims.height / zoom;
+    setPanX(dragStartRef.current.panX - (dx / rect.width) * vw);
+    setPanY(dragStartRef.current.panY - (dy / rect.height) * vh);
+  }, [dragging, zoom, dims]);
+
+  const handleCanvasMouseUp = useCallback(() => {
+    setDragging(false);
+    dragStartRef.current = null;
+  }, []);
+
+  // Release drag if mouse leaves the window
+  useEffect(() => {
+    if (!dragging) return;
+    const handleUp = () => { setDragging(false); dragStartRef.current = null; };
+    document.addEventListener('mouseup', handleUp);
+    return () => document.removeEventListener('mouseup', handleUp);
+  }, [dragging]);
+
   // Navigate to a sub-level or back to top
   const navigateToLevel = useCallback(async (levelId) => {
     if (!gameId) return;
     setLoading(true);
     setHoveredNode(null);
     setHoveredRoute(null);
+    resetView();
     try {
       const path = levelId
         ? `/api/game/${gameId}/map?level=${levelId}`
@@ -441,19 +534,16 @@ export default function MapTab({ data: initialData, gameId, onEntityClick }) {
     } finally {
       setLoading(false);
     }
-  }, [gameId]);
+  }, [gameId, resetView]);
 
   const handleNodeClick = useCallback((loc) => {
+    if (dragging) return; // Don't trigger clicks during drag
     if (loc.hasChildren) {
       navigateToLevel(loc.id);
     } else {
       onEntityClick?.({ term: loc.name, type: 'location', id: loc.id });
     }
-  }, [navigateToLevel, onEntityClick]);
-
-  const handleMouseMove = useCallback((e) => {
-    setMousePos({ clientX: e.clientX, clientY: e.clientY });
-  }, []);
+  }, [navigateToLevel, onEntityClick, dragging]);
 
   // Build breadcrumbs from API response or navigation state
   const breadcrumbs = Array.isArray(mapData?.breadcrumbs) ? mapData.breadcrumbs : [];
@@ -507,10 +597,24 @@ export default function MapTab({ data: initialData, gameId, onEntityClick }) {
       )}
 
       {/* Map canvas */}
-      <div ref={containerRef} className={styles.mapCanvas} onMouseMove={handleMouseMove}>
+      <div
+        ref={containerRef}
+        className={
+          dragging ? styles.mapCanvasGrabbing
+            : zoom > 1.0 ? styles.mapCanvasGrab
+            : styles.mapCanvas
+        }
+        onMouseDown={handleCanvasMouseDown}
+        onMouseMove={handleCanvasMouseMove}
+        onMouseUp={handleCanvasMouseUp}
+      >
         {loading && <div className={styles.loadingOverlay}>Loading...</div>}
         {layoutReady && !loading && (
-          <svg className={styles.mapSvg} viewBox={`0 0 ${dims.width} ${dims.height}`} preserveAspectRatio="xMidYMid meet">
+          <svg
+            className={styles.mapSvg}
+            viewBox={`${panX} ${panY} ${dims.width / zoom} ${dims.height / zoom}`}
+            preserveAspectRatio="xMidYMid meet"
+          >
             {/* Grid lines */}
             {[0.2, 0.4, 0.6, 0.8].map(pct => (
               <g key={pct}>
@@ -524,9 +628,9 @@ export default function MapTab({ data: initialData, gameId, onEntityClick }) {
             {/* Routes (hit area + visible line) */}
             {routes.map(route => (
               <g key={route.id}
-                onMouseEnter={() => setHoveredRoute(route.id)}
+                onMouseEnter={() => { if (!dragging) setHoveredRoute(route.id); }}
                 onMouseLeave={() => setHoveredRoute(null)}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: dragging ? undefined : 'pointer' }}
               >
                 <line
                   x1={positions[route.origin]?.x} y1={positions[route.origin]?.y}
@@ -542,7 +646,7 @@ export default function MapTab({ data: initialData, gameId, onEntityClick }) {
               <MapNode key={loc.id} loc={loc}
                 x={positions[loc.id]?.x || 0} y={positions[loc.id]?.y || 0}
                 isHovered={hoveredNode === loc.id}
-                onHover={() => { setHoveredNode(loc.id); setHoveredRoute(null); }}
+                onHover={() => { if (!dragging) { setHoveredNode(loc.id); setHoveredRoute(null); } }}
                 onLeave={() => setHoveredNode(null)}
                 onClick={() => handleNodeClick(loc)}
               />
@@ -556,7 +660,7 @@ export default function MapTab({ data: initialData, gameId, onEntityClick }) {
             className={styles.zoomBtn}
             onClick={() => { if (canZoomIn) navigateToLevel(zoomInTarget.id); }}
             disabled={!canZoomIn}
-            title="Zoom in"
+            title="Drill into location"
           >
             <ZoomInIcon />
           </button>
@@ -564,14 +668,29 @@ export default function MapTab({ data: initialData, gameId, onEntityClick }) {
             className={styles.zoomBtn}
             onClick={() => { if (canZoomOut) navigateToLevel(mapData.parent); }}
             disabled={!canZoomOut}
-            title="Zoom out"
+            title="Zoom out to parent"
           >
             <ZoomOutIcon />
           </button>
+          <button
+            className={styles.zoomBtn}
+            onClick={resetView}
+            disabled={zoom === 1.0 && panX === 0 && panY === 0}
+            title="Reset view"
+          >
+            <ResetViewIcon />
+          </button>
         </div>
 
-        {/* Level label */}
-        {mapData.label && <div className={styles.levelLabel}>{mapData.label}</div>}
+        {/* Level label + zoom indicator */}
+        <div className={styles.levelLabel}>
+          {mapData.label}
+          {zoom !== 1.0 && (
+            <span style={{ marginLeft: 8, fontFamily: "'JetBrains Mono', monospace" }}>
+              {zoom.toFixed(1)}x
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Legend */}
