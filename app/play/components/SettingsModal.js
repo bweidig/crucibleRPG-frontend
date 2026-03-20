@@ -200,6 +200,245 @@ function SelectorRow({ label, options, value, onChange, description }) {
 }
 
 // =============================================================================
+// AI Model Section (playtester-only)
+// =============================================================================
+
+const TASK_LABELS = {
+  narrative: 'Narrative (story writing)',
+  summarization: 'Summarization (per-turn)',
+  zone_generation: 'Zone Generation',
+  classification: 'Action Classification',
+  npc_flesh_out: 'NPC Flesh-out',
+  campaign_summary: 'Campaign Summary',
+  session_recap: 'Session Recap',
+  briefing: 'Briefing Command',
+  character_proposal: 'Character Proposal',
+};
+
+const PROVIDER_LABELS = { openai: 'OpenAI', anthropic: 'Anthropic', google: 'Google' };
+
+function groupByProvider(models) {
+  const groups = {};
+  (models || []).forEach(m => {
+    const p = m.provider || 'other';
+    if (!groups[p]) groups[p] = [];
+    groups[p].push(m);
+  });
+  return groups;
+}
+
+function ModelSelect({ value, models, defaultModelId, defaultLabel, inherited, onChange, className }) {
+  const groups = groupByProvider(models);
+  return (
+    <select
+      className={className}
+      value={value || ''}
+      onChange={e => onChange(e.target.value || null)}
+      style={inherited && !value ? { color: '#6b83a3', fontStyle: 'italic' } : undefined}
+    >
+      <option value="">
+        Default{defaultLabel ? ` (${defaultLabel})` : ''}
+      </option>
+      {Object.entries(groups).map(([provider, pModels]) => (
+        <optgroup key={provider} label={PROVIDER_LABELS[provider] || provider}>
+          {pModels.map(m => (
+            <option key={m.id} value={m.id}>{m.label}{m.tier === 'fast' ? ' \u2022 fast' : m.tier === 'nano' ? ' \u2022 nano' : ''}</option>
+          ))}
+        </optgroup>
+      ))}
+    </select>
+  );
+}
+
+function AiModelSection({ gameId }) {
+  const user = api.getUser();
+  const isPlaytester = user?.isPlaytester;
+
+  const [aiData, setAiData] = useState(null);   // null=loading, false=hidden
+  const [overrides, setOverrides] = useState({});
+  const [advancedMode, setAdvancedMode] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [successKey, setSuccessKey] = useState(null);
+  const [error, setError] = useState(null);
+
+  // Fetch on mount
+  useEffect(() => {
+    if (!gameId || !isPlaytester) {
+      setAiData(false);
+      return;
+    }
+    api.get(`/api/game/${gameId}/settings/ai-model`).then(data => {
+      setAiData(data);
+      setOverrides(data.overrides || {});
+      const hasPerTask = Object.entries(data.overrides || {}).some(([k, v]) => k !== 'all' && v != null);
+      if (hasPerTask) setAdvancedMode(true);
+    }).catch(() => {
+      setAiData(false);
+    });
+  }, [gameId, isPlaytester]);
+
+  const updateOverride = useCallback(async (key, modelId) => {
+    if (!gameId) return;
+    const prevOverrides = { ...overrides };
+    const value = modelId || null;
+    setOverrides(prev => ({ ...prev, [key]: value }));
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await api.put(`/api/game/${gameId}/settings/ai-model`, { overrides: { [key]: value } });
+      if (res.overrides) setOverrides(res.overrides);
+      setSuccessKey(key);
+      setTimeout(() => setSuccessKey(null), 1500);
+    } catch (err) {
+      setOverrides(prevOverrides);
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }, [gameId, overrides]);
+
+  const resetAll = useCallback(async () => {
+    if (!gameId) return;
+    const prevOverrides = { ...overrides };
+    const resetBody = {};
+    Object.keys(overrides).forEach(k => { resetBody[k] = null; });
+    setOverrides(prev => Object.fromEntries(Object.keys(prev).map(k => [k, null])));
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await api.put(`/api/game/${gameId}/settings/ai-model`, { overrides: resetBody });
+      if (res.overrides) setOverrides(res.overrides);
+      setSuccessKey('reset');
+      setTimeout(() => setSuccessKey(null), 1500);
+    } catch (err) {
+      setOverrides(prevOverrides);
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }, [gameId, overrides]);
+
+  // Don't render for non-playtesters or on fetch failure
+  if (!isPlaytester || aiData === false) return null;
+
+  // Loading skeleton
+  if (aiData === null) {
+    return (
+      <div>
+        <SectionLabel>AI Models</SectionLabel>
+        <div className={styles.loadingSkeleton} style={{ width: '60%' }} />
+        <div className={styles.loadingSkeleton} style={{ width: '100%', marginTop: 6 }} />
+        <div className={styles.loadingSkeleton} style={{ width: '80%', marginTop: 6 }} />
+      </div>
+    );
+  }
+
+  const { defaults = {}, availableModels = [], taskTypes = [] } = aiData;
+  const modelLabelById = {};
+  availableModels.forEach(m => { modelLabelById[m.id] = m.label; });
+
+  const hasAnyOverride = Object.values(overrides).some(v => v != null);
+  const hasPerTaskOverrides = Object.entries(overrides).some(([k, v]) => k !== 'all' && v != null);
+
+  return (
+    <div>
+      <SectionLabel extra={
+        <>
+          <span className={styles.devBadge}>Playtester</span>
+          {saving && <span className={styles.savingDot} />}
+        </>
+      }>
+        AI Models
+      </SectionLabel>
+
+      {/* Simple mode: All AI Tasks dropdown */}
+      <div className={styles.modelRow}>
+        <div className={styles.modelRowLabel}>
+          <span className={styles.modelRowName}>
+            All AI Tasks
+            {successKey === 'all' && <span className={styles.modelSuccessCheck}>{'\u2713'}</span>}
+          </span>
+          {hasAnyOverride && (
+            <button
+              className={styles.resetButton}
+              onClick={resetAll}
+              disabled={saving}
+            >
+              {successKey === 'reset' ? '\u2713 Reset' : 'Reset to defaults'}
+            </button>
+          )}
+        </div>
+        <ModelSelect
+          className={styles.modelSelect}
+          value={overrides.all}
+          models={availableModels}
+          defaultLabel={null}
+          onChange={v => updateOverride('all', v)}
+        />
+        {hasPerTaskOverrides && !advancedMode && (
+          <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12, color: '#e8c45a', marginTop: 6 }}>
+            Some tasks have individual overrides.{' '}
+            <button onClick={() => setAdvancedMode(true)} style={{
+              background: 'none', border: 'none', color: '#c9a84c', cursor: 'pointer',
+              fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12, textDecoration: 'underline', padding: 0,
+            }}>
+              Show details
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Advanced toggle */}
+      <div style={{ padding: '8px 0', borderBottom: '1px solid #161c34' }}>
+        <button onClick={() => setAdvancedMode(!advancedMode)} style={{
+          background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+          fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13,
+          color: advancedMode ? '#c9a84c' : '#7082a4',
+          transition: 'color 0.15s',
+        }}>
+          {advancedMode ? '\u25BC' : '\u25B6'} Configure per task
+        </button>
+      </div>
+
+      {/* Per-task dropdowns */}
+      {advancedMode && taskTypes.map(task => {
+        const taskOverride = overrides[task];
+        const allOverride = overrides.all;
+        const effectiveModel = taskOverride || allOverride || defaults[task];
+        const inheritedFrom = !taskOverride && allOverride ? 'All Tasks' : null;
+
+        return (
+          <div key={task} className={styles.modelRow}>
+            <div className={styles.modelRowLabel}>
+              <span className={styles.modelRowName}>
+                {TASK_LABELS[task] || task}
+                {successKey === task && <span className={styles.modelSuccessCheck}>{'\u2713'}</span>}
+              </span>
+              {inheritedFrom && (
+                <span className={styles.modelRowInherited}>
+                  via {inheritedFrom}: {modelLabelById[allOverride] || allOverride}
+                </span>
+              )}
+            </div>
+            <ModelSelect
+              className={styles.modelSelect}
+              value={taskOverride}
+              models={availableModels}
+              defaultModelId={defaults[task]}
+              defaultLabel={modelLabelById[defaults[task]] || defaults[task]}
+              inherited={!!inheritedFrom}
+              onChange={v => updateOverride(task, v)}
+            />
+          </div>
+        );
+      })}
+
+      {error && <div className={styles.errorText}>{error}</div>}
+    </div>
+  );
+}
+
+// =============================================================================
 // Tab 1: Game Settings
 // =============================================================================
 
@@ -414,6 +653,9 @@ function GameSettingsTab({ gameId, gameState }) {
         description="Binary pass/fail instead of 6-tier system" />
 
       {diffError && <div className={styles.errorText}>{diffError}</div>}
+
+      {/* ── AI Models (playtester only) ── */}
+      <AiModelSection gameId={gameId} />
 
       <div style={{
         fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12, color: '#6b83a3',

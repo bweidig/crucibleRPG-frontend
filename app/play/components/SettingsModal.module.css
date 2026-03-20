@@ -159,6 +159,113 @@
   margin-top: 6px;
 }
 
+/* ─── AI Model Section ─── */
+
+.devBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 600;
+  color: #7082a4;
+  background: #111528;
+  border: 1px solid #1e2540;
+  border-radius: 3px;
+  padding: 1px 6px;
+  margin-left: 8px;
+  letter-spacing: 0.04em;
+}
+
+.modelSelect {
+  width: 100%;
+  padding: 8px 12px;
+  padding-right: 32px;
+  background: #0a0e1a;
+  border: 1px solid #1e2540;
+  border-radius: 6px;
+  font-family: 'Alegreya Sans', sans-serif;
+  font-size: 14px;
+  color: #c8c0b0;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%236b83a3' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+.modelSelect:focus {
+  border-color: #c9a84c;
+}
+
+.modelSelect option {
+  background: #0a0e1a;
+  color: #c8c0b0;
+}
+
+.modelSelect optgroup {
+  background: #111528;
+  color: #8a94a8;
+  font-style: normal;
+}
+
+.modelRow {
+  padding: 8px 0;
+  border-bottom: 1px solid #161c34;
+}
+
+.modelRowLabel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.modelRowName {
+  font-family: 'Alegreya Sans', sans-serif;
+  font-size: 14px;
+  color: #c8c0b0;
+}
+
+.modelRowInherited {
+  font-family: 'Alegreya Sans', sans-serif;
+  font-size: 11px;
+  color: #6b83a3;
+  font-style: italic;
+}
+
+.modelSuccessCheck {
+  color: #8aba7a;
+  margin-left: 6px;
+  font-size: 12px;
+}
+
+.loadingSkeleton {
+  height: 8px;
+  background: #161c34;
+  border-radius: 4px;
+  animation: pulse 1.5s ease-in-out infinite;
+  margin: 8px 0;
+}
+
+.resetButton {
+  padding: 6px 14px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: 'Alegreya Sans', sans-serif;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid #1e2540;
+  color: #7082a4;
+  transition: all 0.2s;
+}
+
+.resetButton:hover {
+  border-color: #3a3328;
+  color: #c8c0b0;
+}
+
 .comingSoonBadge {
   display: inline-block;
   font-family: var(--font-cinzel, 'Cinzel', serif);

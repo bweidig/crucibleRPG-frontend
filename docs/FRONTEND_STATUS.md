@@ -46,6 +46,16 @@
 - **page.js** updated to pass `gameId` and `gameState` props to SettingsModal.
 - **API wiring status:** `PUT /settings/storyteller` and `PUT /settings/difficulty` now wired.
 
+### AI Model Selector (New Feature, Playtester-Only)
+- **AiModelSection** component added to Game Settings tab, gated on `user.isPlaytester`. Section hidden entirely for non-playtesters (no error, no placeholder). If `GET /api/game/:id/settings/ai-model` returns 403 or fails (endpoint not deployed yet), section hides gracefully.
+- **Simple mode** (default): "All AI Tasks" dropdown sets `overrides.all` for every AI task. Reset to defaults button clears all overrides. Note shown when per-task overrides exist with expand link.
+- **Advanced mode** (expandable): "Configure per task" toggle reveals per-task dropdowns for 9 task types (Narrative, Summarization, Zone Generation, Classification, NPC Flesh-out, Campaign Summary, Session Recap, Briefing, Character Proposal). Each shows "Default (model name)" as first option. When `all` override is set and task has no individual override, shows "via All Tasks: model" inheritance label.
+- **Dropdowns**: Native `<select>` with `<optgroup>` provider grouping (OpenAI/Anthropic/Google). Styled with dark theme, custom dropdown arrow SVG, gold focus border. Tier badges shown inline (fast/nano).
+- **Save behavior**: Changes save immediately on selection (same pattern as storyteller). Optimistic update with revert on failure. Success checkmark per dropdown, saving dot on section header, error message on failure. Loading skeleton while initial GET is in-flight.
+- **ModelSelect** shared component: Reusable grouped dropdown with default option, provider grouping, tier display, inherited styling.
+- **CSS additions**: `.devBadge` (playtester indicator), `.modelSelect` (styled native select), `.modelRow`/`.modelRowLabel`/`.modelRowInherited` (task row layout), `.resetButton`, `.loadingSkeleton`.
+- **API endpoints**: `GET /api/game/:id/settings/ai-model` + `PUT /api/game/:id/settings/ai-model` (partial update: sends only changed keys).
+
 ### Init Wizard: Proposal Skills/Loadout Display (Bugfix)
 - **Root cause:** Phase 4 (attributes review) had hardcoded placeholder skills text ("Streetwise 1.0, Lockpicking 1.0, Blade Work 1.0") instead of using the AI-generated proposal data. `generateProposal()` stored `foundationalSkills`, `startingLoadout`, `factionStandings` but not `skills`, `narrativeBackstory`, `innateTraits`, or `species`. Phase4 component only received `stats` prop, not the rest of the proposal.
 - **Fix:** `generateProposal()` now stores all proposal fields (skills, foundationalSkills, startingLoadout, factionStandings, narrativeBackstory, innateTraits, species) with `Array.isArray()` guards. Phase4 receives and renders: backstory skills (comma list), foundational skills (scope + breadthCategory + stat), starting loadout (name + slotCost + materialQuality), faction standings (name + signed standing). `saveAttributes()` now passes all proposal fields through to `POST /api/init/:id/adjust-proposal` (removed spurious `accepted: true`).
@@ -313,6 +323,7 @@ All pending rgba/color fixes from previous sessions have been completed.
 | `/api/game/:id/talk-to-gm/escalate` | POST | Wired (Phase 2 escalation, processes as turn response) |
 | `/api/game/:id/settings/storyteller` | PUT | Wired (Settings panel Game Settings tab) |
 | `/api/game/:id/settings/difficulty` | PUT | Wired (Settings panel Game Settings tab, presets + individual dials) |
+| `/api/game/:id/settings/ai-model` | GET/PUT | Wired (Settings panel AI Models section, playtester-only, graceful fallback if endpoint not deployed) |
 | `/api/game/:id/checkpoints` | GET | Not yet |
 | `/api/game/:id/snapshot` | POST | Not yet |
 | `/api/bug-report` | POST | Not yet |
