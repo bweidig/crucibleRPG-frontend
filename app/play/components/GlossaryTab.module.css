@@ -1,20 +1,63 @@
-/* GlossaryTab — Searchable glossary entries */
+/* GlossaryTab — Searchable glossary entries with category tabs */
 
-.searchRow {
+/* ─── Category Tabs ─── */
+
+.tabRow {
   display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 2px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 0;
 }
 
+.tab {
+  padding: 5px 8px 7px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-cinzel);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--text-secondary);
+}
+
+.tabActive {
+  composes: tab;
+  color: var(--accent-gold);
+  font-weight: 700;
+  border-bottom-color: var(--accent-gold);
+}
+
+.tabCount {
+  font-family: var(--font-jetbrains);
+  font-size: 9px;
+  color: var(--text-dim);
+  opacity: 0.7;
+}
+
+/* ─── Search ─── */
+
 .searchInput {
-  flex: 1;
-  padding: 8px 12px;
+  width: 100%;
+  padding: 7px 12px;
   background: var(--bg-input);
   border: 1px solid var(--border-gold-faint);
   border-radius: 4px;
   color: var(--text-primary);
   font-family: inherit;
   font-size: var(--ui-size, 13px);
+  margin-bottom: 6px;
+  box-sizing: border-box;
 }
 
 .searchInput::placeholder {
@@ -24,17 +67,6 @@
 .searchInput:focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.2);
-}
-
-.categorySelect {
-  padding: 8px 10px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-gold-faint);
-  border-radius: 4px;
-  color: var(--text-primary);
-  font-family: var(--font-alegreya-sans);
-  font-size: 12px;
-  cursor: pointer;
 }
 
 .entryCard {

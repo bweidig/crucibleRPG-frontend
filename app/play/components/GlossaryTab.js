@@ -2,9 +2,20 @@ import { useState, useMemo } from 'react';
 import styles from './GlossaryTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
 
+const TABS = [
+  { id: 'all', label: 'All', match: null },
+  { id: 'npc', label: 'People', match: 'npc' },
+  { id: 'location', label: 'Places', match: 'location' },
+  { id: 'faction', label: 'Factions', match: 'faction' },
+  { id: 'item', label: 'Items', match: 'item' },
+  { id: 'other', label: 'Other', match: null },
+];
+
+const KNOWN_CATEGORIES = new Set(['npc', 'location', 'faction', 'item']);
+
 export default function GlossaryTab({ data, onEntityClick }) {
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('all');
+  const [activeTab, setActiveTab] = useState('all');
 
   if (!data) {
     return <div className={sidebarStyles.loadingState}>Loading glossary...</div>;
@@ -12,25 +23,31 @@ export default function GlossaryTab({ data, onEntityClick }) {
 
   const entries = Array.isArray(data.entries) ? data.entries : [];
 
-  // Extract unique categories for the filter dropdown
-  const categories = useMemo(() => {
-    const set = new Set();
-    entries.forEach(e => { if (e.category) set.add(e.category); });
-    return Array.from(set).sort();
+  // Count per tab for badges
+  const counts = useMemo(() => {
+    const c = { all: entries.length, npc: 0, location: 0, faction: 0, item: 0, other: 0 };
+    entries.forEach(e => {
+      const cat = (e.category || '').toLowerCase();
+      if (KNOWN_CATEGORIES.has(cat)) c[cat]++;
+      else c.other++;
+    });
+    return c;
   }, [entries]);
 
-  // Filter entries by search term and category
+  // Filter entries by active tab + search term
   const filtered = useMemo(() => {
     return entries.filter(e => {
-      const matchesCategory = category === 'all' ||
-        (e.category || '').toLowerCase() === category.toLowerCase();
-      if (!matchesCategory) return false;
+      const cat = (e.category || '').toLowerCase();
+      if (activeTab === 'all') { /* no category filter */ }
+      else if (activeTab === 'other') { if (KNOWN_CATEGORIES.has(cat)) return false; }
+      else if (cat !== activeTab) return false;
+
       if (!search.trim()) return true;
       const q = search.toLowerCase();
       return (e.term || '').toLowerCase().includes(q) ||
              (e.definition || '').toLowerCase().includes(q);
     });
-  }, [entries, search, category]);
+  }, [entries, search, activeTab]);
 
   if (entries.length === 0) {
     return <div className={sidebarStyles.emptyState}>No glossary entries yet.</div>;
@@ -38,27 +55,32 @@ export default function GlossaryTab({ data, onEntityClick }) {
 
   return (
     <div>
-      <div className={styles.searchRow}>
-        <input
-          type="text"
-          className={styles.searchInput}
-          placeholder="Search entries..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          aria-label="Search glossary"
-        />
-        <select
-          className={styles.categorySelect}
-          value={category}
-          onChange={e => setCategory(e.target.value)}
-          aria-label="Filter by category"
-        >
-          <option value="all">All</option>
-          {categories.map(cat => (
-            <option key={cat} value={cat}>{cat}</option>
-          ))}
-        </select>
+      {/* Category tabs */}
+      <div className={styles.tabRow}>
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            className={activeTab === tab.id ? styles.tabActive : styles.tab}
+            onClick={() => setActiveTab(tab.id)}
+            aria-label={`Filter: ${tab.label}`}
+          >
+            {tab.label}
+            {counts[tab.id] > 0 && tab.id !== 'all' && (
+              <span className={styles.tabCount}>{counts[tab.id]}</span>
+            )}
+          </button>
+        ))}
       </div>
+
+      {/* Search */}
+      <input
+        type="text"
+        className={styles.searchInput}
+        placeholder="Search entries..."
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        aria-label="Search glossary"
+      />
 
       <div className={styles.resultCount}>{filtered.length} entries</div>
 
