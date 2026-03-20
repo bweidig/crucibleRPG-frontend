@@ -32,6 +32,20 @@
 
 ## Recent Work (This Session: 2026-03-19)
 
+### Map Tab: Viewport Size + Scroll Zoom + Drag Pan
+- **Canvas height:** Removed `aspect-ratio: 1.22` (~260px), replaced with `min-height: 450px`. ResizeObserver reads actual container height with 450px floor.
+- **Mouse wheel zoom:** 0.5x to 3.0x range. Non-passive wheel listener prevents page scroll. Zoom targets cursor position (point under cursor stays fixed). Step: 0.15 per tick. SVG `viewBox` computed dynamically as `panX panY width/zoom height/zoom`.
+- **Click-drag pan:** Active when zoomed past 1.0x. `grab`/`grabbing` cursor via CSS module classes. Drag tracked on `document mouseup` for reliability. Hover tooltips and node clicks suppressed during drag.
+- **Reset view button:** Third button in zoom control stack (crosshair icon). Resets zoom to 1.0x, pan to (0,0). Disabled when already at default. Auto-resets on level navigation.
+- **Zoom indicator:** Shows `1.5x` next to level label when zoomed.
+- **Files:** `MapTab.js`, `MapTab.module.css`.
+
+### Glossary Tab: Category Filter Tabs
+- **Replaced** `<select>` dropdown with horizontal tab row: All, People (`npc`), Places (`location`), Factions (`faction`), Items (`item`), Other (mechanics, species, etc.).
+- **Styling:** Cinzel 11px, gold underline + bold on active tab, muted on inactive. Count badges per tab (except All).
+- **Filter logic:** `KNOWN_CATEGORIES` set defines the four named categories; anything not in the set groups under Other. Search input still works in combination with tab filter.
+- **Files:** `GlossaryTab.js`, `GlossaryTab.module.css`.
+
 ### Settings Panel: Full Tabbed Rewrite
 - **SettingsModal.js** rewritten from display-only modal (theme/font/size) to full 3-tab settings panel matching `docs/GameLayout/settings-panel-mockup.jsx`.
 - **Tab 1: Game Settings** (live API wiring):
