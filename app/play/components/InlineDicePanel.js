@@ -130,58 +130,89 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
   }, [onComplete]);
 
   // Animation phases with timeouts
-  // phase -1 = waiting for scroll, 0 = spinning, 1+ = landing phases, 99 = done (no animation)
+  // phase -1 = waiting for visibility, 0 = spinning, 1+ = landing phases, 99 = done (no animation)
+  const [visible, setVisible] = useState(!animate);
+
+  // Step 1: Scroll into view and wait for IntersectionObserver to confirm visibility
   useEffect(() => {
     if (!animate) {
-      setPhase(99);
-      fireComplete();
+      setVisible(true);
       return;
     }
 
     completedRef.current = false;
     setPhase(-1);
+    setVisible(false);
+
+    const el = panelRef.current;
+    if (!el) { setVisible(true); return; }
+
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          observer.disconnect();
+          setVisible(true);
+        }
+      },
+      { threshold: 0.5 }
+    );
+    observer.observe(el);
+
+    // Safety fallback: if observer never fires (e.g. element is in a hidden panel), start after 1.5s
+    const fallback = setTimeout(() => { observer.disconnect(); setVisible(true); }, 1500);
+
+    return () => { observer.disconnect(); clearTimeout(fallback); };
+  }, [resolution.dieSelected, resolution.crucibleRoll, animate]);
+
+  // Step 2: Once visible, run the animation phase sequence
+  useEffect(() => {
+    if (!animate || !visible) return;
+
     const timers = [];
     const t = (fn, d) => timers.push(setTimeout(fn, d));
 
-    // Scroll into view, then start animation after a pause
-    if (panelRef.current) {
-      panelRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-    const scrollDelay = 400;
+    // Short pause after becoming visible so the player registers the dice before they spin
+    const pause = 200;
 
     if (isMatched) {
-      // Scroll → spin → land → hold → complete
-      t(() => setPhase(0), scrollDelay);
-      t(() => setPhase(1), scrollDelay + 800);
-      // Natural extreme flash
+      t(() => setPhase(0), pause);
+      t(() => setPhase(1), pause + 800);
       if (isExtreme) {
-        t(() => setExtremeFlash(true), scrollDelay + 800);
-        t(() => setExtremeFlash(false), scrollDelay + 1400);
+        t(() => setExtremeFlash(true), pause + 800);
+        t(() => setExtremeFlash(false), pause + 1400);
       }
-      t(() => fireComplete(), scrollDelay + 800 + 1000);  // 1s hold
+      t(() => fireComplete(), pause + 800 + 1000);
     } else if (hasCC && isExtreme) {
-      // Crucible lands with extreme
-      t(() => setPhase(0), scrollDelay);
-      t(() => setPhase(1), scrollDelay + 800);
-      t(() => setExtremeFlash(true), scrollDelay + 800);
-      t(() => setExtremeFlash(false), scrollDelay + 1500);
-      t(() => fireComplete(), scrollDelay + 800 + 1200);
+      t(() => setPhase(0), pause);
+      t(() => setPhase(1), pause + 800);
+      t(() => setExtremeFlash(true), pause + 800);
+      t(() => setExtremeFlash(false), pause + 1500);
+      t(() => fireComplete(), pause + 800 + 1200);
     } else if (hasCC && hasMortal) {
-      // Scroll → crucible spins → crucible lands → mortal spin → mortal land → resolve → hold
-      t(() => setPhase(0), scrollDelay);
-      t(() => setPhase(1), scrollDelay + 600);   // crucible lands
-      t(() => setPhase(2), scrollDelay + 1000);  // mortal dice appear spinning
-      t(() => setPhase(3), scrollDelay + 1600);  // mortal dice land
-      t(() => setPhase(4), scrollDelay + 2100);  // kept/discarded resolved
-      t(() => fireComplete(), scrollDelay + 2100 + 1000);  // 1s hold
+      t(() => setPhase(0), pause);
+      t(() => setPhase(1), pause + 600);
+      t(() => setPhase(2), pause + 1000);
+      t(() => setPhase(3), pause + 1600);
+      t(() => setPhase(4), pause + 2100);
+      t(() => fireComplete(), pause + 2100 + 1000);
     } else {
-      t(() => setPhase(0), scrollDelay);
-      t(() => setPhase(1), scrollDelay + 600);
-      t(() => fireComplete(), scrollDelay + 600 + 1000);
+      t(() => setPhase(0), pause);
+      t(() => setPhase(1), pause + 600);
+      t(() => fireComplete(), pause + 600 + 1000);
     }
 
     return () => timers.forEach(clearTimeout);
-  }, [resolution.dieSelected, resolution.crucibleRoll, animate, fireComplete]);
+  }, [visible, animate, fireComplete]);
+
+  // Non-animated: show final state immediately
+  useEffect(() => {
+    if (!animate) {
+      setPhase(99);
+      fireComplete();
+    }
+  }, [animate, fireComplete]);
 
   // For non-animated (historical) turns, treat any phase >= 1 as "show final state"
   const p = phase === 99 ? 99 : phase;
