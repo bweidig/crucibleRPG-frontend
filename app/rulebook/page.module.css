@@ -1,0 +1,90 @@
+/* ============================================
+   Rulebook Page Styles
+   ============================================ */
+
+/* Primary CTA button */
+.btnPrimary {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.btnPrimary:hover {
+  box-shadow: 0 4px 30px rgba(201, 168, 76, 0.45);
+  transform: translateY(-2px);
+}
+
+/* Nav link */
+.navLink {
+  font-family: var(--font-alegreya-sans);
+  font-size: 14px;
+  color: #8a9ab8;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.navLink:hover {
+  color: var(--accent-gold);
+}
+
+.navLinkActive {
+  composes: navLink;
+  color: var(--accent-gold);
+  font-weight: 600;
+}
+
+/* TOC link */
+.tocLink {
+  display: block;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tocLink:hover {
+  color: var(--accent-gold) !important;
+}
+
+/* Scroll area scrollbar */
+.scrollArea::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollArea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollArea::-webkit-scrollbar-thumb {
+  background: #2a2a3a;
+  border-radius: 3px;
+}
+
+.scrollArea::-webkit-scrollbar-thumb:hover {
+  background: #3a3a4a;
+}
+
+/* TOC scrollbar */
+.tocScroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.tocScroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tocScroll::-webkit-scrollbar-thumb {
+  background: #2a2a3a;
+  border-radius: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .btnPrimary {
+    transition: none;
+  }
+
+  .btnPrimary:hover {
+    transform: none;
+  }
+}

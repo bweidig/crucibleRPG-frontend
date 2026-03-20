@@ -20,7 +20,7 @@
 | Pricing | `/pricing` | Complete | None (static) | Dollar amounts TBD |
 | Game Layout | `/play` | Rewrite Phase 4 | All gameplay + talk-to-gm + notes CRUD | Polish pass pending |
 | FAQ | `/faq` | Not built | N/A | Page does not exist yet |
-| Rulebook | `/rulebook` | Not built | N/A | Page does not exist yet |
+| Rulebook | `/rulebook` | Complete | None (static) | None |
 | Legal (ToS) | TBD | Not built | N/A | Needs starter draft |
 | Legal (Privacy) | TBD | Not built | N/A | Needs starter draft |
 
@@ -45,6 +45,17 @@
 - **SettingsModal.module.css** rewritten for panel structure (520px, centered, tabbed). Range slider thumb styling via scoped CSS selector. Saving indicator animation, error text, coming-soon badge styles.
 - **page.js** updated to pass `gameId` and `gameState` props to SettingsModal.
 - **API wiring status:** `PUT /settings/storyteller` and `PUT /settings/difficulty` now wired.
+
+### Rulebook Page (New Page)
+- **Route:** `/rulebook` at `app/rulebook/page.js` + `page.module.css`
+- **Content:** All 22 sections (Quick Start + 21 rule sections) ported verbatim from approved mockup `rulebook-full.jsx`. Static content, no API calls.
+- **Layout:** Matches pricing page pattern: inline styles + CSS module for hover/animation states. Wordmark links to `/`, nav links to Pricing/FAQ/Rulebook (active)/Sign In, footer with copyright.
+- **TOC sidebar:** Sticky 260px sidebar with "CONTENTS" header, scroll-linked section numbers. Quick Start (section 00) uses green accent (`#8aba7a`), all others gold (`#c9a84c`). Active section highlighted with color + font weight.
+- **Scroll spy:** `contentRef` + `sectionRefs` array. On scroll, determines visible section and updates TOC highlight. Click-to-scroll on TOC links with smooth behavior.
+- **Content styling:** Injected `<style>` tag for `.content-section` child selectors (h3, p, ul, ol, li, strong), `.mechanic-callout` (gold left border), `.quickstart-callout` (green left border). Custom scrollbar on content area.
+- **Quick Start distinction:** Green accent throughout (header, TOC link, callout borders). "START HERE" badge not "00" number.
+- **Bottom CTA:** "Every Hero Needs a Crucible." / "Yours is waiting." / START PLAYING button linking to `/auth`.
+- **Animations:** Staggered fade-in on load (hero, subtitle, section count, main area) using loaded state + transition delays.
 
 ### AI Model Selector (New Feature, Playtester-Only)
 - **AiModelSection** component added to Game Settings tab, gated on `user.isPlaytester`. Section hidden entirely for non-playtesters (no error, no placeholder). If `GET /api/game/:id/settings/ai-model` returns 403 or fails (endpoint not deployed yet), section hides gracefully.
@@ -345,7 +356,7 @@ Items flagged for post-launch or future sessions. Not blocking progress.
 
 ### Content
 - FAQ page: needs to be built
-- Rulebook page: needs to be built with full content (12 sections)
+- ~~Rulebook page~~ (done: 22-section rulebook at /rulebook, 2026-03-19)
 - Legal pages: ToS and Privacy Policy starter drafts
 - In-game rulebook: stripped version without marketing chrome
 - Copy audit on Init Wizard and Game Layout pages
