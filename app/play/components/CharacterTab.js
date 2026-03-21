@@ -2,13 +2,13 @@ import PanelSection from './PanelSection';
 import styles from './CharacterTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
 
-const STAT_ORDER = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+const BASE_STAT_ORDER = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
 const STAT_LABELS = {
-  str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA',
+  str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA', pot: 'POT',
 };
 const STAT_FULL = {
   str: 'Strength', dex: 'Dexterity', con: 'Constitution',
-  int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma',
+  int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma', pot: 'Potency',
 };
 
 function StatBar({ statKey, stat, onEntityClick }) {
@@ -65,11 +65,16 @@ export default function CharacterTab({ data, onEntityClick }) {
       )}
 
       <PanelSection title="Stats">
-        {STAT_ORDER.map(key => {
-          const stat = stats[key];
-          if (!stat) return null;
-          return <StatBar key={key} statKey={key} stat={stat} onEntityClick={onEntityClick} />;
-        })}
+        {(() => {
+          const order = [...BASE_STAT_ORDER];
+          const potStat = stats.pot;
+          if (potStat && (potStat.base > 0 || potStat.effective > 0)) order.push('pot');
+          return order.map(key => {
+            const stat = stats[key];
+            if (!stat) return null;
+            return <StatBar key={key} statKey={key} stat={stat} onEntityClick={onEntityClick} />;
+          });
+        })()}
       </PanelSection>
 
       <PanelSection title="Skills">
