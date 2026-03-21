@@ -1,17 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './InlineDicePanel.module.css';
 
-// ─── MiniD20 SVG (from mockup pattern, compact inline size) ───
+// ─── MiniD20 SVG (from mockup pattern) ───
 
 function MiniD20({ value, size = 42, glow = 'none', spinning = false, ghostFaces = false, desaturated = false }) {
   const glowColors = { none: 'transparent', gold: '#c9a84c', tarnished: '#8a6a3a', crimson: '#c84a4a' };
   const gc = glowColors[glow] || 'transparent';
 
   return (
-    <div style={{
+    <div className={spinning ? styles.dieSpinning : undefined} style={{
       width: size, height: size, position: 'relative', display: 'inline-flex',
       filter: desaturated ? 'saturate(0) brightness(0.6)' : undefined,
-      animation: spinning ? 'diceSpin 0.6s linear infinite' : undefined,
       transition: 'opacity 0.4s, transform 0.3s',
     }}>
       {glow !== 'none' && (
@@ -95,6 +94,7 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
 
   const [phase, setPhase] = useState(animate ? -1 : 99);
   const [extremeFlash, setExtremeFlash] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
   const panelRef = useRef(null);
   const completedRef = useRef(false);
 
@@ -133,7 +133,7 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
   // phase -1 = waiting for visibility, 0 = spinning, 1+ = landing phases, 99 = done (no animation)
   const [visible, setVisible] = useState(!animate);
 
-  // Step 1: Scroll into view and wait for IntersectionObserver to confirm visibility
+  // Step 1: Wait for IntersectionObserver to confirm visibility (scroll handled by NarrativePanel)
   useEffect(() => {
     if (!animate) {
       setVisible(true);
@@ -143,11 +143,10 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
     completedRef.current = false;
     setPhase(-1);
     setVisible(false);
+    setTransitioning(false);
 
     const el = panelRef.current;
     if (!el) { setVisible(true); return; }
-
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -167,6 +166,7 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
   }, [resolution.dieSelected, resolution.crucibleRoll, animate]);
 
   // Step 2: Once visible, run the animation phase sequence
+  // After resolved hold, transition the dice panel out before firing onComplete
   useEffect(() => {
     if (!animate || !visible) return;
 
@@ -183,24 +183,28 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
         t(() => setExtremeFlash(true), pause + 800);
         t(() => setExtremeFlash(false), pause + 1400);
       }
-      t(() => fireComplete(), pause + 800 + 1000);
+      t(() => setTransitioning(true), pause + 800 + 1000);
+      t(() => fireComplete(), pause + 800 + 1000 + 450);
     } else if (hasCC && isExtreme) {
       t(() => setPhase(0), pause);
       t(() => setPhase(1), pause + 800);
       t(() => setExtremeFlash(true), pause + 800);
       t(() => setExtremeFlash(false), pause + 1500);
-      t(() => fireComplete(), pause + 800 + 1200);
+      t(() => setTransitioning(true), pause + 800 + 1200);
+      t(() => fireComplete(), pause + 800 + 1200 + 450);
     } else if (hasCC && hasMortal) {
       t(() => setPhase(0), pause);
       t(() => setPhase(1), pause + 600);
       t(() => setPhase(2), pause + 1000);
       t(() => setPhase(3), pause + 1600);
       t(() => setPhase(4), pause + 2100);
-      t(() => fireComplete(), pause + 2100 + 1000);
+      t(() => setTransitioning(true), pause + 2100 + 1000);
+      t(() => fireComplete(), pause + 2100 + 1000 + 450);
     } else {
       t(() => setPhase(0), pause);
       t(() => setPhase(1), pause + 600);
-      t(() => fireComplete(), pause + 600 + 1000);
+      t(() => setTransitioning(true), pause + 600 + 1000);
+      t(() => fireComplete(), pause + 600 + 1000 + 450);
     }
 
     return () => timers.forEach(clearTimeout);
@@ -222,8 +226,22 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
   const showResolved = p >= 4;
   const isSpinning = p === 0 || p === -1;
 
+  // Large dice during animation, compact for historical turns
+  const isLarge = animate && !transitioning && phase !== 99;
+
   // Extreme flash class
   const flashClass = extremeFlash ? (isNat20 ? styles.extremeFlashGold : styles.extremeFlashRed) : '';
+
+  // Panel classes: transition support for animated turns
+  const panelClass = [
+    styles.dicePanel,
+    flashClass,
+    animate ? styles.dicePanelAnimated : '',
+    transitioning ? styles.dicePanelShrunk : '',
+  ].filter(Boolean).join(' ');
+
+  // Dice area classes: larger spacing during animation
+  const diceAreaClass = `${styles.diceArea}${isLarge ? ` ${styles.diceAreaAnimated}` : ''}`;
 
   // ─── Matched: single d20 ───
   if (isMatched) {
@@ -232,12 +250,12 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
     const isRollNat1 = val === 1;
 
     return (
-      <div ref={panelRef} className={`${styles.dicePanel} ${flashClass}`}>
+      <div ref={panelRef} className={panelClass}>
         <CategoryTag category={category} />
-        <div className={styles.diceArea}>
+        <div className={diceAreaClass}>
           <MiniD20
             value={val}
-            size={52}
+            size={isLarge ? 80 : 52}
             spinning={isSpinning}
             glow={showFinal ? (isRollNat20 ? 'gold' : isRollNat1 ? 'crimson' : 'none') : 'none'}
           />
@@ -259,12 +277,12 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
   // Extreme on crucible: no mortal dice, just the crucible
   if (hasCC && isExtreme) {
     return (
-      <div ref={panelRef} className={`${styles.dicePanel} ${flashClass}`}>
+      <div ref={panelRef} className={panelClass}>
         <CategoryTag category={category} />
-        <div className={styles.diceArea}>
+        <div className={diceAreaClass}>
           <MiniD20
             value={resolution.crucibleRoll}
-            size={52}
+            size={isLarge ? 80 : 52}
             spinning={isSpinning}
             glow={showFinal ? (isNat20 ? 'gold' : 'crimson') : 'none'}
           />
@@ -280,9 +298,9 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
 
   // Normal Outmatched/Dominant with mortal dice
   return (
-    <div ref={panelRef} className={`${styles.dicePanel} ${flashClass}`}>
+    <div ref={panelRef} className={panelClass}>
       <CategoryTag category={category} />
-      <div className={styles.diceArea}>
+      <div className={diceAreaClass}>
         {/* Left mortal die */}
         {hasMortal && (
           <div style={{
@@ -292,7 +310,7 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
           }}>
             <MiniD20
               value={diceRolled[0]}
-              size={42}
+              size={isLarge ? 72 : 42}
               spinning={showMortalSpin && !showMortalLand}
               ghostFaces={showMortalLand}
               glow={showResolved ? (diceRolled[0] === keptVal ? keptGlow : discGlow) : 'none'}
@@ -308,7 +326,7 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
         }}>
           <MiniD20
             value={resolution.crucibleRoll}
-            size={showMortalSpin ? 32 : 42}
+            size={isLarge ? (showMortalSpin ? 56 : 80) : (showMortalSpin ? 32 : 42)}
             spinning={isSpinning}
           />
           {showFinal && !showMortalSpin && (
@@ -325,7 +343,7 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
           }}>
             <MiniD20
               value={diceRolled[1]}
-              size={42}
+              size={isLarge ? 72 : 42}
               spinning={showMortalSpin && !showMortalLand}
               ghostFaces={showMortalLand}
               glow={showResolved ? (diceRolled[1] === keptVal ? keptGlow : discGlow) : 'none'}

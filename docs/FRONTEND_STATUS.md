@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-03-21
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -30,7 +30,19 @@
 
 ---
 
-## Recent Work (This Session: 2026-03-19)
+## Recent Work (This Session: 2026-03-21)
+
+### Dice Size + Animation Polish + Auto-Scroll
+- **Larger dice during animation:** New turns now show dice at 80px (single/crucible) and 72px (mortal dice) during roll animation, up from 42-52px. Crucible die shrinks to 56px when mortal dice appear. Dice area spacing increased to 28px gap with 24px padding during animation. Historical turns keep compact sizes (52px main, 42px mortal). Sizes and spacing match `dice-dynamic-sizing-mockup.jsx`.
+- **Dice shrink-out transition:** After the roll resolves and holds for ~1s, the entire dice panel transitions out (scale 0.6, translateY -20px, fade to 0) over 400ms matching the mockup's state 6 transition. The resolution block then appears in its place via `onComplete`. CSS classes `.dicePanelAnimated` (transition properties) and `.dicePanelShrunk` (collapsed state) handle this. Respects `prefers-reduced-motion`.
+- **Fixed spin animation (bug):** The `diceSpin` keyframe was defined in the CSS module (scoped name) but referenced via inline `animation` style (unscoped), so the browser couldn't find it and dice never visually spun. Fix: replaced inline style with `.dieSpinning` CSS class that references the scoped keyframe. Spin animation now plays correctly during the spinning phases.
+- **Auto-scroll to new turn header:** When a new turn arrives, the narrative panel scrolls the turn's header (location, day, time, weather, turn number) to the top of the visible area, not the bottom of all content. Uses `scrollIntoView({ block: 'start' })` on the TurnBlock element via `forwardRef`. Initial page load still scrolls to the bottom of history. Removed the old `scrollIntoView` from InlineDicePanel (scroll is now the panel's responsibility, not the dice component's). IntersectionObserver still gates animation start.
+- **`fadeInUp` keyframe in module:** Added local `@keyframes fadeInUp` to InlineDicePanel.module.css for robustness, since CSS modules scope keyframe names and the global definition in globals.css may not resolve inside the module.
+- **Files:** `InlineDicePanel.js` + `.module.css` (sizes, spin fix, transition, scroll removal), `TurnBlock.js` (forwardRef for scroll targeting), `NarrativePanel.js` (scroll-to-turn-header logic).
+
+---
+
+## Previous Session Work (2026-03-19)
 
 ### World Tab: Full API Wiring (Checkpoints, Snapshots, Sharing)
 - **Removed all "Coming Soon" badges** and disabled states from World tab.

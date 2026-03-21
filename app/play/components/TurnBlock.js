@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, forwardRef } from 'react';
 import InlineDicePanel from './InlineDicePanel';
 import ResolutionBlock from './ResolutionBlock';
 import styles from './TurnBlock.module.css';
@@ -161,7 +161,7 @@ function StatusBadges({ stateChanges }) {
   );
 }
 
-export default function TurnBlock({ turn, isNew }) {
+const TurnBlock = forwardRef(function TurnBlock({ turn, isNew }, ref) {
   const hasResolution = !!turn.resolution;
   const shouldAnimate = isNew && hasResolution;
   const [showContent, setShowContent] = useState(!shouldAnimate);
@@ -172,7 +172,7 @@ export default function TurnBlock({ turn, isNew }) {
   const weatherEmoji = getWeatherEmoji(turn.weather);
 
   return (
-    <div className={styles.turnBlock}>
+    <div className={styles.turnBlock} ref={ref}>
       <div className={styles.turnHeader}>
         {turn.location && (
           <span className={styles.headerChip}>
@@ -229,4 +229,6 @@ export default function TurnBlock({ turn, isNew }) {
       )}
     </div>
   );
-}
+});
+
+export default TurnBlock;
