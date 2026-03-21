@@ -162,6 +162,149 @@
   margin-top: 6px;
 }
 
+/* ─── Command Response Formatting ─── */
+
+.commandSection {
+  margin-bottom: 10px;
+}
+
+.commandSectionTitle {
+  font-family: var(--font-cinzel);
+  font-size: 10px;
+  font-weight: 600;
+  color: #9a8545;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.commandProse {
+  font-family: var(--font-alegreya);
+  font-size: 14px;
+  color: var(--text-secondary-bright);
+  line-height: 1.65;
+}
+
+.commandProse p {
+  margin-bottom: 8px;
+}
+
+.commandProse p:last-child {
+  margin-bottom: 0;
+}
+
+.commandRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.commandRowLabel {
+  font-family: var(--font-alegreya-sans);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.commandRowValue {
+  font-family: var(--font-jetbrains);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.commandRowValueGold {
+  composes: commandRowValue;
+  color: var(--accent-gold);
+}
+
+.commandSkillItem {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+}
+
+.commandSkillName {
+  font-family: var(--font-alegreya-sans);
+  font-size: 13px;
+  color: var(--text-heading);
+}
+
+.commandSkillValue {
+  font-family: var(--font-jetbrains);
+  font-size: 12px;
+  color: var(--accent-gold);
+}
+
+.commandSkillType {
+  font-family: var(--font-alegreya-sans);
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-left: 6px;
+}
+
+.commandListItem {
+  padding: 3px 0;
+  font-family: var(--font-alegreya-sans);
+  font-size: 13px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.commandListItem:last-child {
+  border-bottom: none;
+}
+
+.commandHelpRow {
+  display: flex;
+  gap: 10px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.commandHelpName {
+  font-family: var(--font-jetbrains);
+  font-size: 11px;
+  color: var(--accent-gold);
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.commandHelpDesc {
+  font-family: var(--font-alegreya-sans);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.commandEmptyMessage {
+  font-family: var(--font-alegreya);
+  font-size: 13px;
+  color: var(--text-dim);
+  font-style: italic;
+  padding: 8px 0;
+}
+
+.commandCondition {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+}
+
+.commandConditionName {
+  font-family: var(--font-alegreya-sans);
+  font-size: 13px;
+  color: var(--color-danger);
+}
+
+.commandConditionPenalty {
+  font-family: var(--font-jetbrains);
+  font-size: 11px;
+  color: var(--color-danger);
+}
+
 .loadingText {
   font-family: var(--font-alegreya-sans);
   font-size: 13px;
