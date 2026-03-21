@@ -169,6 +169,12 @@ function PlayPage() {
   const handleTurnResponse = useCallback((response, playerActionText = null) => {
     if (!response.turnAdvanced) return;
 
+    // Merge stateChanges.clock with gameState.clock so weather, currentDay, etc.
+    // persist even when the action response only sends { day, hour, minute }
+    const turnClock = response.stateChanges?.clock
+      ? { ...gameState?.clock, ...response.stateChanges.clock }
+      : gameState?.clock || null;
+
     setTurns(prev => [...prev, {
       number: response.turn.number,
       sessionTurn: response.turn.sessionTurn,
@@ -176,8 +182,8 @@ function PlayPage() {
       resolution: response.resolution || null,
       stateChanges: response.stateChanges || null,
       playerAction: playerActionText,
-      clock: response.stateChanges?.clock || null,
-      weather: gameState?.clock?.weather || null,
+      clock: turnClock,
+      weather: turnClock?.weather || null,
       location: gameState?.world?.currentLocation || null,
       _isNew: true,
     }]);
@@ -307,6 +313,10 @@ function PlayPage() {
           if (state?.narrative?.availableActions) {
             setActions(state.narrative.availableActions);
           }
+          // Store world data (currentLocation, factionStandings, etc.) for turn headers
+          if (state?.world) {
+            setGameState(prev => prev ? { ...prev, world: state.world } : prev);
+          }
         }).catch(err => console.error('Failed to load game state:', err));
 
         api.get(`/api/game/${gameId}/character`).then(data => {
@@ -365,6 +375,10 @@ function PlayPage() {
             if (cancelled) return;
 
             if (res.turnAdvanced) {
+              const firstTurnClock = res.stateChanges?.clock
+                ? { ...game.clock, ...res.stateChanges.clock }
+                : game.clock || null;
+
               setTurns([{
                 number: res.turn.number,
                 sessionTurn: res.turn.sessionTurn,
@@ -372,9 +386,9 @@ function PlayPage() {
                 resolution: res.resolution || null,
                 stateChanges: res.stateChanges || null,
                 playerAction: null,
-                clock: res.stateChanges?.clock || null,
-                weather: game.clock?.weather || null,
-                location: null,
+                clock: firstTurnClock,
+                weather: firstTurnClock?.weather || null,
+                location: game.world?.currentLocation || null,
                 _isNew: true,
               }]);
 

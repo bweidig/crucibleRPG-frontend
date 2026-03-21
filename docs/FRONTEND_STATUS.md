@@ -32,6 +32,13 @@
 
 ## Recent Work (This Session: 2026-03-21)
 
+### Restore Turn Header Details (Regression Fix)
+- **Root cause:** Turn headers only showed the turn number because (1) `gameState.world` was never populated, so `currentLocation` was always null; (2) `handleTurnResponse` used `stateChanges.clock` directly which only has `{ day, hour, minute }` with no weather, and fell back to null when absent instead of using the existing game state clock; (3) the first-turn auto-trigger had the same issue.
+- **Fix — store world data:** The `/api/game/:id/state` fetch now stores `state.world` (including `currentLocation`) into `gameState`, making location available for `handleTurnResponse` to snapshot onto each new turn.
+- **Fix — merge clocks:** `handleTurnResponse` and the first-turn trigger now merge `stateChanges.clock` onto `gameState.clock` instead of using it standalone. This preserves `weather`, `currentDay`, and other base clock fields that the action response doesn't repeat. If `stateChanges.clock` is absent entirely (narrative-only turns), falls back to the full `gameState.clock`.
+- **Historical turns:** Turns loaded from `recentNarrative` on page reload still show only the turn number. The `recentNarrative` API response (`GET /api/games/:id`) does not include per-turn location, weather, or structured clock data — only `{ turn, role, content, timestamp }`.
+- **Files:** `page.js` (state fetch stores world, handleTurnResponse clock merge, first-turn clock merge).
+
 ### Dice Size + Animation Polish + Auto-Scroll
 - **Larger dice during animation:** New turns now show dice at 80px (single/crucible) and 72px (mortal dice) during roll animation, up from 42-52px. Crucible die shrinks to 56px when mortal dice appear. Dice area spacing increased to 28px gap with 24px padding during animation. Historical turns keep compact sizes (52px main, 42px mortal). Sizes and spacing match `dice-dynamic-sizing-mockup.jsx`.
 - **Dice shrink-out transition:** After the roll resolves and holds for ~1s, the entire dice panel transitions out (scale 0.6, translateY -20px, fade to 0) over 400ms matching the mockup's state 6 transition. The resolution block then appears in its place via `onComplete`. CSS classes `.dicePanelAnimated` (transition properties) and `.dicePanelShrunk` (collapsed state) handle this. Respects `prefers-reduced-motion`.
