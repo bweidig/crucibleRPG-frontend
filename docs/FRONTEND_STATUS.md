@@ -32,6 +32,14 @@
 
 ## Recent Work (This Session: 2026-03-19)
 
+### World Tab: Full API Wiring (Checkpoints, Snapshots, Sharing)
+- **Removed all "Coming Soon" badges** and disabled states from World tab.
+- **Checkpoints:** Fetches `GET /api/game/:id/checkpoints` on tab open. Maps response onto 3 slots (populated show name + turn number, empty show "Slot N — Empty"). Save sends `POST /action { command: "checkpoint" }` with auto-generated name. Load sends `{ command: "restore_checkpoint", target: name }` with confirmation dialog ("Your progress since turn N will be lost"). Delete sends `{ command: "delete_checkpoint", target: name }` with confirmation. Re-fetches list after save/delete. Load triggers full page reload via `onGameStateReload`. Error state with retry link on fetch failure.
+- **Save World Snapshot:** Sends `POST /api/game/:id/snapshot { name, type: "branch", visibility: "private" }`. Name pre-filled with campaign name + turn number. Success shows green check for 2.5s.
+- **Share This World:** Two-mode picker (As it began = `fresh_start`, As it is now = `branch`), both with `visibility: "unlisted"`. Response's `shareToken` displayed as `/snapshot/{token}` URL in monospace field. Copy Link button with clipboard feedback. Back button returns to picker.
+- **Props threaded:** `gameId`, `gameState`, `onGameStateReload`, `onClose` from SettingsModal. `onGameStateReload` implemented as `window.location.reload()` in page.js (simplest reliable way to re-fetch all game state after checkpoint restore).
+- **Error handling:** All sections show inline red error text that auto-clears after 5s. Buttons disabled during requests. Checkpoint restore has confirmation dialog with cancel option.
+
 ### TopBar Clock Display + Turn Header Overhaul
 - **TopBar clock:** New `clock` prop from `gameState.clock`. Displays `Day N · H:MM AM/PM · Weather` in compact format between setting name and icon buttons. JetBrains Mono for numbers, Alegreya Sans for weather. Middle-dot separators. Updates live as `gameState.clock` changes after each turn.
 - **Turn header overhaul:** Replaced minimal "TURN N · time" header with full contextual row matching mockup pattern: location pin, day, time (with time-of-day emoji: sunrise/sun/sunset/moon based on hour), weather (with weather emoji: sun/cloud/rain/snow/fog/storm/wind), turn number. Each piece is a `headerChip` with emoji + value. Subtle bottom border. Wraps to two lines on narrow viewports.
@@ -363,8 +371,8 @@ All pending rgba/color fixes from previous sessions have been completed.
 | `/api/game/:id/settings/storyteller` | PUT | Wired (Settings panel Game Settings tab) |
 | `/api/game/:id/settings/difficulty` | PUT | Wired (Settings panel Game Settings tab, presets + individual dials) |
 | `/api/game/:id/settings/ai-model` | GET/PUT | Wired (Settings panel AI Models section, playtester-only, graceful fallback if endpoint not deployed) |
-| `/api/game/:id/checkpoints` | GET | Not yet |
-| `/api/game/:id/snapshot` | POST | Not yet |
+| `/api/game/:id/checkpoints` | GET | Wired (Settings World tab, fetch on tab open) |
+| `/api/game/:id/snapshot` | POST | Wired (Settings World tab, save + share with visibility control) |
 | `/api/bug-report` | POST | Not yet |
 | `/api/suggestion` | POST | Not yet |
 

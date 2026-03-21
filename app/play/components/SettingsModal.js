@@ -738,98 +738,332 @@ function DisplayTab({ settings, onSave }) {
 // Tab 3: World
 // =============================================================================
 
-function WorldTab() {
+function WorldTab({ gameId, gameState, onGameStateReload, onClose }) {
+  const currentTurn = gameState?.clock?.totalTurn || gameState?.clock?.sessionTurn || 0;
+  const campaignName = gameState?.setting || 'My World';
+
+  // ─── Checkpoints ───
+  const [checkpoints, setCheckpoints] = useState(null); // null=loading, false=error
+  const [cpBusy, setCpBusy] = useState(null); // slot number or 'loading'
+  const [cpError, setCpError] = useState(null);
+  const [cpConfirm, setCpConfirm] = useState(null); // { action: 'load'|'delete', cp }
+
+  const fetchCheckpoints = useCallback(async () => {
+    if (!gameId) return;
+    try {
+      const res = await api.get(`/api/game/${gameId}/checkpoints`);
+      setCheckpoints(res.checkpoints || []);
+    } catch {
+      setCheckpoints(false);
+    }
+  }, [gameId]);
+
+  useEffect(() => { fetchCheckpoints(); }, [fetchCheckpoints]);
+
+  const clearCpError = () => { setTimeout(() => setCpError(null), 5000); };
+
+  const handleSaveCheckpoint = async (slotNum) => {
+    setCpBusy(slotNum);
+    setCpError(null);
+    try {
+      const name = `Slot ${slotNum} \u2014 Turn ${currentTurn}`;
+      await api.post(`/api/game/${gameId}/action`, { command: 'checkpoint', name });
+      await fetchCheckpoints();
+    } catch (err) {
+      setCpError(err.message); clearCpError();
+    } finally { setCpBusy(null); }
+  };
+
+  const handleLoadCheckpoint = async (cp) => {
+    setCpBusy('loading');
+    setCpError(null);
+    try {
+      await api.post(`/api/game/${gameId}/action`, { command: 'restore_checkpoint', target: cp.name });
+      setCpConfirm(null);
+      onGameStateReload?.();
+    } catch (err) {
+      setCpError(err.message); clearCpError();
+      setCpBusy(null);
+    }
+  };
+
+  const handleDeleteCheckpoint = async (cp) => {
+    setCpBusy(cp.id);
+    setCpError(null);
+    try {
+      await api.post(`/api/game/${gameId}/action`, { command: 'delete_checkpoint', target: cp.name });
+      setCpConfirm(null);
+      await fetchCheckpoints();
+    } catch (err) {
+      setCpError(err.message); clearCpError();
+    } finally { setCpBusy(null); }
+  };
+
+  // ─── Snapshot ───
+  const [snapName, setSnapName] = useState(`${campaignName} \u2014 Turn ${currentTurn}`);
+  const [snapSaving, setSnapSaving] = useState(false);
+  const [snapSuccess, setSnapSuccess] = useState(false);
+  const [snapError, setSnapError] = useState(null);
+
+  const handleSaveSnapshot = async () => {
+    if (!snapName.trim() || !gameId) return;
+    setSnapSaving(true);
+    setSnapError(null);
+    try {
+      await api.post(`/api/game/${gameId}/snapshot`, {
+        name: snapName.trim(), description: null, type: 'branch', visibility: 'private',
+      });
+      setSnapSuccess(true);
+      setTimeout(() => setSnapSuccess(false), 2500);
+    } catch (err) {
+      setSnapError(err.message); setTimeout(() => setSnapError(null), 5000);
+    } finally { setSnapSaving(false); }
+  };
+
+  // ─── Share ───
+  const [shareMode, setShareMode] = useState(null); // null | 'picking' is default, 'sharing' shows link
+  const [shareToken, setShareToken] = useState(null);
+  const [shareType, setShareType] = useState(null);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareError, setShareError] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async (type) => {
+    if (!gameId) return;
+    setShareBusy(true);
+    setShareError(null);
+    try {
+      const res = await api.post(`/api/game/${gameId}/snapshot`, {
+        name: `${campaignName} (shared)`,
+        description: null,
+        type: type === 'began' ? 'fresh_start' : 'branch',
+        visibility: 'unlisted',
+      });
+      setShareToken(res.snapshot?.shareToken || null);
+      setShareType(type);
+      setShareMode('sharing');
+    } catch (err) {
+      setShareError(err.message); setTimeout(() => setShareError(null), 5000);
+    } finally { setShareBusy(false); }
+  };
+
+  const handleCopyLink = () => {
+    const url = `${window.location.origin}/snapshot/${shareToken}`;
+    try { navigator.clipboard.writeText(url); } catch { /* noop */ }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  // ─── Confirmation Dialog ───
+  if (cpConfirm) {
+    const { action, cp } = cpConfirm;
+    return (
+      <div>
+        <SectionLabel>{action === 'load' ? 'Load Checkpoint' : 'Delete Checkpoint'}</SectionLabel>
+        <div style={{
+          background: '#111528', border: '1px solid #1e2540', borderRadius: 8, padding: 20,
+          textAlign: 'center',
+        }}>
+          <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 14, color: '#c8c0b0', marginBottom: 6 }}>
+            {cp.name}
+          </div>
+          <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#7082a4', marginBottom: 16 }}>
+            {action === 'load'
+              ? `Load this checkpoint? Your progress since turn ${cp.turnNumber} will be lost.`
+              : 'Delete this checkpoint? This cannot be undone.'}
+          </div>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+            <button onClick={() => setCpConfirm(null)} disabled={cpBusy != null} style={{
+              padding: '8px 20px', borderRadius: 5, cursor: 'pointer',
+              fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13,
+              background: 'transparent', border: '1px solid #1e2540', color: '#7082a4',
+            }}>Cancel</button>
+            <button
+              onClick={() => action === 'load' ? handleLoadCheckpoint(cp) : handleDeleteCheckpoint(cp)}
+              disabled={cpBusy != null}
+              style={{
+                padding: '8px 20px', borderRadius: 5, cursor: cpBusy ? 'not-allowed' : 'pointer',
+                fontFamily: "'Cinzel', serif", fontSize: 12, fontWeight: 700, letterSpacing: '0.06em',
+                background: action === 'load' ? '#1a1810' : '#201416',
+                border: `1px solid ${action === 'load' ? '#c9a84c' : '#e85a5a'}`,
+                color: action === 'load' ? '#c9a84c' : '#e85a5a',
+                opacity: cpBusy ? 0.5 : 1,
+              }}>
+              {cpBusy ? 'Working...' : action === 'load' ? 'Load' : 'Delete'}
+            </button>
+          </div>
+          {cpError && <div className={styles.errorText} style={{ marginTop: 10 }}>{cpError}</div>}
+        </div>
+      </div>
+    );
+  }
+
+  // Build checkpoint slots (pad to 3)
+  const cpSlots = [1, 2, 3].map(slotNum => {
+    const cp = Array.isArray(checkpoints) ? checkpoints[slotNum - 1] : null;
+    return { slotNum, cp };
+  });
+
   return (
     <div>
-      {/* Checkpoints */}
-      <SectionLabel extra={<span className={styles.comingSoonBadge}>Coming Soon</span>}>
-        Checkpoints
-      </SectionLabel>
-      <div style={{
-        background: '#111528', border: '1px solid #1e2540', borderRadius: 8, padding: 16,
-      }}>
+      {/* ── Checkpoints ── */}
+      <SectionLabel>Checkpoints</SectionLabel>
+      <div style={{ background: '#111528', border: '1px solid #1e2540', borderRadius: 8, padding: 16 }}>
         <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#7082a4', marginBottom: 12 }}>
-          Quick-save up to 3 slots within this session. Save, load, or overwrite at any time.
+          Quick-save up to 3 slots. Save, load, or delete at any time.
         </div>
-        {[1, 2, 3].map(slot => (
-          <div key={slot} style={{
-            padding: '10px 12px', borderRadius: 6, marginBottom: slot < 3 ? 8 : 0,
-            border: '1px solid #161c34', background: 'transparent',
+        {checkpoints === null && (
+          <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#6b83a3', padding: 8 }}>Loading checkpoints...</div>
+        )}
+        {checkpoints === false && (
+          <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#e8845a' }}>
+            Couldn't load checkpoints. <button onClick={fetchCheckpoints} style={{ background: 'none', border: 'none', color: '#c9a84c', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', textDecoration: 'underline', padding: 0 }}>Retry</button>
+          </div>
+        )}
+        {Array.isArray(checkpoints) && cpSlots.map(({ slotNum, cp }) => (
+          <div key={slotNum} style={{
+            padding: '10px 12px', borderRadius: 6, marginBottom: slotNum < 3 ? 8 : 0,
+            border: `1px solid ${cp ? '#3a3328' : '#161c34'}`,
+            background: cp ? '#0e1420' : 'transparent',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
-            <span style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#6b83a3' }}>
-              Slot {slot} — Empty
+            <span style={{
+              fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13,
+              color: cp ? '#d0c098' : '#6b83a3', fontWeight: cp ? 500 : 400, flex: 1,
+            }}>
+              {cp ? cp.name : `Slot ${slotNum} \u2014 Empty`}
+              {cp && <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: '#6b83a3', marginLeft: 8 }}>T{cp.turnNumber}</span>}
             </span>
-            <button disabled style={{
-              padding: '4px 14px', borderRadius: 4,
-              fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12, fontWeight: 600,
-              background: '#1a1810', border: '1px solid #1e2540',
-              color: '#7082a4', cursor: 'default', opacity: 0.5,
-            }}>Save</button>
+            <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+              {cp ? (
+                <>
+                  <button onClick={() => setCpConfirm({ action: 'load', cp })} disabled={cpBusy != null} style={{
+                    padding: '4px 10px', borderRadius: 4, cursor: 'pointer',
+                    fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12,
+                    background: 'transparent', border: '1px solid #1e2540', color: '#7082a4',
+                    transition: 'all 0.2s', opacity: cpBusy ? 0.5 : 1,
+                  }}>Load</button>
+                  <button onClick={() => setCpConfirm({ action: 'delete', cp })} disabled={cpBusy != null} style={{
+                    padding: '4px 10px', borderRadius: 4, cursor: 'pointer',
+                    fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12,
+                    background: 'transparent', border: '1px solid #161c34', color: '#6b83a3',
+                    transition: 'all 0.2s', opacity: cpBusy ? 0.5 : 1,
+                  }}>Delete</button>
+                </>
+              ) : (
+                <button onClick={() => handleSaveCheckpoint(slotNum)} disabled={cpBusy != null} style={{
+                  padding: '4px 14px', borderRadius: 4, cursor: cpBusy ? 'not-allowed' : 'pointer',
+                  fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12, fontWeight: 600,
+                  background: '#1a1810', border: '1px solid #c9a84c',
+                  color: '#c9a84c', transition: 'all 0.2s', opacity: cpBusy ? 0.5 : 1,
+                }}>{cpBusy === slotNum ? 'Saving...' : 'Save'}</button>
+              )}
+            </div>
           </div>
         ))}
+        {cpError && <div className={styles.errorText} style={{ marginTop: 8 }}>{cpError}</div>}
       </div>
 
-      {/* World Snapshot */}
-      <SectionLabel extra={<span className={styles.comingSoonBadge}>Coming Soon</span>}>
+      {/* ── Save World Snapshot ── */}
+      <SectionLabel extra={snapSaving ? <span className={styles.savingDot} /> : null}>
         Save World Snapshot
       </SectionLabel>
-      <div style={{
-        background: '#111528', border: '1px solid #1e2540', borderRadius: 8, padding: 16,
-      }}>
+      <div style={{ background: '#111528', border: '1px solid #1e2540', borderRadius: 8, padding: 16 }}>
         <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#7082a4', marginBottom: 10 }}>
           Save the current world state to Your Worlds for reuse in future games.
         </div>
         <input
-          type="text" placeholder="Snapshot name..."
-          disabled
+          type="text" value={snapName} onChange={e => setSnapName(e.target.value)}
+          maxLength={100}
           style={{
             width: '100%', boxSizing: 'border-box', padding: '8px 12px',
             background: '#0a0e1a', border: '1px solid #1e2540', borderRadius: 6,
-            fontFamily: "'Alegreya Sans', sans-serif", fontSize: 14, color: '#7082a4',
-            outline: 'none', marginBottom: 10, opacity: 0.5,
+            fontFamily: "'Alegreya Sans', sans-serif", fontSize: 14, color: '#c8c0b0',
+            outline: 'none', marginBottom: 10,
           }}
         />
-        <button disabled style={{
-          width: '100%', padding: '8px 0', borderRadius: 6,
+        <button onClick={handleSaveSnapshot} disabled={snapSaving || !snapName.trim()} style={{
+          width: '100%', padding: '8px 0', borderRadius: 6, cursor: snapSaving ? 'not-allowed' : 'pointer',
           fontFamily: "'Alegreya Sans', sans-serif", fontSize: 14, fontWeight: 600,
-          background: '#1a1810', border: '1px solid #1e2540',
-          color: '#7082a4', cursor: 'default', opacity: 0.5,
+          background: snapSuccess ? '#10201420' : '#1a1810',
+          border: `1px solid ${snapSuccess ? '#8aba7a' : '#c9a84c'}`,
+          color: snapSuccess ? '#8aba7a' : '#c9a84c',
+          transition: 'all 0.2s', opacity: snapSaving ? 0.5 : 1,
         }}>
-          Save Snapshot
+          {snapSuccess ? '\u2713 Saved to Your Worlds' : snapSaving ? 'Saving...' : 'Save Snapshot'}
         </button>
+        {snapError && <div className={styles.errorText} style={{ marginTop: 6 }}>{snapError}</div>}
       </div>
 
-      {/* Share This World */}
-      <SectionLabel extra={<span className={styles.comingSoonBadge}>Coming Soon</span>}>
+      {/* ── Share This World ── */}
+      <SectionLabel extra={shareBusy ? <span className={styles.savingDot} /> : null}>
         Share This World
       </SectionLabel>
-      <div style={{
-        background: '#111528', border: '1px solid #1e2540', borderRadius: 8, padding: 16,
-      }}>
-        <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#7082a4', marginBottom: 12 }}>
-          Generate an unlisted link so others can start a game in your world.
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button disabled style={{
-            flex: 1, padding: '10px 8px', borderRadius: 6,
-            background: 'transparent', border: '1px solid #1e2540',
-            fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#7082a4',
-            cursor: 'default', opacity: 0.5,
-          }}>
-            <div style={{ fontWeight: 600, marginBottom: 2 }}>As it began</div>
-            <div style={{ fontSize: 11, color: '#6b83a3' }}>Original world state</div>
-          </button>
-          <button disabled style={{
-            flex: 1, padding: '10px 8px', borderRadius: 6,
-            background: 'transparent', border: '1px solid #1e2540',
-            fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#7082a4',
-            cursor: 'default', opacity: 0.5,
-          }}>
-            <div style={{ fontWeight: 600, marginBottom: 2 }}>As it is now</div>
-            <div style={{ fontSize: 11, color: '#6b83a3' }}>Current world state</div>
-          </button>
-        </div>
+      <div style={{ background: '#111528', border: '1px solid #1e2540', borderRadius: 8, padding: 16 }}>
+        {shareMode !== 'sharing' ? (
+          <div>
+            <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#7082a4', marginBottom: 12 }}>
+              Generate an unlisted link so others can start a game in your world.
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => handleShare('began')} disabled={shareBusy} style={{
+                flex: 1, padding: '10px 8px', borderRadius: 6, cursor: shareBusy ? 'not-allowed' : 'pointer',
+                background: 'transparent', border: '1px solid #1e2540',
+                fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#c8c0b0',
+                transition: 'all 0.2s', opacity: shareBusy ? 0.5 : 1,
+              }}>
+                <div style={{ fontWeight: 600, marginBottom: 2 }}>As it began</div>
+                <div style={{ fontSize: 11, color: '#6b83a3' }}>Turn 1, original world</div>
+              </button>
+              <button onClick={() => handleShare('current')} disabled={shareBusy} style={{
+                flex: 1, padding: '10px 8px', borderRadius: 6, cursor: shareBusy ? 'not-allowed' : 'pointer',
+                background: 'transparent', border: '1px solid #1e2540',
+                fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#c8c0b0',
+                transition: 'all 0.2s', opacity: shareBusy ? 0.5 : 1,
+              }}>
+                <div style={{ fontWeight: 600, marginBottom: 2 }}>As it is now</div>
+                <div style={{ fontSize: 11, color: '#6b83a3' }}>Turn {currentTurn}, evolved state</div>
+              </button>
+            </div>
+            {shareError && <div className={styles.errorText} style={{ marginTop: 6 }}>{shareError}</div>}
+          </div>
+        ) : (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <button onClick={() => { setShareMode(null); setShareToken(null); setCopied(false); }} style={{
+                background: 'none', border: 'none', color: '#6b83a3', cursor: 'pointer',
+                fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12,
+              }}>{'\u2190'} Back</button>
+              <span style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#d0c098', fontWeight: 600 }}>
+                Share: {shareType === 'began' ? 'As it began' : 'As it is now'}
+              </span>
+            </div>
+            {shareToken ? (
+              <>
+                <div style={{
+                  background: '#0a0e1a', border: '1px solid #1e2540', borderRadius: 6,
+                  padding: '8px 12px', fontFamily: "'JetBrains Mono', monospace", fontSize: 12,
+                  color: '#8a94a8', marginBottom: 10, wordBreak: 'break-all',
+                }}>
+                  {window.location.origin}/snapshot/{shareToken}
+                </div>
+                <button onClick={handleCopyLink} style={{
+                  width: '100%', padding: '8px 0', borderRadius: 6, cursor: 'pointer',
+                  fontFamily: "'Alegreya Sans', sans-serif", fontSize: 14, fontWeight: 600,
+                  background: copied ? '#10201420' : '#1a1810',
+                  border: `1px solid ${copied ? '#8aba7a' : '#c9a84c'}`,
+                  color: copied ? '#8aba7a' : '#c9a84c', transition: 'all 0.2s',
+                }}>
+                  {copied ? '\u2713 Copied to clipboard' : 'Copy Link'}
+                </button>
+              </>
+            ) : (
+              <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#e8845a' }}>
+                Snapshot was created but no share link was returned. Check Your Worlds in the main menu.
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -845,7 +1079,7 @@ const TABS = [
   { id: 'world', label: 'World' },
 ];
 
-export default function SettingsModal({ settings, onSave, onClose, gameId, gameState }) {
+export default function SettingsModal({ settings, onSave, onClose, gameId, gameState, onGameStateReload }) {
   const [activeTab, setActiveTab] = useState('game');
 
   useEffect(() => {
@@ -878,7 +1112,14 @@ export default function SettingsModal({ settings, onSave, onClose, gameId, gameS
         <div className={styles.tabContent}>
           {activeTab === 'game' && <GameSettingsTab gameId={gameId} gameState={gameState} />}
           {activeTab === 'display' && <DisplayTab settings={settings} onSave={onSave} />}
-          {activeTab === 'world' && <WorldTab />}
+          {activeTab === 'world' && (
+            <WorldTab
+              gameId={gameId}
+              gameState={gameState}
+              onGameStateReload={onGameStateReload}
+              onClose={onClose}
+            />
+          )}
         </div>
       </div>
     </div>

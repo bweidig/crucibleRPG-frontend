@@ -523,6 +523,7 @@ function PlayPage() {
           onClose={() => setSettingsOpen(false)}
           gameId={gameId}
           gameState={gameState}
+          onGameStateReload={() => { window.location.reload(); }}
         />
       )}
 
