@@ -30,7 +30,15 @@
 
 ---
 
-## Recent Work (This Session: 2026-03-21)
+## Recent Work (This Session: 2026-03-22)
+
+### Wire Skill & Gear Requests to Proposal Generation
+- **Problem:** The Requests box (Skills/Starting Gear textareas) existed in the Phase 4 UI but was uncontrolled (no `value`/`onChange`), values were never captured, and `generateProposal()` sent an empty POST body. Additionally, the Requests box only appeared after the proposal loaded, so the player couldn't fill it before the first generation.
+- **State wiring:** Added `skillRequests` and `gearRequests` state in InitWizardInner. Textareas are now controlled inputs wired to these state values via props to Phase4.
+- **API wiring:** `generateProposal()` now builds a request body with `skillRequests` and `gearRequests` (trimmed, only included if non-empty) and passes it to `POST /api/init/:gameId/generate-proposal`.
+- **Regenerate button:** Added "REGENERATE PROPOSAL" button below the Requests textareas. Disabled when both fields are empty or while regenerating. Calls `generateProposal()` which re-fires the POST with the request values. Shows "REGENERATING..." during loading. Ghost button style matching design system.
+- **Flow:** First proposal generates automatically without requests (as before). Player reviews proposal, fills in skill/gear requests, clicks Regenerate to get an updated proposal incorporating their wishes.
+- **Files:** `app/init/page.js` (InitWizardInner: `skillRequests`/`gearRequests` state, `generateProposal` sends request body, new props to Phase4; Phase4: new props in signature, controlled textareas, Regenerate button).
 
 ### Phase 4a Proposal Display — Innate Traits, Skill Modifiers, Stat Warnings, Stat Editing UX
 - **Foundational skills — show modifier values:** Updated display from `scope (breadthCategory) STAT` to `Name +modifier (breadthCategory) STAT`. Uses `fs.name` (falls back to `fs.scope`) and shows `fs.modifier` in gold/monospace. Modifier values range 1.0–3.0 per backend AD-362/AD-363 changes.

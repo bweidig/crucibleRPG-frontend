@@ -1412,7 +1412,7 @@ function Phase3({ character, onChange, hasArchetypes, availableArchetypes, chara
   );
 }
 
-function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills, startingLoadout, factionStandings, innateTraits, softWarnings, hardErrors, onHardErrorsClear }) {
+function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills, startingLoadout, factionStandings, innateTraits, softWarnings, hardErrors, onHardErrorsClear, skillRequests, onSkillRequestsChange, gearRequests, onGearRequestsChange, onRegenerate, regenerating }) {
   const [editing, setEditing] = useState(false);
   const [stats, setStats] = useState(initialStats);
   const [editingStatName, setEditingStatName] = useState(null);
@@ -1769,7 +1769,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
         <p style={{
           fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)',
           margin: '0 0 20px 0', lineHeight: 1.5,
-        }}>Optional. Describe what you'd like — the engine will fit it to your backstory and setting.</p>
+        }}>Optional. Describe what you'd like, then regenerate to get an updated proposal.</p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div>
@@ -1777,7 +1777,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
               fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600,
               color: 'var(--text-secondary)', display: 'block', marginBottom: 8,
             }}>Skills</label>
-            <textarea placeholder='Any skills you want to start with? e.g. "I want to be good with a bow" or "Some kind of healing ability"' rows={2} className={styles.wizardInput} style={{
+            <textarea value={skillRequests} onChange={e => onSkillRequestsChange(e.target.value)} placeholder='Any skills you want to start with? e.g. "I want to be good with a bow" or "Some kind of healing ability"' rows={2} className={styles.wizardInput} style={{
               width: '100%', background: 'var(--bg-main)', border: '1px solid var(--border-gold-subtle)',
               borderRadius: 8, padding: 14, fontFamily: 'var(--font-alegreya)', fontSize: 16,
               color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6,
@@ -1788,13 +1788,29 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
               fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600,
               color: 'var(--text-secondary)', display: 'block', marginBottom: 8,
             }}>Starting Gear</label>
-            <textarea placeholder='Anything specific you want to carry? e.g. "An old family sword" or "A leather journal with strange symbols"' rows={2} className={styles.wizardInput} style={{
+            <textarea value={gearRequests} onChange={e => onGearRequestsChange(e.target.value)} placeholder='Anything specific you want to carry? e.g. "An old family sword" or "A leather journal with strange symbols"' rows={2} className={styles.wizardInput} style={{
               width: '100%', background: 'var(--bg-main)', border: '1px solid var(--border-gold-subtle)',
               borderRadius: 8, padding: 14, fontFamily: 'var(--font-alegreya)', fontSize: 16,
               color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6,
             }} />
           </div>
         </div>
+
+        <button
+          onClick={onRegenerate}
+          disabled={regenerating || (!skillRequests.trim() && !gearRequests.trim())}
+          className={styles.adjustBtn}
+          style={{
+            marginTop: 18, width: '100%', padding: '12px 24px',
+            fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
+            letterSpacing: '0.08em',
+            color: regenerating || (!skillRequests.trim() && !gearRequests.trim()) ? 'var(--text-dim)' : 'var(--accent-gold)',
+            background: 'transparent',
+            border: `1px solid ${regenerating || (!skillRequests.trim() && !gearRequests.trim()) ? 'var(--border-gold-faint)' : 'var(--border-card)'}`,
+            borderRadius: 5,
+            cursor: regenerating || (!skillRequests.trim() && !gearRequests.trim()) ? 'default' : 'pointer',
+          }}
+        >{regenerating ? 'REGENERATING...' : 'REGENERATE PROPOSAL'}</button>
       </div>
     </div>
   );
@@ -1933,6 +1949,8 @@ function InitWizardInner() {
   const [proposal, setProposal] = useState(null);
   const [adjustedStats, setAdjustedStats] = useState(null);
   const [proposalValidation, setProposalValidation] = useState({ hardErrors: [], softWarnings: [] });
+  const [skillRequests, setSkillRequests] = useState('');
+  const [gearRequests, setGearRequests] = useState('');
   const [scenariosLoading, setScenariosLoading] = useState(false);
   const [generatedScenarios, setGeneratedScenarios] = useState(null);
   const [scenariosFetchedIntensity, setScenariosFetchedIntensity] = useState(null);
@@ -2103,7 +2121,10 @@ function InitWizardInner() {
     setProposalLoading(true);
     setAdjustedStats(null);
     try {
-      const res = await api.post(`/api/init/${gameId}/generate-proposal`);
+      const reqBody = {};
+      if (skillRequests.trim()) reqBody.skillRequests = skillRequests.trim();
+      if (gearRequests.trim()) reqBody.gearRequests = gearRequests.trim();
+      const res = await api.post(`/api/init/${gameId}/generate-proposal`, Object.keys(reqBody).length > 0 ? reqBody : undefined);
       const p = res.proposal || res;
       const rawStats = p.stats || {};
       const statsArray = Object.entries(rawStats)
@@ -2411,6 +2432,12 @@ function InitWizardInner() {
               softWarnings={proposalValidation.softWarnings}
               hardErrors={proposalValidation.hardErrors}
               onHardErrorsClear={() => setProposalValidation(prev => ({ ...prev, hardErrors: [] }))}
+              skillRequests={skillRequests}
+              onSkillRequestsChange={setSkillRequests}
+              gearRequests={gearRequests}
+              onGearRequestsChange={setGearRequests}
+              onRegenerate={generateProposal}
+              regenerating={proposalLoading}
             />
           )
         )}
