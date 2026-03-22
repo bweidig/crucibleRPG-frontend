@@ -64,11 +64,15 @@ function parseActionLabel(label) {
   return { text: label, type: '' };
 }
 
+function itemName(item) {
+  return typeof item === 'string' ? item : item.name || JSON.stringify(item);
+}
+
 // =============================================================================
 // Plain Text Export
 // =============================================================================
 
-const KNOWN_DEBUG_KEYS = ['timing', 'ai', 'resolution', 'stateChanges', 'narrative', 'context', 'rowCounts', 'turn'];
+const KNOWN_DEBUG_KEYS = ['timing', 'ai', 'resolution', 'stateChanges', 'narrative', 'context', 'rowCounts', 'turn', 'turnCost', 'turnCostBreakdown', 'gameTotalCost'];
 
 function entryToText(entry) {
   const d = entry.debug || {};
@@ -96,13 +100,22 @@ function entryToText(entry) {
   const timingDetail = timingParts.length ? ` (${timingParts.join(', ')})` : '';
   lines.push(`Status: ${entry.status} | Total: ${totalMs}ms${timingDetail}`);
 
+  // [ai-cost] line
+  if (d.turnCostBreakdown) {
+    const parts = Object.entries(d.turnCostBreakdown).map(([task, cost]) => `${task}: ${fmtCost(cost)}`);
+    if (d.turnCost != null) parts.push(`total: ${fmtCost(d.turnCost)}`);
+    lines.push(`[ai-cost] ${parts.join(' | ')}`);
+  } else if (d.ai) {
+    lines.push(`[ai-cost] ${d.ai.task || 'narrative'}: ${d.ai.model || '?'} ${fmtCost(d.ai.estimatedCost) || '?'}`);
+  }
+
   // AI Call
   if (d.ai) {
     lines.push('');
     lines.push('AI Call:');
     lines.push(`  Provider: ${d.ai.provider || '?'} | Model: ${d.ai.model || '?'} | Task: ${d.ai.task || '?'}`);
     const tok = d.ai.tokens || {};
-    lines.push(`  Tokens: ${tok.prompt || 0} in / ${tok.completion || 0} out / ${tok.total || 0} total`);
+    lines.push(`  Tokens: ${tok.prompt || 0} in / ${tok.completion || 0} out / ${tok.total || 0} total${tok.cached ? ` (${tok.cached} cached)` : ''}`);
     lines.push(`  Estimated Cost: ${fmtCost(d.ai.estimatedCost) || '?'} | Attempts: ${d.ai.attempts || 1}`);
   }
 
@@ -179,7 +192,7 @@ function allEntriesToText(entries) {
 }
 
 // =============================================================================
-// Detail Section Components
+// Developer View — Detail Section Components
 // =============================================================================
 
 function TimingSection({ timing, clientMs }) {
@@ -213,11 +226,11 @@ function TimingSection({ timing, clientMs }) {
         {segments.map(seg => (
           <span key={seg.label} className={styles.timingLabel}>
             <span className={styles.timingDot} style={{ background: seg.color }} />
-            {seg.label}: {seg.value}ms
+            {seg.label}: {(seg.value / 1000).toFixed(1)}s
           </span>
         ))}
         <span className={styles.timingLabel} style={{ marginLeft: 'auto' }}>
-          Total: {total}ms
+          Total: {(total / 1000).toFixed(1)}s
         </span>
       </div>
     </div>
@@ -239,6 +252,7 @@ function AiSection({ ai }) {
         <span className={styles.kvLabel}>Tokens</span>
         <span className={styles.kvValue}>
           {(tok.prompt || 0).toLocaleString()} in / {(tok.completion || 0).toLocaleString()} out / {(tok.total || 0).toLocaleString()} total
+          {tok.cached ? ` (${tok.cached.toLocaleString()} cached)` : ''}
         </span>
         <span className={styles.kvLabel}>Cost</span>
         <span className={styles.kvValueAccent}>{fmtCost(ai.estimatedCost) || '?'}</span>
@@ -432,14 +446,14 @@ function RawFallbackSection({ debug }) {
 }
 
 // =============================================================================
-// Entry Row
+// Developer View — Entry Row
 // =============================================================================
 
 function EntryRow({ entry, expanded, onToggle }) {
   const d = entry.debug || {};
   const statusColor = entry.status >= 500 ? '#e8845a' : entry.status >= 400 ? '#e8c45a' : '#8aba7a';
   const duration = d.timing?.total || entry.durationMs;
-  const cost = d.ai?.estimatedCost;
+  const cost = d.turnCost ?? d.ai?.estimatedCost;
   const path = shortPath(entry.url);
   const turnNum = entry.turnNumber || d.turn;
   const [copied, setCopied] = useState(false);
@@ -501,12 +515,281 @@ function EntryRow({ entry, expanded, onToggle }) {
           </div>
           <TimingSection timing={d.timing} clientMs={entry.durationMs} />
           {d.ai && <AiSection ai={d.ai} />}
+          {d.turnCostBreakdown && (
+            <div className={styles.section}>
+              <div className={styles.sectionTitle}>Cost Breakdown</div>
+              <div className={styles.kvGrid}>
+                {Object.entries(d.turnCostBreakdown).map(([task, taskCost]) => (
+                  <React.Fragment key={task}>
+                    <span className={styles.kvLabel}>{task}</span>
+                    <span className={styles.kvValueAccent}>{fmtCost(taskCost)}</span>
+                  </React.Fragment>
+                ))}
+                {d.turnCost != null && (
+                  <React.Fragment>
+                    <span className={styles.kvLabel}>Turn Total</span>
+                    <span className={styles.kvValueAccent}>{fmtCost(d.turnCost)}</span>
+                  </React.Fragment>
+                )}
+              </div>
+            </div>
+          )}
           {d.resolution && <ResolutionSection resolution={d.resolution} />}
           {d.stateChanges && <StateChangesSection stateChanges={d.stateChanges} />}
           {d.narrative && <NarrativeSection narrative={d.narrative} />}
           {d.context && <ContextSection context={d.context} />}
           {d.rowCounts && <RowCountsSection rowCounts={d.rowCounts} />}
           <RawFallbackSection debug={d} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// Designer View — Section Components
+// =============================================================================
+
+function DesignerResolution({ resolution }) {
+  const r = resolution;
+  const stat = (r.stat || '?').toUpperCase();
+  const effVal = r.effectiveValue ?? r.effective ?? '?';
+  const parts = [`${stat} ${effVal}`];
+  if (r.skillUsed) parts.push(`${r.skillUsed} ${r.skillModifier ?? 0}`);
+  if (r.equipmentQuality) parts.push(`Equip ${r.equipmentQuality}`);
+  parts.push(`d20(${r.dieSelected ?? '?'})`);
+  const mathLine = `${parts.join(' + ')} = ${r.total ?? '?'} vs DC ${r.dc ?? '?'}`;
+
+  const margin = r.margin != null ? (r.margin >= 0 ? '+' : '') + Number(r.margin).toFixed(1) : '?';
+  const fb = r.fortunesBalance || '?';
+  const tierStr = [r.tierName, r.tier ? `(${r.tier})` : null].filter(Boolean).join(' ');
+  const detailLine = `Fortune\u2019s Balance: ${fb} | Margin: ${margin} | Tier: ${tierStr || '?'}`;
+  const marginColor = r.margin >= 0 ? '#8aba7a' : '#e8845a';
+
+  return (
+    <div className={styles.dSection}>
+      <div className={styles.dSectionTitle}>Resolution</div>
+      <div className={styles.dResLine}>{mathLine}</div>
+      <div className={styles.dResLine} style={{ color: marginColor }}>{detailLine}</div>
+    </div>
+  );
+}
+
+function DesignerStateChanges({ stateChanges }) {
+  const sc = stateChanges;
+  const lines = [];
+
+  // Conditions
+  if (sc.conditions) {
+    (sc.conditions.added || []).forEach(c => {
+      const name = itemName(c);
+      const detail = typeof c === 'object' && c.penalty != null
+        ? ` (${c.penalty} ${(c.stat || '').toUpperCase()}, ${(c.durationType || '').replace(/_/g, ' ')})`
+        : typeof c === 'object' && c.durationType ? ` (${c.durationType.replace(/_/g, ' ')})` : '';
+      lines.push({ emoji: '\u26A0\uFE0F', text: `Condition Added: ${name}${detail}`, cls: 'warning' });
+    });
+    (sc.conditions.removed || []).forEach(c => {
+      lines.push({ emoji: '\u2705', text: `Condition Removed: ${itemName(c)}`, cls: 'success' });
+    });
+    (sc.conditions.modified || []).forEach(c => {
+      lines.push({ emoji: '\u26A0\uFE0F', text: `Condition Changed: ${itemName(c)}`, cls: 'warning' });
+    });
+  }
+
+  // Inventory
+  if (sc.inventory) {
+    (sc.inventory.added || []).forEach(item => {
+      lines.push({ emoji: '\uD83D\uDCE6', text: `Gained: ${itemName(item)}`, cls: '' });
+    });
+    (sc.inventory.removed || []).forEach(item => {
+      lines.push({ emoji: '\uD83D\uDCE6', text: `Lost: ${itemName(item)}`, cls: 'warning' });
+    });
+  }
+
+  // Clock
+  if (sc.clock) {
+    const b = sc.clock.before || {};
+    const a = sc.clock.after || {};
+    lines.push({ emoji: '\uD83D\uDD50', text: `Clock: Day ${b.day ?? '?'} ${fmtClockTime(b)} \u2192 Day ${a.day ?? '?'} ${fmtClockTime(a)}`, cls: '' });
+  }
+
+  // NPCs
+  if (Array.isArray(sc.npcsCreated) && sc.npcsCreated.length) {
+    sc.npcsCreated.forEach(n => lines.push({ emoji: '\uD83D\uDC64', text: `NPC Met: ${n}`, cls: '' }));
+  }
+  if (Array.isArray(sc.npcsUpdated) && sc.npcsUpdated.length) {
+    sc.npcsUpdated.forEach(n => lines.push({ emoji: '\uD83D\uDC64', text: `NPC Updated: ${n}`, cls: '' }));
+  }
+
+  // Locations
+  if (Array.isArray(sc.locationsCreated) && sc.locationsCreated.length) {
+    sc.locationsCreated.forEach(l => lines.push({ emoji: '\uD83D\uDCCD', text: `Location Discovered: ${l}`, cls: '' }));
+  }
+
+  // Skills
+  if (Array.isArray(sc.skillsChanged) && sc.skillsChanged.length) {
+    sc.skillsChanged.forEach(s => lines.push({ emoji: '\u2694\uFE0F', text: `Skill Changed: ${s}`, cls: '' }));
+  }
+
+  if (lines.length === 0) return null;
+
+  return (
+    <div className={styles.dSection}>
+      <div className={styles.dSectionTitle}>State Changes</div>
+      {lines.map((line, i) => (
+        <div key={i} className={`${styles.dChangeLine} ${line.cls === 'warning' ? styles.dChangeWarning : line.cls === 'success' ? styles.dChangeSuccess : ''}`}>
+          <span className={styles.dChangeEmoji}>{line.emoji}</span>
+          <span>{line.text}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DesignerNpcs({ context }) {
+  if (!context?.npcs?.length) return null;
+  const npcParts = context.npcs.map(npc => {
+    if (typeof npc === 'string') return npc;
+    if (npc.name) return `${npc.name}${npc.disposition != null ? `: ${npc.disposition}${npc.attitude ? ` (${npc.attitude})` : ''}` : ''}`;
+    return JSON.stringify(npc);
+  });
+
+  return (
+    <div className={styles.dSection}>
+      <div className={styles.dSectionTitle}>NPCs Active</div>
+      <div className={styles.dNpcLine}>{npcParts.join(' | ')}</div>
+    </div>
+  );
+}
+
+function DesignerContextBudget({ context }) {
+  if (!context?.layers) return null;
+  const layers = context.layers;
+  const parts = ['L1', 'L2', 'L3', 'L4']
+    .map(k => `${k}: ${layers[k] ? layers[k].toLocaleString() + ' tok' : '\u2014'}`)
+  if (layers.total) parts.push(`Total: ${layers.total.toLocaleString()} tok`);
+  const complexity = context.sceneComplexity;
+
+  return (
+    <div className={styles.dSection}>
+      <div className={styles.dSectionTitle}>Context Budget</div>
+      <div className={styles.dContextLine}>
+        {parts.join(' | ')}
+        {complexity ? ` | Complexity: ${complexity}` : ''}
+      </div>
+    </div>
+  );
+}
+
+function DesignerAiCalls({ debug }) {
+  const d = debug;
+  const breakdown = d.turnCostBreakdown;
+
+  if (breakdown) {
+    return (
+      <div className={styles.dSection}>
+        <div className={styles.dSectionTitle}>AI Calls</div>
+        {Object.entries(breakdown).map(([task, cost]) => (
+          <div key={task} className={styles.dAiLine}>
+            <span className={styles.dAiTask}>{task}</span>: <span className={styles.dAiCost}>{fmtCost(cost)}</span>
+          </div>
+        ))}
+        {d.turnCost != null && (
+          <div className={styles.dAiLine} style={{ borderTop: '1px solid #2a2a44', paddingTop: 3, marginTop: 3 }}>
+            <span className={styles.dAiTask}>total</span>: <span className={styles.dAiCost}>{fmtCost(d.turnCost)}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Fallback: single AI call info
+  if (d.ai) {
+    const tok = d.ai.tokens || {};
+    return (
+      <div className={styles.dSection}>
+        <div className={styles.dSectionTitle}>AI Calls</div>
+        <div className={styles.dAiLine}>
+          <span className={styles.dAiTask}>{d.ai.task || 'narrative'}</span>: {d.ai.model || '?'} &mdash; <span className={styles.dAiCost}>{fmtCost(d.ai.estimatedCost) || '?'}</span>
+          {' '}({(tok.completion || 0).toLocaleString()} tok out{tok.cached ? `, ${tok.cached.toLocaleString()} cached` : ''})
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+// =============================================================================
+// Designer View — Turn Card
+// =============================================================================
+
+function DesignerTurnCard({ entry, expanded, onToggle }) {
+  const d = entry.debug || {};
+  const r = d.resolution;
+  const turnNum = entry.turnNumber || d.turn;
+  const action = parseActionLabel(entry.actionLabel);
+  const stat = r ? (r.stat || '?').toUpperCase() : null;
+  const tierStr = r ? [r.tierName, r.tier ? `(${r.tier})` : null].filter(Boolean).join(' ') : null;
+  const cost = d.turnCost ?? d.ai?.estimatedCost;
+  const duration = d.timing?.total || entry.durationMs;
+  const durationSec = (duration / 1000).toFixed(1);
+
+  return (
+    <div className={styles.turnCard}>
+      <div className={styles.turnCardSummary} onClick={onToggle}>
+        <span className={styles.turnNum}>Turn {turnNum || '?'}:</span>
+        <span className={styles.turnAction}>&ldquo;{action.text}&rdquo;</span>
+        {tierStr && <><span className={styles.turnSep}>&mdash;</span><span className={styles.turnOutcome}>{tierStr}</span></>}
+        {stat && <><span className={styles.turnSep}>&mdash;</span><span className={styles.turnStat}>{stat}</span></>}
+        {cost != null && <><span className={styles.turnSep}>&mdash;</span><span className={styles.turnCost}>{fmtCost(cost)}</span></>}
+        <span className={styles.turnSep}>&mdash;</span>
+        <span className={styles.turnDuration}>{durationSec}s</span>
+        <span className={styles.turnChevron}>{expanded ? '\u25BC' : '\u25B6'}</span>
+      </div>
+      {expanded && (
+        <div className={styles.turnCardDetail}>
+          {r && <DesignerResolution resolution={r} />}
+          {d.stateChanges && <DesignerStateChanges stateChanges={d.stateChanges} />}
+          <DesignerNpcs context={d.context} />
+          <DesignerContextBudget context={d.context} />
+          <DesignerAiCalls debug={d} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// Shared — Cost Bar
+// =============================================================================
+
+function CostBar({ entries }) {
+  // Most recent entry with gameTotalCost
+  const gameTotalEntry = entries.find(e => e.debug?.gameTotalCost != null);
+  const gameTotalCost = gameTotalEntry?.debug?.gameTotalCost;
+
+  // Most recent POST /action entry for turn cost
+  const lastTurnEntry = entries.find(e =>
+    e.method === 'POST' && e.url.includes('/action') && e.debug
+  );
+  const turnCost = lastTurnEntry?.debug?.turnCost ?? lastTurnEntry?.debug?.ai?.estimatedCost;
+  const breakdown = lastTurnEntry?.debug?.turnCostBreakdown;
+
+  return (
+    <div className={styles.costBar}>
+      <div className={styles.costBarLine}>
+        <span className={styles.costLabel}>Game Total:</span>
+        <span className={styles.costValue}>{gameTotalCost != null ? fmtCost(gameTotalCost) : '\u2014'}</span>
+        <span className={styles.costSep}>|</span>
+        <span className={styles.costLabel}>Last Turn:</span>
+        <span className={styles.costValue}>{turnCost != null ? fmtCost(turnCost) : '\u2014'}</span>
+      </div>
+      {breakdown && (
+        <div className={styles.costBreakdown}>
+          ({Object.entries(breakdown).map(([task, taskCost], i) => (
+            <span key={task}>{i > 0 && ' \u00B7 '}{task}: {fmtCost(taskCost)}</span>
+          ))})
         </div>
       )}
     </div>
@@ -522,7 +805,19 @@ export default function DebugPanel({ entries, onClear }) {
   const [height, setHeight] = useState(300);
   const [expandedId, setExpandedId] = useState(null);
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const [view, setView] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('crucible_debug_view') || 'designer';
+    }
+    return 'designer';
+  });
   const panelRef = useRef(null);
+
+  const handleViewChange = (v) => {
+    setView(v);
+    setExpandedId(null);
+    if (typeof window !== 'undefined') localStorage.setItem('crucible_debug_view', v);
+  };
 
   // Drag to resize
   const handleDragStart = useCallback((e) => {
@@ -552,6 +847,11 @@ export default function DebugPanel({ entries, onClear }) {
       });
     } catch { /* clipboard not available */ }
   }, [entries]);
+
+  // Filter turn entries for designer view
+  const turnEntries = entries.filter(e =>
+    e.method === 'POST' && (e.url.includes('/action') || e.url.includes('/talk-to-gm'))
+  );
 
   return (
     <div
@@ -592,24 +892,55 @@ export default function DebugPanel({ entries, onClear }) {
         </div>
       </div>
 
-      {/* Entry list */}
+      {/* Panels below header (only when expanded) */}
       {!collapsed && (
-        <div className={styles.entryList}>
-          {entries.length === 0 ? (
-            <div className={styles.emptyState}>
-              No debug entries yet. API responses with _debug data will appear here.
-            </div>
-          ) : (
-            entries.map(entry => (
-              <EntryRow
-                key={entry.id}
-                entry={entry}
-                expanded={expandedId === entry.id}
-                onToggle={() => setExpandedId(prev => prev === entry.id ? null : entry.id)}
-              />
-            ))
-          )}
-        </div>
+        <>
+          {/* Sticky cost bar */}
+          <CostBar entries={entries} />
+
+          {/* View toggle */}
+          <div className={styles.viewToggle}>
+            <button
+              className={view === 'designer' ? styles.viewTabActive : styles.viewTab}
+              onClick={() => handleViewChange('designer')}
+            >Designer</button>
+            <button
+              className={view === 'developer' ? styles.viewTabActive : styles.viewTab}
+              onClick={() => handleViewChange('developer')}
+            >Developer</button>
+          </div>
+
+          {/* Scrollable content */}
+          <div className={styles.contentArea}>
+            {view === 'designer' ? (
+              turnEntries.length === 0 ? (
+                <div className={styles.emptyState}>No turns yet. Take an action to see turn data here.</div>
+              ) : (
+                turnEntries.map(entry => (
+                  <DesignerTurnCard
+                    key={entry.id}
+                    entry={entry}
+                    expanded={expandedId === entry.id}
+                    onToggle={() => setExpandedId(prev => prev === entry.id ? null : entry.id)}
+                  />
+                ))
+              )
+            ) : (
+              entries.length === 0 ? (
+                <div className={styles.emptyState}>No debug entries yet. API responses with _debug data will appear here.</div>
+              ) : (
+                entries.map(entry => (
+                  <EntryRow
+                    key={entry.id}
+                    entry={entry}
+                    expanded={expandedId === entry.id}
+                    onToggle={() => setExpandedId(prev => prev === entry.id ? null : entry.id)}
+                  />
+                ))
+              )
+            )}
+          </div>
+        </>
       )}
     </div>
   );

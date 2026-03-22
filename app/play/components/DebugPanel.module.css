@@ -104,7 +104,91 @@
   border-color: #4a6a3a;
 }
 
-/* ─── Entry List ─── */
+/* ─── Sticky Cost Bar ─── */
+
+.costBar {
+  padding: 6px 16px;
+  background: #1e1e36;
+  border-bottom: 1px solid #2a2a44;
+  flex-shrink: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+
+.costBarLine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.costLabel {
+  color: #6b83a3;
+}
+
+.costValue {
+  color: #8aba7a;
+  font-weight: 600;
+}
+
+.costSep {
+  color: #3a3a5a;
+}
+
+.costBreakdown {
+  color: #6b83a3;
+  font-size: 10px;
+  margin-top: 2px;
+}
+
+.costBreakdown span {
+  color: #8a94a8;
+}
+
+/* ─── View Toggle ─── */
+
+.viewToggle {
+  display: flex;
+  gap: 0;
+  padding: 0 16px;
+  background: #1a1a2e;
+  border-bottom: 1px solid #2a2a44;
+  flex-shrink: 0;
+}
+
+.viewTab {
+  padding: 6px 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: #6b83a3;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.viewTab:hover {
+  color: #8a94a8;
+}
+
+.viewTabActive {
+  composes: viewTab;
+  color: #c9a84c;
+  border-bottom-color: #c9a84c;
+  font-weight: 600;
+}
+
+/* ─── Scrollable Content Area ─── */
+
+.contentArea {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ─── Entry List (legacy, now contentArea) ─── */
 
 .entryList {
   flex: 1;
@@ -389,4 +473,160 @@
   word-break: break-word;
   margin: 0;
   max-height: 300px;
+}
+
+/* ==============================================
+   Designer View — Turn Cards
+   ============================================== */
+
+.turnCard {
+  border-bottom: 1px solid #2a2a44;
+}
+
+.turnCardSummary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  transition: background 0.1s;
+}
+
+.turnCardSummary:hover {
+  background: #22223a;
+}
+
+.turnNum {
+  color: #c9a84c;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.turnAction {
+  color: #c8c0b0;
+  flex-shrink: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.turnSep {
+  color: #3a3a5a;
+  flex-shrink: 0;
+}
+
+.turnOutcome {
+  color: #8a94a8;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.turnStat {
+  color: #6b8aff;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.turnCost {
+  color: #8aba7a;
+  flex-shrink: 0;
+}
+
+.turnDuration {
+  color: #7082a4;
+  flex-shrink: 0;
+}
+
+.turnChevron {
+  color: #6b83a3;
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 10px;
+}
+
+/* ─── Turn Card Detail (Expanded) ─── */
+
+.turnCardDetail {
+  padding: 10px 16px 14px 24px;
+  background: #14142a;
+  border-top: 1px solid #2a2a44;
+}
+
+/* ─── Designer Sections ─── */
+
+.dSection {
+  margin-bottom: 12px;
+}
+
+.dSection:last-child {
+  margin-bottom: 0;
+}
+
+.dSectionTitle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: #7082a4;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+
+.dResLine {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #c8c0b0;
+  line-height: 1.6;
+}
+
+.dChangeLine {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #c8c0b0;
+  padding: 1px 0;
+}
+
+.dChangeEmoji {
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.dChangeWarning {
+  color: #e8845a;
+}
+
+.dChangeSuccess {
+  color: #8aba7a;
+}
+
+.dNpcLine {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #c8c0b0;
+}
+
+.dContextLine {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #8a94a8;
+}
+
+.dAiLine {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #8a94a8;
+  padding: 1px 0;
+}
+
+.dAiTask {
+  color: #c8c0b0;
+}
+
+.dAiCost {
+  color: #8aba7a;
 }
