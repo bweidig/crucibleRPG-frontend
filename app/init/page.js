@@ -1412,11 +1412,18 @@ function Phase3({ character, onChange, hasArchetypes, availableArchetypes, chara
   );
 }
 
-function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills, startingLoadout, factionStandings }) {
+function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills, startingLoadout, factionStandings, innateTraits, softWarnings, hardErrors, onHardErrorsClear }) {
   const [editing, setEditing] = useState(false);
   const [stats, setStats] = useState(initialStats);
+  const [editingStatName, setEditingStatName] = useState(null);
+  const [editInputValue, setEditInputValue] = useState('');
 
   const hasDeviation = stats.some((s, i) => Math.abs(s.value - initialStats[i].value) > 2.0);
+
+  const applyStatUpdate = (next) => {
+    if (onStatsChange) onStatsChange(next);
+    if (onHardErrorsClear) onHardErrorsClear();
+  };
 
   const handleStatChange = (name, delta) => {
     setStats(prev => {
@@ -1425,9 +1432,28 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
         const newVal = Math.min(20.0, Math.max(1.0, Math.round((s.value + delta) * 10) / 10));
         return { ...s, value: newVal };
       });
-      if (onStatsChange) onStatsChange(next);
+      applyStatUpdate(next);
       return next;
     });
+  };
+
+  const handleStatDirectEdit = (name, rawValue) => {
+    const parsed = parseFloat(rawValue);
+    if (isNaN(parsed)) { setEditingStatName(null); return; }
+    const clamped = Math.min(20.0, Math.max(1.0, Math.round(parsed * 2) / 2));
+    setStats(prev => {
+      const next = prev.map(s => {
+        if (s.name !== name) return s;
+        return { ...s, value: clamped };
+      });
+      applyStatUpdate(next);
+      return next;
+    });
+    setEditingStatName(null);
+  };
+
+  const formatTraitName = (trait) => {
+    return trait.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   };
 
   const getTier = (val) => {
@@ -1486,33 +1512,55 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
                 }}>{getTier(s.value)}</span>
 
                 {editing ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-                    <button onClick={() => handleStatChange(s.name, -0.5)} className={styles.statStepBtn} style={{
-                      width: 32, height: 32, borderRadius: '6px 0 0 6px',
-                      background: '#0d1120', border: '1px solid #1e2540',
-                      color: 'var(--text-secondary)', fontSize: 18, fontWeight: 700,
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>{'\u2212'}</button>
-                    <div style={{
-                      width: 56, height: 32,
-                      background: 'var(--bg-main)', borderTop: '1px solid #1e2540', borderBottom: '1px solid #1e2540',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontFamily: 'var(--font-jetbrains)', fontSize: 15, fontWeight: 500,
-                      color: changed ? 'var(--accent-gold)' : 'var(--text-heading)',
-                    }}>{s.value.toFixed(1)}</div>
-                    <button onClick={() => handleStatChange(s.name, 0.5)} className={styles.statStepBtn} style={{
-                      width: 32, height: 32, borderRadius: '0 6px 6px 0',
-                      background: '#0d1120', border: '1px solid #1e2540',
-                      color: 'var(--text-secondary)', fontSize: 18, fontWeight: 700,
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>+</button>
-                    {changed && (
-                      <span style={{
-                        fontFamily: 'var(--font-jetbrains)', fontSize: 11,
-                        color: delta > 0 ? '#8aba7a' : '#e8845a',
-                        marginLeft: 8, minWidth: 36,
-                      }}>{delta > 0 ? '+' : ''}{delta.toFixed(1)}</span>
-                    )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 0, width: 168, flexShrink: 0, justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <button onClick={() => handleStatChange(s.name, -0.5)} className={styles.statStepBtn} style={{
+                        width: 32, height: 32, borderRadius: '6px 0 0 6px',
+                        background: '#0d1120', border: '1px solid #1e2540',
+                        color: 'var(--text-secondary)', fontSize: 18, fontWeight: 700,
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>{'\u2212'}</button>
+                      {editingStatName === s.name ? (
+                        <input
+                          type="text"
+                          value={editInputValue}
+                          onChange={e => setEditInputValue(e.target.value)}
+                          onBlur={() => handleStatDirectEdit(s.name, editInputValue)}
+                          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleStatDirectEdit(s.name, editInputValue); } if (e.key === 'Escape') setEditingStatName(null); }}
+                          autoFocus
+                          style={{
+                            width: 56, height: 32, textAlign: 'center',
+                            background: 'var(--bg-main)', borderTop: '1px solid var(--accent-gold)', borderBottom: '1px solid var(--accent-gold)',
+                            borderLeft: 'none', borderRight: 'none', outline: 'none',
+                            fontFamily: 'var(--font-jetbrains)', fontSize: 15, fontWeight: 500,
+                            color: 'var(--accent-gold)', boxSizing: 'border-box',
+                          }}
+                        />
+                      ) : (
+                        <div
+                          onClick={() => { setEditingStatName(s.name); setEditInputValue(s.value.toFixed(1)); }}
+                          style={{
+                            width: 56, height: 32,
+                            background: 'var(--bg-main)', borderTop: '1px solid #1e2540', borderBottom: '1px solid #1e2540',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontFamily: 'var(--font-jetbrains)', fontSize: 15, fontWeight: 500,
+                            color: changed ? 'var(--accent-gold)' : 'var(--text-heading)',
+                            cursor: 'text',
+                          }}>{s.value.toFixed(1)}</div>
+                      )}
+                      <button onClick={() => handleStatChange(s.name, 0.5)} className={styles.statStepBtn} style={{
+                        width: 32, height: 32, borderRadius: '0 6px 6px 0',
+                        background: '#0d1120', border: '1px solid #1e2540',
+                        color: 'var(--text-secondary)', fontSize: 18, fontWeight: 700,
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>+</button>
+                    </div>
+                    <span style={{
+                      fontFamily: 'var(--font-jetbrains)', fontSize: 11,
+                      color: delta > 0 ? '#8aba7a' : '#e8845a',
+                      width: 44, textAlign: 'right',
+                      visibility: changed ? 'visible' : 'hidden',
+                    }}>{delta > 0 ? '+' : ''}{delta.toFixed(1)}</span>
                   </div>
                 ) : (
                   <span style={{
@@ -1550,7 +1598,33 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
         })}
       </div>
 
-      {/* Skills */}
+      {/* Hard Errors */}
+      {hardErrors && hardErrors.length > 0 && (
+        <div style={{
+          padding: '14px 18px', marginBottom: 14,
+          background: '#1a1214', border: '1px solid #4a2020', borderRadius: 8,
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#e85a5a', lineHeight: 1.6,
+        }}>
+          {hardErrors.map((err, i) => (
+            <div key={i}>{err}</div>
+          ))}
+        </div>
+      )}
+
+      {/* Soft Warnings */}
+      {softWarnings && softWarnings.length > 0 && (
+        <div style={{
+          padding: '14px 18px', marginBottom: 14,
+          background: '#1a1710', border: '1px solid #3a3020', borderRadius: 8,
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#e8a04a', lineHeight: 1.6,
+        }}>
+          {softWarnings.map((warn, i) => (
+            <div key={i}>{warn}</div>
+          ))}
+        </div>
+      )}
+
+      {/* Backstory Skills */}
       {skills && skills.length > 0 && (
         <div style={{
           background: '#111528', border: '1px solid #1e2540', borderRadius: 6, padding: '10px 16px',
@@ -1558,6 +1632,36 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
         }}>
           <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Skills: </span>
           {skills.join(', ')}
+        </div>
+      )}
+
+      {/* Innate Traits */}
+      {innateTraits && innateTraits.length > 0 && (
+        <div style={{
+          background: '#111528', border: '1px solid #1e2540', borderRadius: 6, padding: '10px 16px',
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4', marginBottom: 10,
+        }}>
+          <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 6 }}>Innate Traits</div>
+          {innateTraits.map((t, i) => {
+            const hasPenalty = t.penalty != null;
+            const hasDetail = t.effect || t.value != null || hasPenalty || t.stat;
+            return (
+              <div key={i} style={{ padding: '4px 0', borderBottom: i < innateTraits.length - 1 ? '1px solid #1a1e30' : 'none' }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ color: hasPenalty ? '#e8a04a' : 'var(--text-heading)', fontWeight: 500 }}>{formatTraitName(t.trait)}</span>
+                  <span style={{ color: '#6b83a3', fontSize: 12, fontStyle: 'italic' }}>{t.source}</span>
+                </div>
+                {hasDetail && (
+                  <div style={{ fontSize: 13, color: hasPenalty ? '#e8a04a' : '#6b83a3', marginTop: 2, paddingLeft: 2 }}>
+                    {t.effect && <span>{t.effect.replace(/_/g, ' ')}</span>}
+                    {t.value != null && <span>{t.effect ? ': ' : ''}{t.value > 0 ? '+' : ''}{t.value}</span>}
+                    {hasPenalty && <span>{t.effect ? ': ' : ''}{t.penalty}</span>}
+                    {t.stat && <span> ({t.stat})</span>}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -1570,7 +1674,10 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
           <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 6 }}>Foundational Skills</div>
           {foundationalSkills.map((fs, i) => (
             <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '2px 0' }}>
-              <span style={{ color: 'var(--text-heading)' }}>{fs.scope}</span>
+              <span style={{ color: 'var(--text-heading)' }}>{fs.name || fs.scope}</span>
+              {fs.modifier != null && (
+                <span style={{ color: 'var(--accent-gold)', fontSize: 14, fontFamily: 'var(--font-jetbrains)', fontWeight: 600 }}>+{Number(fs.modifier).toFixed(1)}</span>
+              )}
               <span style={{ color: '#7082a4', fontSize: 12 }}>({fs.breadthCategory})</span>
               <span style={{ color: 'var(--accent-gold)', fontSize: 12, fontFamily: 'var(--font-jetbrains)' }}>{fs.stat}</span>
             </div>
@@ -1645,7 +1752,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
           fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4',
           marginTop: 16, lineHeight: 1.6,
         }}>
-          Adjust in increments of 0.5. Stats must be between 1.0 and 20.0. Inventory slots update with Strength.
+          Use +/- buttons or click a value to type directly. Stats must be between 1.0 and 20.0. Inventory slots update with Strength.
         </p>
       )}
 
@@ -1825,6 +1932,7 @@ function InitWizardInner() {
   const [proposalLoading, setProposalLoading] = useState(false);
   const [proposal, setProposal] = useState(null);
   const [adjustedStats, setAdjustedStats] = useState(null);
+  const [proposalValidation, setProposalValidation] = useState({ hardErrors: [], softWarnings: [] });
   const [scenariosLoading, setScenariosLoading] = useState(false);
   const [generatedScenarios, setGeneratedScenarios] = useState(null);
   const [scenariosFetchedIntensity, setScenariosFetchedIntensity] = useState(null);
@@ -2017,6 +2125,11 @@ function InitWizardInner() {
         species: p.species || null,
         _fallback: statsArray.length === 0,
       });
+      const v = res.validation || {};
+      setProposalValidation({
+        hardErrors: Array.isArray(v.hardErrors) ? v.hardErrors : [],
+        softWarnings: Array.isArray(v.softWarnings) ? v.softWarnings : [],
+      });
     } catch (err) {
       // TODO: remove SAMPLE_STATS fallback when API is stable
       console.log('Proposal generation failed, using fallback:', err.message);
@@ -2097,7 +2210,7 @@ function InitWizardInner() {
       case 0: return !!storyteller;
       case 1: return !!setting;
       case 2: return character.name.trim().length > 0 && (!gameId || worldGenStatus === 'complete');
-      case 3: return !proposalLoading;
+      case 3: return !proposalLoading && !(proposalValidation.hardErrors.length > 0);
       case 4: return !!difficulty;
       case 5: return !!scenario && !scenariosLoading;
       default: return false;
@@ -2294,6 +2407,10 @@ function InitWizardInner() {
               foundationalSkills={proposal?.foundationalSkills}
               startingLoadout={proposal?.startingLoadout}
               factionStandings={proposal?.factionStandings}
+              innateTraits={proposal?.innateTraits}
+              softWarnings={proposalValidation.softWarnings}
+              hardErrors={proposalValidation.hardErrors}
+              onHardErrorsClear={() => setProposalValidation(prev => ({ ...prev, hardErrors: [] }))}
             />
           )
         )}
