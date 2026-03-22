@@ -24,6 +24,31 @@
   gap: 32px;
 }
 
+/* ─── World Briefing (Prologue) ─── */
+
+.worldBriefing {
+  padding: 8px 20px 16px;
+}
+
+.briefingLabel {
+  font-family: var(--font-cinzel);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.briefingText {
+  font-family: var(--font-alegreya);
+  font-style: italic;
+  font-size: var(--narrative-size, 15px);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
 /* ─── Session Recap ─── */
 
 .sessionRecap {

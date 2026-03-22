@@ -497,6 +497,7 @@ function PlayPage() {
             ref={narrativeRef}
             turns={turns}
             sessionRecap={gameState?.sessionRecap}
+            worldBriefing={gameState?.worldBriefing}
             gameId={gameId}
             onTurnResponse={handleTurnResponse}
           />

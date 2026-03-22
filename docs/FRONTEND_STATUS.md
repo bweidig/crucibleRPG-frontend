@@ -32,6 +32,11 @@
 
 ## Recent Work (This Session: 2026-03-22)
 
+### World Briefing Display (Prologue above Turn 1)
+- **Feature:** Displays `gameState.worldBriefing` as the first block in the narrative panel, above the session recap and Turn 1. Renders as a subtle prologue — italic Alegreya text in `--text-secondary` color, no card border, with a small "PROLOGUE" label in dim uppercase Cinzel. Scrolling past it into Turn 1 is seamless.
+- **Graceful fallback:** If `worldBriefing` is null or absent (backend hasn't deployed yet), nothing renders — no placeholder or reserved space.
+- **Files:** `page.js` (passes `worldBriefing` prop from `gameState`), `NarrativePanel.js` (accepts `worldBriefing` prop, renders above session recap), `NarrativePanel.module.css` (`.worldBriefing`, `.briefingLabel`, `.briefingText` styles).
+
 ### Debug Panel Redesign — Two-View Layout (Designer + Developer)
 - **Layout restructure:** Panel now has three fixed regions above the scrollable content: header bar (unchanged), sticky cost bar (new), and view toggle tabs (new). Scrollable content area renders either Designer or Developer view.
 - **Sticky Cost Bar:** Always visible at top of panel. Shows `Game Total: $X.XXXX` (from `_debug.gameTotalCost`, shows "—" if not yet available from AD-366) and `Last Turn: $X.XXXX` (from most recent POST /action entry's `_debug.turnCost`, falls back to `_debug.ai.estimatedCost`). When `_debug.turnCostBreakdown` is available, shows per-task breakdown in parentheses with middot separators.

@@ -3,7 +3,7 @@ import TurnBlock from './TurnBlock';
 import TalkToGM from './TalkToGM';
 import styles from './NarrativePanel.module.css';
 
-const NarrativePanel = forwardRef(function NarrativePanel({ turns, sessionRecap, gameId, onTurnResponse }, ref) {
+const NarrativePanel = forwardRef(function NarrativePanel({ turns, sessionRecap, worldBriefing, gameId, onTurnResponse }, ref) {
   const newTurnRef = useRef(null);
   const bottomRef = useRef(null);
 
@@ -24,6 +24,13 @@ const NarrativePanel = forwardRef(function NarrativePanel({ turns, sessionRecap,
     <div className={styles.narrativeWrapper}>
       <div className={styles.narrativeScroll} ref={ref}>
         <div className={styles.narrativeInner}>
+          {worldBriefing && (
+            <div className={styles.worldBriefing}>
+              <div className={styles.briefingLabel}>Prologue</div>
+              <div className={styles.briefingText}>{worldBriefing}</div>
+            </div>
+          )}
+
           {sessionRecap && (
             <div className={styles.sessionRecap}>
               <div className={styles.recapHeader}>PREVIOUSLY...</div>
