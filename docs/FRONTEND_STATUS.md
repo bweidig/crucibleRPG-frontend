@@ -32,6 +32,11 @@
 
 ## Recent Work (This Session: 2026-03-22)
 
+### Condition Penalty/Buff Display Sign (Bugfix)
+- **Problem:** Condition values displayed as bare numbers with no sign (e.g., "0.1"), making it ambiguous whether the condition helps or hurts.
+- **Fix:** Conditions now show signed values with color: penalties display as "−0.5" in orange (`var(--color-danger)`), buffs display as "+1.0" in green (`var(--color-success)`). Uses `isBuff` field from API when present; falls back to treating positive values as penalty magnitudes and negative values as buffs (per API convention). Value rendered in JetBrains Mono to match stat number styling.
+- **Files:** `CharacterTab.js` (sign/color logic in condition display), `CharacterTab.module.css` (`.conditionPenalty`, `.conditionBuff` classes).
+
 ### Wire Skill & Gear Requests to Proposal Generation
 - **Problem:** The Requests box (Skills/Starting Gear textareas) existed in the Phase 4 UI but was uncontrolled (no `value`/`onChange`), values were never captured, and `generateProposal()` sent an empty POST body. Additionally, the Requests box only appeared after the proposal loaded, so the player couldn't fill it before the first generation.
 - **State wiring:** Added `skillRequests` and `gearRequests` state in InitWizardInner. Textareas are now controlled inputs wired to these state values via props to Phase4.

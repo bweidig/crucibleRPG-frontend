@@ -116,6 +116,16 @@
   color: #e85a5a;
 }
 
+.conditionPenalty {
+  font-family: var(--font-jetbrains);
+  color: var(--color-danger);
+}
+
+.conditionBuff {
+  font-family: var(--font-jetbrains);
+  color: var(--color-success, #8aba7a);
+}
+
 .conditionDetail {
   font-family: var(--font-alegreya-sans);
   font-size: 12px;

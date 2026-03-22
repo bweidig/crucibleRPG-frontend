@@ -110,10 +110,14 @@ export default function CharacterTab({ data, onEntityClick }) {
         ) : (
           conditions.map((cond, i) => {
             const isCon = (cond.stat || '').toLowerCase() === 'con';
+            const val = cond.penalty ?? 0;
+            const isBuff = cond.isBuff != null ? cond.isBuff === true : val < 0;
+            const absVal = Math.abs(val);
+            const signedVal = isBuff ? `+${absVal.toFixed(1)}` : `\u2212${absVal.toFixed(1)}`;
             return (
               <div key={cond.id || i} className={styles.conditionCard} onClick={() => onEntityClick?.({ term: cond.name, type: 'condition', id: cond.id })} style={{ cursor: 'pointer' }}>
                 <div className={`${styles.conditionHeader} ${isCon ? styles.conditionHeaderCon : ''}`}>
-                  {cond.name}: {cond.penalty} {(cond.stat || '').toUpperCase()}
+                  {cond.name}: <span className={isBuff ? styles.conditionBuff : styles.conditionPenalty}>{signedVal}</span> {(cond.stat || '').toUpperCase()}
                 </div>
                 <div className={styles.conditionDetail}>
                   {cond.durationType?.replace(/_/g, ' ')}
