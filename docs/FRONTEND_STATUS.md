@@ -30,7 +30,14 @@
 
 ---
 
-## Recent Work (This Session: 2026-03-22)
+## Recent Work (This Session: 2026-03-23)
+
+### Cache Scenarios by Intensity Level
+- **Problem:** Switching scenario intensity fired a new `POST /api/init/:gameId/generate-scenarios` every time, even for intensities the player already viewed. Each switch cost ~$0.01 and 15-30s, and returned different scenarios for the same intensity.
+- **Fix:** Replaced `generatedScenarios` + `scenariosFetchedIntensity` state with a `scenarioCache` object keyed by intensity. On intensity change, displays cached scenarios immediately if available; only fetches when the cache entry is empty. Navigating back from the scenario phase clears the entire cache (character/world may have changed). Failed fetches don't write a cache entry, so the player can retry.
+- **Files:** `app/init/page.js` (`scenarioCache` state replaces `generatedScenarios`/`scenariosFetchedIntensity`; `fetchScenarios` writes to cache; useEffect checks cache before fetching; back button clears cache on phase 5; Phase6 reads from `scenarioCache[intensity]`).
+
+## Previous Session Work (2026-03-22)
 
 ### World Briefing Display (Prologue above Turn 1)
 - **Feature:** Displays `gameState.worldBriefing` as the first block in the narrative panel, above the session recap and Turn 1. Renders as a subtle prologue — italic Alegreya text in `--text-secondary` color, no card border, with a small "PROLOGUE" label in dim uppercase Cinzel. Scrolling past it into Turn 1 is seamless.

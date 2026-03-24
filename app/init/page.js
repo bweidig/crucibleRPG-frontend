@@ -1952,8 +1952,7 @@ function InitWizardInner() {
   const [skillRequests, setSkillRequests] = useState('');
   const [gearRequests, setGearRequests] = useState('');
   const [scenariosLoading, setScenariosLoading] = useState(false);
-  const [generatedScenarios, setGeneratedScenarios] = useState(null);
-  const [scenariosFetchedIntensity, setScenariosFetchedIntensity] = useState(null);
+  const [scenarioCache, setScenarioCache] = useState({});
   const worldPollRef = useRef(null);
 
   // --- Connection state ---
@@ -2022,7 +2021,7 @@ function InitWizardInner() {
 
   // --- Fetch scenarios when entering Phase 6 or when intensity changes ---
   useEffect(() => {
-    if (phase === 5 && gameId && intensity !== scenariosFetchedIntensity) {
+    if (phase === 5 && gameId && !scenarioCache[intensity]) {
       fetchScenarios(intensity);
     }
   }, [phase, intensity]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -2202,15 +2201,12 @@ function InitWizardInner() {
         if (!mapped.find(s => s.key === 'D')) {
           mapped.push(SCENARIOS[3]); // Custom Start
         }
-        setGeneratedScenarios(mapped);
+        setScenarioCache(prev => ({ ...prev, [intensityId]: mapped }));
       } else {
-        setGeneratedScenarios(null); // fall back to SCENARIOS
+        setScenarioCache(prev => ({ ...prev, [intensityId]: null }));
       }
-      setScenariosFetchedIntensity(intensityId);
     } catch (err) {
       console.log('Scenario generation failed, using fallback:', err.message);
-      setGeneratedScenarios(null);
-      setScenariosFetchedIntensity(intensityId);
     } finally {
       setScenariosLoading(false);
     }
@@ -2442,7 +2438,7 @@ function InitWizardInner() {
           )
         )}
         {phase === 4 && <Phase5 selected={difficulty} onSelect={setDifficulty} />}
-        {phase === 5 && <Phase6 intensity={intensity} setIntensity={setIntensity} scenario={scenario} setScenario={setScenario} customStartText={customStartText} setCustomStartText={setCustomStartText} scenariosLoading={scenariosLoading} displayScenarios={generatedScenarios || SCENARIOS} />}
+        {phase === 5 && <Phase6 intensity={intensity} setIntensity={setIntensity} scenario={scenario} setScenario={setScenario} customStartText={customStartText} setCustomStartText={setCustomStartText} scenariosLoading={scenariosLoading} displayScenarios={scenarioCache[intensity] || SCENARIOS} />}
       </div>
 
       {/* Bottom Nav */}
@@ -2453,7 +2449,7 @@ function InitWizardInner() {
         alignItems: 'center', boxSizing: 'border-box', flexWrap: 'wrap', gap: 8,
       }}>
         <button
-          onClick={() => { setPhase(p => Math.max(0, p - 1)); setError(null); }}
+          onClick={() => { setPhase(p => { if (p === 5) setScenarioCache({}); return Math.max(0, p - 1); }); setError(null); }}
           disabled={phase === 0}
           className={styles.btnBack}
           style={{
