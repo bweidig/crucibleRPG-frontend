@@ -22,7 +22,7 @@ function ItemRow({ item, isEquipped, onEntityClick }) {
   const broken = item.durability === 0;
 
   return (
-    <div className={isEquipped ? styles.itemRowEquipped : styles.itemRow} style={{ opacity: broken ? 0.5 : 1, cursor: 'pointer' }} onClick={() => onEntityClick?.({ term: item.name, type: 'item', id: item.id, durability: item.durability, maxDurability: item.maxDurability })}>
+    <div className={isEquipped ? styles.itemRowEquipped : styles.itemRow} style={{ opacity: broken ? 0.5 : 1, cursor: 'pointer' }} onClick={() => onEntityClick?.({ ...item, term: item.name, type: 'item' })}>
       <div className={styles.itemLeft}>
         {isEquipped && <span className={styles.equippedDot} title="Equipped" />}
         <span className={`${styles.itemName} ${broken ? styles.itemNameBroken : ''}`}>

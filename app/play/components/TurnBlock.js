@@ -68,18 +68,18 @@ function StatusBadges({ stateChanges }) {
   if (conds) {
     if (Array.isArray(conds.added)) {
       conds.added.forEach(item => {
-        const name = item.name || item;
-        const isCon = (item.stat || '').toLowerCase() === 'con';
+        const name = typeof item === 'string' ? item : (item.name || 'Unknown condition');
+        const isCon = (typeof item === 'object' && item !== null) ? (item.stat || '').toLowerCase() === 'con' : false;
         badges.push({
           type: isCon ? 'condConDanger' : 'condAdded',
-          text: `\u26A0 ${name}${item.penalty ? `: ${item.penalty} ${(item.stat || '').toUpperCase()}` : ''}`,
+          text: `\u26A0 ${name}${(typeof item === 'object' && item?.penalty) ? `: ${item.penalty} ${(item.stat || '').toUpperCase()}` : ''}`,
           key: `cond-add-${name}`,
         });
       });
     }
     if (Array.isArray(conds.removed)) {
       conds.removed.forEach(item => {
-        const name = item.name || item;
+        const name = typeof item === 'string' ? item : (item.name || 'Unknown condition');
         badges.push({
           type: 'condRemoved',
           text: `\u2713 ${name} cleared`,
@@ -89,11 +89,11 @@ function StatusBadges({ stateChanges }) {
     }
     if (Array.isArray(conds.modified)) {
       conds.modified.forEach(item => {
-        const name = item.name || item;
-        const isCon = (item.stat || '').toLowerCase() === 'con';
+        const name = typeof item === 'string' ? item : (item.name || 'Unknown condition');
+        const isCon = (typeof item === 'object' && item !== null) ? (item.stat || '').toLowerCase() === 'con' : false;
         badges.push({
           type: isCon ? 'condConDanger' : 'condModified',
-          text: `\u26A0 ${name}${item.previousName ? ` \u2192 ${item.name}` : ' escalated'}`,
+          text: `\u26A0 ${name}${(typeof item === 'object' && item?.previousName) ? ` \u2192 ${item.name}` : ' escalated'}`,
           key: `cond-mod-${name}`,
         });
       });
@@ -105,7 +105,7 @@ function StatusBadges({ stateChanges }) {
   if (inv) {
     if (Array.isArray(inv.added)) {
       inv.added.forEach(item => {
-        const name = item.name || item;
+        const name = typeof item === 'string' ? item : (item.name || 'Unknown item');
         badges.push({
           type: 'invAdded',
           text: `+ ${name}`,
@@ -115,7 +115,7 @@ function StatusBadges({ stateChanges }) {
     }
     if (Array.isArray(inv.removed)) {
       inv.removed.forEach(item => {
-        const name = item.name || item;
+        const name = typeof item === 'string' ? item : (item.name || 'Unknown item');
         badges.push({
           type: 'invRemoved',
           text: `\u2013 ${name}`,
@@ -125,7 +125,7 @@ function StatusBadges({ stateChanges }) {
     }
     if (Array.isArray(inv.modified)) {
       inv.modified.forEach(item => {
-        const name = item.name || item;
+        const name = typeof item === 'string' ? item : (item.name || 'Unknown item');
         badges.push({
           type: 'invModified',
           text: `~ ${name}`,

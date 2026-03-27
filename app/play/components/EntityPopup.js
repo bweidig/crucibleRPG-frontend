@@ -98,6 +98,51 @@ export default function EntityPopup({ entity, glossaryData, notesData, gameId, o
             </div>
           )}
 
+          {/* Mechanical Properties (for equipment items) */}
+          {entity.equipmentCategory && (() => {
+            const props = [];
+            const cat = entity.equipmentCategory.toLowerCase();
+            const qualityVal = entity.quality ?? entity.qualityBonus;
+
+            if (cat === 'weapon') {
+              if (entity.damageModifier != null) props.push({ label: 'Damage', value: entity.damageModifier, signed: true });
+              if (qualityVal != null) props.push({ label: 'Quality Bonus', value: qualityVal, signed: true });
+              if (Array.isArray(entity.tags) && entity.tags.length > 0) props.push({ label: 'Tags', text: entity.tags.join(', ') });
+              if (entity.elementTag) props.push({ label: 'Element', text: entity.elementTag, element: true });
+            } else if (cat === 'armor') {
+              if (entity.armorMitigation != null) props.push({ label: 'Mitigation', value: entity.armorMitigation });
+              if (entity.armorType) props.push({ label: 'Type', text: entity.armorType.charAt(0).toUpperCase() + entity.armorType.slice(1) });
+              if (qualityVal != null) props.push({ label: 'Quality Bonus', value: qualityVal, signed: true });
+            } else if (cat === 'implement') {
+              if (entity.channelModifier != null) props.push({ label: 'Channel', value: entity.channelModifier, signed: true });
+              if (qualityVal != null) props.push({ label: 'Quality Bonus', value: qualityVal, signed: true });
+              if (entity.elementTag) props.push({ label: 'Element', text: entity.elementTag, element: true });
+            } else if (cat === 'shield') {
+              props.push({ label: 'Defense', value: 1.0, signed: true });
+              if (qualityVal != null) props.push({ label: 'Quality Bonus', value: qualityVal, signed: true });
+            }
+
+            if (props.length === 0) return null;
+
+            return (
+              <div className={styles.propertiesSection}>
+                <div className={styles.propertiesLabel}>PROPERTIES</div>
+                {props.map((p, i) => (
+                  <div key={i} className={styles.propertyRow}>
+                    <span className={styles.propertyName}>{p.label}</span>
+                    {p.text != null ? (
+                      <span className={p.element ? styles.propertyElement : styles.propertyText}>{p.text}</span>
+                    ) : (
+                      <span className={styles.propertyValue} style={{ color: p.value < 0 ? 'var(--color-danger)' : 'var(--accent-gold)' }}>
+                        {p.signed ? (p.value >= 0 ? '+' : '') : ''}{typeof p.value === 'number' ? p.value.toFixed(1) : p.value}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
           {/* Player Notes */}
           <div className={styles.notesSection}>
             <div className={styles.notesLabel}>Your Notes</div>
