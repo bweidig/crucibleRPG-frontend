@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-03-21
+**Last Updated:** 2026-03-26
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -30,7 +30,38 @@
 
 ---
 
-## Recent Work (This Session: 2026-03-23)
+## Recent Work (This Session: 2026-03-26)
+
+### Scroll Fade Indicator on Init Wizard and Landing Page
+- **Feature:** A subtle gradient fade at the bottom edge of the viewport signals "there's more content below" without any visible UI element. The gradient is 60px tall, fades from transparent to the page background color (`#0a0e1a`), and disappears smoothly when the user scrolls to the bottom.
+- **Init wizard:** Gradient sits just above the sticky bottom nav bar. A ref measures the nav's height dynamically so the gradient is always positioned correctly, even if the nav wraps on narrow screens. Re-evaluates on every phase change (some phases are short enough to fit without scrolling). The nav gets `z-index: 6` to stay above the gradient (`z-index: 5`).
+- **Landing page:** Gradient is fixed at the bottom of the viewport on initial load (hero section fills the screen). Disappears when the user scrolls to the bottom, reappears if they scroll back up.
+- **Behavior:** Uses `pointer-events: none` so it never blocks clicks. Checks on mount, scroll, and resize. If content fits entirely in the viewport, the gradient doesn't show. Opacity transition over 300ms, with `prefers-reduced-motion` respected (instant toggle, no transition).
+- **Files:** `app/landing/page.js` (ScrollFade component), `app/landing/page.module.css` (`.scrollFade`), `app/init/page.js` (scroll fade state + effect with `bottomNavRef`), `app/init/page.module.css` (`.scrollFade`).
+
+### Fix: Status Badge [object Object] in Narrative Panel
+- **Bug:** When the backend sends inventory changes as objects (e.g., `{ name: "Crystal Shard", slotCost: 0.5, ... }`) instead of plain strings, the status badges at the bottom of a turn rendered `+[object Object]` instead of `+Crystal Shard`.
+- **Root cause:** `StatusBadges` used `item.name || item` to extract display names. If `item` is an object with a falsy or missing `name`, the `||` fallback returned the raw object, which coerces to `[object Object]` in string context.
+- **Fix:** All six badge paths (conditions added/removed/modified, inventory added/removed/modified) now use `typeof item === 'string' ? item : (item.name || 'Unknown item')`. This handles both string entries and object entries safely, with a visible fallback instead of `[object Object]`.
+- **Files:** `TurnBlock.js` (StatusBadges function).
+
+### Fix: EntityPopup Item Stats Not Showing
+- **Bug:** PROPERTIES section never rendered for inventory items despite API sending `equipmentCategory` and mechanical fields.
+- **Root cause (InventoryTab):** The click handler manually copied specific field names from the item object. Instead of passing the full item data through, it created a new object with explicit keys — any field name mismatch or omission silently dropped the data. Changed to spread the entire item object (`{ ...item, term: item.name, type: 'item' }`), so ALL API fields (current and future) flow through automatically.
+- **Additional fix (EntityPopup):** Category matching (`cat === 'weapon'`) was case-sensitive — made it case-insensitive via `.toLowerCase()`. Also fixed `quality` vs `qualityBonus` field name mismatch: the `/character` endpoint sends `qualityBonus` but the PROPERTIES code read `entity.quality`. Now checks both (`entity.quality ?? entity.qualityBonus`).
+- **Files:** `InventoryTab.js` (spread item in onEntityClick), `EntityPopup.js` (case-insensitive category, quality/qualityBonus fallback).
+
+## Previous Session Work (2026-03-25)
+
+### EntityPopup: Mechanical Item Properties Display
+- **Feature:** When a player clicks an inventory item, the EntityPopup now shows a "PROPERTIES" section with the item's mechanical stats between the durability bar and player notes.
+- **Data flow:** InventoryTab's `onEntityClick` now passes mechanical fields from the item object (`equipmentCategory`, `damageModifier`, `armorMitigation`, `armorType`, `channelModifier`, `quality`, `tags`, `elementTag`) through to the EntityPopup.
+- **Display by category:** Weapons show Damage/Quality Bonus/Tags/Element. Armor shows Mitigation/Type/Quality Bonus. Implements show Channel/Quality Bonus/Element. Shields show Defense (+1.0 fixed)/Quality Bonus. General items with no `equipmentCategory` show no PROPERTIES section.
+- **Styling:** "PROPERTIES" label in Cinzel 11px 600wt muted, property labels in Alegreya Sans secondary, numeric values in JetBrains Mono with gold for positive and danger-orange for negative, element names in gold bold. Subtle top border separates from definition text.
+- **Graceful fallback:** If the backend hasn't deployed expanded item fields yet, `equipmentCategory` will be undefined and the section won't render. No errors, no empty sections.
+- **Files:** `EntityPopup.js` (PROPERTIES section with category-based rendering), `EntityPopup.module.css` (`.propertiesSection`, `.propertiesLabel`, `.propertyRow`, `.propertyName`, `.propertyValue`, `.propertyText`, `.propertyElement`), `InventoryTab.js` (passes mechanical fields through `onEntityClick`).
+
+## Previous Session Work (2026-03-23)
 
 ### Cache Scenarios by Intensity Level
 - **Problem:** Switching scenario intensity fired a new `POST /api/init/:gameId/generate-scenarios` every time, even for intensities the player already viewed. Each switch cost ~$0.01 and 15-30s, and returned different scenarios for the same intensity.

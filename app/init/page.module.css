@@ -85,3 +85,21 @@
   border-color: var(--border-card-hover);
   box-shadow: 0 0 12px rgba(201, 168, 76, 0.06);
 }
+
+/* Scroll fade indicator */
+.scrollFade {
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(to bottom, transparent, #0a0e1a);
+  pointer-events: none;
+  z-index: 5;
+  transition: opacity 300ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrollFade {
+    transition: none;
+  }
+}

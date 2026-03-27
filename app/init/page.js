@@ -1954,6 +1954,32 @@ function InitWizardInner() {
   const [scenariosLoading, setScenariosLoading] = useState(false);
   const [scenarioCache, setScenarioCache] = useState({});
   const worldPollRef = useRef(null);
+  const bottomNavRef = useRef(null);
+  const [scrollFadeVisible, setScrollFadeVisible] = useState(false);
+  const [bottomNavHeight, setBottomNavHeight] = useState(0);
+
+  // --- Scroll fade indicator ---
+  useEffect(() => {
+    const measure = () => {
+      if (bottomNavRef.current) setBottomNavHeight(bottomNavRef.current.offsetHeight);
+    };
+    const check = () => {
+      measure();
+      const { scrollY, innerHeight } = window;
+      const { scrollHeight } = document.documentElement;
+      const atBottom = scrollY + innerHeight >= scrollHeight - 20;
+      const hasScroll = scrollHeight > innerHeight + 20;
+      setScrollFadeVisible(hasScroll && !atBottom);
+    };
+    const raf = requestAnimationFrame(check);
+    window.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('resize', check, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', check);
+      window.removeEventListener('resize', check);
+    };
+  }, [phase]);
 
   // --- Connection state ---
   const [connectionFailed, setConnectionFailed] = useState(false);
@@ -2441,12 +2467,15 @@ function InitWizardInner() {
         {phase === 5 && <Phase6 intensity={intensity} setIntensity={setIntensity} scenario={scenario} setScenario={setScenario} customStartText={customStartText} setCustomStartText={setCustomStartText} scenariosLoading={scenariosLoading} displayScenarios={scenarioCache[intensity] || SCENARIOS} />}
       </div>
 
+      {/* Scroll fade indicator */}
+      <div className={styles.scrollFade} style={{ opacity: scrollFadeVisible ? 1 : 0, bottom: bottomNavHeight }} />
+
       {/* Bottom Nav */}
-      <div style={{
+      <div ref={bottomNavRef} style={{
         position: 'sticky', bottom: 0, width: '100%', padding: '18px 28px',
         background: 'var(--bg-main)', backdropFilter: 'blur(8px)',
         borderTop: '1px solid var(--border-gold-faint)', display: 'flex', justifyContent: 'space-between',
-        alignItems: 'center', boxSizing: 'border-box', flexWrap: 'wrap', gap: 8,
+        alignItems: 'center', boxSizing: 'border-box', flexWrap: 'wrap', gap: 8, zIndex: 6,
       }}>
         <button
           onClick={() => { setPhase(p => { if (p === 5) setScenarioCache({}); return Math.max(0, p - 1); }); setError(null); }}
