@@ -1,0 +1,18 @@
+Crucible RPG — Frontend Session Prompt
+What this is: The frontend client for Crucible RPG, a solo tabletop RPG powered by AI narration and server-side mechanical resolution. React/Next.js deployed on Vercel. The backend is a separate Node.js/Express repo deployed on Railway — this terminal cannot access it.
+My role: I'm the game designer, not a programmer. Explain decisions in plain language. Don't ask me to choose between technical approaches I can't evaluate — make a recommendation and explain why.
+Key project files (read these before making changes):
+API_CONTRACT.md — Documents every backend endpoint: request shapes, response shapes, field names, allowed values. Reference this file before writing or modifying any API call. This is the source of truth for all API integration. If a field name, value format, or response shape doesn't match this doc, the code is wrong.
+design-system.md — Color palettes, fonts, spacing, component styling rules. Reference before any UI work.
+FRONTEND_STATUS.md — Progress tracker. Update this file with completed work. This is the only tracker file in this repo.
+FRONTEND_TODO.md — Task list. Read at the start of every session. When a task is completed during normal work, check it off automatically (change - [ ] to - [x] and add the date). All files are in the docs/ directory.
+Do not create or write to: BUILD_PROGRESS.md, DESIGN_DECISIONS.md, DEBUG_LOG.md, TEST_LOG.md, or PROJECT_MAP.md. Those belong to the backend repo.
+API structure:
+Auth: /api/auth/...
+Game management: /api/games/...
+Init wizard: /api/init/{gameId}/...
+Gameplay: /api/game/{gameId}/...
+Auth token stored in localStorage as crucible_token
+Common bug pattern: This frontend was originally built on mock data with assumed API contracts. When wiring to the real backend, contract mismatches (field names, value formats, response shapes) are the most frequent bug class. Always check API_CONTRACT.md before assuming the component logic is correct. If API_CONTRACT.md doesn't cover an endpoint you need, tell me — I'll get the info from the backend.
+Deployment: Vercel auto-deploys on push. After pushing, verify the deploy completed before telling me to test. Browser testing at www.cruciblerpg.com.
+Workflow: I bring problems or requests → you investigate and fix → commit and push → I test on production and report back. At the end of each task, include a brief summary of what you changed and any decisions you made. Update FRONTEND_STATUS.md with progress.
