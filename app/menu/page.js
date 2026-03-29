@@ -112,6 +112,7 @@ function ContinueCard({ game, sz, ff, onClick }) {
   const [h, setH] = useState(false);
   return (
     <div onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)} onClick={onClick}
+      className={styles.continueCard}
       style={{
         background: C.card, border: `1px solid ${h ? C.cardBorderHover : C.cardBorder}`,
         borderLeft: `3px solid ${C.accent}`,
@@ -473,14 +474,14 @@ export default function MenuPage() {
   const initial = playerName.charAt(0).toUpperCase();
 
   return (
-    <div style={{
+    <div className={styles.pageContainer} style={{
       minHeight: "100vh", background: C.bg, color: C.text,
       fontFamily: ff, fontSize: sz.base, position: "relative",
     }}>
       <ParticleField />
 
-      <div style={{
-        position: "relative", zIndex: 1, maxWidth: 900, margin: "0 auto", padding: "0 32px",
+      <div className={styles.contentWrapper} style={{
+        position: "relative", zIndex: 1, maxWidth: 900, margin: "0 auto", padding: "0 32px", boxSizing: "border-box",
         opacity: loaded ? 1 : 0, transition: "opacity 0.6s",
       }}>
 

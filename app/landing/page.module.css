@@ -108,3 +108,100 @@
     transition: none;
   }
 }
+
+/* ===== TABLET RESPONSIVE ===== */
+
+@media (max-width: 1023px) {
+  .featuresSection,
+  .howSection,
+  .ctaSection {
+    padding-top: 70px !important;
+    padding-bottom: 70px !important;
+  }
+
+  .featureCard {
+    padding: 30px 28px !important;
+  }
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+
+/* TODO: mobile nav needed — section links hidden, only wordmark + sign-in visible */
+
+@media (max-width: 767px) {
+  .particleField {
+    display: none;
+  }
+
+  .pageContainer {
+    overflow-x: hidden;
+  }
+
+  .navLink {
+    display: none;
+  }
+
+  .navSignIn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .heroSection {
+    padding-top: 100px !important;
+    padding-bottom: 60px !important;
+  }
+
+  .featuresSection {
+    padding-top: 60px !important;
+    padding-bottom: 60px !important;
+  }
+
+  .featuresGrid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .featureCard {
+    padding: 24px 20px !important;
+  }
+
+  .howSection {
+    padding-top: 60px !important;
+    padding-bottom: 60px !important;
+  }
+
+  .stepItem {
+    gap: 20px !important;
+  }
+
+  .stepItem:not(:last-child) {
+    margin-bottom: 36px !important;
+  }
+
+  .stepCircle {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 14px !important;
+  }
+
+  .stepLine {
+    left: 21px !important;
+  }
+
+  .ctaSection {
+    padding-top: 60px !important;
+    padding-bottom: 60px !important;
+  }
+
+  .footerLink {
+    padding: 10px 4px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .scrollFade {
+    height: 40px;
+  }
+}

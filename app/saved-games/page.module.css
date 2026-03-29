@@ -94,6 +94,11 @@
   color: var(--accent-gold);
 }
 
+/* Page container */
+.pageContainer {
+  overflow-x: hidden;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .particle {
@@ -111,5 +116,42 @@
 
   .btnPrimary:hover {
     transform: none;
+  }
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+
+@media (max-width: 767px) {
+  .particleField {
+    display: none;
+  }
+
+  .saveCard {
+    padding: 20px 16px !important;
+  }
+
+  .btnPrimary {
+    min-height: 44px;
+  }
+
+  .btnBack {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .btnDanger {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .deleteCancelBtn,
+  .deleteConfirmBtn {
+    min-height: 44px;
+  }
+
+  .storyToggle {
+    min-height: 44px;
   }
 }

@@ -71,3 +71,35 @@
   border-color: var(--border-card);
   box-shadow: 0 8px 40px rgba(201, 168, 76, 0.08);
 }
+
+/* Page container */
+.pageContainer {
+  overflow-x: hidden;
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+
+@media (max-width: 767px) {
+  .particleField {
+    display: none;
+  }
+
+  .contentWrapper {
+    padding: 0 20px !important;
+  }
+
+  .continueCard {
+    padding: 24px 20px 28px !important;
+  }
+
+  .menuLink {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .btnPrimary,
+  .btnSecondary {
+    min-height: 44px;
+  }
+}

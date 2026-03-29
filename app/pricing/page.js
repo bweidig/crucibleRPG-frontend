@@ -115,7 +115,7 @@ export default function PricingPage() {
   useEffect(() => { setTimeout(() => setLoaded(true), 150); }, []);
 
   return (
-    <div style={{
+    <div className={styles.pageContainer} style={{
       minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)',
       position: 'relative',
     }}>
@@ -193,7 +193,7 @@ export default function PricingPage() {
           background: 'var(--bg-gold-faint)',
           border: '1px solid var(--border-gold-subtle)',
           borderRadius: 10, padding: '36px 32px',
-          width: 300, display: 'flex', flexDirection: 'column',
+          width: 300, maxWidth: '100%', display: 'flex', flexDirection: 'column',
         }}>
           <div style={{
             fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
@@ -241,7 +241,7 @@ export default function PricingPage() {
           background: 'var(--bg-gold-subtle)',
           border: '1px solid var(--border-card-separator)',
           borderRadius: 10, padding: '36px 32px',
-          width: 300, display: 'flex', flexDirection: 'column',
+          width: 300, maxWidth: '100%', display: 'flex', flexDirection: 'column',
           position: 'relative',
         }}>
           {/* Recommended badge */}

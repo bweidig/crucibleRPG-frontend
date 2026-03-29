@@ -223,7 +223,7 @@ export default function AuthPage() {
   }
 
   return (
-    <div style={{
+    <div className={styles.pageContainer} style={{
       minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       position: 'relative', overflow: 'hidden',
@@ -262,7 +262,7 @@ export default function AuthPage() {
       </div>
 
       {/* Card */}
-      <form onSubmit={handleSubmit} style={{
+      <form onSubmit={handleSubmit} className={styles.authCard} style={{
         width: '100%', maxWidth: 440, padding: '40px 36px', position: 'relative', zIndex: 1,
         background: 'var(--bg-card)', border: '1px solid var(--border-gold-faint)', borderRadius: 12,
         backdropFilter: 'blur(20px)',

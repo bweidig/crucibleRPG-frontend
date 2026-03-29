@@ -1338,10 +1338,10 @@ Full character sheet with per-stat condition breakdowns.
     "encumbrance": "light",
     "currency": { "display": "15 coins", "raw": 15 },
     "equipped": [
-      { "id": 1, "name": "Longsword", "slotCost": 1.5, "durability": 100, "maxDurability": 100, "materialQuality": "Common", "qualityBonus": 0.0, "tags": [], "heirloom": false }
+      { "id": 1, "name": "Longsword", "slotCost": 1.5, "durability": 100, "maxDurability": 100, "materialQuality": "Common", "qualityBonus": 0.0, "tags": ["fast"], "heirloom": false, "equipmentCategory": "weapon", "equippedSlot": "main_hand", "damageModifier": 1.0, "armorType": null, "armorMitigation": null, "elementTag": null, "archetypeId": "longsword", "channelModifier": null, "implementType": null, "spikeType": null, "ammunitionCurrent": null, "ammunitionMax": null }
     ],
     "carried": [
-      { "id": 2, "name": "Waterskin", "slotCost": 0.5, "durability": 50, "maxDurability": 50, "materialQuality": "Common", "qualityBonus": 0.0, "tags": [], "heirloom": false }
+      { "id": 2, "name": "Waterskin", "slotCost": 0.5, "durability": 50, "maxDurability": 50, "materialQuality": "Common", "qualityBonus": 0.0, "tags": [], "heirloom": false, "equipmentCategory": "general", "equippedSlot": null, "damageModifier": null, "armorType": null, "armorMitigation": null, "elementTag": null, "archetypeId": null, "channelModifier": null, "implementType": null, "spikeType": null, "ammunitionCurrent": null, "ammunitionMax": null }
     ]
   },
   "companions": [
@@ -1355,6 +1355,7 @@ Full character sheet with per-stat condition breakdowns.
 - `skills[].contextTags` is always `[]` for `type: "active"` skills. Only `type: "foundational"` skills have populated context tags.
 - `conditions[].stat` is lowercase.
 - `inventory` splits into `equipped` and `carried` arrays (unlike `/state` which has a flat `items` array).
+- AD-405: Item objects include mechanical fields: `equipmentCategory`, `equippedSlot`, `damageModifier` (weapons), `armorType`/`armorMitigation` (armor: light=0.5, medium=1.0, heavy=1.5), `elementTag`, `archetypeId`, `channelModifier`/`implementType` (implements), `spikeType`, `ammunitionCurrent`/`ammunitionMax`. Null when not applicable.
 
 ---
 

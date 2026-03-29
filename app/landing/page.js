@@ -76,7 +76,7 @@ function HeroSection() {
   useEffect(() => { setTimeout(() => setLoaded(true), 150); }, []);
 
   return (
-    <section style={{
+    <section className={styles.heroSection} style={{
       position: 'relative', minHeight: '100vh',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       padding: '120px 24px 80px',
@@ -148,13 +148,13 @@ function HeroSection() {
 
 function FeaturesSection() {
   return (
-    <section id="features" style={{ padding: '100px clamp(24px, 5vw, 60px)', maxWidth: 1200, margin: '0 auto' }}>
+    <section id="features" className={styles.featuresSection} style={{ padding: '100px clamp(24px, 5vw, 60px)', maxWidth: 1200, margin: '0 auto' }}>
       <div style={{ textAlign: 'center', marginBottom: 64 }}>
         <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, color: 'var(--accent-gold)', letterSpacing: '0.25em' }}>FEATURES</span>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 28 }}>
+      <div className={styles.featuresGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 28 }}>
         {features.map((f, i) => (
-          <div key={i} style={{
+          <div key={i} className={styles.featureCard} style={{
             padding: '36px 32px', borderRadius: 8,
             border: '1px solid var(--border-gold-faint)',
             background: 'var(--bg-gold-faint)',
@@ -176,21 +176,21 @@ function FeaturesSection() {
 
 function HowItWorksSection() {
   return (
-    <section id="how-it-works" style={{ padding: '100px clamp(24px, 5vw, 60px)', maxWidth: 800, margin: '0 auto' }}>
+    <section id="how-it-works" className={styles.howSection} style={{ padding: '100px clamp(24px, 5vw, 60px)', maxWidth: 800, margin: '0 auto' }}>
       <div style={{ textAlign: 'center', marginBottom: 64 }}>
         <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, color: 'var(--accent-gold)', letterSpacing: '0.25em' }}>HOW IT WORKS</span>
       </div>
       <div style={{ position: 'relative' }}>
-        <div style={{
+        <div className={styles.stepLine} style={{
           position: 'absolute', left: 27, top: 28, bottom: 28, width: 1,
           background: 'linear-gradient(to bottom, var(--border-card-separator), var(--bg-gold-faint))',
         }} />
         {steps.map((step, i) => (
-          <div key={i} style={{
+          <div key={i} className={styles.stepItem} style={{
             display: 'flex', gap: 32, alignItems: 'flex-start',
             marginBottom: i < steps.length - 1 ? 52 : 0, position: 'relative',
           }}>
-            <div style={{
+            <div className={styles.stepCircle} style={{
               width: 56, height: 56, borderRadius: '50%',
               border: '1px solid var(--border-card-separator)', background: 'var(--bg-main)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -216,7 +216,7 @@ function HowItWorksSection() {
 
 function CTASection() {
   return (
-    <section style={{ padding: '100px 24px 80px', textAlign: 'center', position: 'relative' }}>
+    <section className={styles.ctaSection} style={{ padding: '100px 24px 80px', textAlign: 'center', position: 'relative' }}>
       <div style={{
         position: 'absolute', width: 500, height: 300, borderRadius: '50%',
         background: 'radial-gradient(circle, rgba(201,168,76,0.04) 0%, transparent 65%)',
@@ -290,7 +290,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)', position: 'relative' }}>
+    <div className={styles.pageContainer} style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)', position: 'relative' }}>
       <ParticleField />
       <NavBar scrolled={scrolled} />
       <ScrollFade />

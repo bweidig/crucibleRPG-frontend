@@ -1070,7 +1070,7 @@ function Phase2({ selected, onSelect, settingAnswers, setSettingAnswers, selecte
       <PhaseTitle title="Choose Your Setting" subtitle="The world your story lives in. Pick one or build your own." />
 
       {/* Era grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div className={styles.twoColGrid} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         {mainSettings.map(s => (
           <SelectionCard key={s.id} item={s} selected={selected} onSelect={onSelect}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
@@ -1083,7 +1083,7 @@ function Phase2({ selected, onSelect, settingAnswers, setSettingAnswers, selecte
       </div>
 
       {/* Custom + Your Worlds row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+      <div className={styles.twoColGrid} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
         <SelectionCard item={customSetting} selected={selected} onSelect={onSelect}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <IconBox name={customSetting.icon} color={selected === 'custom' ? 'var(--accent-gold)' : 'var(--text-muted)'} />
@@ -1393,7 +1393,7 @@ function Phase3({ character, onChange, hasArchetypes, availableArchetypes, chara
       {/* Archetype grid */}
       {effectiveMode === 'archetype' && hasArchetypes && (
         <div style={{ marginBottom: 32 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className={styles.twoColGrid} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             {availableArchetypes.map(arch => (
               <ArchetypeCard
                 key={arch.id}
@@ -2316,7 +2316,7 @@ function InitWizardInner() {
   const buttonEnabled = canAdvance() && !saving;
 
   return (
-    <div style={{
+    <div className={styles.pageContainer} style={{
       minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)',
       display: 'flex', flexDirection: 'column', alignItems: 'center',
     }}>
@@ -2369,7 +2369,7 @@ function InitWizardInner() {
 
       {/* Content */}
       <div style={{
-        width: '100%', maxWidth: 740, padding: '44px 28px 100px', flex: 1,
+        width: '100%', maxWidth: 740, padding: '44px 28px 100px', flex: 1, boxSizing: 'border-box',
       }}>
         <StepIndicator steps={STEP_NAMES} current={phase} />
 
@@ -2471,7 +2471,7 @@ function InitWizardInner() {
       <div className={styles.scrollFade} style={{ opacity: scrollFadeVisible ? 1 : 0, bottom: bottomNavHeight }} />
 
       {/* Bottom Nav */}
-      <div ref={bottomNavRef} style={{
+      <div ref={bottomNavRef} className={styles.bottomNav} style={{
         position: 'sticky', bottom: 0, width: '100%', padding: '18px 28px',
         background: 'var(--bg-main)', backdropFilter: 'blur(8px)',
         borderTop: '1px solid var(--border-gold-faint)', display: 'flex', justifyContent: 'space-between',

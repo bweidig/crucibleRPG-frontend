@@ -64,6 +64,11 @@
   background: var(--bg-gold-subtle);
 }
 
+/* Page container */
+.pageContainer {
+  overflow-x: hidden;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .particle {
@@ -79,5 +84,37 @@
 
   .btnPrimary:hover {
     transform: none;
+  }
+}
+
+/* ===== TABLET RESPONSIVE ===== */
+
+@media (max-width: 1023px) {
+  .priceCard {
+    width: 280px !important;
+  }
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+
+@media (max-width: 767px) {
+  .particleField {
+    display: none;
+  }
+
+  .priceCard {
+    width: 100% !important;
+    max-width: 400px !important;
+    padding: 28px 24px !important;
+  }
+
+  .topupCard {
+    flex: 1 1 100% !important;
+    max-width: 100% !important;
+  }
+
+  .btnPrimary,
+  .btnSecondary {
+    min-height: 44px;
   }
 }

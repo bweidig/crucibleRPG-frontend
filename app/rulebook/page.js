@@ -196,7 +196,7 @@ export default function RulebookPage() {
   };
 
   return (
-    <div style={{
+    <div className={styles.pageContainer} style={{
       minHeight: '100vh', background: '#0a0e1a', color: 'var(--text-primary)',
       display: 'flex', flexDirection: 'column',
     }}>
@@ -209,6 +209,10 @@ export default function RulebookPage() {
         .content-section li strong { color: #d0c098; }
         .mechanic-callout { background: #111525; border: 1px solid #3a3328; border-left: 3px solid #c9a84c; border-radius: 0 6px 6px 0; padding: 16px 20px; margin: 20px 0; font-family: 'Alegreya Sans', sans-serif; font-size: 15px; color: #8a9ab8; line-height: 1.7; }
         .quickstart-callout { background: #111525; border: 1px solid #2a3148; border-left: 3px solid #8aba7a; border-radius: 0 6px 6px 0; padding: 16px 20px; margin: 20px 0; font-family: 'Alegreya Sans', sans-serif; font-size: 15px; color: #8a9ab8; line-height: 1.7; }
+        @media (max-width: 767px) {
+          .content-section ul, .content-section ol { margin-left: 12px; }
+          .mechanic-callout, .quickstart-callout { padding: 14px 16px; margin: 16px 0; }
+        }
       `}</style>
 
       {/* Top bar */}
@@ -227,7 +231,7 @@ export default function RulebookPage() {
             color: 'var(--gold-muted)', letterSpacing: '0.18em',
           }}>RPG</span>
         </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+        <div className={styles.navLinksGroup} style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
           <Link href="/pricing" className={styles.navLink}>Pricing</Link>
           <Link href="/faq" className={styles.navLink}>FAQ</Link>
           <span className={styles.navLinkActive}>Rulebook</span>
@@ -272,14 +276,14 @@ export default function RulebookPage() {
       </div>
 
       {/* Main area: TOC sidebar + content */}
-      <div style={{
+      <div className={styles.mainArea} style={{
         flex: 1, display: 'flex', maxWidth: 1100, width: '100%',
         margin: '0 auto', padding: '0 clamp(16px, 3vw, 48px) 48px',
         opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(16px)',
         transition: 'all 1s cubic-bezier(0.16,1,0.3,1) 0.4s',
       }}>
         {/* TOC Sidebar */}
-        <div style={{
+        <div className={styles.tocSidebar} style={{
           width: 260, flexShrink: 0, position: 'sticky', top: 0,
           alignSelf: 'flex-start', paddingRight: 24,
         }}>

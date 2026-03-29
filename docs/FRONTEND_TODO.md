@@ -3,6 +3,7 @@
 **Last Updated:** 2026-03-25
 
 > **For Claude Code:** Read this file at the start of every session. The user manages this list with plain-language commands:
+> **Work initiation:** Items on this list are for tracking only. Do NOT start work on any item unprompted. The user will initiate each task via a prompt from Claude Chat.
 > - "Add [task] to the to-do list" → Add as unchecked item in the appropriate category and priority
 > - "Mark [task] as done" / "Check off [task]" → Change `- [ ]` to `- [x]` and add completion date
 > - "Move [task] to [priority]" → Relocate the item

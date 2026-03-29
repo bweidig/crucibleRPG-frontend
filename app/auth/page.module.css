@@ -90,3 +90,42 @@
   color: var(--text-dim);
   padding: 4px;
 }
+
+/* ===== MOBILE RESPONSIVE ===== */
+
+@media (max-width: 767px) {
+  .particleField {
+    display: none;
+  }
+
+  .pageContainer {
+    padding: 0 16px;
+  }
+
+  .authCard {
+    padding: 32px 20px !important;
+    border-radius: 10px !important;
+  }
+
+  .submitButton {
+    min-height: 44px;
+  }
+
+  .socialButton {
+    min-height: 44px;
+  }
+
+  .passwordToggle {
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .textLink {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}

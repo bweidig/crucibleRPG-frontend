@@ -447,7 +447,7 @@ export default function SavedGamesPage() {
   };
 
   return (
-    <div style={{
+    <div className={styles.pageContainer} style={{
       minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)',
       position: 'relative', display: 'flex', flexDirection: 'column',
     }}>

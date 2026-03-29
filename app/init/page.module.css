@@ -103,3 +103,49 @@
     transition: none;
   }
 }
+
+/* ===== MOBILE RESPONSIVE ===== */
+
+@media (max-width: 767px) {
+  .pageContainer {
+    overflow-x: hidden;
+  }
+
+  .twoColGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .bottomNav {
+    padding: 14px 20px !important;
+  }
+
+  .btnBack {
+    padding: 10px 16px !important;
+    min-height: 44px;
+  }
+
+  .btnPrimary {
+    padding: 12px 20px !important;
+    min-height: 44px;
+  }
+
+  .selectionCard,
+  .selectionCardSelected {
+    padding: 16px 16px;
+  }
+
+  .optionToggle {
+    min-height: 44px;
+  }
+
+  .statStepBtn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .twoColGrid {
+    gap: 10px !important;
+  }
+}

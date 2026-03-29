@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-03-26
+**Last Updated:** 2026-03-29
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -30,7 +30,31 @@
 
 ---
 
-## Recent Work (This Session: 2026-03-26)
+## Recent Work (This Session: 2026-03-29)
+
+### Mobile Responsiveness Pass — Marketing & Pre-Game Pages
+- **Scope:** All pages except `/play` (game layout). Covers: Landing, Coming Soon (`/`), Auth, Main Menu, Init Wizard, Pricing, Rulebook, Saved Games.
+- **Design system update:** Added "Responsive / Mobile" section to `docs/design-system.md` with breakpoints (Desktop 1024+, Tablet 768-1023, Mobile <768), universal mobile rules, and tablet adjustments. This is the permanent reference for all future responsive work.
+- **Breakpoint strategy:** CSS media queries at `max-width: 767px` (mobile) and `max-width: 1023px` (tablet) added to each page's CSS module. Desktop styles remain the default. Overrides use `!important` where inline styles need mobile adjustments.
+- **Universal fixes across all pages:**
+  - `overflow-x: hidden` on page containers to prevent horizontal scroll from decorative elements (radial glows, absolute-positioned circles).
+  - Particle fields hidden on mobile (performance + clutter reduction).
+  - All interactive elements (buttons, links, toggles) ensured minimum 44px tap target height.
+  - Container padding minimum 20px horizontal on mobile.
+- **Page-specific changes:**
+  - **Landing:** Nav section links (Features, How It Works, FAQ) hidden on mobile; wordmark + Sign In remain. Section padding reduced from 100px to 60px. Feature cards forced to single-column grid. How It Works step circles reduced from 56px to 44px with adjusted vertical line position. Footer links given 44px tap target padding.
+  - **Coming Soon:** Signup row stacks vertically on mobile. Email input and waitlist button go full-width. Decorative glow reduced.
+  - **Auth:** Form card padding reduced on mobile. Password toggle and text links given 44px tap targets.
+  - **Main Menu:** Content wrapper padding reduced to 20px. Continue card padding reduced. Settings/Logout links given 44px tap targets.
+  - **Init Wizard:** All 2-column grids (era selection, custom/worlds, archetypes) collapse to single-column. Bottom nav padding reduced. Back/Continue buttons given 44px tap targets. Selection cards and stat step buttons given mobile tap targets.
+  - **Pricing:** Price cards gain `max-width: 100%` so they go full-width on mobile (300px fixed → full-width, capped at 400px). Top-up cards stack single-column.
+  - **Rulebook:** TOC sidebar collapses above content on mobile (from fixed 260px sidebar to full-width scrollable section). Content area switches from fixed-height scrollable to natural flow. Nav links hidden except Sign In. Injected content styles adjusted (list indent, callout padding).
+  - **Saved Games:** Save card padding reduced. All action buttons (Load, Delete, Back) given 44px tap targets.
+- **What was NOT changed:** No hamburger menus added (TODO comments left in Landing and Rulebook CSS for future implementation). No redesigns — desktop layout, colors, fonts, content unchanged. No changes to `/play`. No API calls, state management, or component logic modified. CSS-only changes with minimal JSX additions (classNames on containers).
+- **Viewport meta tag:** Confirmed Next.js App Router auto-injects the standard viewport meta tag — no manual addition needed.
+- **Files changed:** `docs/design-system.md`, `app/landing/page.js` + `.module.css`, `app/page.module.css`, `app/auth/page.js` + `.module.css`, `app/menu/page.js` + `.module.css`, `app/init/page.js` + `.module.css`, `app/pricing/page.js` + `.module.css`, `app/rulebook/page.js` + `.module.css`, `app/saved-games/page.js` + `.module.css`.
+
+## Previous Session Work (2026-03-26)
 
 ### Scroll Fade Indicator on Init Wizard and Landing Page
 - **Feature:** A subtle gradient fade at the bottom edge of the viewport signals "there's more content below" without any visible UI element. The gradient is 60px tall, fades from transparent to the page background color (`#0a0e1a`), and disappears smoothly when the user scrolls to the bottom.
@@ -477,7 +501,7 @@ All pending rgba/color fixes from previous sessions have been completed.
 Items flagged for post-launch or future sessions. Not blocking progress.
 
 ### Design
-- Mobile responsiveness pass on all pages
+- ~~Mobile responsiveness pass on all pages~~ Marketing & pre-game pages done (2026-03-29). `/play` game layout still pending.
 - Genre-adaptive backgrounds (game layout adapts to story genre)
 - Custom difficulty badge color logic
 - ~~Interactive node map~~ (done: MapTab rewrite 2026-03-19)

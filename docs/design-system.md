@@ -218,6 +218,39 @@ Standard footer across all pages:
 
 ---
 
+## Responsive / Mobile
+
+### Breakpoints
+
+```
+Desktop:  1024px and up (current default — no changes needed)
+Tablet:   768px – 1023px
+Mobile:   below 768px
+```
+
+### Universal Mobile Rules (apply via `@media (max-width: 767px)` in each page's CSS module)
+
+- **No horizontal overflow.** Nothing should cause horizontal scrolling. Fix oversized elements rather than hiding overflow.
+- **Column stacking.** Any side-by-side layout (flexbox row, grid columns) stacks vertically on mobile.
+- **Container padding.** Minimum 20px horizontal padding on mobile. Content should never touch screen edges.
+- **Body text minimum 16px.** Prevents iOS auto-zoom on input focus. Inputs and textareas also minimum 16px.
+- **Tap targets minimum 44px tall.** All buttons, links, and interactive elements must be at least 44px in their tappable area (padding counts). Includes nav links, CTA buttons, card click targets, and form controls.
+- **Hero sections.** Reduce large vertical spacing on mobile so real content isn't pushed below the fold.
+- **Card grids.** Multi-column card layouts go single-column on mobile. Cards should be full-width minus padding.
+- **Images and decorative elements.** Scale down proportionally. Hide purely decorative elements (particle effects, floating icons) on mobile if they crowd content or hurt performance.
+- **Font scaling.** Headings 40px+ on desktop should scale down on mobile. Use `clamp()` or media queries. Rough mobile targets: main headings 28–32px, subheadings 20–24px, body 16–18px.
+- **Wordmark.** Must remain legible at 320px viewport width. Scale down if needed but keep proportions.
+- **Sticky elements.** Fixed/sticky nav or footer bars: keep under 60px tall on mobile.
+- **Modals and popups.** Should be nearly full-screen on mobile rather than floating centered with margins.
+
+### Tablet Adjustments (apply via `@media (max-width: 1023px)`)
+
+- Two-column grids can stay two-column if columns are wide enough (min 300px each). Otherwise stack.
+- Reduce generous desktop padding/margins by ~30%.
+- Hero sections can keep their layout but reduce vertical padding.
+
+---
+
 ## Accessibility — Implementation Checklist
 
 ### Required (before launch):

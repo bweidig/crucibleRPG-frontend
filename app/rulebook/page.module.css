@@ -78,6 +78,11 @@
   border-radius: 2px;
 }
 
+/* Page container */
+.pageContainer {
+  overflow-x: hidden;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .btnPrimary {
@@ -86,5 +91,64 @@
 
   .btnPrimary:hover {
     transform: none;
+  }
+}
+
+/* ===== TABLET RESPONSIVE ===== */
+
+@media (max-width: 1023px) {
+  .tocSidebar {
+    width: 200px !important;
+    padding-right: 16px !important;
+  }
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+
+/* TODO: mobile nav needed — hiding section links on small screens */
+
+@media (max-width: 767px) {
+  .navLinksGroup .navLink,
+  .navLinksGroup .navLinkActive {
+    display: none;
+  }
+
+  .navLinksGroup .navLink:last-child {
+    display: inline;
+  }
+
+  .navLink {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .mainArea {
+    flex-direction: column !important;
+  }
+
+  .tocSidebar {
+    width: 100% !important;
+    position: relative !important;
+    padding-right: 0 !important;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #1e2540;
+  }
+
+  .tocScroll {
+    max-height: 200px !important;
+    overflow-y: auto;
+  }
+
+  .scrollArea {
+    max-height: none !important;
+    overflow-y: visible !important;
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+  }
+
+  .btnPrimary {
+    min-height: 44px;
   }
 }
