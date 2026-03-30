@@ -69,7 +69,7 @@ function ContextPreview({ mode, context }) {
             </div>
           ))}
           {mode === 'bug' && (
-            <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: C.dim, fontStyle: 'italic', marginTop: 8 }}>
+            <div style={{ fontFamily: "'Alegreya', serif", fontSize: 11, color: C.dim, fontStyle: 'italic', marginTop: 8 }}>
               Full AI prompt/response and server JSON also included.
             </div>
           )}

@@ -91,6 +91,18 @@ Use this document when implementing or updating any CrucibleRPG frontend page. A
 - **JetBrains Mono** — Numbers, mechanical resolution, timestamps, turn counts
 - **Lexie Readable** — Default body font (dyslexia-friendly), user can switch in Display Settings
 
+### Font Import - Required Weights
+When adding or modifying the font configuration in `app/layout.js`, all of these weights must be loaded to avoid faux bold/italic:
+- **Cinzel**: 400, 600, 700, 900 (no italic - Cinzel has no italic variant)
+- **Alegreya**: normal 400, 500, 700 / italic 400, 500, 700
+- **Alegreya Sans**: normal 300, 400, 500, 700, 800 (no italic loaded - not used in the design)
+- **JetBrains Mono**: variable font (all weights via next/font/google, no explicit weight array)
+- **Lexie Readable**: loaded locally (Regular 400, Bold 700)
+
+If a new weight or style is needed, add it to the import. Never use a weight/style that isn't loaded - browsers fake it and the text looks fuzzy.
+
+**Key rule:** If you need italic text, use **Alegreya** (not Alegreya Sans). Alegreya Sans has no italic variant loaded.
+
 ### Font Inheritance Rule
 All text in the game layout must respect the user's font setting via `var(--body-font)`. The `--body-font` variable is set on `:root` (defaults to Lexie Readable) and applied to `html, body`. To swap fonts at runtime, update `--body-font` via JavaScript. Only use hardcoded font families for:
 - `Cinzel` on section headers and labels (decorative/structural)

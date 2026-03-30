@@ -246,7 +246,7 @@ function Tooltip({ data, type, mousePos }) {
           <span className={styles.tooltipType}>{data.terrain}</span>
         </div>
         {!data.known && (
-          <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 9, color: '#e8c45a', fontStyle: 'italic' }}>
+          <div style={{ fontFamily: "'Alegreya', serif", fontSize: 9, color: '#e8c45a', fontStyle: 'italic' }}>
             Unconfirmed route
           </div>
         )}

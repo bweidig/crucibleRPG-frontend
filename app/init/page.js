@@ -780,7 +780,7 @@ function Phase1({ selected, onSelect, customText, setCustomText }) {
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
                     <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 17, fontWeight: 700, color: 'var(--text-heading)' }}>{s.name}</span>
-                    <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-muted)', fontStyle: 'italic' }}>{s.tone}</span>
+                    <span style={{ fontFamily: 'var(--font-alegreya)', fontSize: 14, color: 'var(--text-muted)', fontStyle: 'italic' }}>{s.tone}</span>
                   </div>
                   <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>{s.desc}</p>
                 </div>
@@ -1892,7 +1892,7 @@ function Phase6({ intensity, setIntensity, scenario, setScenario, customStartTex
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
                     <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 700, color: 'var(--accent-gold)' }}>Option {s.key}</span>
                     <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 17, fontWeight: 600, color: 'var(--text-heading)' }}>{s.name}</span>
-                    <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>{s.type}</span>
+                    <span style={{ fontFamily: 'var(--font-alegreya)', fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>{s.type}</span>
                   </div>
                   <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>{s.desc}</p>
                 </div>
@@ -2267,7 +2267,7 @@ function InitWizardInner() {
     // If no gameId yet (creation pending or failed), advance locally
     if (!gameId) {
       if (phase === 5) {
-        router.push('/loading');
+        router.push('/menu');
       } else {
         setPhase(p => p + 1);
       }
@@ -2301,8 +2301,19 @@ function InitWizardInner() {
           break;
         case 5:
           await saveScenario();
-          // Redirect to game -- /play may not exist yet, fall back to /loading
-          router.push(`/loading?gameId=${gameId}`);
+          // Write loading summary to sessionStorage for the play page overlay
+          try {
+            const settingName = SETTINGS.find(s => s.id === setting)?.name || setting || null;
+            const difficultyName = DIFFICULTIES.find(d => d.id === difficulty)?.name || difficulty || null;
+            const stName = storyteller ? storyteller.charAt(0).toUpperCase() + storyteller.slice(1) : null;
+            sessionStorage.setItem('crucible_loading_summary', JSON.stringify({
+              characterName: character?.name || null,
+              worldName: settingName,
+              storyteller: stName,
+              difficulty: difficultyName,
+            }));
+          } catch { /* sessionStorage may be unavailable */ }
+          router.push(`/play?gameId=${gameId}`);
           break;
       }
     } catch (err) {

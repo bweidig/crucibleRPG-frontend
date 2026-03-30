@@ -166,7 +166,7 @@ function SliderControl({ label, value, min, max, step, format, onChange, descrip
           onChange={e => onChange(parseFloat(e.target.value))} />
       </div>
       {warning && (
-        <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 11, color: '#e8845a', marginTop: 4, fontStyle: 'italic' }}>
+        <div style={{ fontFamily: "'Alegreya', serif", fontSize: 11, color: '#e8845a', marginTop: 4, fontStyle: 'italic' }}>
           {warning}
         </div>
       )}
@@ -615,7 +615,7 @@ function GameSettingsTab({ gameId, gameState }) {
         ))}
       </div>
       {preset === 'custom' && (
-        <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12, color: '#6b83a3', fontStyle: 'italic', marginBottom: 4 }}>
+        <div style={{ fontFamily: "'Alegreya', serif", fontSize: 12, color: '#6b83a3', fontStyle: 'italic', marginBottom: 4 }}>
           Custom; one or more dials adjusted from preset
         </div>
       )}

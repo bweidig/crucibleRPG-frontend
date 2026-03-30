@@ -15,7 +15,7 @@
 | Auth | `/auth` | Complete | Google Sign-In | None |
 | Main Menu | `/menu` | Complete | Partial (mock saves) | Game creation not wired. Settings modal removed (moved to /settings). |
 | Init Wizard | `/init` | Complete (reworked) | All 10 endpoints wired | Gracefully skips API when no gameId |
-| Loading Screen | `/loading` | Complete | None | None |
+| Loading Screen | `/loading` | Removed (merged into /play) | N/A | N/A |
 | Saved Games | `/saved-games` | Complete | None (mock data) | Needs API wiring for real saves |
 | Pricing | `/pricing` | Complete | None (static) | Dollar amounts TBD |
 | Game Layout | `/play` | Rewrite Phase 4 | All gameplay + talk-to-gm + notes CRUD | Polish pass pending |
@@ -33,6 +33,22 @@
 ---
 
 ## Recent Work (This Session: 2026-03-30)
+
+### Font Audit - Eliminate Faux Bold/Italic
+- **Problem:** Browser faux bold/italic on text where CSS requested weights or styles not loaded from Google Fonts. Confirmed fuzzy text on loading screen (Alegreya italic weight 600, which doesn't exist).
+- **Alegreya italic weight 600 fix:** Changed to weight 700 in loading page (the only instance).
+- **Alegreya Sans italic fixes (6 instances):** Switched font from Alegreya Sans to Alegreya for all italic text, since Alegreya Sans has no italic variant loaded. Affected files: `app/init/page.js` (2), `app/play/components/MapTab.js` (1), `app/play/components/ReportModal.js` (1), `app/play/components/SettingsModal.js` (2).
+- **JetBrains Mono:** Loaded as variable font (no explicit weight array in next/font/google config), so all weights 100-800 are available. No fixes needed.
+- **Design system update:** Added "Font Import - Required Weights" section to `docs/design-system.md` documenting all loaded weights/styles and the key rule about using Alegreya (not Alegreya Sans) for italic text.
+
+### Replace Loading Screen with In-Page Loading State
+- **Eliminated `/loading` route:** Deleted `app/loading/page.js` and `app/loading/page.module.css`. The standalone loading page with fake progress bar is gone.
+- **New loading overlay in `/play`:** Full-viewport overlay rendered ON TOP of the game layout (position fixed, z-index 100) instead of an early return. Game layout mounts and loads data underneath.
+- **Overlay features:** Character summary bar (from sessionStorage), 8 firefly ember dots with unique CSS keyframe wandering paths (14-21s linear loops), lore fragment cycling (6 phrases, 3s interval, 300ms fade), tips section (10 tips, 5.5s interval, 400ms fade), background particle field + radial glow.
+- **Loading completion flow:** When data finishes loading: lore switches to "Your story begins..." in gold weight 700. After 1.5s hold, "ENTER {WORLDNAME}" button fades in with gold gradient shimmer animation. On click, overlay fades out over 600ms revealing the game layout beneath.
+- **Init wizard update:** Before navigating to `/play`, the init wizard writes `crucible_loading_summary` to sessionStorage with `characterName`, `worldName`, `storyteller`, `difficulty`. Navigation changed from `/loading?gameId=...` to `/play?gameId=...`.
+- **Files deleted:** `app/loading/page.js`, `app/loading/page.module.css`.
+- **Files modified:** `app/play/page.js`, `app/play/play.module.css`, `app/init/page.js`.
 
 ### Bug Report Wiring + Admin Reports Tab
 - **Bug report modal wired:** New `ReportModal` component at `app/play/components/ReportModal.js`. Supports both "bug" and "suggestion" modes. Submits to `POST /api/bug-report` with type, category, message, gameId, and auto-attached context (turn number, character, setting, storyteller, difficulty, last action, browser). Handles success state (checkmark + thank you), 429 rate limit, and validation errors.

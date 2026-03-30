@@ -83,6 +83,15 @@ function PlayPage() {
   // ─── Report Modal ───
   const [reportMode, setReportMode] = useState(null); // null | 'bug' | 'suggest'
 
+  // ─── Loading Overlay ───
+  const [overlayDismissed, setOverlayDismissed] = useState(false);
+  const [enterReady, setEnterReady] = useState(false);
+  const [overlayFading, setOverlayFading] = useState(false);
+  const [loreIndex, setLoreIndex] = useState(0);
+  const [loreFade, setLoreFade] = useState(true);
+  const [tipIndex, setTipIndex] = useState(0);
+  const [tipFade, setTipFade] = useState(true);
+
   // ─── Debug Mode ───
   const [debugMode, setDebugModeState] = useState(false);
   const [debugLog, setDebugLog] = useState([]);
@@ -449,18 +458,60 @@ function PlayPage() {
     }
   }, [authReady, gameId, router]);
 
-  // ─── Loading State ───
-  if (!authReady || loading) {
-    return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.wordmark}>
-          <span className={styles.wordmarkCrucible}>CRUCIBLE</span>
-          <span className={styles.wordmarkRpg}>RPG</span>
-        </div>
-        <p className={styles.loadingText}>Loading your adventure...</p>
-      </div>
-    );
+  // ─── Loading Overlay Lifecycle ───
+  const showOverlay = !overlayDismissed && (!authReady || loading || !enterReady || !overlayFading);
+  const dataReady = authReady && !loading;
+
+  // When data finishes loading, hold 1.5s then show ENTER button
+  useEffect(() => {
+    if (dataReady && !enterReady) {
+      const t = setTimeout(() => setEnterReady(true), 1500);
+      return () => clearTimeout(t);
+    }
+  }, [dataReady, enterReady]);
+
+  // Lore fragment cycling
+  const LORE_FRAGMENTS = ['Forging your world...', 'Laying the foundations...', 'Populating the streets...', 'Seeding rumors and secrets...', 'Setting the stage...', 'Lighting the lanterns...'];
+  useEffect(() => {
+    if (overlayDismissed) return;
+    const interval = setInterval(() => {
+      setLoreFade(false);
+      setTimeout(() => { setLoreIndex(prev => (prev + 1) % LORE_FRAGMENTS.length); setLoreFade(true); }, 300);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [overlayDismissed]);
+
+  // Tip cycling
+  const OVERLAY_TIPS = [
+    'Your stats come from your backstory. Who you are shapes what you can do.',
+    'Injuries stick around. A broken arm doesn\'t heal between scenes.',
+    'The AI gives you options, but you can always type your own action.',
+    'Pack light. Carry too much and your body pays for it.',
+    'Your storyteller shapes every word. You can switch them mid-game if the tone isn\'t right.',
+    'A Natural 20 is always a critical success. No matter the odds.',
+    'The world remembers what you do. Your choices ripple forward.',
+    'Every NPC has their own goals. Not all of them align with yours.',
+    'You can talk your way out of most fights. Whether you should is another question.',
+    'Weapons wear down with use. Take care of your gear or it won\'t take care of you.',
+  ];
+  useEffect(() => {
+    if (overlayDismissed) return;
+    const interval = setInterval(() => {
+      setTipFade(false);
+      setTimeout(() => { setTipIndex(prev => (prev + 1) % OVERLAY_TIPS.length); setTipFade(true); }, 400);
+    }, 5500);
+    return () => clearInterval(interval);
+  }, [overlayDismissed]);
+
+  function handleEnterWorld() {
+    setOverlayFading(true);
+    setTimeout(() => setOverlayDismissed(true), 600);
   }
+
+  // Read summary from sessionStorage
+  const loadingSummary = typeof window !== 'undefined' ? (() => {
+    try { return JSON.parse(sessionStorage.getItem('crucible_loading_summary')); } catch { return null; }
+  })() : null;
 
   // ─── Fatal Error State ───
   if (error && !gameState) {
@@ -568,6 +619,149 @@ function PlayPage() {
           turns={turns}
           onClose={() => setReportMode(null)}
         />
+      )}
+
+      {/* Loading Overlay */}
+      {!overlayDismissed && (
+        <div className={styles.loadingOverlay} style={{
+          opacity: overlayFading ? 0 : 1,
+          transition: 'opacity 0.6s ease',
+          pointerEvents: overlayFading ? 'none' : 'auto',
+        }}>
+          <style>{`
+            @keyframes ember0 { 0%{transform:translate(0,0)}12%{transform:translate(18px,-14px)}25%{transform:translate(30px,8px)}37%{transform:translate(14px,28px)}50%{transform:translate(-12px,20px)}62%{transform:translate(-28px,4px)}75%{transform:translate(-16px,-22px)}87%{transform:translate(6px,-30px)}100%{transform:translate(0,0)} }
+            @keyframes ember1 { 0%{transform:translate(0,0)}14%{transform:translate(-22px,16px)}28%{transform:translate(-8px,34px)}42%{transform:translate(20px,24px)}57%{transform:translate(32px,-4px)}71%{transform:translate(12px,-26px)}85%{transform:translate(-14px,-18px)}100%{transform:translate(0,0)} }
+            @keyframes ember2 { 0%{transform:translate(0,0)}11%{transform:translate(26px,12px)}22%{transform:translate(18px,-20px)}33%{transform:translate(-8px,-32px)}44%{transform:translate(-30px,-10px)}55%{transform:translate(-22px,18px)}66%{transform:translate(-4px,30px)}77%{transform:translate(20px,16px)}88%{transform:translate(28px,-6px)}100%{transform:translate(0,0)} }
+            @keyframes ember3 { 0%{transform:translate(0,0)}13%{transform:translate(-16px,-24px)}26%{transform:translate(10px,-30px)}39%{transform:translate(28px,-8px)}52%{transform:translate(22px,20px)}65%{transform:translate(-6px,28px)}78%{transform:translate(-26px,10px)}91%{transform:translate(-20px,-12px)}100%{transform:translate(0,0)} }
+            @keyframes ember4 { 0%{transform:translate(0,0)}10%{transform:translate(14px,22px)}20%{transform:translate(32px,8px)}30%{transform:translate(24px,-18px)}40%{transform:translate(4px,-28px)}50%{transform:translate(-20px,-22px)}60%{transform:translate(-30px,2px)}70%{transform:translate(-18px,24px)}80%{transform:translate(6px,30px)}90%{transform:translate(22px,14px)}100%{transform:translate(0,0)} }
+            @keyframes ember5 { 0%{transform:translate(0,0)}12%{transform:translate(-24px,8px)}25%{transform:translate(-14px,28px)}37%{transform:translate(12px,22px)}50%{transform:translate(26px,0px)}62%{transform:translate(16px,-24px)}75%{transform:translate(-10px,-28px)}87%{transform:translate(-28px,-6px)}100%{transform:translate(0,0)} }
+            @keyframes ember6 { 0%{transform:translate(0,0)}14%{transform:translate(20px,-16px)}28%{transform:translate(8px,-34px)}42%{transform:translate(-18px,-20px)}57%{transform:translate(-28px,8px)}71%{transform:translate(-10px,26px)}85%{transform:translate(16px,18px)}100%{transform:translate(0,0)} }
+            @keyframes ember7 { 0%{transform:translate(0,0)}11%{transform:translate(-12px,20px)}22%{transform:translate(8px,32px)}33%{transform:translate(26px,14px)}44%{transform:translate(30px,-10px)}55%{transform:translate(14px,-26px)}66%{transform:translate(-12px,-22px)}77%{transform:translate(-28px,-4px)}88%{transform:translate(-20px,16px)}100%{transform:translate(0,0)} }
+            @keyframes shimmer { 0%{background-position:200% center}100%{background-position:-200% center} }
+          `}</style>
+
+          {/* Particle field */}
+          <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
+            {Array.from({ length: 20 }, (_, i) => (
+              <div key={i} style={{
+                position: 'absolute', left: `${(i * 37 + 13) % 100}%`, top: `${(i * 53 + 7) % 100}%`,
+                width: Math.random() * 2 + 0.5, height: Math.random() * 2 + 0.5,
+                borderRadius: '50%', background: '#c9a84c',
+                opacity: Math.random() * 0.15 + 0.03,
+              }} />
+            ))}
+          </div>
+
+          {/* Radial glow */}
+          <div style={{
+            position: 'absolute', width: 500, height: 500, borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(201,168,76,0.04) 0%, transparent 70%)',
+            top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none',
+          }} />
+
+          {/* Wordmark */}
+          <div style={{ position: 'absolute', top: 22, left: 24, display: 'flex', alignItems: 'baseline', gap: 8, zIndex: 2 }}>
+            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 900, color: '#c9a84c', letterSpacing: '0.06em' }}>CRUCIBLE</span>
+            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.18em' }}>RPG</span>
+          </div>
+
+          {/* Center content */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+            {/* Character summary bar */}
+            {loadingSummary && (
+              <div style={{ display: 'flex', gap: 20, marginBottom: 44, flexWrap: 'wrap', justifyContent: 'center' }}>
+                {[
+                  { label: 'Character', value: loadingSummary.characterName },
+                  { label: 'World', value: loadingSummary.worldName },
+                  { label: 'Voice', value: loadingSummary.storyteller },
+                  { label: 'Difficulty', value: loadingSummary.difficulty },
+                ].filter(item => item.value).map((item, i, arr) => (
+                  <div key={i} style={{
+                    textAlign: 'center', padding: '0 20px',
+                    borderRight: i < arr.length - 1 ? '1px solid #1e2540' : 'none',
+                  }}>
+                    <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, fontWeight: 600, color: '#4a5a70', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 5 }}>{item.label}</div>
+                    <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 600, color: '#8a94a8', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.value}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Firefly embers */}
+            <div style={{ width: 160, height: 160, position: 'relative' }}>
+              {[
+                { x: 60, y: 40, size: 4, anim: 'ember0', dur: 17, delay: 0, color: '#c9a84c', glow: 11 },
+                { x: 100, y: 70, size: 3, anim: 'ember1', dur: 19, delay: 0.3, color: '#ddb84e', glow: 9 },
+                { x: 40, y: 90, size: 5, anim: 'ember2', dur: 15, delay: 0.6, color: '#c9a84c', glow: 14 },
+                { x: 110, y: 110, size: 3, anim: 'ember3', dur: 21, delay: 0.2, color: '#ddb84e', glow: 10 },
+                { x: 70, y: 120, size: 4, anim: 'ember4', dur: 16, delay: 0.8, color: '#c9a84c', glow: 12 },
+                { x: 30, y: 50, size: 5, anim: 'ember5', dur: 18, delay: 1.0, color: '#ddb84e', glow: 13 },
+                { x: 120, y: 30, size: 3, anim: 'ember6', dur: 20, delay: 0.5, color: '#c9a84c', glow: 9 },
+                { x: 80, y: 80, size: 4, anim: 'ember7', dur: 14, delay: 1.2, color: '#ddb84e', glow: 11 },
+              ].map((e, i) => (
+                <div key={i} style={{
+                  position: 'absolute', left: e.x, top: e.y,
+                  width: e.size, height: e.size, borderRadius: '50%',
+                  background: e.color, opacity: 0.65 + i * 0.025,
+                  boxShadow: `0 0 ${e.glow}px rgba(201,168,76,0.6), 0 0 ${Math.round(e.glow * 2.5)}px rgba(201,168,76,0.2)`,
+                  animation: `${e.anim} ${e.dur}s linear ${e.delay}s infinite`,
+                }} />
+              ))}
+            </div>
+
+            {/* Lore fragment */}
+            <div style={{ marginTop: 30, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{
+                fontFamily: 'var(--font-alegreya)', fontSize: 19, fontStyle: 'italic',
+                color: dataReady ? '#c9a84c' : '#5a6a88',
+                fontWeight: dataReady ? 700 : 400,
+                opacity: loreFade ? 1 : 0, transition: 'opacity 0.3s, color 0.5s',
+              }}>
+                {dataReady ? 'Your story begins...' : LORE_FRAGMENTS[loreIndex]}
+              </span>
+            </div>
+
+            {/* ENTER button */}
+            <div style={{
+              marginTop: 36, height: 54,
+              opacity: enterReady ? 1 : 0, transform: enterReady ? 'translateY(0)' : 'translateY(10px)',
+              transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+              pointerEvents: enterReady ? 'auto' : 'none',
+            }}>
+              <button onClick={handleEnterWorld} style={{
+                fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 700,
+                color: '#0a0e1a', letterSpacing: '0.08em',
+                background: 'linear-gradient(135deg, #c9a84c, #ddb84e, #c9a84c)',
+                backgroundSize: '200% 100%',
+                animation: 'shimmer 3s linear infinite',
+                border: 'none', borderRadius: 6, padding: '14px 36px',
+                cursor: 'pointer',
+                boxShadow: '0 0 24px rgba(201,168,76,0.3)',
+                transition: 'box-shadow 0.2s ease',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 36px rgba(201,168,76,0.5)'; }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 0 24px rgba(201,168,76,0.3)'; }}
+              >
+                ENTER {loadingSummary?.worldName?.toUpperCase() || 'THE WORLD'}
+              </button>
+            </div>
+
+            {/* Tips */}
+            <div style={{ marginTop: 52, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, maxWidth: 500 }}>
+              <div style={{ width: 40, height: 1, background: 'linear-gradient(90deg, transparent, #3a3328, transparent)' }} />
+              <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, fontWeight: 600, color: '#3a4a60', letterSpacing: '0.2em', textTransform: 'uppercase' }}>TIP</div>
+              <div style={{ textAlign: 'center', minHeight: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <p style={{
+                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 16, color: '#5a6a88',
+                  lineHeight: 1.7, margin: 0, padding: '0 20px',
+                  opacity: tipFade ? 1 : 0, transition: 'opacity 0.4s',
+                }}>
+                  {OVERLAY_TIPS[tipIndex]}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
