@@ -1,0 +1,257 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import styles from './page.module.css';
+
+function ParticleField() {
+  const [particles] = useState(() =>
+    Array.from({ length: 25 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: Math.random() * 2 + 0.5,
+      duration: Math.random() * 12 + 8,
+      delay: Math.random() * 8,
+      opacity: Math.random() * 0.15 + 0.02,
+    }))
+  );
+
+  return (
+    <div className={styles.particleField}>
+      {particles.map((p) => (
+        <div key={p.id} className={styles.particle} style={{
+          left: `${p.x}%`, top: `${p.y}%`,
+          width: p.size, height: p.size,
+          '--p-opacity': p.opacity, opacity: p.opacity,
+          animationDuration: `${p.duration}s`,
+          animationDelay: `${p.delay}s`,
+        }} />
+      ))}
+    </div>
+  );
+}
+
+function Section({ title, children }) {
+  return (
+    <div style={{ marginBottom: 40 }}>
+      <h2 style={{
+        fontFamily: 'var(--font-cinzel)',
+        fontSize: 'clamp(16px, 2vw, 19px)',
+        fontWeight: 700,
+        color: 'var(--text-heading)',
+        letterSpacing: '0.03em',
+        marginBottom: 16,
+        paddingBottom: 10,
+        borderBottom: '1px solid #1e2540',
+      }}>{title}</h2>
+      <div style={{
+        fontFamily: 'var(--font-alegreya-sans)',
+        fontSize: 15,
+        fontWeight: 400,
+        color: 'var(--text-secondary-bright)',
+        lineHeight: 1.75,
+      }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function LegalList({ items }) {
+  return (
+    <div style={{ margin: '12px 0 12px 4px' }}>
+      {items.map((item, i) => (
+        <div key={i} style={{
+          display: 'flex', gap: 12, marginBottom: 8,
+          fontFamily: 'var(--font-alegreya-sans)',
+          fontSize: 15, color: 'var(--text-secondary-bright)', lineHeight: 1.75,
+        }}>
+          <span style={{ color: 'var(--gold-muted)', flexShrink: 0, marginTop: 1 }}>&middot;</span>
+          <span>{item}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function PrivacyPolicyPage() {
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => { setLoaded(true); }, []);
+
+  return (
+    <div className={styles.pageContainer} style={{
+      minHeight: '100vh',
+      background: 'var(--bg-main)',
+      color: 'var(--text-primary)',
+      position: 'relative',
+    }}>
+      <ParticleField />
+
+      {/* Nav */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '20px clamp(24px, 4vw, 56px)',
+        position: 'relative', zIndex: 10,
+        opacity: loaded ? 1 : 0, transition: 'opacity 0.8s ease 0.1s',
+      }}>
+        <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <span style={{
+            fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 900,
+            color: 'var(--accent-gold)', letterSpacing: '0.06em',
+          }}>CRUCIBLE</span>
+          <span style={{
+            fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
+            color: 'var(--gold-muted)', letterSpacing: '0.18em',
+          }}>RPG</span>
+        </Link>
+        <div className={styles.navLinksGroup} style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+          <Link href="/landing" className={styles.navLink}>Home</Link>
+          <Link href="/pricing" className={styles.navLink}>Pricing</Link>
+          <Link href="/faq" className={styles.navLink}>FAQ</Link>
+          <Link href="/rulebook" className={styles.navLink}>Rulebook</Link>
+        </div>
+      </div>
+
+      {/* Header */}
+      <div style={{
+        textAlign: 'center',
+        padding: '48px 24px 40px',
+        position: 'relative', zIndex: 1,
+        opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(12px)',
+        transition: 'all 0.8s cubic-bezier(0.16,1,0.3,1) 0.15s',
+      }}>
+        <h1 style={{
+          fontFamily: 'var(--font-cinzel)',
+          fontSize: 'clamp(26px, 3.5vw, 34px)',
+          fontWeight: 700,
+          color: 'var(--text-heading)',
+          letterSpacing: '0.04em',
+          marginBottom: 12,
+        }}>Privacy Policy</h1>
+        <p style={{
+          fontFamily: 'var(--font-alegreya-sans)',
+          fontSize: 14,
+          color: 'var(--gold-muted)',
+        }}>Last updated: March 15, 2026</p>
+      </div>
+
+      {/* Content */}
+      <div style={{
+        maxWidth: 720,
+        margin: '0 auto',
+        padding: '0 clamp(24px, 5vw, 48px) 64px',
+        position: 'relative', zIndex: 1,
+        opacity: loaded ? 1 : 0,
+        transition: 'opacity 0.8s ease 0.35s',
+      }}>
+        {/* Intro */}
+        <p style={{
+          fontFamily: 'var(--font-alegreya-sans)',
+          fontSize: 15, fontWeight: 400,
+          color: 'var(--text-secondary-bright)', lineHeight: 1.75,
+          marginBottom: 40,
+        }}>
+          CrucibleRPG (&ldquo;we,&rdquo; &ldquo;us,&rdquo; &ldquo;our&rdquo;) is operated by William Weidig, based in Connecticut, United States. This Privacy Policy explains what information we collect, how we use it, and what rights you have.
+        </p>
+        <p style={{
+          fontFamily: 'var(--font-alegreya-sans)',
+          fontSize: 15, fontWeight: 400,
+          color: 'var(--text-secondary-bright)', lineHeight: 1.75,
+          marginBottom: 48,
+        }}>
+          By creating an account or using CrucibleRPG, you agree to this policy. If you don&rsquo;t agree, please don&rsquo;t use the service.
+        </p>
+
+        <Section title="Who Can Use CrucibleRPG">
+          <p>CrucibleRPG is intended for users aged 16 and older. We do not knowingly collect personal information from anyone under 16. If we learn that a user is under 16, we will delete their account and associated data. If you believe a minor under 16 has created an account, please contact us at <a className={styles.legalLink} href="mailto:support@crucibleRPG.com">support@crucibleRPG.com</a>.</p>
+        </Section>
+
+        <Section title="What We Collect">
+          <p style={{ marginBottom: 16 }}><strong style={{ color: '#b0a890' }}>Account information.</strong> When you sign up, we collect your email address and a hashed version of your password. If you sign in through Google or Apple, we receive the basic profile information those services provide (typically your name and email).</p>
+          <p style={{ marginBottom: 16 }}><strong style={{ color: '#b0a890' }}>Payment information.</strong> When you subscribe or purchase turn packs, your payment is processed by Stripe. We do not store your credit card number, billing address, or other payment details on our servers. Stripe handles that directly under their own privacy policy.</p>
+          <p style={{ marginBottom: 16 }}><strong style={{ color: '#b0a890' }}>Game data.</strong> When you play, we store the content generated during your sessions. This includes your characters, worlds, campaign narratives, choices, inventory, stats, and any other data produced during gameplay. This content is generated by AI based on your inputs and is stored on our servers tied to your account.</p>
+          <p><strong style={{ color: '#b0a890' }}>Technical data.</strong> We collect basic technical information necessary to run the service: IP address, browser type, device type, and session timestamps. We use this for security, debugging, and keeping the service running. We do not use third-party analytics tools at this time.</p>
+        </Section>
+
+        <Section title="How We Use Your Information">
+          <p style={{ marginBottom: 8 }}>We use your information to:</p>
+          <LegalList items={[
+            'Create and maintain your account',
+            'Process payments through Stripe',
+            'Generate, save, and load your game sessions',
+            'Send you essential service communications (password resets, billing confirmations, critical updates)',
+            'Protect against fraud, abuse, and security threats',
+            'Improve the service based on aggregated, non-identifying usage patterns',
+          ]} />
+          <p style={{ marginTop: 16, color: '#b0a890' }}>We will never sell your personal information. We will never use your game content to train AI models.</p>
+        </Section>
+
+        <Section title="AI-Generated Content">
+          <p style={{ marginBottom: 16 }}>CrucibleRPG uses AI to generate narrative content, NPCs, world details, and other in-game elements based on your inputs and choices. This content is created in real time and stored as part of your game data.</p>
+          <p style={{ marginBottom: 16 }}>Your inputs (character names, choices, custom descriptions) are sent to our AI provider to generate responses. We use commercially available AI services to power the storyteller. These providers process your inputs to generate responses but do not retain your data for their own training purposes, per our agreements with them.</p>
+          <p>The AI may occasionally produce content that is unexpected, inaccurate, or inconsistent. We do our best to guide the output through our game engine, but AI-generated content is not guaranteed to be error-free.</p>
+        </Section>
+
+        <Section title="Third Parties">
+          <p style={{ marginBottom: 8 }}>We share data only with the following types of service providers, and only as needed to operate CrucibleRPG:</p>
+          <LegalList items={[
+            'Stripe - payment processing',
+            'AI provider - generating in-game narrative content',
+            'Vercel - website hosting',
+            'Email service - transactional emails (password resets, billing receipts)',
+          ]} />
+          <p style={{ marginTop: 16 }}>We do not share your information with advertisers, data brokers, or any third party for marketing purposes.</p>
+          <p style={{ marginTop: 12 }}>We may disclose information if required by law, legal process, or to protect the safety and security of our users or the public.</p>
+        </Section>
+
+        <Section title="Cookies">
+          <p>We use only essential cookies required for the service to function (session authentication, security tokens). We do not use tracking cookies, advertising cookies, or third-party analytics cookies. Because we only use strictly necessary cookies, no cookie consent banner is required under current regulations.</p>
+        </Section>
+
+        <Section title="Your Rights">
+          <p style={{ marginBottom: 8 }}>Depending on where you live, you may have the right to:</p>
+          <LegalList items={[
+            'Access the personal data we hold about you',
+            'Delete your account and associated data',
+            'Export your game data',
+            'Correct inaccurate personal information',
+            'Withdraw consent where processing is based on consent',
+          ]} />
+          <p style={{ marginTop: 16 }}>To exercise any of these rights, email us at <a className={styles.legalLink} href="mailto:support@crucibleRPG.com">support@crucibleRPG.com</a>. We will respond within 30 days.</p>
+          <p style={{ marginTop: 12 }}>When you delete your account, we delete your personal information and game data. Some data may persist in encrypted backups for up to 90 days before being fully purged.</p>
+        </Section>
+
+        <Section title="Data Security">
+          <p>We use industry-standard measures to protect your data, including encrypted connections (HTTPS), hashed passwords, and secure server infrastructure. No system is perfectly secure, and we cannot guarantee absolute security, but we take reasonable steps to protect your information.</p>
+        </Section>
+
+        <Section title="Data Retention">
+          <p style={{ marginBottom: 12 }}>We retain your data for as long as your account is active. If you delete your account, we delete your personal data and game content, subject to the backup retention period noted above.</p>
+          <p>We may retain anonymized, aggregated data (which cannot identify you) indefinitely for service improvement purposes.</p>
+        </Section>
+
+        <Section title="Changes to This Policy">
+          <p>We may update this policy from time to time. If we make significant changes, we will notify you by email or through a notice on the site. Your continued use of CrucibleRPG after changes take effect means you accept the updated policy.</p>
+        </Section>
+
+        <Section title="Contact">
+          <p>If you have questions about this policy or your data, contact us at <a className={styles.legalLink} href="mailto:support@crucibleRPG.com">support@crucibleRPG.com</a>.</p>
+        </Section>
+      </div>
+
+      {/* Footer */}
+      <footer style={{
+        padding: '24px clamp(24px, 4vw, 56px)',
+        textAlign: 'center',
+        position: 'relative', zIndex: 1,
+        borderTop: '1px solid #1e2540',
+      }}>
+        <span style={{
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
+          color: 'var(--gold-footer)', letterSpacing: '0.04em',
+        }}>&copy; 2026 CrucibleRPG &middot; Every hero needs a crucible.</span>
+      </footer>
+    </div>
+  );
+}

@@ -1,0 +1,80 @@
+/* ============================================
+   Terms of Service Page Styles
+   ============================================ */
+
+/* Particle field */
+.particleField {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--accent-gold);
+  animation: float ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); opacity: var(--p-opacity); }
+  50% { transform: translateY(-18px); opacity: calc(var(--p-opacity) * 1.6); }
+}
+
+/* Nav link */
+.navLink {
+  font-family: var(--font-alegreya-sans);
+  font-size: 14px;
+  color: #8a9ab8;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.navLink:hover {
+  color: var(--accent-gold);
+}
+
+/* Legal body link */
+.legalLink {
+  color: var(--accent-gold);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.legalLink:hover {
+  color: #ddb84e;
+  text-decoration: underline;
+}
+
+/* Page container */
+.pageContainer {
+  overflow-x: hidden;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .particle {
+    animation: none;
+  }
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+
+@media (max-width: 767px) {
+  .particleField {
+    display: none;
+  }
+
+  /* TODO: mobile nav needed — hiding nav links on small screens */
+  .navLinksGroup .navLink {
+    display: none;
+  }
+
+  .navLink {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}

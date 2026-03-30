@@ -405,9 +405,9 @@ export default function AuthPage() {
                 fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5,
               }}>
                 I agree to the{' '}
-                <a href="#" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}>Terms of Service</a>
+                <a href="/terms" target="_blank" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}>Terms of Service</a>
                 {' '}and{' '}
-                <a href="#" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}>Privacy Policy</a>
+                <a href="/privacy" target="_blank" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}>Privacy Policy</a>
               </span>
             </div>
           </>

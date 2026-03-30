@@ -1,6 +1,6 @@
 # Crucible RPG — To Do
 
-**Last Updated:** 2026-03-25
+**Last Updated:** 2026-03-29
 
 > **For Claude Code:** Read this file at the start of every session. The user manages this list with plain-language commands:
 > **Work initiation:** Items on this list are for tracking only. Do NOT start work on any item unprompted. The user will initiate each task via a prompt from Claude Chat.
@@ -35,7 +35,7 @@
 ## 🔵 Later — Polish, Features, and Content
 
 - [ ] Frontend: FAQ page
-- [ ] Frontend: Legal pages (ToS, Privacy Policy starters)
+- [x] Frontend: Legal pages (ToS, Privacy Policy starters) (2026-03-29)
 - [ ] Frontend: Copy audit on init wizard and game layout
 - [ ] Frontend: Saved games page API wiring (real data)
 - [ ] Frontend: Game creation flow from /menu

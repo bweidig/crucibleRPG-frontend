@@ -21,8 +21,8 @@
 | Game Layout | `/play` | Rewrite Phase 4 | All gameplay + talk-to-gm + notes CRUD | Polish pass pending |
 | FAQ | `/faq` | Not built | N/A | Page does not exist yet |
 | Rulebook | `/rulebook` | Complete | None (static) | None |
-| Legal (ToS) | TBD | Not built | N/A | Needs starter draft |
-| Legal (Privacy) | TBD | Not built | N/A | Needs starter draft |
+| Legal (ToS) | `/terms` | Complete | None (static) | None |
+| Legal (Privacy) | `/privacy` | Complete | None (static) | None |
 
 **Status definitions:**
 - **Complete:** Page renders, styled per design system, all mock/live data displays correctly.
@@ -31,6 +31,16 @@
 ---
 
 ## Recent Work (This Session: 2026-03-29)
+
+### Legal Pages — Privacy Policy & Terms of Service
+- **New pages:** `/privacy` (Privacy Policy) and `/terms` (Terms of Service). Static legal pages with no API calls.
+- **Pattern:** Same layout as Rulebook — `'use client'`, inline styles + CSS module for hover/animation states, ParticleField, shared nav (Home, Pricing, FAQ, Rulebook), standard footer.
+- **Content:** Full legal drafts covering account data, AI-generated content, payments (Stripe), cookies, user rights, data retention, liability, disputes (CT jurisdiction), and more.
+- **Auth page update:** Terms of Service and Privacy Policy links in the signup form now point to `/terms` and `/privacy` respectively, opening in a new tab.
+- **Mobile responsive:** Particles hidden, nav links hidden on mobile (TODO comment for hamburger), 44px tap targets on nav links, `overflow-x: hidden` on page container.
+- **Design system compliance:** All text uses CSS custom properties or solid hex. No `rgba()` on text/cards/borders. No em dashes. Footer uses `var(--gold-footer)`. WCAG AA contrast maintained.
+- **Files created:** `app/privacy/page.js`, `app/privacy/page.module.css`, `app/terms/page.js`, `app/terms/page.module.css`.
+- **Files modified:** `app/auth/page.js` (link hrefs updated).
 
 ### Mobile Responsiveness Pass — Marketing & Pre-Game Pages
 - **Scope:** All pages except `/play` (game layout). Covers: Landing, Coming Soon (`/`), Auth, Main Menu, Init Wizard, Pricing, Rulebook, Saved Games.
@@ -511,7 +521,7 @@ Items flagged for post-launch or future sessions. Not blocking progress.
 ### Content
 - FAQ page: needs to be built
 - ~~Rulebook page~~ (done: 22-section rulebook at /rulebook, 2026-03-19)
-- Legal pages: ToS and Privacy Policy starter drafts
+- ~~Legal pages: ToS and Privacy Policy~~ (done: /terms and /privacy, 2026-03-29)
 - In-game rulebook: stripped version without marketing chrome
 - Copy audit on Init Wizard and Game Layout pages
 
