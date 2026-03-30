@@ -19,7 +19,7 @@
 | Saved Games | `/saved-games` | Complete | None (mock data) | Needs API wiring for real saves |
 | Pricing | `/pricing` | Complete | None (static) | Dollar amounts TBD |
 | Game Layout | `/play` | Rewrite Phase 4 | All gameplay + talk-to-gm + notes CRUD | Polish pass pending |
-| FAQ | `/faq` | Not built | N/A | Page does not exist yet |
+| FAQ | `/faq` | Complete | None (static) | None |
 | Rulebook | `/rulebook` | Complete | None (static) | None |
 | Legal (ToS) | `/terms` | Complete | None (static) | None |
 | Legal (Privacy) | `/privacy` | Complete | None (static) | None |
@@ -33,6 +33,14 @@
 ---
 
 ## Recent Work (This Session: 2026-03-30)
+
+### FAQ Page
+- **New page:** `/faq` with 6 category tabs and 32 questions covering The Game, Gameplay, World & Character, Pricing & Billing, Free Trial, and Technical & Privacy.
+- **Layout:** Matches `/privacy` and `/terms` pattern: inline styles + CSS module, ParticleField, shared nav (Home, Pricing, FAQ active, Rulebook), standard footer.
+- **Interaction:** Pill-style category tabs with active gold highlight. Accordion FAQ items with rotating chevron, height/opacity transitions. Switching categories closes all open items.
+- **Bottom CTA:** "Ready to begin?" heading with gold "START YOUR ADVENTURE" button linking to `/auth`.
+- **Mobile responsive:** Particles hidden, nav links hidden, 44px tap targets on tabs/questions/CTA, full-width CTA button.
+- **Also added:** Rulebook link to `/menu` nav bar and `/play` TopBar (book icon, opens in new tab).
 
 ### Font Audit - Eliminate Faux Bold/Italic
 - **Problem:** Browser faux bold/italic on text where CSS requested weights or styles not loaded from Google Fonts. Confirmed fuzzy text on loading screen (Alegreya italic weight 600, which doesn't exist).
@@ -617,7 +625,7 @@ Items flagged for post-launch or future sessions. Not blocking progress.
 - Tutorial card on main menu
 
 ### Content
-- FAQ page: needs to be built
+- ~~FAQ page~~ (done: 6-category, 32-question FAQ at /faq, 2026-03-30)
 - ~~Rulebook page~~ (done: 22-section rulebook at /rulebook, 2026-03-19)
 - ~~Legal pages: ToS and Privacy Policy~~ (done: /terms and /privacy, 2026-03-29)
 - In-game rulebook: stripped version without marketing chrome

@@ -1,0 +1,187 @@
+/* ============================================
+   FAQ Page Styles
+   ============================================ */
+
+/* Particle field */
+.particleField {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--accent-gold);
+  animation: float ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); opacity: var(--p-opacity); }
+  50% { transform: translateY(-18px); opacity: calc(var(--p-opacity) * 1.6); }
+}
+
+/* Nav link */
+.navLink {
+  font-family: var(--font-alegreya-sans);
+  font-size: 14px;
+  color: #8a9ab8;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.navLink:hover {
+  color: var(--accent-gold);
+}
+
+.navLinkActive {
+  font-family: var(--font-alegreya-sans);
+  font-size: 14px;
+  color: var(--accent-gold);
+  text-decoration: none;
+}
+
+/* Category tabs */
+.tab {
+  font-family: var(--font-cinzel);
+  font-size: 12px;
+  font-weight: 600;
+  color: #7082a4;
+  background: transparent;
+  border: 1px solid #1e2540;
+  border-radius: 20px;
+  padding: 8px 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.04em;
+}
+
+.tab:hover {
+  color: #c9a84c;
+  border-color: #3a3328;
+}
+
+.tabActive {
+  composes: tab;
+  color: #c9a84c;
+  background: rgba(201, 168, 76, 0.06);
+  border-color: #3a3328;
+}
+
+/* FAQ question button */
+.faqQuestion {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.faqQuestion:hover span {
+  color: #c9a84c !important;
+}
+
+.faqQuestion:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Chevron rotation */
+.chevron {
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+/* FAQ answer slide */
+.faqAnswer {
+  overflow: hidden;
+  transition: max-height 0.35s ease, opacity 0.25s ease, padding 0.35s ease;
+}
+
+/* In-answer link */
+.faqLink {
+  color: #c9a84c;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.faqLink:hover {
+  color: #ddb84e;
+  text-decoration: underline;
+}
+
+/* Primary CTA button */
+.btnPrimary {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.btnPrimary:hover {
+  box-shadow: 0 4px 30px rgba(201, 168, 76, 0.45);
+  transform: translateY(-2px);
+}
+
+/* Page container */
+.pageContainer {
+  overflow-x: hidden;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .particle {
+    animation: none;
+  }
+
+  .faqAnswer {
+    transition: none;
+  }
+
+  .chevron {
+    transition: none;
+  }
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+
+@media (max-width: 767px) {
+  .particleField {
+    display: none;
+  }
+
+  .navLinksGroup .navLink,
+  .navLinksGroup .navLinkActive {
+    display: none;
+  }
+
+  .navLink,
+  .navLinkActive {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .tab {
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+
+  .faqQuestion {
+    min-height: 44px;
+    padding: 16px 0;
+  }
+
+  .btnPrimary {
+    min-height: 44px;
+    width: 100%;
+    max-width: 320px;
+  }
+}

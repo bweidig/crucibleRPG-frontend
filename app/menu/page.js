@@ -500,11 +500,13 @@ export default function MenuPage() {
               border: `1px solid ${C.cardBorder}`, borderRadius: 4, padding: "2px 7px",
             }}>EARLY ACCESS</div>
           </div>
-          <Link href="/rulebook" className={styles.navLink} style={{
-            fontFamily: "var(--font-cinzel), serif", fontSize: 11, fontWeight: 600,
-            color: C.goldLabel, letterSpacing: "0.1em",
-          }}>RULEBOOK</Link>
-          <AuthAvatar size={32} />
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <Link href="/rulebook" className={styles.navLink} style={{
+              fontFamily: "var(--font-cinzel), serif", fontSize: 11, fontWeight: 600,
+              color: C.goldLabel, letterSpacing: "0.1em",
+            }}>RULEBOOK</Link>
+            <AuthAvatar size={32} />
+          </div>
         </div>
 
         {/* ─── ERROR ─── */}
