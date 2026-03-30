@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { get, clearToken, isAuthenticated, getUser } from '@/lib/api';
 import AuthAvatar from '@/components/AuthAvatar';
 import styles from './page.module.css';
@@ -499,6 +500,10 @@ export default function MenuPage() {
               border: `1px solid ${C.cardBorder}`, borderRadius: 4, padding: "2px 7px",
             }}>EARLY ACCESS</div>
           </div>
+          <Link href="/rulebook" className={styles.navLink} style={{
+            fontFamily: "var(--font-cinzel), serif", fontSize: 11, fontWeight: 600,
+            color: C.goldLabel, letterSpacing: "0.1em",
+          }}>RULEBOOK</Link>
           <AuthAvatar size={32} />
         </div>
 

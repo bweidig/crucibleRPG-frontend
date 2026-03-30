@@ -72,6 +72,16 @@
   box-shadow: 0 8px 40px rgba(201, 168, 76, 0.08);
 }
 
+/* Nav link */
+.navLink {
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.navLink:hover {
+  color: var(--accent-gold);
+}
+
 /* Page container */
 .pageContainer {
   overflow-x: hidden;

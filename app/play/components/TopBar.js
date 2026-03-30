@@ -10,6 +10,14 @@ function SidebarIcon({ color }) {
   );
 }
 
+function BookIcon({ color }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+  );
+}
+
 function SettingsIcon({ color }) {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -65,6 +73,15 @@ export default function TopBar({ setting, clock, sseConnected, sidebarOpen, onTo
             DEBUG
           </div>
         )}
+        <Link
+          href="/rulebook"
+          target="_blank"
+          className={styles.iconButton}
+          title="Rulebook"
+          aria-label="Rulebook"
+        >
+          <BookIcon color="#7082a4" />
+        </Link>
         <button
           className={styles.iconButton}
           onClick={onOpenSettings}
