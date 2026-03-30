@@ -2,6 +2,12 @@
    Admin Dashboard Styles
    ============================================ */
 
+/* ─── Sort Header ─── */
+
+.sortHeader:hover {
+  color: #c9a84c !important;
+}
+
 /* ─── Tab Bar ─── */
 
 .tab {
@@ -196,26 +202,17 @@
   min-width: 160px;
 }
 
-/* ─── Detail Panel (slide-over) ─── */
+/* ─── Detail Panel (push layout) ─── */
 
-.panelOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 200;
-  animation: fadeIn 0.15s ease;
-}
-
-.panelSlide {
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: min(700px, 90vw);
+.pushPanel {
+  width: 500px;
+  min-width: 500px;
   background: #0d1120;
   border-right: 1px solid #1e2540;
-  z-index: 201;
   overflow-y: auto;
+  max-height: calc(100vh - 140px);
+  position: sticky;
+  top: 0;
   animation: slideIn 0.2s ease;
 }
 
@@ -473,6 +470,20 @@
   width: 90vw;
 }
 
+/* ─── Input Shake ─── */
+
+.inputShake {
+  animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
+
 /* ─── Popularity Bar ─── */
 
 .popBar {
@@ -484,15 +495,15 @@
 
 /* ─── Scrollbar ─── */
 
-.panelSlide::-webkit-scrollbar {
+.pushPanel::-webkit-scrollbar {
   width: 6px;
 }
 
-.panelSlide::-webkit-scrollbar-track {
+.pushPanel::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.panelSlide::-webkit-scrollbar-thumb {
+.pushPanel::-webkit-scrollbar-thumb {
   background: #2a2a3a;
   border-radius: 3px;
 }
@@ -500,8 +511,9 @@
 /* ─── Responsive ─── */
 
 @media (max-width: 1023px) {
-  .panelSlide {
-    width: 100vw;
+  .pushPanel {
+    width: 400px;
+    min-width: 400px;
   }
 
   .searchInput {

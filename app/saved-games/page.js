@@ -74,10 +74,10 @@ function ParticleField() {
       id: i,
       x: Math.random() * 100,
       y: Math.random() * 100,
-      size: Math.random() * 2.5 + 0.5,
+      size: Math.random() * 2.5 + 0.8,
       duration: Math.random() * 6 + 5,
       delay: Math.random() * 8,
-      opacity: Math.random() * 0.3 + 0.05,
+      opacity: Math.random() * 0.25 + 0.08,
     }))
   );
 

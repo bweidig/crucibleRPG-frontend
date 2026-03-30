@@ -2,7 +2,7 @@
 
 > **This contract is verified against backend code as of 2026-03-17. The frontend uses this as its single source of truth. Do not change response shapes without updating this document.**
 
-**Last Updated:** 2026-03-20
+**Last Updated:** 2026-03-30
 
 Base URL: `https://<host>` (Railway production or `http://localhost:3000` local)
 
@@ -17,6 +17,7 @@ All game values use **x10 integer format** internally (7.3 → 73). Public API r
 - [Games (`/api/games`)](#games)
 - [Init Wizard (`/api/init`)](#init-wizard)
 - [Gameplay (`/api/game`)](#gameplay)
+- [Admin (`/api/admin`)](#admin)
 
 ---
 
@@ -168,6 +169,55 @@ Placeholder endpoint. Always returns success (anti-enumeration).
 |------|---------|
 | 200 | Always (regardless of whether email exists) |
 | 400 | Missing email |
+
+### PUT /api/auth/profile
+
+Update the authenticated user's display name. Requires JWT.
+
+**Request Body:**
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `displayName` | string | yes | Non-empty after trim, max 50 chars |
+
+**Response (200):**
+```json
+{
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "displayName": "New Name",
+    "isPlaytester": true,
+    "createdAt": "2026-03-16T..."
+  }
+}
+```
+
+**Status Codes:**
+| Code | Meaning |
+|------|---------|
+| 200 | Updated |
+| 400 | Missing, empty, or too long displayName |
+| 401 | No/invalid token |
+
+### DELETE /api/auth/account
+
+Permanently delete the authenticated user's account and all associated data (games, characters, narrative, bug reports). Irreversible. Requires JWT.
+
+**Request Body:** None.
+
+**Response (200):**
+```json
+{
+  "message": "Account deleted",
+  "gamesDeleted": 3
+}
+```
+
+**Status Codes:**
+| Code | Meaning |
+|------|---------|
+| 200 | Account deleted |
+| 401 | No/invalid token |
 
 ---
 
@@ -1668,6 +1718,399 @@ AI-powered GM response. **Costs a turn.** Rate limited (10/60s).
 
 ---
 
+## Admin
+
+Mount: `/api/admin`
+
+**All admin endpoints require two middleware layers:**
+1. `requireAuth` — valid JWT in `Authorization: Bearer <token>` header
+2. `requireAdmin` — authenticated user's email must be in the `ADMIN_EMAILS` environment variable (comma-separated list)
+
+Unauthenticated requests return 401. Authenticated non-admin requests return 403 `{ "error": "Admin access required" }`.
+
+---
+
+### GET /api/admin/users
+
+List all users with game counts.
+
+**Response (200):**
+```json
+{
+  "users": [
+    {
+      "id": 1,
+      "email": "user@example.com",
+      "displayName": "Player One",
+      "isPlaytester": true,
+      "createdAt": "2026-03-16T...",
+      "gameCount": 5,
+      "lastActive": "2026-03-29T..."
+    }
+  ],
+  "total": 6
+}
+```
+
+`lastActive` is the most recent `game_worlds.created_at` for the user's games, or null if no games.
+
+---
+
+### GET /api/admin/users/:id
+
+Detailed view of a single user including all their games.
+
+**Response (200):**
+```json
+{
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "displayName": "Player One",
+    "isPlaytester": true,
+    "createdAt": "2026-03-16T..."
+  },
+  "games": [
+    {
+      "id": 5,
+      "storyteller": "Chronicler",
+      "setting": "Sword & Soil",
+      "status": "active",
+      "characterName": "Jasper",
+      "turnCount": 34,
+      "totalCost": 0.4812,
+      "createdAt": "2026-03-20T..."
+    }
+  ],
+  "totalSpend": 1.2934
+}
+```
+
+`totalSpend` is the sum of `total_ai_cost` across all the user's games. `turnCount` counts narrative_log entries with `role = 'ai'`.
+
+**Status Codes:** 200, 404 (user not found).
+
+---
+
+### PATCH /api/admin/users/:id/playtester
+
+Toggle playtester status for a user.
+
+**Request Body:**
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `isPlaytester` | boolean | yes | Must be `true` or `false` |
+
+**Response (200):**
+```json
+{
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "displayName": "Player One",
+    "isPlaytester": true
+  }
+}
+```
+
+**Status Codes:** 200, 400 (`isPlaytester` not a boolean), 404 (user not found).
+
+---
+
+### GET /api/admin/games
+
+List all games across all users with optional filtering.
+
+**Query Params:**
+| Param | Type | Description |
+|-------|------|-------------|
+| `status` | string | Filter by game status: `initializing`, `active`, `completed`, `abandoned` |
+| `search` | string | Case-insensitive search across character name, player display name, and setting |
+
+**Response (200):**
+```json
+{
+  "games": [
+    {
+      "id": 5,
+      "userId": 1,
+      "playerName": "Ben",
+      "characterName": "Jasper",
+      "storyteller": "Chronicler",
+      "setting": "Sword & Soil",
+      "status": "active",
+      "turnCount": 34,
+      "totalCost": 0.4812,
+      "costPerTurn": 0.0142,
+      "createdAt": "2026-03-20T..."
+    }
+  ],
+  "total": 8
+}
+```
+
+`costPerTurn` = `totalCost / turnCount` (0 if no turns). Results limited to 100.
+
+---
+
+### GET /api/admin/games/:id
+
+Detailed game view with character snapshot, narrative log, and clock state.
+
+**Response (200):**
+```json
+{
+  "game": {
+    "id": 5,
+    "status": "active",
+    "storyteller": "Chronicler",
+    "setting": "Sword & Soil",
+    "difficulty": "Standard",
+    "totalCost": 0.4812,
+    "createdAt": "2026-03-20T..."
+  },
+  "player": {
+    "id": 1,
+    "displayName": "Ben",
+    "email": "ben@example.com"
+  },
+  "character": {
+    "name": "Jasper",
+    "backstory": "...",
+    "personality": "...",
+    "appearance": "...",
+    "gender": "male",
+    "stats": {
+      "str": { "base": 5.5, "effective": 4.5 }
+    },
+    "skills": [
+      { "name": "Swordsmanship", "modifier": 1.5, "source": "backstory" }
+    ],
+    "conditions": [
+      { "name": "Exhausted", "stat": "str", "penalty": 1.0, "durationType": "until_rest", "source": "combat", "isBuff": false }
+    ],
+    "inventory": {
+      "equipped": [
+        { "name": "Iron Sword", "category": "weapon", "quality": "common", "durability": "14/16", "slot": "main_hand" }
+      ],
+      "carried": [
+        { "name": "Healing Potion", "category": "consumable", "quality": "common", "durability": null }
+      ]
+    }
+  },
+  "narrative": [
+    {
+      "turnNumber": 1,
+      "role": "ai",
+      "content": "...",
+      "significanceScore": 3,
+      "thematicTags": ["discovery"]
+    }
+  ],
+  "totalTurns": 34,
+  "clock": {
+    "globalClock": 480,
+    "totalTurn": 34,
+    "currentDay": 3
+  }
+}
+```
+
+`character` is `null` if no character has been created yet. Narrative is limited to the most recent 200 entries (use the `/narrative` endpoint for full log). `totalTurns` counts `role = 'ai'` entries.
+
+**Status Codes:** 200, 404 (game not found).
+
+---
+
+### DELETE /api/admin/games/:id
+
+Delete a game and all associated data. Uses the same ordered cascade delete as the owner delete endpoint. No ownership check.
+
+**Response (200):**
+```json
+{ "deleted": true, "gameId": 5 }
+```
+
+**Status Codes:** 200, 404 (game not found).
+
+---
+
+### GET /api/admin/games/:id/narrative
+
+Full narrative log for spectator/read-only view. Returns all entries (not capped at 200 like the detail endpoint).
+
+**Response (200):**
+```json
+{
+  "gameId": 5,
+  "characterName": "Jasper",
+  "setting": "Sword & Soil",
+  "storyteller": "Chronicler",
+  "narrative": [
+    {
+      "turnNumber": 1,
+      "role": "ai",
+      "content": "...",
+      "significanceScore": 3
+    }
+  ],
+  "totalEntries": 68
+}
+```
+
+**Status Codes:** 200, 404 (game not found).
+
+---
+
+### GET /api/admin/costs
+
+Aggregate AI cost data across all games.
+
+**Response (200):**
+```json
+{
+  "totalSpend": 1.8296,
+  "totalTurns": 127,
+  "avgCostPerTurn": 0.0144,
+  "activeGames": 4,
+  "topGames": [
+    {
+      "id": 6,
+      "characterName": "Wren",
+      "playerName": "Ben",
+      "setting": "Sword & Soil",
+      "totalCost": 0.623,
+      "turnCount": 45,
+      "costPerTurn": 0.0138
+    }
+  ]
+}
+```
+
+`topGames` returns up to 10 games ordered by highest `total_ai_cost`.
+
+---
+
+### GET /api/admin/health
+
+System health overview including stuck games, popularity, retention, errors, and database size.
+
+**Response (200):**
+```json
+{
+  "counts": {
+    "totalUsers": 6,
+    "totalPlaytesters": 4,
+    "totalGames": 8,
+    "activeGames": 4,
+    "totalTurns": 127
+  },
+  "stuckGames": [
+    {
+      "id": 5,
+      "status": "initializing",
+      "playerName": "Marcus",
+      "characterName": null,
+      "createdAt": "2026-03-28T..."
+    }
+  ],
+  "popularity": {
+    "storytellers": [{ "name": "Chronicler", "count": 5 }],
+    "settings": [{ "name": "Sword & Soil", "count": 4 }]
+  },
+  "retention": {
+    "usersWithGames": 4,
+    "usersWithMultipleGames": 2,
+    "returningUsers": 3,
+    "totalUsers": 6
+  },
+  "errors": {
+    "last24h": 0,
+    "recent": [
+      {
+        "id": 1,
+        "endpoint": "/api/game/5/action",
+        "method": "POST",
+        "errorMessage": "AI provider timeout",
+        "gameId": 5,
+        "createdAt": "2026-03-29T..."
+      }
+    ]
+  },
+  "dbSize": "42 MB"
+}
+```
+
+Stuck games: `initializing` for 24+ hours, or `active` with zero narrative entries. Retention metrics are approximate (based on game creation dates, not session tracking). `errors.recent` returns the last 5 error log entries.
+
+---
+
+### GET /api/admin/invite-code
+
+Return the current active invite code and its source.
+
+**Response (200):**
+```json
+{ "inviteCode": "PLAYTEST2026", "source": "database" }
+```
+
+`source` is one of: `"database"` (from `admin_settings` table), `"environment"` (from `INVITE_CODE` env var), `"none"` (no invite code configured). When source is `"none"`, `inviteCode` is `null`.
+
+---
+
+### PUT /api/admin/invite-code
+
+Set a new invite code. Stored in the `admin_settings` table (takes priority over env var).
+
+**Request Body:**
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `inviteCode` | string | yes | 4-50 chars, alphanumeric + hyphens only (`/^[a-zA-Z0-9-]+$/`) |
+
+**Response (200):**
+```json
+{ "inviteCode": "NEWCODE123", "updatedAt": "2026-03-29T..." }
+```
+
+**Status Codes:** 200, 400 (invalid format/length).
+
+---
+
+### GET /api/admin/errors
+
+Recent error log with pagination.
+
+**Query Params:**
+| Param | Type | Default | Validation |
+|-------|------|---------|------------|
+| `limit` | number | 20 | 1-100 |
+| `offset` | number | 0 | >= 0 |
+
+**Response (200):**
+```json
+{
+  "errors": [
+    {
+      "id": 1,
+      "endpoint": "/api/game/5/action",
+      "method": "POST",
+      "errorMessage": "AI provider timeout",
+      "errorStack": "Error: AI provider timeout\n    at ...",
+      "userId": 1,
+      "gameId": 5,
+      "createdAt": "2026-03-29T..."
+    }
+  ],
+  "total": 12,
+  "limit": 20,
+  "offset": 0
+}
+```
+
+Errors are automatically pruned after 30 days.
+
+---
+
 ## Global Notes
 
 **Authentication:** All endpoints except health checks and `GET /snapshots/:token` require a JWT in the `Authorization: Bearer <token>` header. SSE endpoint uses `?token=` query param.
@@ -1675,6 +2118,8 @@ AI-powered GM response. **Costs a turn.** Rate limited (10/60s).
 **Ownership:** All game-scoped endpoints verify the authenticated user owns the game. Returns 404 (not 403) if not owned — prevents game ID enumeration.
 
 **Playtester Gate:** `POST /api/games/new` and `GET /api/games/:id` require `is_playtester = true` on the user record. Returns 403 if not approved.
+
+**Admin Gate:** All `/api/admin/*` endpoints require the user's email to be in the `ADMIN_EMAILS` env var (comma-separated). Returns 403 `{ "error": "Admin access required" }` if not listed.
 
 **JWT Payload:** `{ userId, email }` — 7-day expiry, bcrypt 12 rounds.
 

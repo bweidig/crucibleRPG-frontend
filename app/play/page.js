@@ -645,9 +645,9 @@ function PlayPage() {
             {Array.from({ length: 20 }, (_, i) => (
               <div key={i} style={{
                 position: 'absolute', left: `${(i * 37 + 13) % 100}%`, top: `${(i * 53 + 7) % 100}%`,
-                width: Math.random() * 2 + 0.5, height: Math.random() * 2 + 0.5,
+                width: Math.random() * 2.5 + 0.8, height: Math.random() * 2.5 + 0.8,
                 borderRadius: '50%', background: '#c9a84c',
-                opacity: Math.random() * 0.15 + 0.03,
+                opacity: Math.random() * 0.25 + 0.08,
               }} />
             ))}
           </div>

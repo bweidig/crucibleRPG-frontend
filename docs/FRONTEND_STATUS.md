@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-03-29
+**Last Updated:** 2026-03-30
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -11,9 +11,9 @@
 | Page | Route | Status | API Wired | Blocking Issues |
 |------|-------|--------|-----------|-----------------|
 | Coming Soon | `/` | Complete | Waitlist + auth-check | None |
-| Landing | `/landing` | Complete | None (static) | None |
+| Landing | `/landing` | Complete | Auth-aware CTA routing | None |
 | Auth | `/auth` | Complete | Google Sign-In | None |
-| Main Menu | `/menu` | Complete | Partial (mock saves) | Game creation not wired. Settings modal removed (moved to /settings). |
+| Main Menu | `/menu` | Complete | Delete games + snapshots import | Game creation not wired. Settings modal removed (moved to /settings). |
 | Init Wizard | `/init` | Complete (reworked) | All 10 endpoints wired | Gracefully skips API when no gameId |
 | Loading Screen | `/loading` | Removed (merged into /play) | N/A | N/A |
 | Saved Games | `/saved-games` | Complete | None (mock data) | Needs API wiring for real saves |
@@ -33,6 +33,35 @@
 ---
 
 ## Recent Work (This Session: 2026-03-30)
+
+### Menu Page: Delete Game + New from Template
+- **Delete game:** Added delete button to ContinueCard (top-right, hover danger color) and GameRow expanded section (text button next to Resume Game). Both open a type-to-confirm DeleteConfirmModal.
+- **DeleteConfirmModal:** Overlay modal matching DisplaySettings pattern. Shows game context (character name, setting). Player must type character name (or setting name, or "DELETE" for pending games) to confirm. Disabled button until match, shake animation on mismatch, loading state during API call, error display.
+- **Delete API:** Calls `DELETE /api/games/${gameId}` via `del()` from lib/api.js. On success, removes game from local state (list re-renders naturally).
+- **New from Template:** "New from Template" button below NewGameButton, only shown when `hasGames && isPlaytester`. Opens SnapshotPickerModal.
+- **SnapshotPickerModal:** Fetches `GET /api/games/snapshots` on open. Shows loading state, empty state with explanation, or scrollable card list. Each card shows snapshot name, setting, faction/NPC/location counts, type badge, created date. Clicking a card calls `POST /api/games/snapshots/${id}/import-mine`, navigates to `/init?id=${gameId}` on success.
+- **Files modified:** `app/menu/page.js`.
+
+### Admin Dashboard: Sortable Tables + Push Panels + Delete from User Detail
+- **Sortable columns:** Both Users and Games tables now sort by clicking column headers. `sortField`/`sortDirection` state with `useMemo`-sorted data. Arrow indicators on active column. Default: Games by ID desc, Users by Joined desc. Generic `sortData()` comparator handles numeric, alpha (case-insensitive), and date types with nulls-last.
+- **SortHeader component:** Reusable clickable header with hover gold color and arrow indicator.
+- **Status column width:** Games table grid changed from `110px` status column to `85px`. Full grid: `50px 2fr 1.2fr 1.2fr 85px 60px 90px 80px 90px 40px`.
+- **Push layout panels:** User and Game detail panels converted from fixed overlay + backdrop to inline flex push layout. Panel renders as first flex child (500px fixed width), table content shifts right. No dark backdrop overlay. Panel has `border-right: 1px solid #1e2540`, sticky positioning, scrollable.
+- **Delete games from user detail:** Each game row in user detail panel now has a trash icon delete button. Opens shared `DeleteGameModal` (type-to-confirm). On success, removes game from user detail list, decrements game count, and invalidates Games tab cache via `onGameDeleted` callback.
+- **DeleteGameModal (type-to-confirm):** Replaces old simple confirm modal. Player types character name (or `game-{id}` if no character) to confirm. Shake animation on mismatch, disabled button until match, loading state, error display. Used by both Games tab row delete and User detail panel delete. Close on Escape.
+- **Files modified:** `app/admin/page.js`, `app/admin/page.module.css`.
+
+### Landing Page Full Refresh
+- **CTA routing:** Both "START YOUR ADVENTURE" (hero) and "CREATE YOUR CHARACTER" (bottom CTA) now check `getToken()`. Token exists: navigate to `/menu`. No token: navigate to `/auth`. Both are `<button onClick>`, not `<Link>`.
+- **Scroll chevron:** Downward-pointing SVG chevron below CTAs, ~64px from bottom of hero viewport. Color: `var(--accent-gold)` at 0.4 opacity, gold drop-shadow glow. Gentle 3s float animation (7px translateY oscillation). Delayed fade-in (0.8s after hero elements load). Fades to opacity 0 when user scrolls >100px. `pointer-events: none` when hidden. Respects `prefers-reduced-motion`.
+- **Feature grid 2x2:** Changed from `repeat(auto-fit, minmax(260px, 1fr))` to `repeat(2, 1fr)`. Reduced section maxWidth from 1200px to 1000px. Single-column on mobile (existing 767px breakpoint).
+- **Copy updates:** Sub-tagline changed to "A solo tabletop RPG powered by AI..." Step 04 desc updated. Bottom CTA body text updated ("reacts to everything you do").
+- **FAQ section:** New `FAQSection` component with `id="faq"` between How It Works and CTA. Gold "FAQ" label, 4 accordion questions (one open at a time), Cinzel 17px question text with rotating chevron, Alegreya Sans 17px answers with height/opacity transitions, separator lines. "See all questions" link to `/faq`.
+- **Nav bar:** Added Rulebook (`/rulebook`) and Pricing (`/pricing`) as `<Link>` elements. FAQ anchor now points to `#faq` (on-page section).
+- **Footer:** Links now have real hrefs: FAQ `/faq`, Rulebook `/rulebook`, Pricing `/pricing`, Privacy `/privacy`, Terms `/terms`. Added copyright line: "2026 CrucibleRPG" in Alegreya Sans 13px `var(--text-dim)`.
+- **Particle visibility boost:** All pages updated from size 0.5-2.5px/opacity 0.03-0.23 to size 0.8-3.3px/opacity 0.08-0.33. Standardized across 11 page files. Design system doc updated.
+- **Particle float keyframe:** Added `@keyframes float` to landing page CSS module (was missing, other pages had it).
+- **Files modified:** `app/landing/page.js`, `app/landing/page.module.css`, `app/auth/page.js`, `app/page.js`, `app/faq/page.js`, `app/privacy/page.js`, `app/terms/page.js`, `app/menu/page.js`, `app/pricing/page.js`, `app/settings/page.js`, `app/saved-games/page.js`, `app/play/page.js`, `docs/design-system.md`.
 
 ### FAQ Page
 - **New page:** `/faq` with 6 category tabs and 32 questions covering The Game, Gameplay, World & Character, Pricing & Billing, Free Trial, and Technical & Privacy.

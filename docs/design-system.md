@@ -204,8 +204,8 @@ Used for form validation errors (e.g., incorrect password on modal).
 ## Particle Field
 
 The floating gold particle animation appears on: Landing, Coming Soon.
-- 35–40 particles, random positions, sizes 0.5–2.5px
-- Color: `#c9a84c`, low opacity (0.03–0.4)
+- 35–40 particles, random positions, sizes 0.8–3.3px
+- Color: `#c9a84c`, low opacity (0.08–0.33)
 - Animation: slow vertical float, 6–20 second duration
 - Must respect `prefers-reduced-motion` (disable animation when set)
 

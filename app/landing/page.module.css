@@ -18,6 +18,11 @@
   animation: float ease-in-out infinite;
 }
 
+@keyframes float {
+  0%, 100% { transform: translateY(0px); opacity: var(--p-opacity); }
+  50% { transform: translateY(-18px); opacity: calc(var(--p-opacity) * 1.6); }
+}
+
 /* Primary CTA button */
 .ctaPrimary {
   position: relative;
@@ -77,6 +82,27 @@
   box-shadow: 0 0 16px rgba(201, 168, 76, 0.35);
 }
 
+/* Scroll chevron */
+.scrollChevron {
+  position: absolute;
+  bottom: 64px;
+  left: 50%;
+  background: none;
+  border: none;
+  padding: 12px;
+  cursor: pointer;
+  color: var(--accent-gold);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  filter: drop-shadow(0 0 6px rgba(201, 168, 76, 0.25));
+  animation: chevronFloat 3s ease-in-out infinite;
+}
+
+@keyframes chevronFloat {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(7px); }
+}
+
 /* Footer links */
 .footerLink {
   text-decoration: none;
@@ -103,8 +129,73 @@
   transition: opacity 300ms;
 }
 
+/* FAQ section */
+.faqQuestion {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 0;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border-gold-faint);
+  cursor: pointer;
+  text-align: left;
+}
+
+.faqQuestion:hover span {
+  color: #c9a84c !important;
+}
+
+.faqQuestion:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.faqChevron {
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+.faqAnswer {
+  overflow: hidden;
+  transition: max-height 0.35s ease, opacity 0.25s ease, padding 0.35s ease;
+}
+
+.faqSeeAll {
+  font-family: var(--font-alegreya-sans);
+  font-size: 15px;
+  color: var(--accent-gold);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.faqSeeAll:hover {
+  text-decoration: underline;
+}
+
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
+  .particle {
+    animation: none;
+  }
+
   .scrollFade {
+    transition: none;
+  }
+
+  .scrollChevron {
+    animation: none;
+    transform: translateX(-50%);
+  }
+
+  .faqAnswer {
+    transition: none;
+  }
+
+  .faqChevron {
     transition: none;
   }
 }
@@ -152,6 +243,10 @@
     padding-bottom: 60px !important;
   }
 
+  .scrollChevron {
+    bottom: 40px;
+  }
+
   .featuresSection {
     padding-top: 60px !important;
     padding-bottom: 60px !important;
@@ -192,6 +287,16 @@
   .ctaSection {
     padding-top: 60px !important;
     padding-bottom: 60px !important;
+  }
+
+  .faqQuestion {
+    min-height: 44px;
+  }
+
+  .faqSeeAll {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
   }
 
   .footerLink {

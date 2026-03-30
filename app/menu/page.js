@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { get, clearToken, isAuthenticated, getUser } from '@/lib/api';
+import { get, post, del, clearToken, isAuthenticated, getUser } from '@/lib/api';
 import AuthAvatar from '@/components/AuthAvatar';
 import styles from './page.module.css';
 
@@ -82,8 +82,8 @@ function ParticleField() {
   const [particles] = useState(() =>
     Array.from({ length: 35 }, (_, i) => ({
       id: i, x: Math.random() * 100, y: Math.random() * 100,
-      size: Math.random() * 2 + 0.5, duration: Math.random() * 12 + 8,
-      delay: Math.random() * 8, opacity: Math.random() * 0.2 + 0.03,
+      size: Math.random() * 2.5 + 0.8, duration: Math.random() * 12 + 8,
+      delay: Math.random() * 8, opacity: Math.random() * 0.25 + 0.08,
     }))
   );
   return (
@@ -111,8 +111,9 @@ function Wordmark() {
 }
 
 // ─── CONTINUE CARD ───
-function ContinueCard({ game, sz, ff, onClick }) {
+function ContinueCard({ game, sz, ff, onClick, onDelete }) {
   const [h, setH] = useState(false);
+  const [delH, setDelH] = useState(false);
   return (
     <div onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)} onClick={onClick}
       className={styles.continueCard}
@@ -139,8 +140,20 @@ function ContinueCard({ game, sz, ff, onClick }) {
             {game.character?.name || game.setting}
           </div>
         </div>
-        <div style={{ fontFamily: "var(--font-jetbrains), monospace", fontSize: sz.meta, color: C.muted, paddingTop: 4 }}>
-          {formatTimeAgo(game.createdAt)}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, paddingTop: 4 }}>
+          <span style={{ fontFamily: "var(--font-jetbrains), monospace", fontSize: sz.meta, color: C.muted }}>
+            {formatTimeAgo(game.createdAt)}
+          </span>
+          <button
+            title="Delete"
+            onMouseEnter={() => setDelH(true)} onMouseLeave={() => setDelH(false)}
+            onClick={e => { e.stopPropagation(); onDelete(game); }}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: 2,
+              color: delH ? '#e8845a' : C.muted, opacity: delH ? 1 : 0.5,
+              transition: 'all 0.2s ease', fontSize: 14, lineHeight: 1,
+            }}
+          >&times;</button>
         </div>
       </div>
 
@@ -240,9 +253,10 @@ function NewGameButton({ sz, onClick }) {
 }
 
 // ─── EXPANDABLE GAME ROW ───
-function GameRow({ game, expanded, onToggle, sz, ff, onResume }) {
+function GameRow({ game, expanded, onToggle, sz, ff, onResume, onDelete }) {
   const [h, setH] = useState(false);
   const [resumeH, setResumeH] = useState(false);
+  const [delH, setDelH] = useState(false);
   const icon = SETTING_ICONS[game.setting] || '\u2694\uFE0F';
 
   return (
@@ -308,15 +322,25 @@ function GameRow({ game, expanded, onToggle, sz, ff, onResume }) {
             </div>
           </div>
 
-          <button onClick={e => { e.stopPropagation(); onResume(); }}
-            onMouseEnter={() => setResumeH(true)} onMouseLeave={() => setResumeH(false)}
-            style={{
-              padding: "10px 24px", borderRadius: 8, cursor: "pointer",
-              fontFamily: "var(--font-cinzel), serif", fontSize: sz.base - 1, fontWeight: 600,
-              background: resumeH ? C.glowHover : C.glow,
-              border: `1px solid ${resumeH ? C.cardBorderHover : C.cardBorder}`,
-              color: C.accent, transition: "all 0.2s",
-            }}>Resume Game</button>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <button onClick={e => { e.stopPropagation(); onResume(); }}
+              onMouseEnter={() => setResumeH(true)} onMouseLeave={() => setResumeH(false)}
+              style={{
+                padding: "10px 24px", borderRadius: 8, cursor: "pointer",
+                fontFamily: "var(--font-cinzel), serif", fontSize: sz.base - 1, fontWeight: 600,
+                background: resumeH ? C.glowHover : C.glow,
+                border: `1px solid ${resumeH ? C.cardBorderHover : C.cardBorder}`,
+                color: C.accent, transition: "all 0.2s",
+              }}>Resume Game</button>
+            <button onClick={e => { e.stopPropagation(); onDelete(game); }}
+              onMouseEnter={() => setDelH(true)} onMouseLeave={() => setDelH(false)}
+              style={{
+                padding: "10px 24px", borderRadius: 8, cursor: "pointer",
+                fontFamily: "var(--font-cinzel), serif", fontSize: sz.base - 1, fontWeight: 600,
+                background: 'none', border: 'none',
+                color: delH ? '#e8845a' : C.muted, transition: "all 0.2s",
+              }}>Delete</button>
+          </div>
         </div>
       )}
     </div>
@@ -374,6 +398,179 @@ function DisplaySettings({ font, setFont, textSize, setTextSize, onClose, sz, ff
   );
 }
 
+// ─── DELETE CONFIRM MODAL ───
+function DeleteConfirmModal({ game, onConfirm, onCancel }) {
+  const confirmWord = game.character?.name || (game.setting !== 'pending' ? game.setting : 'DELETE');
+  const [text, setText] = useState('');
+  const [error, setError] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [shaking, setShaking] = useState(false);
+  const matches = text === confirmWord;
+
+  useEffect(() => {
+    const h = (e) => { if (e.key === 'Escape') onCancel(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onCancel]);
+
+  async function handleDelete() {
+    if (!matches) { setShaking(true); setTimeout(() => setShaking(false), 400); return; }
+    setDeleting(true); setError(null);
+    try {
+      await onConfirm(game.id);
+    } catch (err) {
+      setError(err.message || 'Failed to delete game');
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ position: "absolute", inset: 0, background: C.overlay, backdropFilter: "blur(4px)" }} />
+      <div onClick={e => e.stopPropagation()} style={{
+        background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 10,
+        padding: "24px 28px", maxWidth: 420, width: "90%", position: "relative", zIndex: 1,
+      }}>
+        <h3 style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 16, fontWeight: 700, color: '#e8845a', marginBottom: 12, marginTop: 0 }}>Delete Game</h3>
+        <div style={{ marginBottom: 6 }}>
+          {game.character?.name && (
+            <div style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 15, color: C.heading, marginBottom: 2 }}>{game.character.name}</div>
+          )}
+          {game.setting !== 'pending' && (
+            <div style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 12, fontWeight: 600, color: C.accent, letterSpacing: "0.1em" }}>{game.setting}</div>
+          )}
+        </div>
+        <p style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: C.text, lineHeight: 1.6, marginBottom: 0 }}>
+          This will permanently delete this game and all of its history. This cannot be undone.
+        </p>
+        <p style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 13, color: C.secondary, marginTop: 16, marginBottom: 6 }}>
+          Type <strong style={{ color: C.text }}>{confirmWord}</strong> to confirm
+        </p>
+        <input
+          value={text} onChange={e => setText(e.target.value)} autoFocus
+          style={{
+            width: '100%', boxSizing: 'border-box',
+            fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: C.text,
+            background: C.bg, border: `1px solid ${shaking ? '#e8845a' : C.border}`,
+            borderRadius: 4, padding: '10px 14px', outline: 'none',
+            transition: 'border-color 0.2s', animation: shaking ? 'shake 0.4s ease' : 'none',
+          }}
+        />
+        {error && <p style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 13, color: '#e8845a', marginTop: 8 }}>{error}</p>}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 18 }}>
+          <button onClick={onCancel} disabled={deleting} style={{
+            fontFamily: "var(--font-cinzel), serif", fontSize: 12, fontWeight: 600,
+            background: "none", border: "none", color: C.secondary, cursor: "pointer", padding: "10px 16px",
+          }}>Cancel</button>
+          <button onClick={handleDelete} disabled={!matches || deleting} style={{
+            fontFamily: "var(--font-cinzel), serif", fontSize: 12, fontWeight: 600,
+            color: matches && !deleting ? '#ffffff' : '#5a4a4a',
+            background: matches && !deleting ? '#b83a3a' : '#2a1a1a',
+            border: 'none', borderRadius: 4, padding: '10px 20px',
+            cursor: matches && !deleting ? 'pointer' : 'default',
+            opacity: matches && !deleting ? 1 : 0.5, transition: 'all 0.2s',
+          }}>{deleting ? 'Deleting...' : 'Delete Game'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── SNAPSHOT PICKER MODAL ───
+function SnapshotPickerModal({ onClose, onSelect }) {
+  const [snapshots, setSnapshots] = useState(null);
+  const [error, setError] = useState(null);
+  const [creating, setCreating] = useState(null);
+
+  useEffect(() => {
+    get('/api/games/snapshots').then(data => setSnapshots(data.snapshots || data || [])).catch(() => setSnapshots([]));
+  }, []);
+
+  useEffect(() => {
+    const h = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  async function handleSelect(snap) {
+    setCreating(snap.id); setError(null);
+    try {
+      const result = await post(`/api/games/snapshots/${snap.id}/import-mine`);
+      onSelect(result.gameId);
+    } catch (err) {
+      setError(err.message || 'Failed to create game from snapshot');
+      setCreating(null);
+    }
+  }
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={onClose}>
+      <div style={{ position: "absolute", inset: 0, background: C.overlay, backdropFilter: "blur(4px)" }} />
+      <div onClick={e => e.stopPropagation()} style={{
+        background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: 10,
+        padding: "24px 28px", maxWidth: 500, width: "90%", position: "relative", zIndex: 1,
+        maxHeight: "80vh", overflowY: "auto",
+      }}>
+        <button onClick={onClose} style={{ position: "absolute", top: 12, right: 14,
+          background: "none", border: "none", color: C.dim, fontSize: 16, cursor: "pointer" }}>{'\u2715'}</button>
+
+        {snapshots === null ? (
+          <p style={{ fontFamily: "var(--font-alegreya)", fontStyle: 'italic', fontSize: 15, color: C.muted, textAlign: 'center', padding: 20 }}>
+            Loading your worlds...
+          </p>
+        ) : snapshots.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '10px 0' }}>
+            <h3 style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 18, fontWeight: 700, color: C.heading, marginBottom: 12, marginTop: 0 }}>No Saved Worlds</h3>
+            <p style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: C.secondary, lineHeight: 1.7, marginBottom: 20 }}>
+              World snapshots let you replay a world you have already built with a new character. You can save a world snapshot from the settings menu during any active game.
+            </p>
+            <button onClick={onClose} style={{
+              fontFamily: "var(--font-cinzel), serif", fontSize: 13, fontWeight: 600,
+              color: C.accent, background: 'none', border: `1px solid ${C.cardBorder}`,
+              borderRadius: 6, padding: '10px 24px', cursor: 'pointer',
+            }}>Got it</button>
+          </div>
+        ) : (
+          <div>
+            <h3 style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 16, fontWeight: 700, color: C.heading, marginBottom: 16, marginTop: 0 }}>Choose a World</h3>
+            {error && <p style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 13, color: '#e8845a', marginBottom: 12 }}>{error}</p>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {snapshots.map(snap => (
+                <div key={snap.id} onClick={() => !creating && handleSelect(snap)}
+                  style={{
+                    background: C.panel, border: `1px solid ${C.cardBorder}`, borderRadius: 8,
+                    padding: '14px 16px', cursor: creating ? 'default' : 'pointer',
+                    transition: 'all 0.2s', opacity: creating && creating !== snap.id ? 0.5 : 1,
+                  }}
+                  className={styles.continueCard}
+                >
+                  <div style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 15, fontWeight: 700, color: C.heading, marginBottom: 4 }}>
+                    {creating === snap.id ? 'Creating game...' : snap.name}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 11, fontWeight: 600, color: C.accent, letterSpacing: '0.1em', marginBottom: 6 }}>
+                    {snap.setting || snap.settingName}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-jetbrains), monospace", fontSize: 11, color: C.muted, marginBottom: 4 }}>
+                    {snap.factionCount || 0} factions {'\u00B7'} {snap.npcCount || 0} NPCs {'\u00B7'} {snap.locationCount || 0} locations
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontFamily: "var(--font-jetbrains), monospace", fontSize: 10, color: C.goldLabel }}>
+                      {snap.type === 'fresh_start' ? 'Fresh Start' : 'Branch'}
+                    </span>
+                    <span style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 12, color: C.muted }}>
+                      {formatTimeAgo(snap.createdAt)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── DIVIDER ───
 function Divider() { return <div style={{ height: 1, background: C.cardSep, margin: "0 16px" }} />; }
 
@@ -389,6 +586,8 @@ export default function MenuPage() {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
   const [isPlaytester, setIsPlaytester] = useState(true); // optimistic default
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [showSnapshots, setShowSnapshots] = useState(false);
 
   const sz = SIZE_OPTIONS.find(s => s.id === textSize) || SIZE_OPTIONS[1];
   const ff = (FONT_OPTIONS.find(f => f.id === font) || FONT_OPTIONS[0]).family;
@@ -454,6 +653,12 @@ export default function MenuPage() {
     } else {
       router.push(`/init?id=${game.id}`);
     }
+  }
+
+  async function handleDeleteGame(gameId) {
+    await del(`/api/games/${gameId}`);
+    setGames(prev => prev.filter(g => g.id !== gameId));
+    setDeleteTarget(null);
   }
 
   // Loading state
@@ -562,14 +767,26 @@ export default function MenuPage() {
 
           <div style={{ animation: "fadeInUp 0.5s ease 0.08s both", marginBottom: 28 }}>
             {hasGames
-              ? <ContinueCard game={activeGame} sz={sz} ff={ff} onClick={() => navigateToGame(activeGame)} />
+              ? <ContinueCard game={activeGame} sz={sz} ff={ff} onClick={() => navigateToGame(activeGame)} onDelete={setDeleteTarget} />
               : <NewPlayerHero sz={sz} ff={ff} playerName={playerName} onBegin={() => router.push('/init')} />
             }
           </div>
 
           {hasGames && (
-            <div style={{ animation: "fadeInUp 0.5s ease 0.1s both", marginBottom: 40 }}>
+            <div style={{ animation: "fadeInUp 0.5s ease 0.1s both", marginBottom: 40, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' }}>
               <NewGameButton sz={sz} onClick={() => router.push('/init')} />
+              {isPlaytester && (
+                <button onClick={() => setShowSnapshots(true)}
+                  className={styles.btnSecondary}
+                  style={{
+                    fontFamily: "var(--font-cinzel), serif", fontSize: sz.base - 2, fontWeight: 600,
+                    color: C.muted, background: "transparent", border: `1px solid ${C.cardBorder}`,
+                    borderRadius: 8, padding: "10px 24px", cursor: "pointer",
+                    letterSpacing: "0.06em",
+                  }}>
+                  {'\u2726'} New from Template
+                </button>
+              )}
             </div>
           )}
         </div>}
@@ -592,7 +809,7 @@ export default function MenuPage() {
                 <div key={g.id}>
                   <GameRow game={g} expanded={expandedGame === g.id}
                     onToggle={() => setExpandedGame(expandedGame === g.id ? null : g.id)}
-                    sz={sz} ff={ff} onResume={() => navigateToGame(g)} />
+                    sz={sz} ff={ff} onResume={() => navigateToGame(g)} onDelete={setDeleteTarget} />
                   {i < otherGames.length - 1 && <Divider />}
                 </div>
               ))}
@@ -614,6 +831,20 @@ export default function MenuPage() {
         </div>
       </div>
 
+      {/* ─── MODALS ─── */}
+      {deleteTarget && (
+        <DeleteConfirmModal
+          game={deleteTarget}
+          onConfirm={handleDeleteGame}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+      {showSnapshots && (
+        <SnapshotPickerModal
+          onClose={() => setShowSnapshots(false)}
+          onSelect={(gameId) => { setShowSnapshots(false); router.push(`/init?id=${gameId}`); }}
+        />
+      )}
     </div>
   );
 }

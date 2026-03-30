@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAuthenticated, getUser } from '@/lib/api';
 import {
@@ -48,6 +48,47 @@ function formatCostPerTurn(cost, turns) {
   return `$${(cost / turns).toFixed(3)}`;
 }
 
+// ─── SORT HELPER ───
+
+function sortData(data, field, direction) {
+  return [...data].sort((a, b) => {
+    let valA = a[field];
+    let valB = b[field];
+    if (valA == null && valB == null) return 0;
+    if (valA == null) return 1;
+    if (valB == null) return -1;
+    if (typeof valA === 'string' && typeof valB === 'string') {
+      valA = valA.toLowerCase();
+      valB = valB.toLowerCase();
+    }
+    let result = valA < valB ? -1 : valA > valB ? 1 : 0;
+    return direction === 'desc' ? -result : result;
+  });
+}
+
+function SortHeader({ label, field, sortField, sortDirection, onSort, style }) {
+  const active = sortField === field;
+  return (
+    <span
+      onClick={() => onSort(field)}
+      style={{
+        ...style,
+        fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600,
+        color: active ? '#c9a84c' : '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase',
+        cursor: 'pointer', userSelect: 'none', transition: 'color 0.15s',
+      }}
+      className={styles.sortHeader}
+    >
+      {label}
+      {active && (
+        <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 10, color: '#c9a84c', marginLeft: 4 }}>
+          {sortDirection === 'asc' ? '\u25B2' : '\u25BC'}
+        </span>
+      )}
+    </span>
+  );
+}
+
 // ─── STATUS BADGE ───
 
 function StatusBadge({ status }) {
@@ -72,41 +113,106 @@ function TrashIcon() {
   );
 }
 
-// ─── DELETE MODAL ───
+// ─── DELETE GAME MODAL (type-to-confirm) ───
 
-function DeleteModal({ game, onConfirm, onCancel }) {
+function DeleteGameModal({ game, onConfirm, onCancel }) {
+  const [confirmText, setConfirmText] = useState('');
+  const [error, setError] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [shaking, setShaking] = useState(false);
+
+  const confirmWord = game.characterName || `game-${game.id}`;
+  const matches = confirmText === confirmWord;
+
+  useEffect(() => {
+    const handleKey = (e) => { if (e.key === 'Escape') onCancel(); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onCancel]);
+
+  async function handleDelete() {
+    if (!matches) {
+      setShaking(true);
+      setTimeout(() => setShaking(false), 400);
+      return;
+    }
+    setDeleting(true);
+    setError(null);
+    try {
+      await onConfirm(game.id);
+    } catch (err) {
+      setError(err.message || 'Failed to delete game');
+      setDeleting(false);
+    }
+  }
+
   return (
-    <div className={styles.deleteModal} onClick={onCancel}>
-      <div className={styles.deleteModalCard} onClick={e => e.stopPropagation()}>
-        <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: '#d0c098', marginBottom: 10 }}>
-          Delete game #{game.id}?
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 300,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(0,0,0,0.7)',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: '#111528', border: '1px solid #3a3328', borderRadius: 10,
+        padding: '24px 28px', maxWidth: 420, width: '90vw',
+      }}>
+        <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: '#d0c098', marginBottom: 12 }}>
+          Delete Game
         </h3>
-        <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#8a94a8', marginBottom: 6 }}>
-          {game.characterName || 'No character'} - {game.setting || 'No setting'} - {game.turnCount ?? 0} turns
+        <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0', marginBottom: 4, lineHeight: 1.6 }}>
+          This will permanently delete <strong>{game.characterName || `Game #${game.id}`}</strong> — {game.turnCount ?? 0} turns of data. This cannot be undone.
         </p>
-        <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#e85a5a', marginBottom: 18 }}>
-          This cannot be undone.
+        <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4', marginTop: 16, marginBottom: 6 }}>
+          Type <strong style={{ color: '#c8c0b0' }}>{confirmWord}</strong> to confirm
         </p>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button className={styles.ghostBtn} onClick={onCancel}>Cancel</button>
-          <button className={styles.dangerBtnSolid} onClick={() => onConfirm(game.id)}>Delete</button>
+        <input
+          value={confirmText}
+          onChange={e => setConfirmText(e.target.value)}
+          className={shaking ? styles.inputShake : undefined}
+          style={{
+            width: '100%', boxSizing: 'border-box',
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0',
+            background: '#0a0e1a', border: `1px solid ${shaking ? '#e85a5a' : '#1e2540'}`,
+            borderRadius: 4, padding: '10px 14px', outline: 'none',
+            transition: 'border-color 0.2s ease',
+          }}
+          autoFocus
+        />
+        {error && (
+          <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#e85a5a', marginTop: 8 }}>{error}</p>
+        )}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
+          <button className={styles.ghostBtn} onClick={onCancel} disabled={deleting}>Cancel</button>
+          <button
+            onClick={handleDelete}
+            disabled={!matches || deleting}
+            style={{
+              fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 700,
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+              color: matches && !deleting ? '#ffffff' : '#5a4a4a',
+              background: matches && !deleting ? '#b83a3a' : '#2a1a1a',
+              border: 'none', borderRadius: 4, padding: '10px 20px',
+              cursor: matches && !deleting ? 'pointer' : 'default',
+              opacity: matches && !deleting ? 1 : 0.5,
+              transition: 'all 0.2s ease',
+            }}
+          >
+            {deleting ? 'Deleting...' : 'Delete Forever'}
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── DETAIL PANEL ───
+// ─── DETAIL PANEL (push layout) ───
 
 function DetailPanel({ children, onClose }) {
   return (
-    <>
-      <div className={styles.panelOverlay} onClick={onClose} />
-      <div className={styles.panelSlide}>
-        <button className={styles.panelClose} onClick={onClose}>&times;</button>
-        <div style={{ padding: '28px 32px' }}>{children}</div>
-      </div>
-    </>
+    <div className={styles.pushPanel}>
+      <button className={styles.panelClose} onClick={onClose}>&times;</button>
+      <div style={{ padding: '28px 32px' }}>{children}</div>
+    </div>
   );
 }
 
@@ -148,12 +254,14 @@ function TurnBlock({ entry }) {
 // USERS TAB
 // =============================================================================
 
-function UsersTab({ data, loading, onRefresh }) {
+function UsersTab({ data, loading, onRefresh, onGameDeleted }) {
   const [search, setSearch] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [userDetail, setUserDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [users, setUsers] = useState([]);
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortDirection, setSortDirection] = useState('desc');
   const currentUser = getUser();
 
   useEffect(() => { if (data?.users) setUsers(data.users); }, [data]);
@@ -163,6 +271,19 @@ function UsersTab({ data, loading, onRefresh }) {
     const q = search.toLowerCase();
     return (u.displayName || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q);
   });
+
+  const sorted = useMemo(() => sortData(filtered, sortField, sortDirection), [filtered, sortField, sortDirection]);
+
+  function handleSort(field) {
+    if (sortField === field) {
+      setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  }
+
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   async function openUserDetail(user) {
     setSelectedUser(user);
@@ -184,74 +305,27 @@ function UsersTab({ data, loading, onRefresh }) {
     }
   }
 
+  async function handleDeleteGame(gameId) {
+    await deleteAdminGame(gameId);
+    setUserDetail(prev => {
+      if (!prev) return prev;
+      const updatedGames = (prev.games || []).filter(g => g.id !== gameId);
+      return { ...prev, games: updatedGames };
+    });
+    setUsers(prev => prev.map(u =>
+      u.id === selectedUser?.id ? { ...u, gameCount: Math.max(0, (u.gameCount ?? 1) - 1) } : u
+    ));
+    if (onGameDeleted) onGameDeleted(gameId);
+    setDeleteTarget(null);
+  }
+
   if (loading) return <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 40 }}>Loading...</p>;
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-          <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: '#d0c098', margin: 0 }}>Users</h2>
-          <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>{filtered.length}</span>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <input
-            className={styles.searchInput}
-            placeholder="Search by name or email..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-          <button className={styles.refreshBtn} onClick={onRefresh}>Refresh</button>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className={styles.tableCard}>
-        {/* Header row */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: '1.8fr 2.5fr 80px 80px 110px 110px',
-          padding: '10px 16px', borderBottom: '1px solid #2a2622',
-        }}>
-          {['Name', 'Email', 'Games', 'Playtester', 'Joined', 'Last Active'].map(h => (
-            <span key={h} style={{
-              fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600,
-              color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase',
-            }}>{h}</span>
-          ))}
-        </div>
-        {/* Data rows */}
-        {filtered.map(user => (
-          <div key={user.id} className={styles.tableRow} style={{
-            display: 'grid', gridTemplateColumns: '1.8fr 2.5fr 80px 80px 110px 110px',
-            padding: '10px 16px', borderBottom: '1px solid #2a2622', alignItems: 'center',
-          }}>
-            <div>
-              <span className={styles.nameLink} onClick={() => openUserDetail(user)}>
-                {user.displayName || 'No name'}
-              </span>
-              {currentUser?.email === user.email && <span className={styles.badgeAdmin}>ADMIN</span>}
-            </div>
-            <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>{user.email}</span>
-            <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#c8c0b0' }}>{user.gameCount ?? 0}</span>
-            <button
-              className={user.isPlaytester ? styles.toggleOn : styles.toggleOff}
-              onClick={() => handleToggle(user)}
-              aria-label={`Toggle playtester for ${user.displayName}`}
-            />
-            <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{formatDate(user.createdAt)}</span>
-            <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{timeAgo(user.lastActiveAt)}</span>
-          </div>
-        ))}
-        {filtered.length === 0 && (
-          <div style={{ padding: 20, textAlign: 'center', fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>
-            No users found.
-          </div>
-        )}
-      </div>
-
-      {/* User Detail Panel */}
+    <div style={{ display: 'flex', gap: 0 }}>
+      {/* User Detail Panel (push layout) */}
       {selectedUser && (
-        <DetailPanel onClose={() => { setSelectedUser(null); setUserDetail(null); }}>
+        <DetailPanel onClose={() => { setSelectedUser(null); setUserDetail(null); setDeleteTarget(null); }}>
           {detailLoading ? (
             <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>Loading...</p>
           ) : userDetail ? (
@@ -280,7 +354,7 @@ function UsersTab({ data, loading, onRefresh }) {
               <div className={styles.tableCard}>
                 {(userDetail.games || []).map(g => (
                   <div key={g.id} className={styles.tableRow} style={{
-                    display: 'grid', gridTemplateColumns: '1.5fr 1fr 70px 70px 80px',
+                    display: 'grid', gridTemplateColumns: '1.5fr 1fr 70px 70px 80px 30px',
                     padding: '8px 12px', borderBottom: '1px solid #2a2622', alignItems: 'center',
                   }}>
                     <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#c8c0b0' }}>
@@ -290,6 +364,11 @@ function UsersTab({ data, loading, onRefresh }) {
                     <StatusBadge status={g.status} />
                     <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#c8c0b0' }}>{g.turnCount ?? 0}</span>
                     <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#c8c0b0' }}>{formatCost(g.totalCost)}</span>
+                    <button
+                      className={styles.deleteIcon}
+                      aria-label="Delete game"
+                      onClick={() => setDeleteTarget(g)}
+                    ><TrashIcon /></button>
                   </div>
                 ))}
                 {(!userDetail.games || userDetail.games.length === 0) && (
@@ -301,6 +380,79 @@ function UsersTab({ data, loading, onRefresh }) {
             <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>Failed to load user details.</p>
           )}
         </DetailPanel>
+      )}
+
+      {/* Main content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+            <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: '#d0c098', margin: 0 }}>Users</h2>
+            <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>{filtered.length}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input
+              className={styles.searchInput}
+              placeholder="Search by name or email..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            <button className={styles.refreshBtn} onClick={onRefresh}>Refresh</button>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className={styles.tableCard}>
+          {/* Header row */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1.8fr 2.5fr 80px 80px 110px 110px',
+            padding: '10px 16px', borderBottom: '1px solid #2a2622',
+          }}>
+            <SortHeader label="Name" field="displayName" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
+            <SortHeader label="Email" field="email" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
+            <SortHeader label="Games" field="gameCount" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
+            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Playtester</span>
+            <SortHeader label="Joined" field="createdAt" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
+            <SortHeader label="Last Active" field="lastActiveAt" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
+          </div>
+          {/* Data rows */}
+          {sorted.map(user => (
+            <div key={user.id} className={styles.tableRow} style={{
+              display: 'grid', gridTemplateColumns: '1.8fr 2.5fr 80px 80px 110px 110px',
+              padding: '10px 16px', borderBottom: '1px solid #2a2622', alignItems: 'center',
+            }}>
+              <div>
+                <span className={styles.nameLink} onClick={() => openUserDetail(user)}>
+                  {user.displayName || 'No name'}
+                </span>
+                {currentUser?.email === user.email && <span className={styles.badgeAdmin}>ADMIN</span>}
+              </div>
+              <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>{user.email}</span>
+              <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#c8c0b0' }}>{user.gameCount ?? 0}</span>
+              <button
+                className={user.isPlaytester ? styles.toggleOn : styles.toggleOff}
+                onClick={() => handleToggle(user)}
+                aria-label={`Toggle playtester for ${user.displayName}`}
+              />
+              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{formatDate(user.createdAt)}</span>
+              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{timeAgo(user.lastActiveAt)}</span>
+            </div>
+          ))}
+          {sorted.length === 0 && (
+            <div style={{ padding: 20, textAlign: 'center', fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>
+              No users found.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Delete game modal */}
+      {deleteTarget && (
+        <DeleteGameModal
+          game={deleteTarget}
+          onConfirm={handleDeleteGame}
+          onCancel={() => setDeleteTarget(null)}
+        />
       )}
     </div>
   );
@@ -320,6 +472,8 @@ function GamesTab({ data, loading, onRefresh }) {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [rowDeleteTarget, setRowDeleteTarget] = useState(null);
   const [localGames, setLocalGames] = useState(null);
+  const [sortField, setSortField] = useState('id');
+  const [sortDirection, setSortDirection] = useState('desc');
 
   const games = localGames || data?.games || [];
 
@@ -331,6 +485,17 @@ function GamesTab({ data, loading, onRefresh }) {
       || (g.playerName || '').toLowerCase().includes(q)
       || (g.setting || '').toLowerCase().includes(q);
   });
+
+  const sorted = useMemo(() => sortData(filtered, sortField, sortDirection), [filtered, sortField, sortDirection]);
+
+  function handleSort(field) {
+    if (sortField === field) {
+      setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  }
 
   async function openGameDetail(game) {
     setSelectedGame(game);
@@ -352,21 +517,17 @@ function GamesTab({ data, loading, onRefresh }) {
   }
 
   async function handleDelete(gameId) {
-    try {
-      await deleteAdminGame(gameId);
-      setSelectedGame(null);
-      setGameDetail(null);
-      setConfirmDelete(null);
-      onRefresh();
-    } catch { /* ignore */ }
+    await deleteAdminGame(gameId);
+    setSelectedGame(null);
+    setGameDetail(null);
+    setConfirmDelete(null);
+    setLocalGames(prev => (prev || data?.games || []).filter(g => g.id !== gameId));
   }
 
   async function handleRowDelete(gameId) {
-    try {
-      await deleteAdminGame(gameId);
-      setLocalGames(prev => (prev || data?.games || []).filter(g => g.id !== gameId));
-      setRowDeleteTarget(null);
-    } catch { /* ignore */ }
+    await deleteAdminGame(gameId);
+    setLocalGames(prev => (prev || data?.games || []).filter(g => g.id !== gameId));
+    setRowDeleteTarget(null);
   }
 
   const statuses = ['all', 'active', 'initializing', 'completed', 'abandoned'];
@@ -374,112 +535,14 @@ function GamesTab({ data, loading, onRefresh }) {
   if (loading) return <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 40 }}>Loading...</p>;
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-          <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: '#d0c098', margin: 0 }}>All Games</h2>
-          <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>{filtered.length}</span>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <input
-            className={styles.searchInput}
-            placeholder="Search by character, player, or setting..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-          <button className={styles.refreshBtn} onClick={onRefresh}>Refresh</button>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-        {statuses.map(s => (
-          <button
-            key={s}
-            className={statusFilter === s ? styles.filterPillActive : styles.filterPill}
-            onClick={() => setStatusFilter(s)}
-          >
-            {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
-          </button>
-        ))}
-      </div>
-
-      {/* Table */}
-      <div className={styles.tableCard} style={{ overflowX: 'auto' }}>
-        <div style={{
-          display: 'grid', gridTemplateColumns: '50px 1.8fr 1.2fr 1.2fr 110px 70px 90px 80px 100px 50px',
-          padding: '10px 16px', borderBottom: '1px solid #2a2622', minWidth: 900,
-        }}>
-          {['ID', 'Character', 'Player', 'Setting', 'Status', 'Turns', 'AI Cost', '$/Turn', 'Last Played', ''].map((h, i) => (
-            <span key={i} style={{
-              fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600,
-              color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase',
-            }}>{h}</span>
-          ))}
-        </div>
-        {filtered.map(game => (
-          <div key={game.id} className={styles.clickableRow} onClick={() => openGameDetail(game)} style={{
-            display: 'grid', gridTemplateColumns: '50px 1.8fr 1.2fr 1.2fr 110px 70px 90px 80px 100px 50px',
-            padding: '10px 16px', borderBottom: '1px solid #2a2622', alignItems: 'center', minWidth: 900,
-          }}>
-            <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>#{game.id}</span>
-            <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0' }}>
-              {game.characterName || <em style={{ color: '#7082a4' }}>No character yet</em>}
-            </span>
-            <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#8a94a8' }}>{game.playerName || '-'}</span>
-            <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#8a94a8' }}>{game.setting || '-'}</span>
-            <StatusBadge status={game.status} />
-            <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#c8c0b0' }}>{game.turnCount ?? 0}</span>
-            <div className={styles.costCell}>
-              <span style={{
-                fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13,
-                color: (game.totalCost || 0) > 0.5 ? '#e8c45a' : '#c8c0b0',
-                fontWeight: (game.totalCost || 0) > 0.5 ? 600 : 400,
-              }}>{formatCost(game.totalCost)}</span>
-              {(game.initCost > 0) && (
-                <div className={styles.costBreakdown}>
-                  Init: {formatCost(game.initCost)} &middot; Gameplay: {formatCost(game.gameplayCost)}
-                </div>
-              )}
-            </div>
-            <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>
-              {game.costPerTurn != null ? formatCost(game.costPerTurn) : formatCostPerTurn(game.gameplayCost ?? game.totalCost, game.turnCount)}
-            </span>
-            <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{timeAgo(game.lastPlayedAt || game.lastPlayed)}</span>
-            <button
-              className={styles.deleteIcon}
-              aria-label="Delete game"
-              onClick={e => { e.stopPropagation(); setRowDeleteTarget(game); }}
-            >
-              <TrashIcon />
-            </button>
-          </div>
-        ))}
-        {filtered.length === 0 && (
-          <div style={{ padding: 20, textAlign: 'center', fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>
-            No games found.
-          </div>
-        )}
-      </div>
-
-      {/* Row delete modal */}
-      {rowDeleteTarget && (
-        <DeleteModal
-          game={rowDeleteTarget}
-          onConfirm={handleRowDelete}
-          onCancel={() => setRowDeleteTarget(null)}
-        />
-      )}
-
-      {/* Game Detail Panel */}
+    <div style={{ display: 'flex', gap: 0 }}>
+      {/* Game Detail Panel (push layout) */}
       {selectedGame && (
         <DetailPanel onClose={() => { setSelectedGame(null); setGameDetail(null); setNarrative(null); setConfirmDelete(null); }}>
           {detailLoading ? (
             <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>Loading...</p>
           ) : gameDetail ? (
             <div>
-              {/* Header */}
               <div style={{ marginBottom: 24 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                   <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 18, fontWeight: 700, color: '#d0c098', margin: 0 }}>
@@ -505,83 +568,56 @@ function GamesTab({ data, loading, onRefresh }) {
                   Created {formatDate(gameDetail.game?.createdAt)} &middot; Last played {timeAgo(gameDetail.game?.lastPlayedAt || gameDetail.game?.lastPlayed)}
                 </p>
               </div>
-
-              {/* Character Snapshot */}
               {gameDetail.character && (
                 <div style={{ marginBottom: 24 }}>
-                  <h4 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 700, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>
-                    Character
-                  </h4>
+                  <h4 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 700, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Character</h4>
                   <div style={{ background: '#111528', border: '1px solid #3a3328', borderRadius: 6, padding: 16 }}>
-                    <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0', marginBottom: 8 }}>
-                      <strong style={{ color: '#d0c098' }}>{gameDetail.character.name}</strong>
-                    </p>
+                    <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0', marginBottom: 8 }}><strong style={{ color: '#d0c098' }}>{gameDetail.character.name}</strong></p>
                     {gameDetail.character.backstory && (
                       <p style={{ fontFamily: 'var(--font-alegreya)', fontStyle: 'italic', fontSize: 13, color: '#8a94a8', marginBottom: 12, lineHeight: 1.6 }}>
-                        {gameDetail.character.backstory.length > 300
-                          ? gameDetail.character.backstory.slice(0, 300) + '...'
-                          : gameDetail.character.backstory}
+                        {gameDetail.character.backstory.length > 300 ? gameDetail.character.backstory.slice(0, 300) + '...' : gameDetail.character.backstory}
                       </p>
                     )}
-
-                    {/* Stats grid */}
                     {gameDetail.character.stats && (
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px', marginBottom: 12 }}>
                         {Object.entries(gameDetail.character.stats).map(([stat, val]) => (
                           <div key={stat} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: '1px solid #2a2622' }}>
                             <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545' }}>{stat.toUpperCase()}</span>
-                            <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#c8c0b0' }}>
-                              {typeof val === 'object' ? `${val.base ?? val.effective ?? '-'}` : val}
-                            </span>
+                            <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#c8c0b0' }}>{typeof val === 'object' ? `${val.base ?? val.effective ?? '-'}` : val}</span>
                           </div>
                         ))}
                       </div>
                     )}
-
-                    {/* Skills */}
                     {gameDetail.character.skills?.length > 0 && (
                       <div style={{ marginBottom: 12 }}>
                         <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em' }}>SKILLS</span>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
                           {gameDetail.character.skills.map((sk, i) => (
-                            <span key={i} style={{
-                              fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#8a94a8',
-                              background: '#0a0e1a', padding: '2px 8px', borderRadius: 3, border: '1px solid #1e2540',
-                            }}>
+                            <span key={i} style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#8a94a8', background: '#0a0e1a', padding: '2px 8px', borderRadius: 3, border: '1px solid #1e2540' }}>
                               {typeof sk === 'string' ? sk : `${sk.name} ${sk.modifier ?? ''}`}
                             </span>
                           ))}
                         </div>
                       </div>
                     )}
-
-                    {/* Conditions */}
                     {gameDetail.character.conditions?.length > 0 && (
                       <div style={{ marginBottom: 12 }}>
                         <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em' }}>CONDITIONS</span>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
                           {gameDetail.character.conditions.map((c, i) => (
-                            <span key={i} style={{
-                              fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#e8845a',
-                              background: '#201416', padding: '2px 8px', borderRadius: 3, border: '1px solid #e8845a33',
-                            }}>
+                            <span key={i} style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#e8845a', background: '#201416', padding: '2px 8px', borderRadius: 3, border: '1px solid #e8845a33' }}>
                               {typeof c === 'string' ? c : `${c.name} ${c.penalty ?? ''}`}
                             </span>
                           ))}
                         </div>
                       </div>
                     )}
-
-                    {/* Inventory */}
                     {gameDetail.character.inventory?.length > 0 && (
                       <div>
                         <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em' }}>INVENTORY</span>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
                           {gameDetail.character.inventory.map((item, i) => (
-                            <span key={i} style={{
-                              fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#c8c0b0',
-                              background: '#0a0e1a', padding: '2px 8px', borderRadius: 3, border: '1px solid #1e2540',
-                            }}>
+                            <span key={i} style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#c8c0b0', background: '#0a0e1a', padding: '2px 8px', borderRadius: 3, border: '1px solid #1e2540' }}>
                               {typeof item === 'string' ? item : item.name || 'Unknown'}
                             </span>
                           ))}
@@ -591,53 +627,95 @@ function GamesTab({ data, loading, onRefresh }) {
                   </div>
                 </div>
               )}
-
-              {/* Narrative Log */}
               <div style={{ marginBottom: 24 }}>
-                <h4 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 700, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
-                  Narrative Log
-                </h4>
+                <h4 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 700, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Narrative Log</h4>
                 <div className={styles.tableCard}>
                   {(narrative?.entries || gameDetail.narrative || []).slice(0, narrative ? undefined : 200).map((entry, i) => (
                     <TurnBlock key={i} entry={entry} />
                   ))}
                   {!narrative && (gameDetail.narrative?.length || 0) > 200 && (
-                    <button onClick={loadFullNarrative} style={{
-                      width: '100%', padding: 12, background: 'none', border: 'none',
-                      fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#c9a84c', cursor: 'pointer',
-                    }}>Load full narrative</button>
+                    <button onClick={loadFullNarrative} style={{ width: '100%', padding: 12, background: 'none', border: 'none', fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#c9a84c', cursor: 'pointer' }}>Load full narrative</button>
                   )}
                   {(!gameDetail.narrative || gameDetail.narrative.length === 0) && !narrative && (
-                    <div style={{ padding: 14, textAlign: 'center', fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>
-                      No narrative entries.
-                    </div>
+                    <div style={{ padding: 14, textAlign: 'center', fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>No narrative entries.</div>
                   )}
                 </div>
               </div>
-
-              {/* Delete Action */}
               <div style={{ borderTop: '1px solid #1e2540', paddingTop: 20 }}>
-                {confirmDelete !== selectedGame.id ? (
-                  <button className={styles.dangerBtn} onClick={() => setConfirmDelete(selectedGame.id)}>
-                    Delete Game
-                  </button>
-                ) : (
-                  <div>
-                    <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#e85a5a', marginBottom: 12 }}>
-                      Delete game #{selectedGame.id} ({gameDetail.game?.characterName || 'unnamed'})? This removes all {gameDetail.game?.turnCount ?? 0} turns of game data permanently.
-                    </p>
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <button className={styles.ghostBtn} onClick={() => setConfirmDelete(null)}>Cancel</button>
-                      <button className={styles.dangerBtnSolid} onClick={() => handleDelete(selectedGame.id)}>Delete</button>
-                    </div>
-                  </div>
-                )}
+                <button className={styles.dangerBtn} onClick={() => setRowDeleteTarget({ ...selectedGame, characterName: gameDetail.game?.characterName, turnCount: gameDetail.game?.turnCount })}>Delete Game</button>
               </div>
             </div>
           ) : (
             <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>Failed to load game details.</p>
           )}
         </DetailPanel>
+      )}
+
+      {/* Main content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+            <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: '#d0c098', margin: 0 }}>All Games</h2>
+            <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>{filtered.length}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input className={styles.searchInput} placeholder="Search by character, player, or setting..." value={search} onChange={e => setSearch(e.target.value)} />
+            <button className={styles.refreshBtn} onClick={onRefresh}>Refresh</button>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+          {statuses.map(s => (
+            <button key={s} className={statusFilter === s ? styles.filterPillActive : styles.filterPill} onClick={() => setStatusFilter(s)}>
+              {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+            </button>
+          ))}
+        </div>
+        <div className={styles.tableCard} style={{ overflowX: 'auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '50px 2fr 1.2fr 1.2fr 85px 60px 90px 80px 90px 40px', padding: '10px 16px', borderBottom: '1px solid #2a2622', minWidth: 900 }}>
+            <SortHeader label="ID" field="id" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
+            <SortHeader label="Character" field="characterName" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
+            <SortHeader label="Player" field="playerName" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
+            <SortHeader label="Setting" field="setting" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
+            <SortHeader label="Status" field="status" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
+            <SortHeader label="Turns" field="turnCount" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
+            <SortHeader label="AI Cost" field="totalCost" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
+            <SortHeader label="$/Turn" field="costPerTurn" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
+            <SortHeader label="Last Played" field="lastPlayedAt" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
+            <span />
+          </div>
+          {sorted.map(game => (
+            <div key={game.id} className={styles.clickableRow} onClick={() => openGameDetail(game)} style={{
+              display: 'grid', gridTemplateColumns: '50px 2fr 1.2fr 1.2fr 85px 60px 90px 80px 90px 40px',
+              padding: '10px 16px', borderBottom: '1px solid #2a2622', alignItems: 'center', minWidth: 900,
+            }}>
+              <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>#{game.id}</span>
+              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0' }}>{game.characterName || <em style={{ color: '#7082a4' }}>No character yet</em>}</span>
+              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#8a94a8' }}>{game.playerName || '-'}</span>
+              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#8a94a8' }}>{game.setting || '-'}</span>
+              <StatusBadge status={game.status} />
+              <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#c8c0b0' }}>{game.turnCount ?? 0}</span>
+              <div className={styles.costCell}>
+                <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: (game.totalCost || 0) > 0.5 ? '#e8c45a' : '#c8c0b0', fontWeight: (game.totalCost || 0) > 0.5 ? 600 : 400 }}>{formatCost(game.totalCost)}</span>
+                {(game.initCost > 0) && <div className={styles.costBreakdown}>Init: {formatCost(game.initCost)} &middot; Gameplay: {formatCost(game.gameplayCost)}</div>}
+              </div>
+              <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>{game.costPerTurn != null ? formatCost(game.costPerTurn) : formatCostPerTurn(game.gameplayCost ?? game.totalCost, game.turnCount)}</span>
+              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{timeAgo(game.lastPlayedAt || game.lastPlayed)}</span>
+              <button className={styles.deleteIcon} aria-label="Delete game" onClick={e => { e.stopPropagation(); setRowDeleteTarget(game); }}><TrashIcon /></button>
+            </div>
+          ))}
+          {sorted.length === 0 && (
+            <div style={{ padding: 20, textAlign: 'center', fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>No games found.</div>
+          )}
+        </div>
+      </div>
+
+      {/* Delete game modal (type-to-confirm) */}
+      {rowDeleteTarget && (
+        <DeleteGameModal
+          game={rowDeleteTarget}
+          onConfirm={handleRowDelete}
+          onCancel={() => setRowDeleteTarget(null)}
+        />
       )}
     </div>
   );
@@ -1404,7 +1482,7 @@ export default function AdminPage() {
 
       {/* Content */}
       <div style={{ padding: '28px clamp(24px, 4vw, 32px)', maxWidth: 1400 }}>
-        {activeTab === 'Users' && <UsersTab data={usersData} loading={usersLoading} onRefresh={() => fetchTab('Users', true)} />}
+        {activeTab === 'Users' && <UsersTab data={usersData} loading={usersLoading} onRefresh={() => fetchTab('Users', true)} onGameDeleted={(gameId) => setGamesData(prev => prev ? { ...prev, games: (prev.games || []).filter(g => g.id !== gameId) } : prev)} />}
         {activeTab === 'Games' && <GamesTab data={gamesData} loading={gamesLoading} onRefresh={() => fetchTab('Games', true)} />}
         {activeTab === 'Costs' && <CostsTab data={costsData} loading={costsLoading} onRefresh={() => fetchTab('Costs', true)} />}
         {activeTab === 'Health' && <HealthTab data={healthData} loading={healthLoading} onRefresh={() => fetchTab('Health', true)} onSwitchTab={setActiveTab} />}
