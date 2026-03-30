@@ -1,0 +1,441 @@
+/* ============================================
+   Admin Dashboard Styles
+   ============================================ */
+
+/* ─── Tab Bar ─── */
+
+.tab {
+  font-family: var(--font-cinzel);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 14px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #7082a4;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.tab:hover {
+  color: #8a94a8;
+}
+
+.tabActive {
+  composes: tab;
+  color: #c9a84c;
+  border-bottom-color: #c9a84c;
+}
+
+/* ─── Data Table ─── */
+
+.tableCard {
+  background: #111528;
+  border: 1px solid #3a3328;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.tableRow {
+  transition: background 0.15s ease;
+}
+
+.tableRow:hover {
+  background: #161a28;
+}
+
+.clickableRow {
+  composes: tableRow;
+  cursor: pointer;
+}
+
+/* ─── Nav Link ─── */
+
+.nameLink {
+  color: #c8c0b0;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.nameLink:hover {
+  color: #c9a84c;
+  text-decoration: underline;
+}
+
+/* ─── Toggle Switch ─── */
+
+.toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #c8c0b0;
+  transition: transform 0.2s ease;
+}
+
+.toggleOn {
+  composes: toggle;
+  background: #c9a84c;
+}
+
+.toggleOn::after {
+  transform: translateX(16px);
+}
+
+.toggleOff {
+  composes: toggle;
+  background: #1e2540;
+}
+
+/* ─── Status Badges ─── */
+
+.badge {
+  display: inline-block;
+  font-family: var(--font-cinzel);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+
+.badgeActive {
+  composes: badge;
+  color: #8aba7a;
+  background: #142018;
+  border: 1px solid #8aba7a33;
+}
+
+.badgeInitializing {
+  composes: badge;
+  color: #e8c45a;
+  background: #1a1a12;
+  border: 1px solid #e8c45a33;
+}
+
+.badgeCompleted {
+  composes: badge;
+  color: #8a94a8;
+  background: #161a20;
+  border: 1px solid #8a94a833;
+}
+
+.badgeAbandoned {
+  composes: badge;
+  color: #e85a5a;
+  background: #201416;
+  border: 1px solid #e85a5a33;
+}
+
+.badgeAdmin {
+  font-family: var(--font-cinzel);
+  font-size: 9px;
+  font-weight: 700;
+  color: #c9a84c;
+  border: 1px solid #c9a84c33;
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin-left: 6px;
+}
+
+/* ─── Filter Pills ─── */
+
+.filterPill {
+  font-family: var(--font-cinzel);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #7082a4;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.filterPill:hover {
+  color: #8a94a8;
+}
+
+.filterPillActive {
+  composes: filterPill;
+  color: #c9a84c;
+  background: #1a1814;
+  border-color: #3a3328;
+}
+
+/* ─── Stat Cards ─── */
+
+.statCard {
+  background: #111528;
+  border: 1px solid #3a3328;
+  border-radius: 6px;
+  padding: 14px 18px;
+  min-width: 160px;
+}
+
+/* ─── Detail Panel (slide-over) ─── */
+
+.panelOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 200;
+  animation: fadeIn 0.15s ease;
+}
+
+.panelSlide {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(700px, 90vw);
+  background: #0d1120;
+  border-left: 1px solid #1e2540;
+  z-index: 201;
+  overflow-y: auto;
+  animation: slideIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.panelClose {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: 1px solid #1e2540;
+  color: #7082a4;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.panelClose:hover {
+  color: #c8c0b0;
+  border-color: #3a3328;
+}
+
+/* ─── Collapsible Turn ─── */
+
+.turnHeader {
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border-radius: 4px;
+}
+
+.turnHeader:hover {
+  background: #161a28;
+}
+
+/* ─── Refresh Button ─── */
+
+.refreshBtn {
+  font-family: var(--font-alegreya-sans);
+  font-size: 12px;
+  color: #7082a4;
+  background: none;
+  border: 1px solid #1e2540;
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.refreshBtn:hover {
+  color: #c9a84c;
+  border-color: #3a3328;
+}
+
+/* ─── Delete Buttons ─── */
+
+.dangerBtn {
+  font-family: var(--font-cinzel);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #e85a5a;
+  background: transparent;
+  border: 1px solid #e85a5a33;
+  border-radius: 4px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dangerBtn:hover {
+  background: #201416;
+  border-color: #e85a5a;
+}
+
+.dangerBtnSolid {
+  composes: dangerBtn;
+  background: #c83a3a;
+  border-color: #c83a3a;
+  color: #fff;
+}
+
+.dangerBtnSolid:hover {
+  background: #d44;
+  border-color: #d44;
+}
+
+.ghostBtn {
+  font-family: var(--font-cinzel);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7082a4;
+  background: transparent;
+  border: 1px solid #1e2540;
+  border-radius: 4px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ghostBtn:hover {
+  color: #c8c0b0;
+  border-color: #3a3328;
+}
+
+/* ─── Gold Border Button (Settings) ─── */
+
+.goldBtn {
+  font-family: var(--font-cinzel);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #c9a84c;
+  background: transparent;
+  border: 1px solid #3a3328;
+  border-radius: 4px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.goldBtn:hover {
+  border-color: #564b2e;
+  box-shadow: 0 2px 12px rgba(201, 168, 76, 0.1);
+}
+
+/* ─── Search Input ─── */
+
+.searchInput {
+  font-family: var(--font-alegreya-sans);
+  font-size: 14px;
+  color: #c8c0b0;
+  background: #0a0e1a;
+  border: 1px solid #1e2540;
+  border-radius: 4px;
+  padding: 8px 14px;
+  width: 240px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.searchInput::placeholder {
+  color: #7082a4;
+}
+
+.searchInput:focus {
+  border-color: #3a3328;
+}
+
+/* ─── Invite Code Input ─── */
+
+.codeInput {
+  font-family: var(--font-alegreya-sans);
+  font-size: 14px;
+  color: #c8c0b0;
+  background: #0a0e1a;
+  border: 1px solid #1e2540;
+  border-radius: 4px;
+  padding: 10px 14px;
+  width: 280px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.codeInput::placeholder {
+  color: #7082a4;
+}
+
+.codeInput:focus {
+  border-color: #3a3328;
+}
+
+/* ─── Popularity Bar ─── */
+
+.popBar {
+  background: #c9a84c;
+  height: 6px;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* ─── Scrollbar ─── */
+
+.panelSlide::-webkit-scrollbar {
+  width: 6px;
+}
+
+.panelSlide::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.panelSlide::-webkit-scrollbar-thumb {
+  background: #2a2a3a;
+  border-radius: 3px;
+}
+
+/* ─── Responsive ─── */
+
+@media (max-width: 1023px) {
+  .panelSlide {
+    width: 100vw;
+  }
+
+  .searchInput {
+    width: 180px;
+  }
+}

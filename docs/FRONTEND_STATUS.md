@@ -23,6 +23,7 @@
 | Rulebook | `/rulebook` | Complete | None (static) | None |
 | Legal (ToS) | `/terms` | Complete | None (static) | None |
 | Legal (Privacy) | `/privacy` | Complete | None (static) | None |
+| Admin | `/admin` | Complete | All admin endpoints wired | Not discoverable from UI (direct URL only) |
 
 **Status definitions:**
 - **Complete:** Page renders, styled per design system, all mock/live data displays correctly.
@@ -31,6 +32,18 @@
 ---
 
 ## Recent Work (This Session: 2026-03-29)
+
+### Admin Dashboard — /admin
+- **New page:** Protected admin dashboard at `/admin` with 5 tabs: Users, Games, Costs, Health, Settings.
+- **Auth guard:** Two-layer protection. Standard auth check redirects to `/auth` if no token. Admin check calls `GET /api/admin/users` on mount; 403 redirects to `/menu`. No admin links exist in the UI — accessed by direct URL only.
+- **Users tab:** Searchable user table with name, email, game count, playtester toggle (optimistic PATCH), join date, last active (relative time). Click a user name to open a slide-over detail panel showing total AI spend and their games list.
+- **Games tab:** Searchable/filterable game table with status pill filters (All/Active/Initializing/Completed/Abandoned). Columns: ID, character, player, setting, status badge, turns, AI cost (highlighted >$0.50), $/turn, last played. Click a row to open game detail panel with character snapshot (stats grid, skills, conditions, inventory), collapsible narrative log (with "Load full narrative" for 200+ entries), and delete game with confirmation.
+- **Costs tab:** 4 stat cards (Total Spend, Total Turns, Avg Cost/Turn, Active Games) + highest-cost games list.
+- **Health tab:** Status cards (DB connection, 24h errors, stuck games), count cards (users, games, turns), stuck games list, storyteller/setting popularity bars, retention metrics (players with games, 2+ games, returning users), collapsible recent errors.
+- **Settings tab:** Invite code display with source label + update form.
+- **Data loading:** Each tab fetches on first visit, cached in state. Refresh button per tab forces re-fetch.
+- **New files:** `app/admin/page.js`, `app/admin/page.module.css`, `lib/adminApi.js`.
+- **Modified files:** `lib/api.js` (added `patch` export for PATCH method).
 
 ### Fix: /menu crash — missing CSS module import
 - **Bug:** `Uncaught ReferenceError: styles is not defined` on the /menu page. The page referenced `styles.pageContainer`, `styles.contentWrapper`, and `styles.continueCard` but the `import styles from './page.module.css'` line was missing. The CSS module file existed with all class definitions — only the import was absent.
@@ -509,6 +522,23 @@ All pending rgba/color fixes from previous sessions have been completed.
 | `/api/bug-report` | POST | Not yet |
 | `/api/suggestion` | POST | Not yet |
 
+### Admin Dashboard (`/admin`)
+
+| Endpoint | Method | Status |
+|----------|--------|--------|
+| `/api/admin/users` | GET | Wired (Users tab, also used as admin auth check on mount) |
+| `/api/admin/users/:id` | GET | Wired (User detail slide-over panel) |
+| `/api/admin/users/:id/playtester` | PATCH | Wired (Playtester toggle, optimistic update) |
+| `/api/admin/games` | GET | Wired (Games tab with status/search query params) |
+| `/api/admin/games/:id` | GET | Wired (Game detail slide-over panel) |
+| `/api/admin/games/:id` | DELETE | Wired (Game detail panel delete with confirmation) |
+| `/api/admin/games/:id/narrative` | GET | Wired (Game detail "Load full narrative" button) |
+| `/api/admin/costs` | GET | Wired (Costs tab stat cards + top games) |
+| `/api/admin/health` | GET | Wired (Health tab all sections) |
+| `/api/admin/invite-code` | GET | Wired (Settings tab code display) |
+| `/api/admin/invite-code` | PUT | Wired (Settings tab code update form) |
+| `/api/admin/errors` | GET | Defined in adminApi.js, not yet called from UI |
+
 ---
 
 ## Deferred Items
@@ -529,6 +559,12 @@ Items flagged for post-launch or future sessions. Not blocking progress.
 - ~~Legal pages: ToS and Privacy Policy~~ (done: /terms and /privacy, 2026-03-29)
 - In-game rulebook: stripped version without marketing chrome
 - Copy audit on Init Wizard and Game Layout pages
+
+### Admin
+- Mobile admin layout (currently desktop-only, tables scroll horizontally on narrow screens)
+- Admin activity audit log (who toggled what, when)
+- Batch operations (e.g., grant playtester to multiple users)
+- Paginated errors view (endpoint exists in adminApi.js, UI not wired)
 
 ### Features
 - Game creation flow from /menu (POST /api/games/new, then navigate to /init?gameId=...)
@@ -565,4 +601,5 @@ Items flagged for post-launch or future sessions. Not blocking progress.
 | `docs/GameLayout/bug-report-mockup.jsx` | Bug report and suggest modal reference |
 | `docs/GameLayout/node-map-v2.jsx` | Interactive node map (deferred) |
 | `lib/api.js` | API client with auth token management |
+| `lib/adminApi.js` | Admin API endpoint wrappers (12 endpoints) |
 | `lib/useAuth.js` | Auth guard hook for protected pages |
