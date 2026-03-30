@@ -8,7 +8,7 @@ import { getToken } from '@/lib/api';
 import styles from './page.module.css';
 
 const features = [
-  { title: 'A Storyteller That Listens', desc: 'Pick your narrator\'s voice — epic, gritty, unsettling, playful — and step into a world that responds to every decision. No scripts. No rails. Just your choices and what follows.' },
+  { title: 'A Storyteller That Listens', desc: 'Pick your narrator\'s voice: epic, gritty, unsettling, wry. Step into a world that responds to every decision. No scripts. No rails. Just your choices and what follows.' },
   { title: 'Real Mechanics Under the Hood', desc: 'Six core stats. Skills earned through play. Dice rolls resolved with tenth-decimal precision on the server. This isn\'t a chatbot pretending to be a game. It\'s a game engine wearing a storyteller\'s mask.' },
   { title: 'Any World. Any Genre.', desc: 'Swords and sorcery. Steam and revolution. Neon and chrome. Post-apocalyptic wastelands. Surreal dreamscapes. Pick a setting or build one from scratch.' },
   { title: 'Consequences That Stick', desc: 'Injuries don\'t vanish between scenes. Gear degrades. Resources run out. NPCs remember how you treated them. The world keeps moving whether you\'re ready or not.' },
@@ -22,7 +22,7 @@ const steps = [
 ];
 
 const faqItems = [
-  { q: 'Is this just a chatbot?', a: 'No. There\'s a real game engine running server-side — six core stats, skill progression, equipment with durability, and dice rolls resolved to tenth-decimal precision. The AI writes the story. The server runs the game.' },
+  { q: 'Is this just a chatbot?', a: 'No. There\'s a real game engine running server-side with six core stats, skill progression, equipment with durability, and dice rolls resolved to tenth-decimal precision. The AI writes the story. The server runs the game.' },
   { q: 'Can I really do anything?', a: 'You can try anything. The three suggested actions each turn are starting points, not limits. Type your own and the system figures out which stats apply, sets a difficulty, and rolls. There is no script to go off of.' },
   { q: 'Do I need to know tabletop RPG rules?', a: 'Not at all. The engine handles every rule automatically. You just describe what your character does. The Rulebook is there if you\'re curious, but you never need to open it.' },
   { q: 'Is there a free trial?', a: 'Yes. No credit card required. You get enough turns to create a character, build a world, and play through several scenes.' },
