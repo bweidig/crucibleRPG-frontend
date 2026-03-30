@@ -110,12 +110,13 @@
 .badge {
   display: inline-block;
   font-family: var(--font-cinzel);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   padding: 2px 8px;
   border-radius: 3px;
+  white-space: nowrap;
 }
 
 .badgeActive {
@@ -208,11 +209,11 @@
 .panelSlide {
   position: fixed;
   top: 0;
-  right: 0;
+  left: 0;
   bottom: 0;
   width: min(700px, 90vw);
   background: #0d1120;
-  border-left: 1px solid #1e2540;
+  border-right: 1px solid #1e2540;
   z-index: 201;
   overflow-y: auto;
   animation: slideIn 0.2s ease;
@@ -224,7 +225,7 @@
 }
 
 @keyframes slideIn {
-  from { transform: translateX(100%); }
+  from { transform: translateX(-100%); }
   to { transform: translateX(0); }
 }
 
@@ -402,6 +403,74 @@
 
 .codeInput:focus {
   border-color: #3a3328;
+}
+
+/* ─── Delete Icon Button ─── */
+
+.deleteIcon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #7082a4;
+  transition: color 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deleteIcon:hover {
+  color: #e85a5a;
+}
+
+/* ─── Cost Tooltip ─── */
+
+.costCell {
+  position: relative;
+}
+
+.costBreakdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 10;
+  background: #111528;
+  border: 1px solid #3a3328;
+  border-radius: 4px;
+  padding: 4px 8px;
+  white-space: nowrap;
+  font-family: var(--font-alegreya-sans);
+  font-size: 11px;
+  color: #7082a4;
+  margin-top: 2px;
+  pointer-events: none;
+}
+
+.costCell:hover .costBreakdown {
+  display: block;
+}
+
+/* ─── Delete Modal ─── */
+
+.deleteModal {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  animation: fadeIn 0.15s ease;
+}
+
+.deleteModalCard {
+  background: #0d1120;
+  border: 1px solid #3a3328;
+  border-radius: 8px;
+  padding: 24px 28px;
+  max-width: 420px;
+  width: 90vw;
 }
 
 /* ─── Popularity Bar ─── */

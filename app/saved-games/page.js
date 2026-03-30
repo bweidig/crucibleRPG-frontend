@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import AuthAvatar from '@/components/AuthAvatar';
 import styles from './page.module.css';
 
 // --- SAMPLE DATA ---
@@ -471,19 +472,22 @@ export default function SavedGamesPage() {
             color: 'var(--gold-muted)', letterSpacing: '0.18em',
           }}>RPG</span>
         </Link>
-        <Link
-          href="/menu"
-          className={styles.btnBack}
-          style={{
-            fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
-            color: 'var(--text-secondary-bright)', display: 'flex', alignItems: 'center', gap: 6,
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
-          </svg>
-          Main Menu
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <Link
+            href="/menu"
+            className={styles.btnBack}
+            style={{
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
+              color: 'var(--text-secondary-bright)', display: 'flex', alignItems: 'center', gap: 6,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
+            </svg>
+            Main Menu
+          </Link>
+          <AuthAvatar size={32} />
+        </div>
       </div>
 
       {/* Content area */}

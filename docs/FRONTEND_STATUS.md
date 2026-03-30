@@ -13,7 +13,7 @@
 | Coming Soon | `/` | Complete | Waitlist + auth-check | None |
 | Landing | `/landing` | Complete | None (static) | None |
 | Auth | `/auth` | Complete | Google Sign-In | None |
-| Main Menu | `/menu` | Complete | Partial (mock saves) | Game creation not wired (navigates to /init without gameId) |
+| Main Menu | `/menu` | Complete | Partial (mock saves) | Game creation not wired. Settings modal removed (moved to /settings). |
 | Init Wizard | `/init` | Complete (reworked) | All 10 endpoints wired | Gracefully skips API when no gameId |
 | Loading Screen | `/loading` | Complete | None | None |
 | Saved Games | `/saved-games` | Complete | None (mock data) | Needs API wiring for real saves |
@@ -23,6 +23,7 @@
 | Rulebook | `/rulebook` | Complete | None (static) | None |
 | Legal (ToS) | `/terms` | Complete | None (static) | None |
 | Legal (Privacy) | `/privacy` | Complete | None (static) | None |
+| Settings | `/settings` | Complete | Partial (display settings localStorage, profile edit graceful fallback) | Subscription section uses mock data |
 | Admin | `/admin` | Complete | All admin endpoints wired | Not discoverable from UI (direct URL only) |
 
 **Status definitions:**
@@ -31,9 +32,35 @@
 
 ---
 
-## Recent Work (This Session: 2026-03-29)
+## Recent Work (This Session: 2026-03-30)
 
-### Admin Dashboard — /admin
+### Settings Page + Auth-Aware Nav Bar
+- **New page:** `/settings` with 4 zones: Identity (avatar + editable display name + meta), Display Preferences (theme toggle, font picker, size picker, live preview), Subscription (mock data for free/subscriber/cancelled states, turn usage bar, top-up packs), Account + Legal (sign out, delete account with DELETE confirmation, legal links).
+- **AuthAvatar component:** New shared component at `components/AuthAvatar.js`. Renders avatar circle with user initial (links to /settings) when logged in, or "Sign In" text link (to /auth) when not. Accepts `size` prop (default 32, 28 for compact TopBar) and `active` prop (gold border on /settings itself).
+- **Nav bar updates across 7 pages:**
+  - `/menu`: Removed gear icon, "Settings" button, "Log Out" button, DisplaySettings modal component, and old inline avatar. Replaced with AuthAvatar circle linking to /settings.
+  - `/landing`: Replaced "SIGN IN" nav link with AuthAvatar (shows Sign In if logged out, avatar if logged in).
+  - `/pricing`: Replaced "SIGN IN" button with AuthAvatar.
+  - `/rulebook`: Replaced "SIGN IN" nav link with AuthAvatar.
+  - `/saved-games`: Added AuthAvatar next to "Main Menu" back link.
+  - `/init`: Added AuthAvatar to right side of header bar.
+  - `/play` (TopBar): Added 28px AuthAvatar between sidebar toggle and connection dot.
+- **Display settings persistence:** Settings page reads/writes `crucible_display_settings` localStorage key (same shape as /play: `{ theme, font, textSize }`). Added `theme` key to the existing object.
+- **Graceful fallback endpoints:** `PUT /api/auth/profile` and `DELETE /api/auth/account` are called but may not exist on backend yet. Profile edit falls back to localStorage update on 404. Account delete shows "not available yet" message on 404.
+- **Files created:** `app/settings/page.js`, `app/settings/page.module.css`, `components/AuthAvatar.js`.
+- **Files modified:** `app/menu/page.js`, `app/landing/page.js`, `app/pricing/page.js`, `app/rulebook/page.js`, `app/saved-games/page.js`, `app/init/page.js`, `app/play/components/TopBar.js`.
+
+### Admin Dashboard — Cost Split Display + Layout Fixes
+- **Cost split display:** Backend now returns `initCost` and `gameplayCost` alongside `totalCost`. Games tab AI Cost column shows tooltip on hover with "Init: $X.XXXX - Gameplay: $X.XXXX" breakdown (only when initCost > 0). $/Turn column now uses backend `costPerTurn` (gameplay-only) instead of client-side `totalCost / turns`. Game Detail panel header shows "Total: $X.XXXX" with init/gameplay breakdown line below. Costs tab stat card "Avg Cost/Turn" sub-text changed to "Gameplay only"; added init/gameplay totals line below stat cards.
+- **Content area widened:** max-width 1100px to 1400px for better use of wide screens.
+- **Games table grid widened:** Column template changed to `50px 1.8fr 1.2fr 1.2fr 110px 70px 90px 80px 100px 50px` (was `50px 1.5fr 1fr 1fr 80px 70px 80px 70px 90px`). Status column 80px to 110px. Added 50px delete column at end.
+- **Status badge abbreviation:** "INITIALIZING" shortened to "INIT" in badge display. Badge font reduced to 9px/0.06em letter-spacing for better fit.
+- **Row delete button:** Each game row now has a trash icon in the last column. Click opens a confirmation modal with game context. On confirm, calls `DELETE /api/admin/games/:id` and removes from local state.
+- **Detail panel moved to left:** Slide-over panel now enters from the left edge (`left: 0`, `border-right`, `translateX(-100%)` animation) instead of right.
+- **Last Played field:** Frontend now checks both `lastPlayedAt` and `lastPlayed` field names. If both are null, displays "Never" — this may indicate a backend query issue (flagged, not fixed here).
+- **Files changed:** `app/admin/page.js`, `app/admin/page.module.css`.
+
+### Admin Dashboard — /admin (initial build, 2026-03-29)
 - **New page:** Protected admin dashboard at `/admin` with 5 tabs: Users, Games, Costs, Health, Settings.
 - **Auth guard:** Two-layer protection. Standard auth check redirects to `/auth` if no token. Admin check calls `GET /api/admin/users` on mount; 403 redirects to `/menu`. No admin links exist in the UI — accessed by direct URL only.
 - **Users tab:** Searchable user table with name, email, game count, playtester toggle (optimistic PATCH), join date, last active (relative time). Click a user name to open a slide-over detail panel showing total AI spend and their games list.
@@ -539,6 +566,13 @@ All pending rgba/color fixes from previous sessions have been completed.
 | `/api/admin/invite-code` | PUT | Wired (Settings tab code update form) |
 | `/api/admin/errors` | GET | Defined in adminApi.js, not yet called from UI |
 
+### Settings Page (`/settings`)
+
+| Endpoint | Method | Status |
+|----------|--------|--------|
+| `/api/auth/profile` | PUT | Called for display name edit. Graceful fallback: on 404, updates localStorage only. |
+| `/api/auth/account` | DELETE | Called for account deletion. Graceful fallback: on 404, shows "not available yet" message. |
+
 ---
 
 ## Deferred Items
@@ -600,6 +634,7 @@ Items flagged for post-launch or future sessions. Not blocking progress.
 | `docs/GameLayout/debug-panel-mockup.jsx` | Debug drawer 6-tab reference |
 | `docs/GameLayout/bug-report-mockup.jsx` | Bug report and suggest modal reference |
 | `docs/GameLayout/node-map-v2.jsx` | Interactive node map (deferred) |
+| `components/AuthAvatar.js` | Shared auth-aware nav element (avatar circle or Sign In link) |
 | `lib/api.js` | API client with auth token management |
 | `lib/adminApi.js` | Admin API endpoint wrappers (12 endpoints) |
 | `lib/useAuth.js` | Auth guard hook for protected pages |

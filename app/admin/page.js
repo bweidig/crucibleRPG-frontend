@@ -52,11 +52,47 @@ function formatCostPerTurn(cost, turns) {
 function StatusBadge({ status }) {
   const s = (status || '').toLowerCase();
   let cls = styles.badge;
+  let label = status || 'Unknown';
   if (s === 'active') cls = styles.badgeActive;
-  else if (s === 'initializing') cls = styles.badgeInitializing;
+  else if (s === 'initializing') { cls = styles.badgeInitializing; label = 'Init'; }
   else if (s === 'completed') cls = styles.badgeCompleted;
   else if (s === 'abandoned') cls = styles.badgeAbandoned;
-  return <span className={cls}>{status || 'Unknown'}</span>;
+  return <span className={cls}>{label}</span>;
+}
+
+// ─── TRASH ICON SVG ───
+
+function TrashIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+  );
+}
+
+// ─── DELETE MODAL ───
+
+function DeleteModal({ game, onConfirm, onCancel }) {
+  return (
+    <div className={styles.deleteModal} onClick={onCancel}>
+      <div className={styles.deleteModalCard} onClick={e => e.stopPropagation()}>
+        <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: '#d0c098', marginBottom: 10 }}>
+          Delete game #{game.id}?
+        </h3>
+        <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#8a94a8', marginBottom: 6 }}>
+          {game.characterName || 'No character'} - {game.setting || 'No setting'} - {game.turnCount ?? 0} turns
+        </p>
+        <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#e85a5a', marginBottom: 18 }}>
+          This cannot be undone.
+        </p>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className={styles.ghostBtn} onClick={onCancel}>Cancel</button>
+          <button className={styles.dangerBtnSolid} onClick={() => onConfirm(game.id)}>Delete</button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ─── DETAIL PANEL ───
@@ -172,7 +208,7 @@ function UsersTab({ data, loading, onRefresh }) {
       <div className={styles.tableCard}>
         {/* Header row */}
         <div style={{
-          display: 'grid', gridTemplateColumns: '2fr 2.5fr 80px 80px 100px 100px',
+          display: 'grid', gridTemplateColumns: '1.8fr 2.5fr 80px 80px 110px 110px',
           padding: '10px 16px', borderBottom: '1px solid #2a2622',
         }}>
           {['Name', 'Email', 'Games', 'Playtester', 'Joined', 'Last Active'].map(h => (
@@ -185,7 +221,7 @@ function UsersTab({ data, loading, onRefresh }) {
         {/* Data rows */}
         {filtered.map(user => (
           <div key={user.id} className={styles.tableRow} style={{
-            display: 'grid', gridTemplateColumns: '2fr 2.5fr 80px 80px 100px 100px',
+            display: 'grid', gridTemplateColumns: '1.8fr 2.5fr 80px 80px 110px 110px',
             padding: '10px 16px', borderBottom: '1px solid #2a2622', alignItems: 'center',
           }}>
             <div>
@@ -281,8 +317,10 @@ function GamesTab({ data, loading, onRefresh }) {
   const [narrative, setNarrative] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [rowDeleteTarget, setRowDeleteTarget] = useState(null);
+  const [localGames, setLocalGames] = useState(null);
 
-  const games = data?.games || [];
+  const games = localGames || data?.games || [];
 
   const filtered = games.filter(g => {
     if (statusFilter !== 'all' && (g.status || '').toLowerCase() !== statusFilter) return false;
@@ -319,6 +357,14 @@ function GamesTab({ data, loading, onRefresh }) {
       setGameDetail(null);
       setConfirmDelete(null);
       onRefresh();
+    } catch { /* ignore */ }
+  }
+
+  async function handleRowDelete(gameId) {
+    try {
+      await deleteAdminGame(gameId);
+      setLocalGames(prev => (prev || data?.games || []).filter(g => g.id !== gameId));
+      setRowDeleteTarget(null);
     } catch { /* ignore */ }
   }
 
@@ -361,11 +407,11 @@ function GamesTab({ data, loading, onRefresh }) {
       {/* Table */}
       <div className={styles.tableCard} style={{ overflowX: 'auto' }}>
         <div style={{
-          display: 'grid', gridTemplateColumns: '50px 1.5fr 1fr 1fr 80px 70px 80px 70px 90px',
-          padding: '10px 16px', borderBottom: '1px solid #2a2622', minWidth: 800,
+          display: 'grid', gridTemplateColumns: '50px 1.8fr 1.2fr 1.2fr 110px 70px 90px 80px 100px 50px',
+          padding: '10px 16px', borderBottom: '1px solid #2a2622', minWidth: 900,
         }}>
-          {['ID', 'Character', 'Player', 'Setting', 'Status', 'Turns', 'AI Cost', '$/Turn', 'Last Played'].map(h => (
-            <span key={h} style={{
+          {['ID', 'Character', 'Player', 'Setting', 'Status', 'Turns', 'AI Cost', '$/Turn', 'Last Played', ''].map((h, i) => (
+            <span key={i} style={{
               fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600,
               color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase',
             }}>{h}</span>
@@ -373,8 +419,8 @@ function GamesTab({ data, loading, onRefresh }) {
         </div>
         {filtered.map(game => (
           <div key={game.id} className={styles.clickableRow} onClick={() => openGameDetail(game)} style={{
-            display: 'grid', gridTemplateColumns: '50px 1.5fr 1fr 1fr 80px 70px 80px 70px 90px',
-            padding: '10px 16px', borderBottom: '1px solid #2a2622', alignItems: 'center', minWidth: 800,
+            display: 'grid', gridTemplateColumns: '50px 1.8fr 1.2fr 1.2fr 110px 70px 90px 80px 100px 50px',
+            padding: '10px 16px', borderBottom: '1px solid #2a2622', alignItems: 'center', minWidth: 900,
           }}>
             <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>#{game.id}</span>
             <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0' }}>
@@ -384,15 +430,29 @@ function GamesTab({ data, loading, onRefresh }) {
             <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#8a94a8' }}>{game.setting || '-'}</span>
             <StatusBadge status={game.status} />
             <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#c8c0b0' }}>{game.turnCount ?? 0}</span>
-            <span style={{
-              fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13,
-              color: (game.totalCost || 0) > 0.5 ? '#e8c45a' : '#c8c0b0',
-              fontWeight: (game.totalCost || 0) > 0.5 ? 600 : 400,
-            }}>{formatCost(game.totalCost)}</span>
+            <div className={styles.costCell}>
+              <span style={{
+                fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13,
+                color: (game.totalCost || 0) > 0.5 ? '#e8c45a' : '#c8c0b0',
+                fontWeight: (game.totalCost || 0) > 0.5 ? 600 : 400,
+              }}>{formatCost(game.totalCost)}</span>
+              {(game.initCost > 0) && (
+                <div className={styles.costBreakdown}>
+                  Init: {formatCost(game.initCost)} &middot; Gameplay: {formatCost(game.gameplayCost)}
+                </div>
+              )}
+            </div>
             <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>
-              {formatCostPerTurn(game.totalCost, game.turnCount)}
+              {game.costPerTurn != null ? formatCost(game.costPerTurn) : formatCostPerTurn(game.gameplayCost ?? game.totalCost, game.turnCount)}
             </span>
-            <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{timeAgo(game.lastPlayedAt)}</span>
+            <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{timeAgo(game.lastPlayedAt || game.lastPlayed)}</span>
+            <button
+              className={styles.deleteIcon}
+              aria-label="Delete game"
+              onClick={e => { e.stopPropagation(); setRowDeleteTarget(game); }}
+            >
+              <TrashIcon />
+            </button>
           </div>
         ))}
         {filtered.length === 0 && (
@@ -401,6 +461,15 @@ function GamesTab({ data, loading, onRefresh }) {
           </div>
         )}
       </div>
+
+      {/* Row delete modal */}
+      {rowDeleteTarget && (
+        <DeleteModal
+          game={rowDeleteTarget}
+          onConfirm={handleRowDelete}
+          onCancel={() => setRowDeleteTarget(null)}
+        />
+      )}
 
       {/* Game Detail Panel */}
       {selectedGame && (
@@ -424,10 +493,15 @@ function GamesTab({ data, loading, onRefresh }) {
                   Player: {gameDetail.game?.playerName || '-'} ({gameDetail.game?.playerEmail || '-'})
                 </p>
                 <p style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>
-                  Cost: {formatCost(gameDetail.game?.totalCost)} &middot; {gameDetail.game?.turnCount ?? 0} turns &middot; {formatCostPerTurn(gameDetail.game?.totalCost, gameDetail.game?.turnCount)}/turn
+                  Total: {formatCost(gameDetail.game?.totalCost)} &middot; {gameDetail.game?.turnCount ?? 0} turns &middot; {gameDetail.game?.costPerTurn != null ? formatCost(gameDetail.game.costPerTurn) : formatCostPerTurn(gameDetail.game?.gameplayCost ?? gameDetail.game?.totalCost, gameDetail.game?.turnCount)}/turn
                 </p>
+                {(gameDetail.game?.initCost > 0 || gameDetail.game?.gameplayCost > 0) && (
+                  <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4', marginTop: 2 }}>
+                    Init: {formatCost(gameDetail.game?.initCost)} &middot; Gameplay: {formatCost(gameDetail.game?.gameplayCost)}
+                  </p>
+                )}
                 <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4', marginTop: 4 }}>
-                  Created {formatDate(gameDetail.game?.createdAt)} &middot; Last played {timeAgo(gameDetail.game?.lastPlayedAt)}
+                  Created {formatDate(gameDetail.game?.createdAt)} &middot; Last played {timeAgo(gameDetail.game?.lastPlayedAt || gameDetail.game?.lastPlayed)}
                 </p>
               </div>
 
@@ -585,11 +659,11 @@ function CostsTab({ data, loading, onRefresh }) {
       </div>
 
       {/* Stat Cards */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 28 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 12 }}>
         {[
           { label: 'Total Spend', value: formatCostShort(costs.totalSpend), sub: 'Across all games' },
           { label: 'Total Turns', value: String(costs.totalTurns ?? 0), sub: 'All users combined' },
-          { label: 'Avg Cost/Turn', value: formatCost(costs.avgCostPerTurn), sub: 'All games average' },
+          { label: 'Avg Cost/Turn', value: formatCost(costs.avgCostPerTurn), sub: 'Gameplay only' },
           { label: 'Active Games', value: String(costs.activeGames ?? 0), sub: 'Currently in progress' },
         ].map(card => (
           <div key={card.label} className={styles.statCard}>
@@ -603,6 +677,12 @@ function CostsTab({ data, loading, onRefresh }) {
           </div>
         ))}
       </div>
+      {(costs.totalInitCost != null || costs.totalGameplayCost != null) && (
+        <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4', marginBottom: 28 }}>
+          Init costs: {formatCost(costs.totalInitCost)} &middot; Gameplay costs: {formatCost(costs.totalGameplayCost)}
+        </p>
+      )}
+      {costs.totalInitCost == null && costs.totalGameplayCost == null && <div style={{ marginBottom: 28 }} />}
 
       {/* Top Cost Games */}
       {costs.topGames?.length > 0 && (
@@ -1019,7 +1099,7 @@ export default function AdminPage() {
       </div>
 
       {/* Content */}
-      <div style={{ padding: '28px clamp(24px, 4vw, 32px)', maxWidth: 1100 }}>
+      <div style={{ padding: '28px clamp(24px, 4vw, 32px)', maxWidth: 1400 }}>
         {activeTab === 'Users' && <UsersTab data={usersData} loading={usersLoading} onRefresh={() => fetchTab('Users', true)} />}
         {activeTab === 'Games' && <GamesTab data={gamesData} loading={gamesLoading} onRefresh={() => fetchTab('Games', true)} />}
         {activeTab === 'Costs' && <CostsTab data={costsData} loading={costsLoading} onRefresh={() => fetchTab('Costs', true)} />}

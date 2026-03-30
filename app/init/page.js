@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import * as api from '@/lib/api';
+import AuthAvatar from '@/components/AuthAvatar';
 import styles from './page.module.css';
 
 // --- SVG ICONS ---
@@ -2322,7 +2323,7 @@ function InitWizardInner() {
     }}>
       {/* Header */}
       <div style={{
-        width: '100%', padding: '18px 28px', display: 'flex', alignItems: 'baseline', gap: 8,
+        width: '100%', padding: '18px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         borderBottom: '1px solid var(--border-gold-faint)', boxSizing: 'border-box',
       }}>
         <Link href="/menu" style={{ textDecoration: 'none', display: 'flex', alignItems: 'baseline', gap: 8 }}>
@@ -2333,6 +2334,7 @@ function InitWizardInner() {
             RPG
           </span>
         </Link>
+        <AuthAvatar size={32} />
       </div>
 
       {/* Offline banner */}

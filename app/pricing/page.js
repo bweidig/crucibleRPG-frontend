@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import AuthAvatar from '@/components/AuthAvatar';
 import styles from './page.module.css';
 
 // --- PLACEHOLDER CONFIG (easy to swap later) ---
@@ -137,15 +138,7 @@ export default function PricingPage() {
             color: 'var(--gold-muted)', letterSpacing: '0.18em',
           }}>RPG</span>
         </Link>
-        <button
-          className={styles.btnSecondary}
-          style={{
-            fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
-            color: 'var(--accent-gold)', letterSpacing: '0.08em',
-            background: 'transparent', border: '1px solid var(--border-card)',
-            borderRadius: 4, padding: '8px 20px',
-          }}
-        >SIGN IN</button>
+        <AuthAvatar size={32} />
       </div>
 
       {/* Hero */}

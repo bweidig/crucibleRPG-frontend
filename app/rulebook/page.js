@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import AuthAvatar from '@/components/AuthAvatar';
 import styles from './page.module.css';
 
 // --- SECTION DATA ---
@@ -181,10 +182,7 @@ export default function RulebookPage() {
           <Link href="/pricing" className={styles.navLink}>Pricing</Link>
           <Link href="/faq" className={styles.navLink}>FAQ</Link>
           <span className={styles.navLinkActive}>Rulebook</span>
-          <Link href="/auth" className={styles.navLink} style={{
-            fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
-            letterSpacing: '0.08em',
-          }}>SIGN IN</Link>
+          <AuthAvatar size={32} />
         </div>
       </div>
 

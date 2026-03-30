@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { get, clearToken, isAuthenticated, getUser } from '@/lib/api';
+import AuthAvatar from '@/components/AuthAvatar';
 import styles from './page.module.css';
 
 // ─── DESIGN SYSTEM TOKENS ───
@@ -498,29 +499,7 @@ export default function MenuPage() {
               border: `1px solid ${C.cardBorder}`, borderRadius: 4, padding: "2px 7px",
             }}>EARLY ACCESS</div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-            <button onClick={() => setShowSettings(true)}
-              onMouseEnter={() => setSettingsH(true)} onMouseLeave={() => setSettingsH(false)}
-              style={{
-                background: "none", border: "none", cursor: "pointer",
-                fontFamily: "var(--font-alegreya-sans), sans-serif", fontSize: sz.base - 2,
-                color: settingsH ? C.accent : C.muted, padding: "6px 0", transition: "color 0.2s",
-                display: "flex", alignItems: "center", gap: 6,
-              }}>{'\u2699'} Settings</button>
-            <button onClick={handleLogout}
-              onMouseEnter={() => setLogoutH(true)} onMouseLeave={() => setLogoutH(false)}
-              style={{
-                background: "none", border: "none", cursor: "pointer",
-                fontFamily: "var(--font-alegreya-sans), sans-serif", fontSize: sz.base - 2,
-                color: logoutH ? C.accent : C.muted, padding: "6px 0", transition: "color 0.2s",
-              }}>Log Out</button>
-            <div style={{
-              width: 32, height: 32, borderRadius: "50%",
-              background: C.panel, border: `1px solid ${C.cardBorder}`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontFamily: "var(--font-cinzel), serif", fontSize: 13, fontWeight: 600, color: C.accent,
-            }}>{initial}</div>
-          </div>
+          <AuthAvatar size={32} />
         </div>
 
         {/* ─── ERROR ─── */}
@@ -628,9 +607,6 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {/* ─── SETTINGS MODAL ─── */}
-      {showSettings && <DisplaySettings font={font} setFont={setFont}
-        textSize={textSize} setTextSize={setTextSize} onClose={() => setShowSettings(false)} sz={sz} ff={ff} />}
     </div>
   );
 }

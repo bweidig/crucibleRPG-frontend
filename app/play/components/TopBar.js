@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import AuthAvatar from '@/components/AuthAvatar';
 import styles from './TopBar.module.css';
 
 function SidebarIcon({ color }) {
@@ -80,6 +81,7 @@ export default function TopBar({ setting, clock, sseConnected, sidebarOpen, onTo
         >
           <SidebarIcon color={sidebarOpen ? '#c9a84c' : '#7082a4'} />
         </button>
+        <AuthAvatar size={28} />
         <div
           className={styles.connectionDot}
           style={{ background: sseConnected ? '#8aba7a' : '#e8845a' }}
