@@ -32,6 +32,11 @@
 
 ## Recent Work (This Session: 2026-03-29)
 
+### Fix: /menu crash — missing CSS module import
+- **Bug:** `Uncaught ReferenceError: styles is not defined` on the /menu page. The page referenced `styles.pageContainer`, `styles.contentWrapper`, and `styles.continueCard` but the `import styles from './page.module.css'` line was missing. The CSS module file existed with all class definitions — only the import was absent.
+- **Root cause:** During the mobile responsiveness pass, classNames were added to JSX elements in `app/menu/page.js` but the CSS module import was not added to the file's import block.
+- **Fix:** Added `import styles from './page.module.css'` to `app/menu/page.js`.
+
 ### Legal Pages — Privacy Policy & Terms of Service
 - **New pages:** `/privacy` (Privacy Policy) and `/terms` (Terms of Service). Static legal pages with no API calls.
 - **Pattern:** Same layout as Rulebook — `'use client'`, inline styles + CSS module for hover/animation states, ParticleField, shared nav (Home, Pricing, FAQ, Rulebook), standard footer.
