@@ -7,6 +7,7 @@ import {
   getAdminUsers, getAdminUser, togglePlaytester,
   getAdminGames, getAdminGameDetail, deleteAdminGame, getAdminGameNarrative,
   getAdminCosts, getAdminHealth,
+  getAdminReports, updateReport,
   getInviteCode, updateInviteCode,
 } from '@/lib/adminApi';
 import styles from './page.module.css';
@@ -717,7 +718,7 @@ function CostsTab({ data, loading, onRefresh }) {
 // HEALTH TAB
 // =============================================================================
 
-function HealthTab({ data, loading, onRefresh }) {
+function HealthTab({ data, loading, onRefresh, onSwitchTab }) {
   const [showErrors, setShowErrors] = useState(false);
 
   if (loading) return <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 40 }}>Loading...</p>;
@@ -727,6 +728,7 @@ function HealthTab({ data, loading, onRefresh }) {
   const counts = h.counts || {};
   const errors = h.errors || {};
   const stuck = h.stuckGames || [];
+  const reports = h.reports || {};
   const storytellers = h.storytellerPopularity || [];
   const settings = h.settingPopularity || [];
   const retention = h.retention || {};
@@ -769,6 +771,16 @@ function HealthTab({ data, loading, onRefresh }) {
           </div>
           <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>
             {stuck.length > 0 ? 'See below' : 'None'}
+          </div>
+        </div>
+        <div className={styles.statCard} style={{ cursor: (reports.openBugs || reports.openSuggestions) ? 'pointer' : 'default' }}
+          onClick={() => { if (reports.openBugs || reports.openSuggestions) onSwitchTab?.('Reports'); }}>
+          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Open Reports</div>
+          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 22, fontWeight: 700, color: ((reports.openBugs || 0) + (reports.openSuggestions || 0)) > 0 ? '#e8c45a' : '#d0c098', marginBottom: 4 }}>
+            {(reports.openBugs || 0) + (reports.openSuggestions || 0)}
+          </div>
+          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>
+            {reports.openBugs || 0} bugs &middot; {reports.openSuggestions || 0} suggestions
           </div>
         </div>
       </div>
@@ -910,6 +922,270 @@ function HealthTab({ data, loading, onRefresh }) {
 }
 
 // =============================================================================
+// REPORTS TAB
+// =============================================================================
+
+const REPORT_STATUSES = ['open', 'reviewed', 'resolved', 'dismissed'];
+
+function ReportStatusBadge({ status }) {
+  const s = (status || '').toLowerCase();
+  const map = {
+    open: { color: '#e8c45a', bg: '#1a1a12', border: '#e8c45a33' },
+    reviewed: { color: '#8a94a8', bg: '#161a20', border: '#8a94a833' },
+    resolved: { color: '#8aba7a', bg: '#142018', border: '#8aba7a33' },
+    dismissed: { color: '#7082a4', bg: '#111528', border: '#7082a433' },
+  };
+  const st = map[s] || map.open;
+  return (
+    <span style={{
+      fontFamily: 'var(--font-cinzel)', fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
+      letterSpacing: '0.06em', padding: '2px 8px', borderRadius: 3,
+      color: st.color, background: st.bg, border: `1px solid ${st.border}`,
+    }}>{status || 'Open'}</span>
+  );
+}
+
+function ReportTypeBadge({ type }) {
+  const isBug = type === 'bug';
+  return (
+    <span style={{
+      fontFamily: 'var(--font-cinzel)', fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
+      letterSpacing: '0.06em', padding: '2px 8px', borderRadius: 3,
+      color: isBug ? '#e85a5a' : '#c9a84c',
+      background: isBug ? '#201416' : '#1a1814',
+      border: `1px solid ${isBug ? '#e85a5a33' : '#c9a84c33'}`,
+    }}>{isBug ? 'BUG' : 'SUGGESTION'}</span>
+  );
+}
+
+function ReportCard({ report, onStatusChange, onSaveNotes, onViewGame }) {
+  const [expanded, setExpanded] = useState(false);
+  const [showContext, setShowContext] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
+  const [notesText, setNotesText] = useState(report.adminNotes || '');
+  const [savingNotes, setSavingNotes] = useState(false);
+
+  const ctx = report.context || {};
+  const ctxEntries = Object.entries(ctx).filter(([, v]) => v != null);
+  const msgTruncated = (report.message || '').length > 200 && !expanded;
+
+  async function handleSaveNotes() {
+    setSavingNotes(true);
+    await onSaveNotes(report.id, notesText);
+    setSavingNotes(false);
+  }
+
+  return (
+    <div style={{
+      background: '#111528', border: '1px solid #3a3328', borderRadius: 8,
+      padding: '16px 20px',
+    }}>
+      {/* Header row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <ReportTypeBadge type={report.type} />
+          {report.category && (
+            <span style={{
+              fontFamily: 'var(--font-cinzel)', fontSize: 9, fontWeight: 600, color: '#7082a4',
+              background: '#161a20', border: '1px solid #1e2540', borderRadius: 3, padding: '2px 8px',
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+            }}>{report.category}</span>
+          )}
+        </div>
+        <ReportStatusBadge status={report.status} />
+      </div>
+
+      {/* Player info */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#8a94a8' }}>
+          {report.playerName || 'Unknown'} ({report.playerEmail || '-'})
+          {report.gameId && (
+            <span> &middot; Game #{report.gameId}{report.characterName ? ` &middot; ${report.characterName}` : ''}{ctx.turnNumber ? ` &middot; Turn ${ctx.turnNumber}` : ''}</span>
+          )}
+        </span>
+        <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{timeAgo(report.createdAt)}</span>
+      </div>
+
+      {/* Message */}
+      <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0', lineHeight: 1.6, margin: '0 0 10px' }}>
+        {msgTruncated ? report.message.slice(0, 200) + '...' : report.message}
+        {msgTruncated && (
+          <button onClick={() => setExpanded(true)} style={{
+            background: 'none', border: 'none', color: '#c9a84c', fontSize: 13,
+            fontFamily: 'var(--font-alegreya-sans)', cursor: 'pointer', marginLeft: 4,
+          }}>Show more</button>
+        )}
+      </p>
+
+      {/* Context toggle */}
+      {ctxEntries.length > 0 && (
+        <div style={{ marginBottom: 10 }}>
+          <button onClick={() => setShowContext(!showContext)} style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4',
+          }}>
+            Context ({ctxEntries.length} fields) {showContext ? '\u25B2' : '\u25BC'}
+          </button>
+          {showContext && (
+            <div style={{ background: '#0e1420', border: '1px solid #161c34', borderRadius: 4, padding: '8px 12px', marginTop: 6 }}>
+              {ctxEntries.map(([key, val]) => (
+                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                  <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#6b83a3' }}>{key}</span>
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: '#8a94a8', maxWidth: '60%', textAlign: 'right' }}>{String(val)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Admin actions */}
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+        {/* Status pills */}
+        <div style={{ display: 'flex', gap: 4 }}>
+          {REPORT_STATUSES.map(s => (
+            <button
+              key={s}
+              className={(report.status || 'open') === s ? styles.filterPillActive : styles.filterPill}
+              onClick={() => onStatusChange(report.id, s)}
+              style={{ padding: '3px 8px' }}
+            >
+              {s.charAt(0).toUpperCase() + s.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {/* Notes toggle */}
+        <button onClick={() => setShowNotes(!showNotes)} style={{
+          background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: report.adminNotes ? '#8a94a8' : '#7082a4',
+        }}>
+          {report.adminNotes ? 'Edit note' : 'Add note'}
+        </button>
+
+        {/* View Game */}
+        {report.gameId && (
+          <button onClick={() => onViewGame(report.gameId)} style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#c9a84c',
+          }}>View Game</button>
+        )}
+      </div>
+
+      {/* Notes editor */}
+      {showNotes && (
+        <div style={{ marginTop: 10 }}>
+          <textarea
+            value={notesText}
+            onChange={e => setNotesText(e.target.value)}
+            rows={3}
+            style={{
+              width: '100%', boxSizing: 'border-box', padding: '8px 10px',
+              background: '#0a0e1a', border: '1px solid #1e2540', borderRadius: 4,
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#c8c0b0',
+              outline: 'none', resize: 'vertical',
+            }}
+            placeholder="Admin notes..."
+          />
+          <button className={styles.goldBtn} onClick={handleSaveNotes} disabled={savingNotes}
+            style={{ marginTop: 6, padding: '6px 14px', fontSize: 10 }}>
+            {savingNotes ? 'Saving...' : 'Save Note'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReportsTab({ data, loading, onRefresh, onViewGame }) {
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('open');
+  const [reports, setReports] = useState([]);
+  const [fetching, setFetching] = useState(false);
+
+  useEffect(() => { if (data?.reports) setReports(data.reports); }, [data]);
+
+  // Re-fetch when filters change
+  useEffect(() => {
+    if (!data) return; // first load handled by parent
+    let cancelled = false;
+    setFetching(true);
+    getAdminReports({ type: typeFilter, status: statusFilter })
+      .then(d => { if (!cancelled) setReports(d.reports || []); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setFetching(false); });
+    return () => { cancelled = true; };
+  }, [typeFilter, statusFilter]);
+
+  async function handleStatusChange(reportId, newStatus) {
+    setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: newStatus } : r));
+    try { await updateReport(reportId, { status: newStatus }); }
+    catch { setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: r.status } : r)); }
+  }
+
+  async function handleSaveNotes(reportId, notes) {
+    try {
+      await updateReport(reportId, { adminNotes: notes });
+      setReports(prev => prev.map(r => r.id === reportId ? { ...r, adminNotes: notes } : r));
+    } catch { /* ignore */ }
+  }
+
+  if (loading) return <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 40 }}>Loading...</p>;
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+          <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: '#d0c098', margin: 0 }}>Reports</h2>
+          <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>{reports.length}</span>
+        </div>
+        <button className={styles.refreshBtn} onClick={onRefresh}>Refresh</button>
+      </div>
+
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: 20, marginBottom: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {['all', 'bug', 'suggestion'].map(t => (
+            <button key={t} className={typeFilter === t ? styles.filterPillActive : styles.filterPill}
+              onClick={() => setTypeFilter(t)}>
+              {t === 'all' ? 'All' : t === 'bug' ? 'Bugs' : 'Suggestions'}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {REPORT_STATUSES.map(s => (
+            <button key={s} className={statusFilter === s ? styles.filterPillActive : styles.filterPill}
+              onClick={() => setStatusFilter(s)}>
+              {s.charAt(0).toUpperCase() + s.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Report cards */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {fetching ? (
+          <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 20 }}>Loading...</p>
+        ) : reports.length === 0 ? (
+          <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 20 }}>No reports found.</p>
+        ) : (
+          reports.map(r => (
+            <ReportCard
+              key={r.id}
+              report={r}
+              onStatusChange={handleStatusChange}
+              onSaveNotes={handleSaveNotes}
+              onViewGame={onViewGame}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
 // SETTINGS TAB
 // =============================================================================
 
@@ -981,7 +1257,7 @@ function SettingsTab({ data, loading, onRefresh }) {
 // MAIN ADMIN PAGE
 // =============================================================================
 
-const TABS = ['Users', 'Games', 'Costs', 'Health', 'Settings'];
+const TABS = ['Users', 'Games', 'Costs', 'Health', 'Reports', 'Settings'];
 
 export default function AdminPage() {
   const router = useRouter();
@@ -994,6 +1270,7 @@ export default function AdminPage() {
   const [gamesData, setGamesData] = useState(null);
   const [costsData, setCostsData] = useState(null);
   const [healthData, setHealthData] = useState(null);
+  const [reportsData, setReportsData] = useState(null);
   const [settingsData, setSettingsData] = useState(null);
 
   // Loading states
@@ -1001,7 +1278,11 @@ export default function AdminPage() {
   const [gamesLoading, setGamesLoading] = useState(false);
   const [costsLoading, setCostsLoading] = useState(false);
   const [healthLoading, setHealthLoading] = useState(false);
+  const [reportsLoading, setReportsLoading] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(false);
+
+  // Open report count for tab badge
+  const [openReportCount, setOpenReportCount] = useState(0);
 
   // Auth guard
   useEffect(() => {
@@ -1041,15 +1322,28 @@ export default function AdminPage() {
     } else if (tab === 'Health') {
       if (healthData && !force) return;
       setHealthLoading(true);
-      try { setHealthData(await getAdminHealth()); } catch { /* keep stale */ }
+      try {
+        const d = await getAdminHealth();
+        setHealthData(d);
+        const rpts = d?.reports || {};
+        setOpenReportCount((rpts.openBugs || 0) + (rpts.openSuggestions || 0));
+      } catch { /* keep stale */ }
       setHealthLoading(false);
+    } else if (tab === 'Reports') {
+      if (reportsData && !force) return;
+      setReportsLoading(true);
+      try {
+        const d = await getAdminReports({ status: 'open' });
+        setReportsData(d);
+      } catch { /* keep stale */ }
+      setReportsLoading(false);
     } else if (tab === 'Settings') {
       if (settingsData && !force) return;
       setSettingsLoading(true);
       try { setSettingsData(await getInviteCode()); } catch { /* keep stale */ }
       setSettingsLoading(false);
     }
-  }, [usersData, gamesData, costsData, healthData, settingsData]);
+  }, [usersData, gamesData, costsData, healthData, reportsData, settingsData]);
 
   useEffect(() => {
     if (authChecked) fetchTab(activeTab);
@@ -1092,8 +1386,18 @@ export default function AdminPage() {
             key={tab}
             className={activeTab === tab ? styles.tabActive : styles.tab}
             onClick={() => setActiveTab(tab)}
+            style={{ position: 'relative' }}
           >
             {tab}
+            {tab === 'Reports' && openReportCount > 0 && (
+              <span style={{
+                position: 'absolute', top: 6, right: 4,
+                background: '#c9a84c', color: '#0a0e1a',
+                fontFamily: "'JetBrains Mono', monospace", fontSize: 9, fontWeight: 700,
+                width: 16, height: 16, borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>{openReportCount}</span>
+            )}
           </button>
         ))}
       </div>
@@ -1103,7 +1407,8 @@ export default function AdminPage() {
         {activeTab === 'Users' && <UsersTab data={usersData} loading={usersLoading} onRefresh={() => fetchTab('Users', true)} />}
         {activeTab === 'Games' && <GamesTab data={gamesData} loading={gamesLoading} onRefresh={() => fetchTab('Games', true)} />}
         {activeTab === 'Costs' && <CostsTab data={costsData} loading={costsLoading} onRefresh={() => fetchTab('Costs', true)} />}
-        {activeTab === 'Health' && <HealthTab data={healthData} loading={healthLoading} onRefresh={() => fetchTab('Health', true)} />}
+        {activeTab === 'Health' && <HealthTab data={healthData} loading={healthLoading} onRefresh={() => fetchTab('Health', true)} onSwitchTab={setActiveTab} />}
+        {activeTab === 'Reports' && <ReportsTab data={reportsData} loading={reportsLoading} onRefresh={() => fetchTab('Reports', true)} onViewGame={(gid) => { setActiveTab('Games'); }} />}
         {activeTab === 'Settings' && <SettingsTab data={settingsData} loading={settingsLoading} onRefresh={() => fetchTab('Settings', true)} />}
       </div>
     </div>

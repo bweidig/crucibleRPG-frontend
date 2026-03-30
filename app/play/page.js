@@ -12,6 +12,7 @@ import Sidebar from './components/Sidebar';
 import SettingsModal, { THEMES, FONTS, SIZES } from './components/SettingsModal';
 import EntityPopup from './components/EntityPopup';
 import DebugPanel from './components/DebugPanel';
+import ReportModal from './components/ReportModal';
 import styles from './play.module.css';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -78,6 +79,9 @@ function PlayPage() {
 
   // ─── Entity Popup ───
   const [entityPopup, setEntityPopup] = useState(null);
+
+  // ─── Report Modal ───
+  const [reportMode, setReportMode] = useState(null); // null | 'bug' | 'suggest'
 
   // ─── Debug Mode ───
   const [debugMode, setDebugModeState] = useState(false);
@@ -519,6 +523,7 @@ function PlayPage() {
           onClearNotification={(tabId) => setNotifications(prev => ({ ...prev, [tabId]: 0 }))}
           onNotesChange={refetchNotes}
           onEntityClick={setEntityPopup}
+          onOpenReport={setReportMode}
         />
       </div>
 
@@ -551,6 +556,17 @@ function PlayPage() {
           gameId={gameId}
           onClose={() => setEntityPopup(null)}
           onNotesChange={refetchNotes}
+        />
+      )}
+
+      {/* Bug Report / Suggestion Modal */}
+      {reportMode && (
+        <ReportModal
+          mode={reportMode}
+          gameId={gameId}
+          gameState={gameState}
+          turns={turns}
+          onClose={() => setReportMode(null)}
         />
       )}
     </div>

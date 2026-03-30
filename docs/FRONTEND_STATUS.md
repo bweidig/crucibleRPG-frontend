@@ -34,6 +34,16 @@
 
 ## Recent Work (This Session: 2026-03-30)
 
+### Bug Report Wiring + Admin Reports Tab
+- **Bug report modal wired:** New `ReportModal` component at `app/play/components/ReportModal.js`. Supports both "bug" and "suggestion" modes. Submits to `POST /api/bug-report` with type, category, message, gameId, and auto-attached context (turn number, character, setting, storyteller, difficulty, last action, browser). Handles success state (checkmark + thank you), 429 rate limit, and validation errors.
+- **Sidebar footer buttons:** Added "Bug" and "Suggest" buttons to the sidebar footer in `/play`. Bug button highlights danger orange on hover, suggest button highlights gold.
+- **Admin Reports tab:** 6th tab added to admin dashboard between Health and Settings. Report cards (not table rows) with type badge (BUG/SUGGESTION), category badge, status badge (Open/Reviewed/Resolved/Dismissed), player info + game context, expandable message, collapsible context fields. Admin can change status via pill buttons (optimistic PATCH), add/edit notes, and view associated game.
+- **Type + status filters:** Dual filter rows with pill buttons. Type: All/Bugs/Suggestions. Status: Open/Reviewed/Resolved/Dismissed. Both filters active simultaneously. Re-fetches on filter change.
+- **Tab badge:** Reports tab shows gold count badge when open reports > 0 (sourced from health endpoint).
+- **Health tab integration:** Added "Open Reports" stat card showing bug + suggestion counts. Clickable to switch to Reports tab.
+- **New files:** `app/play/components/ReportModal.js`.
+- **Modified files:** `app/play/page.js`, `app/play/components/Sidebar.js`, `app/play/components/Sidebar.module.css`, `app/admin/page.js`, `lib/adminApi.js`.
+
 ### Settings Page + Auth-Aware Nav Bar
 - **New page:** `/settings` with 4 zones: Identity (avatar + editable display name + meta), Display Preferences (theme toggle, font picker, size picker, live preview), Subscription (mock data for free/subscriber/cancelled states, turn usage bar, top-up packs), Account + Legal (sign out, delete account with DELETE confirmation, legal links).
 - **AuthAvatar component:** New shared component at `components/AuthAvatar.js`. Renders avatar circle with user initial (links to /settings) when logged in, or "Sign In" text link (to /auth) when not. Accepts `size` prop (default 32, 28 for compact TopBar) and `active` prop (gold border on /settings itself).
@@ -546,8 +556,8 @@ All pending rgba/color fixes from previous sessions have been completed.
 | `/api/game/:id/settings/ai-model` | GET/PUT | Wired (Settings panel AI Models section, playtester-only, graceful fallback if endpoint not deployed) |
 | `/api/game/:id/checkpoints` | GET | Wired (Settings World tab, fetch on tab open) |
 | `/api/game/:id/snapshot` | POST | Wired (Settings World tab, save + share with visibility control) |
-| `/api/bug-report` | POST | Not yet |
-| `/api/suggestion` | POST | Not yet |
+| `/api/bug-report` | POST | Wired (ReportModal in /play sidebar, handles both bug and suggestion types) |
+| `/api/suggestion` | POST | Wired (uses /api/bug-report with type=suggestion) |
 
 ### Admin Dashboard (`/admin`)
 
@@ -565,6 +575,9 @@ All pending rgba/color fixes from previous sessions have been completed.
 | `/api/admin/invite-code` | GET | Wired (Settings tab code display) |
 | `/api/admin/invite-code` | PUT | Wired (Settings tab code update form) |
 | `/api/admin/errors` | GET | Defined in adminApi.js, not yet called from UI |
+| `/api/admin/reports` | GET | Wired (Reports tab, with type/status query params) |
+| `/api/admin/reports/:id` | PATCH | Wired (Report card status change + admin notes) |
+| `/api/admin/reports/summary` | GET | Defined in adminApi.js, not yet called from UI |
 
 ### Settings Page (`/settings`)
 
