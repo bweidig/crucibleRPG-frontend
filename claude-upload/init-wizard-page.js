@@ -204,6 +204,7 @@ const EMBER_KEYFRAMES = `
   @keyframes ember5 { 0%{transform:translate(0,0)}12%{transform:translate(-24px,8px)}25%{transform:translate(-14px,28px)}37%{transform:translate(12px,22px)}50%{transform:translate(26px,0px)}62%{transform:translate(16px,-24px)}75%{transform:translate(-10px,-28px)}87%{transform:translate(-28px,-6px)}100%{transform:translate(0,0)} }
   @keyframes ember6 { 0%{transform:translate(0,0)}14%{transform:translate(20px,-16px)}28%{transform:translate(8px,-34px)}42%{transform:translate(-18px,-20px)}57%{transform:translate(-28px,8px)}71%{transform:translate(-10px,26px)}85%{transform:translate(16px,18px)}100%{transform:translate(0,0)} }
   @keyframes ember7 { 0%{transform:translate(0,0)}11%{transform:translate(-12px,20px)}22%{transform:translate(8px,32px)}33%{transform:translate(26px,14px)}44%{transform:translate(30px,-10px)}55%{transform:translate(14px,-26px)}66%{transform:translate(-12px,-22px)}77%{transform:translate(-28px,-4px)}88%{transform:translate(-20px,16px)}100%{transform:translate(0,0)} }
+  @keyframes spin { to { transform: rotate(360deg); } }
 `;
 
 const SETTING_QUESTIONS = {
@@ -1844,7 +1845,17 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
             borderRadius: 5,
             cursor: regenerating || (!skillRequests.trim() && !gearRequests.trim()) ? 'default' : 'pointer',
           }}
-        >{regenerating ? 'REGENERATING...' : 'REGENERATE PROPOSAL'}</button>
+        >
+          {regenerating ? (
+            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+              <svg width="16" height="16" viewBox="0 0 16 16" style={{ animation: 'spin 0.9s linear infinite' }}>
+                <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.3" />
+                <path d="M8 2 A6 6 0 0 1 14 8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              REGENERATING...
+            </span>
+          ) : 'REGENERATE PROPOSAL'}
+        </button>
       </div>
     </div>
   );
@@ -1989,6 +2000,7 @@ function InitWizardInner() {
   const [proposalValidation, setProposalValidation] = useState({ hardErrors: [], softWarnings: [] });
   const [skillRequests, setSkillRequests] = useState('');
   const [gearRequests, setGearRequests] = useState('');
+  const [requestsRegenerated, setRequestsRegenerated] = useState(true);
   const [scenariosLoading, setScenariosLoading] = useState(false);
   const [scenarioCache, setScenarioCache] = useState({});
   const [proposalFailed, setProposalFailed] = useState(false);
@@ -2245,6 +2257,7 @@ function InitWizardInner() {
           species: retry.p.species || null,
         });
         setProposalValidation({ hardErrors: Array.isArray(retry.validation.hardErrors) ? retry.validation.hardErrors : [], softWarnings: Array.isArray(retry.validation.softWarnings) ? retry.validation.softWarnings : [] });
+        setRequestsRegenerated(true);
         setProposalLoading(false);
         return;
       }
@@ -2265,6 +2278,7 @@ function InitWizardInner() {
         species: p.species || null,
       });
       setProposalValidation({ hardErrors: Array.isArray(validation.hardErrors) ? validation.hardErrors : [], softWarnings: Array.isArray(validation.softWarnings) ? validation.softWarnings : [] });
+      setRequestsRegenerated(true);
     } catch (err) {
       if (!isRetry) {
         // Auto-retry once after 3s
@@ -2370,6 +2384,14 @@ function InitWizardInner() {
 
   const handleNext = async () => {
     if (!canAdvance() || saving) return;
+
+    // Warn if user has unregenerated requests on the attributes phase
+    if (phase === 3 && (skillRequests.trim() || gearRequests.trim()) && !requestsRegenerated) {
+      const proceed = window.confirm(
+        'You have skill or gear requests that haven\'t been regenerated. Continue without applying them?'
+      );
+      if (!proceed) return;
+    }
 
     // If no gameId yet (creation pending or failed), advance locally without overlay
     if (!gameId) {
@@ -2610,9 +2632,9 @@ function InitWizardInner() {
               hardErrors={proposalValidation.hardErrors}
               onHardErrorsClear={() => setProposalValidation(prev => ({ ...prev, hardErrors: [] }))}
               skillRequests={skillRequests}
-              onSkillRequestsChange={setSkillRequests}
+              onSkillRequestsChange={(val) => { setSkillRequests(val); setRequestsRegenerated(false); }}
               gearRequests={gearRequests}
-              onGearRequestsChange={setGearRequests}
+              onGearRequestsChange={(val) => { setGearRequests(val); setRequestsRegenerated(false); }}
               onRegenerate={generateProposal}
               regenerating={proposalLoading}
             />
