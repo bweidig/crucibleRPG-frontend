@@ -1,6 +1,6 @@
 # Crucible RPG — To Do
 
-**Last Updated:** 2026-03-29
+**Last Updated:** 2026-03-30
 
 > **For Claude Code:** Read this file at the start of every session. The user manages this list with plain-language commands:
 > **Work initiation:** Items on this list are for tracking only. Do NOT start work on any item unprompted. The user will initiate each task via a prompt from Claude Chat.
@@ -27,20 +27,20 @@
 - [ ] Missing glossary entries for proposal-generated items
 - [x] Frontend: Entity popup — show mechanical item stats (damage, armor, etc.) (2026-03-25)
 - [ ] Frontend: Settings panel AI model labels — update after Gemini global switch
-- [ ] Frontend: Init wizard loading indicators between phases
+- [x] Frontend: Init wizard loading indicators between phases (2026-03-30)
 - [ ] Frontend: Auto-scroll to new content in init wizard
-- [ ] Frontend: Loading screen animation (/loading page)
+- [x] Frontend: Loading screen animation (/loading page) (2026-03-30 -- merged into /play overlay)
 - [ ] Frontend: Stat reset button on Phase 4
+- [x] Frontend: Bug report modal (2026-03-30 -- wired with rich context)
 
 ## 🔵 Later — Polish, Features, and Content
 
-- [ ] Frontend: FAQ page
+- [x] Frontend: FAQ page (2026-03-30)
 - [x] Frontend: Legal pages (ToS, Privacy Policy starters) (2026-03-29)
 - [ ] Frontend: Copy audit on init wizard and game layout
 - [ ] Frontend: Saved games page API wiring (real data)
 - [ ] Frontend: Game creation flow from /menu
 - [ ] Frontend: Journal tab (mockup exists)
-- [ ] Frontend: Bug report modal (mockup exists)
 - [ ] Frontend: Paperdoll equipment view (mockup exists)
 - [ ] Scene continuity / combat getting skipped
 - [ ] Ask the GM never advances time

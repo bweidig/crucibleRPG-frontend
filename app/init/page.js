@@ -709,6 +709,7 @@ const ARCHETYPES = {
 
 const STEP_NAMES = ['Storyteller', 'Setting', 'Character', 'Attributes', 'Difficulty', 'Scenario'];
 
+// SAMPLE_STATS is demo-only. With a real gameId, proposal must come from the server.
 const SAMPLE_STATS = [
   { name: 'Strength', emoji: '\u{1F4AA}', value: 6.5 },
   { name: 'Dexterity', emoji: '\u{1F3C3}', value: 8.2 },
@@ -1990,6 +1991,9 @@ function InitWizardInner() {
   const [gearRequests, setGearRequests] = useState('');
   const [scenariosLoading, setScenariosLoading] = useState(false);
   const [scenarioCache, setScenarioCache] = useState({});
+  const [proposalFailed, setProposalFailed] = useState(false);
+  const [scenariosFailed, setScenariosFailed] = useState(false);
+  const worldPollCount = useRef(0);
   const worldPollRef = useRef(null);
   const bottomNavRef = useRef(null);
   const [scrollFadeVisible, setScrollFadeVisible] = useState(false);
@@ -2156,6 +2160,7 @@ function InitWizardInner() {
     await api.post(`/api/init/${gameId}/setting`, body);
     // Start world generation polling
     setWorldGenStatus('generating');
+    worldPollCount.current = 0;
     pollWorldStatus();
   };
 
@@ -2164,6 +2169,11 @@ function InitWizardInner() {
       const res = await api.get(`/api/init/${gameId}/world-status`);
       if (res.status === 'complete') {
         setWorldGenStatus('complete');
+        return;
+      }
+      worldPollCount.current += 1;
+      if (worldPollCount.current >= 60) {
+        setWorldGenStatus('timeout');
         return;
       }
       worldPollRef.current = setTimeout(pollWorldStatus, 2000);
@@ -2185,7 +2195,7 @@ function InitWizardInner() {
     });
   };
 
-  const generateProposal = async () => {
+  const generateProposal = async (isRetry = false) => {
     const STAT_META = {
       STR: { name: 'Strength', emoji: '\u{1F4AA}' },
       DEX: { name: 'Dexterity', emoji: '\u{1F3C3}' },
@@ -2196,49 +2206,79 @@ function InitWizardInner() {
       POT: { name: 'Potency', emoji: '\u2728' },
     };
     setProposalLoading(true);
+    setProposalFailed(false);
     setAdjustedStats(null);
+
+    function parseProposal(res) {
+      const p = res.proposal || res;
+      const rawStats = p.stats || {};
+      const statsArray = Object.entries(rawStats)
+        .filter(([abbr]) => STAT_META[abbr])
+        .map(([abbr, value]) => ({ name: STAT_META[abbr].name, abbr, emoji: STAT_META[abbr].emoji, value }));
+      return { statsArray, p, validation: res.validation || {} };
+    }
+
     try {
       const reqBody = {};
       if (skillRequests.trim()) reqBody.skillRequests = skillRequests.trim();
       if (gearRequests.trim()) reqBody.gearRequests = gearRequests.trim();
       const res = await api.post(`/api/init/${gameId}/generate-proposal`, Object.keys(reqBody).length > 0 ? reqBody : undefined);
-      const p = res.proposal || res;
-      const rawStats = p.stats || {};
-      const statsArray = Object.entries(rawStats)
-        .filter(([abbr]) => STAT_META[abbr])
-        .map(([abbr, value]) => ({
-          name: STAT_META[abbr].name,
-          abbr,
-          emoji: STAT_META[abbr].emoji,
-          value,
-        }));
+      const { statsArray, p, validation } = parseProposal(res);
+
+      if (statsArray.length === 0 && !isRetry) {
+        // Empty stats on first try - auto-retry after 3s
+        await new Promise(r => setTimeout(r, 3000));
+        const res2 = await api.post(`/api/init/${gameId}/generate-proposal`, Object.keys(reqBody).length > 0 ? reqBody : undefined);
+        const retry = parseProposal(res2);
+        if (retry.statsArray.length === 0) {
+          setProposalFailed(true);
+          setProposalLoading(false);
+          return;
+        }
+        setProposal({
+          stats: retry.statsArray, skills: Array.isArray(retry.p.skills) ? retry.p.skills : [],
+          foundationalSkills: Array.isArray(retry.p.foundationalSkills) ? retry.p.foundationalSkills : [],
+          startingLoadout: Array.isArray(retry.p.startingLoadout) ? retry.p.startingLoadout : [],
+          factionStandings: Array.isArray(retry.p.factionStandings) ? retry.p.factionStandings : [],
+          narrativeBackstory: retry.p.narrativeBackstory || null,
+          innateTraits: Array.isArray(retry.p.innateTraits) ? retry.p.innateTraits : [],
+          species: retry.p.species || null,
+        });
+        setProposalValidation({ hardErrors: Array.isArray(retry.validation.hardErrors) ? retry.validation.hardErrors : [], softWarnings: Array.isArray(retry.validation.softWarnings) ? retry.validation.softWarnings : [] });
+        setProposalLoading(false);
+        return;
+      }
+
+      if (statsArray.length === 0) {
+        setProposalFailed(true);
+        setProposalLoading(false);
+        return;
+      }
+
       setProposal({
-        stats: statsArray.length > 0 ? statsArray : SAMPLE_STATS,
-        skills: Array.isArray(p.skills) ? p.skills : [],
+        stats: statsArray, skills: Array.isArray(p.skills) ? p.skills : [],
         foundationalSkills: Array.isArray(p.foundationalSkills) ? p.foundationalSkills : [],
         startingLoadout: Array.isArray(p.startingLoadout) ? p.startingLoadout : [],
         factionStandings: Array.isArray(p.factionStandings) ? p.factionStandings : [],
         narrativeBackstory: p.narrativeBackstory || null,
         innateTraits: Array.isArray(p.innateTraits) ? p.innateTraits : [],
         species: p.species || null,
-        _fallback: statsArray.length === 0,
       });
-      const v = res.validation || {};
-      setProposalValidation({
-        hardErrors: Array.isArray(v.hardErrors) ? v.hardErrors : [],
-        softWarnings: Array.isArray(v.softWarnings) ? v.softWarnings : [],
-      });
+      setProposalValidation({ hardErrors: Array.isArray(validation.hardErrors) ? validation.hardErrors : [], softWarnings: Array.isArray(validation.softWarnings) ? validation.softWarnings : [] });
     } catch (err) {
-      // TODO: remove SAMPLE_STATS fallback when API is stable
-      console.log('Proposal generation failed, using fallback:', err.message);
-      setProposal({ stats: SAMPLE_STATS, _fallback: true });
+      if (!isRetry) {
+        // Auto-retry once after 3s
+        await new Promise(r => setTimeout(r, 3000));
+        return generateProposal(true);
+      }
+      setProposalFailed(true);
     } finally {
       setProposalLoading(false);
     }
   };
 
   const saveAttributes = async () => {
-    const statsArray = adjustedStats || proposal?.stats || SAMPLE_STATS;
+    const statsArray = adjustedStats || proposal?.stats || (!gameId ? SAMPLE_STATS : []);
     const statsObject = {};
     statsArray.forEach(s => { statsObject[s.abbr || s.name.slice(0, 3).toUpperCase()] = s.value; });
     const body = { stats: statsObject };
@@ -2258,33 +2298,49 @@ function InitWizardInner() {
     });
   };
 
-  const fetchScenarios = async (intensityId) => {
+  const fetchScenarios = async (intensityId, isRetry = false) => {
     setScenariosLoading(true);
+    setScenariosFailed(false);
     setScenario(null);
-    try {
-      const res = await api.post(`/api/init/${gameId}/generate-scenarios`, {
-        intensity: intensityId.charAt(0).toUpperCase() + intensityId.slice(1),
-      });
+
+    function mapScenarios(res) {
       const scenarios = res.scenarios || res;
-      if (Array.isArray(scenarios) && scenarios.length > 0) {
-        // Map API response to match SCENARIOS shape (key, name, type, icon, desc)
-        const mapped = scenarios.map((s, i) => ({
-          key: s.key || String.fromCharCode(65 + i),
-          name: s.name || s.title || `Scenario ${String.fromCharCode(65 + i)}`,
-          type: s.type || s.category || '',
-          icon: s.icon || SCENARIOS[i]?.icon || 'custom_start',
-          desc: s.desc || s.description || '',
-        }));
-        // Always include Option D (Custom Start) if API didn't provide it
-        if (!mapped.find(s => s.key === 'D')) {
-          mapped.push(SCENARIOS[3]); // Custom Start
-        }
+      if (!Array.isArray(scenarios) || scenarios.length === 0) return null;
+      const mapped = scenarios.map((s, i) => ({
+        key: s.key || String.fromCharCode(65 + i),
+        name: s.name || s.title || `Scenario ${String.fromCharCode(65 + i)}`,
+        type: s.type || s.category || '',
+        icon: s.icon || SCENARIOS[i]?.icon || 'custom_start',
+        desc: s.desc || s.description || '',
+      }));
+      if (!mapped.find(s => s.key === 'D')) mapped.push(SCENARIOS[3]);
+      return mapped;
+    }
+
+    try {
+      const body = { intensity: intensityId.charAt(0).toUpperCase() + intensityId.slice(1) };
+      const res = await api.post(`/api/init/${gameId}/generate-scenarios`, body);
+      const mapped = mapScenarios(res);
+      if (mapped) {
         setScenarioCache(prev => ({ ...prev, [intensityId]: mapped }));
+      } else if (!isRetry) {
+        await new Promise(r => setTimeout(r, 3000));
+        const res2 = await api.post(`/api/init/${gameId}/generate-scenarios`, body);
+        const mapped2 = mapScenarios(res2);
+        if (mapped2) {
+          setScenarioCache(prev => ({ ...prev, [intensityId]: mapped2 }));
+        } else {
+          setScenariosFailed(true);
+        }
       } else {
-        setScenarioCache(prev => ({ ...prev, [intensityId]: null }));
+        setScenariosFailed(true);
       }
     } catch (err) {
-      console.log('Scenario generation failed, using fallback:', err.message);
+      if (!isRetry) {
+        await new Promise(r => setTimeout(r, 3000));
+        return fetchScenarios(intensityId, true);
+      }
+      setScenariosFailed(true);
     } finally {
       setScenariosLoading(false);
     }
@@ -2304,10 +2360,10 @@ function InitWizardInner() {
     switch (phase) {
       case 0: return !!storyteller;
       case 1: return !!setting;
-      case 2: return character.name.trim().length > 0 && (!gameId || worldGenStatus === 'complete');
-      case 3: return !proposalLoading && !(proposalValidation.hardErrors.length > 0);
+      case 2: return character.name.trim().length > 0 && (!gameId || worldGenStatus === 'complete') && worldGenStatus !== 'timeout';
+      case 3: return !proposalLoading && !proposalFailed && !!proposal?.stats?.length && !(proposalValidation.hardErrors.length > 0);
       case 4: return !!difficulty;
-      case 5: return !!scenario && !scenariosLoading;
+      case 5: return !!scenario && !scenariosLoading && !scenariosFailed;
       default: return false;
     }
   };
@@ -2502,6 +2558,19 @@ function InitWizardInner() {
                   World generation failed. Please go back and try again.
                 </div>
               )}
+              {worldGenStatus === 'timeout' && (
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--accent-gold)', marginBottom: 8 }}>
+                    World generation is taking longer than expected. This can happen with custom settings.
+                  </div>
+                  <button onClick={() => { worldPollCount.current = 0; setWorldGenStatus('generating'); pollWorldStatus(); }} style={{
+                    fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
+                    color: 'var(--accent-gold)', background: 'transparent',
+                    border: '1px solid var(--border-card)', borderRadius: 4,
+                    padding: '8px 18px', cursor: 'pointer', letterSpacing: '0.06em',
+                  }}>Check Again</button>
+                </div>
+              )}
               <Phase3
                 character={character}
                 onChange={handleCharChange}
@@ -2516,8 +2585,34 @@ function InitWizardInner() {
           );
         })()}
         {phase === 3 && (
+          proposalLoading && !proposal ? (
+            <div style={{ textAlign: 'center', padding: '80px 0' }}>
+              <div style={{ fontFamily: 'var(--font-alegreya)', fontSize: 20, fontStyle: 'italic', color: 'var(--accent-gold)', marginBottom: 8 }}>
+                Forging your character...
+              </div>
+              <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-dim)' }}>
+                Deriving stats, skills, and gear from your backstory
+              </div>
+            </div>
+          ) : proposalFailed ? (
+            <div style={{ textAlign: 'center', padding: '60px 24px' }}>
+              <div style={{ fontFamily: 'var(--font-alegreya)', fontSize: 20, fontStyle: 'italic', color: 'var(--accent-gold)', marginBottom: 12 }}>
+                Character generation hit a snag.
+              </div>
+              <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 400, margin: '0 auto 24px' }}>
+                Your world and backstory are safe. Tap below to try again.
+              </div>
+              <button onClick={() => generateProposal()} disabled={proposalLoading} style={{
+                fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
+                color: proposalLoading ? 'var(--text-dim)' : 'var(--bg-main)',
+                background: proposalLoading ? 'var(--bg-gold-subtle)' : 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
+                border: 'none', borderRadius: 6, padding: '14px 32px', cursor: proposalLoading ? 'default' : 'pointer',
+                letterSpacing: '0.08em',
+              }}>{proposalLoading ? 'Trying...' : 'Try Again'}</button>
+            </div>
+          ) : (
             <Phase4
-              stats={proposal?.stats || SAMPLE_STATS}
+              stats={proposal?.stats || (!gameId ? SAMPLE_STATS : [])}
               onStatsChange={setAdjustedStats}
               skills={proposal?.skills}
               foundationalSkills={proposal?.foundationalSkills}
@@ -2534,9 +2629,30 @@ function InitWizardInner() {
               onRegenerate={generateProposal}
               regenerating={proposalLoading}
             />
+          )
         )}
         {phase === 4 && <Phase5 selected={difficulty} onSelect={setDifficulty} />}
-        {phase === 5 && <Phase6 intensity={intensity} setIntensity={setIntensity} scenario={scenario} setScenario={setScenario} customStartText={customStartText} setCustomStartText={setCustomStartText} scenariosLoading={scenariosLoading} displayScenarios={scenarioCache[intensity] || SCENARIOS} />}
+        {phase === 5 && (
+          scenariosFailed && !scenariosLoading ? (
+            <div style={{ textAlign: 'center', padding: '60px 24px' }}>
+              <div style={{ fontFamily: 'var(--font-alegreya)', fontSize: 20, fontStyle: 'italic', color: 'var(--accent-gold)', marginBottom: 12 }}>
+                The threads of fate are tangled.
+              </div>
+              <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 400, margin: '0 auto 24px' }}>
+                Scenario generation failed. Your world is ready. Tap below to try again.
+              </div>
+              <button onClick={() => fetchScenarios(intensity)} disabled={scenariosLoading} style={{
+                fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
+                color: scenariosLoading ? 'var(--text-dim)' : 'var(--bg-main)',
+                background: scenariosLoading ? 'var(--bg-gold-subtle)' : 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
+                border: 'none', borderRadius: 6, padding: '14px 32px', cursor: scenariosLoading ? 'default' : 'pointer',
+                letterSpacing: '0.08em',
+              }}>{scenariosLoading ? 'Trying...' : 'Try Again'}</button>
+            </div>
+          ) : (
+            <Phase6 intensity={intensity} setIntensity={setIntensity} scenario={scenario} setScenario={setScenario} customStartText={customStartText} setCustomStartText={setCustomStartText} scenariosLoading={scenariosLoading} displayScenarios={scenarioCache[intensity] || (gameId ? [] : SCENARIOS)} />
+          )
+        )}
       </div>
 
       {/* Scroll fade indicator */}
