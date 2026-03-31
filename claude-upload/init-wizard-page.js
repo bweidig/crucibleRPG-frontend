@@ -2368,7 +2368,7 @@ function InitWizardInner() {
 
       // Ensure overlay shows for at least 600ms so it doesn't just flash
       const elapsed = Date.now() - transitionStart;
-      const minDisplay = 600;
+      const minDisplay = 2000;
       if (elapsed < minDisplay) {
         await new Promise(r => setTimeout(r, minDisplay - elapsed));
       }
@@ -2516,13 +2516,6 @@ function InitWizardInner() {
           );
         })()}
         {phase === 3 && (
-          proposalLoading ? (
-            <div style={{ textAlign: 'center', padding: '60px 0' }}>
-              <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 17, color: 'var(--accent-gold)' }}>
-                Deriving your attributes...
-              </div>
-            </div>
-          ) : (
             <Phase4
               stats={proposal?.stats || SAMPLE_STATS}
               onStatsChange={setAdjustedStats}
@@ -2541,7 +2534,6 @@ function InitWizardInner() {
               onRegenerate={generateProposal}
               regenerating={proposalLoading}
             />
-          )
         )}
         {phase === 4 && <Phase5 selected={difficulty} onSelect={setDifficulty} />}
         {phase === 5 && <Phase6 intensity={intensity} setIntensity={setIntensity} scenario={scenario} setScenario={setScenario} customStartText={customStartText} setCustomStartText={setCustomStartText} scenariosLoading={scenariosLoading} displayScenarios={scenarioCache[intensity] || SCENARIOS} />}
@@ -2648,8 +2640,8 @@ function InitWizardInner() {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1 }}>
               {/* Phase label */}
               <div style={{
-                fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600,
-                color: '#4a5a70', letterSpacing: '0.15em', textTransform: 'uppercase',
+                fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
+                color: '#c9a84c', letterSpacing: '0.18em', textTransform: 'uppercase',
                 marginBottom: 32,
               }}>{STEP_NAMES[transitionPhase + 1] || 'Adventure'}</div>
 
@@ -2669,8 +2661,8 @@ function InitWizardInner() {
               {/* Lore fragment */}
               <div style={{ marginTop: 30, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span style={{
-                  fontFamily: 'var(--font-alegreya)', fontSize: 19, fontStyle: 'italic',
-                  color: '#5a6a88', fontWeight: 400,
+                  fontFamily: 'var(--font-alegreya)', fontSize: 24, fontStyle: 'italic',
+                  color: '#d0c098', fontWeight: 500,
                   opacity: loreFade ? 1 : 0,
                   transition: 'opacity 0.3s',
                 }}>
@@ -2680,9 +2672,9 @@ function InitWizardInner() {
 
               {/* Secondary description */}
               <p style={{
-                fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
-                color: '#4a5a70', margin: '10px 0 0', textAlign: 'center',
-                maxWidth: 340,
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 16,
+                color: '#7082a4', margin: '12px 0 0', textAlign: 'center',
+                maxWidth: 400,
               }}>{msg.secondary}</p>
             </div>
           </div>
