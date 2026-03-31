@@ -45,8 +45,10 @@
 }
 
 .heroCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+  transform: translateY(-3px);
+  border-top-color: rgba(212, 169, 78, 0.5) !important;
+  border-right-color: rgba(212, 169, 78, 0.5) !important;
+  border-bottom-color: rgba(212, 169, 78, 0.5) !important;
 }
 
 /* Game tile */
@@ -56,8 +58,9 @@
 }
 
 .gameCard:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.35), 0 0 20px rgba(212, 169, 78, 0.06);
+  background: #1a2038 !important;
 }
 
 /* Buttons */
@@ -111,6 +114,16 @@
 
 .navLink:hover {
   color: var(--accent-gold);
+}
+
+/* Toggle link (show more/less) */
+.toggleLink {
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.toggleLink:hover {
+  color: #c9a84c !important;
 }
 
 /* Page container */
