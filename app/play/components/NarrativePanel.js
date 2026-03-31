@@ -31,13 +31,6 @@ const NarrativePanel = forwardRef(function NarrativePanel({ turns, sessionRecap,
             </div>
           )}
 
-          {sessionRecap && (
-            <div className={styles.sessionRecap}>
-              <div className={styles.recapHeader}>PREVIOUSLY...</div>
-              <div className={styles.recapText}>{sessionRecap}</div>
-            </div>
-          )}
-
           {turns.length === 0 && (
             <div className={styles.emptyState}>Starting your adventure...</div>
           )}
@@ -46,12 +39,20 @@ const NarrativePanel = forwardRef(function NarrativePanel({ turns, sessionRecap,
             const isLast = i === turns.length - 1;
             const isNew = !!turn._isNew;
             return (
-              <TurnBlock
-                key={turn.number ?? i}
-                turn={turn}
-                isNew={isNew}
-                ref={isLast && isNew ? newTurnRef : undefined}
-              />
+              <div key={turn.number ?? i}>
+                {/* Show session recap just above the most recent turn */}
+                {isLast && sessionRecap && (
+                  <div className={styles.sessionRecap}>
+                    <div className={styles.recapHeader}>PREVIOUSLY...</div>
+                    <div className={styles.recapText}>{sessionRecap}</div>
+                  </div>
+                )}
+                <TurnBlock
+                  turn={turn}
+                  isNew={isNew}
+                  ref={isLast && isNew ? newTurnRef : undefined}
+                />
+              </div>
             );
           })}
 
