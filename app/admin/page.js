@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAuthenticated, getUser } from '@/lib/api';
 import {
-  getAdminUsers, getAdminUser, togglePlaytester,
+  getAdminUsers, getAdminUser, togglePlaytester, toggleDebug,
   getAdminGames, getAdminGameDetail, deleteAdminGame, getAdminGameNarrative,
   getAdminCosts, getAdminHealth,
   getAdminReports, updateReport,
@@ -305,7 +305,23 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted }) {
     setDetailLoading(false);
   }
 
-  const [toggleStatus, setToggleStatus] = useState({}); // { [userId]: 'saving'|'saved'|'failed' }
+  const [toggleStatus, setToggleStatus] = useState({});
+  const [debugToggleStatus, setDebugToggleStatus] = useState({});
+
+  async function handleDebugToggle(user) {
+    const newVal = !user.isDebug;
+    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isDebug: newVal } : u));
+    setDebugToggleStatus(prev => ({ ...prev, [user.id]: 'saving' }));
+    try {
+      await toggleDebug(user.id, newVal);
+      setDebugToggleStatus(prev => ({ ...prev, [user.id]: 'saved' }));
+      setTimeout(() => setDebugToggleStatus(prev => { const n = { ...prev }; delete n[user.id]; return n; }), 2000);
+    } catch {
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isDebug: !newVal } : u));
+      setDebugToggleStatus(prev => ({ ...prev, [user.id]: 'failed' }));
+      setTimeout(() => setDebugToggleStatus(prev => { const n = { ...prev }; delete n[user.id]; return n; }), 3000);
+    }
+  }
 
   async function handleToggle(user) {
     const newVal = !user.isPlaytester;
@@ -337,7 +353,7 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted }) {
   }
 
   const allLastActiveNull = sorted.length > 0 && sorted.every(u => !u.lastActiveAt);
-  const userGridCols = allLastActiveNull ? '1.8fr 2.5fr 80px 100px 120px' : '1.8fr 2.5fr 80px 100px 120px 110px';
+  const userGridCols = allLastActiveNull ? '1.8fr 2.5fr 80px 100px 100px 120px' : '1.8fr 2.5fr 80px 100px 100px 120px 110px';
 
   if (loading) return <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 40 }}>Loading...</p>;
 
@@ -355,7 +371,7 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted }) {
               </h3>
               <p style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4', marginBottom: 4 }}>{userDetail.user?.email || selectedUser.email}</p>
               <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4', marginBottom: 20 }}>
-                Joined {formatDate(userDetail.user?.createdAt)} &middot; Playtester: {userDetail.user?.isPlaytester ? 'Yes' : 'No'}
+                Joined {formatDate(userDetail.user?.createdAt)} &middot; Playtester: {userDetail.user?.isPlaytester ? 'Yes' : 'No'} &middot; Debug: {userDetail.user?.isDebug ? 'Yes' : 'No'}
               </p>
 
               <div style={{ marginBottom: 24 }}>
@@ -432,6 +448,7 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted }) {
             <SortHeader label="Email" field="email" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
             <SortHeader label="Games" field="gameCount" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
             <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Playtester</span>
+            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Debug</span>
             <SortHeader label="Joined" field="createdAt" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
             {!allLastActiveNull && <SortHeader label="Last Active" field="lastActiveAt" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />}
           </div>
@@ -458,6 +475,16 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted }) {
                 />
                 {toggleStatus[user.id] === 'saved' && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#8aba7a' }}>Saved</span>}
                 {toggleStatus[user.id] === 'failed' && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#e85a5a' }}>Failed</span>}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button
+                  className={user.isDebug ? styles.toggleOn : styles.toggleOff}
+                  style={{ opacity: debugToggleStatus[user.id] === 'saving' ? 0.5 : 1 }}
+                  onClick={e => { e.stopPropagation(); handleDebugToggle(user); }}
+                  aria-label={`Toggle debug for ${user.displayName}`}
+                />
+                {debugToggleStatus[user.id] === 'saved' && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#8aba7a' }}>Saved</span>}
+                {debugToggleStatus[user.id] === 'failed' && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#e85a5a' }}>Failed</span>}
               </div>
               <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{formatDate(user.createdAt)}</span>
               {!allLastActiveNull && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{timeAgo(user.lastActiveAt)}</span>}

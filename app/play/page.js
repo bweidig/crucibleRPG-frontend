@@ -107,7 +107,13 @@ function PlayPage() {
   // Load debug mode from localStorage and register debug callback
   useEffect(() => {
     const stored = localStorage.getItem('crucible_debug');
-    if (stored === 'true') {
+    const user = api.getUser();
+    if (stored === null && user?.isDebug) {
+      // First visit with debug flag — auto-enable
+      setDebugModeState(true);
+      api.setDebugMode(true);
+      localStorage.setItem('crucible_debug', 'true');
+    } else if (stored === 'true') {
       setDebugModeState(true);
       api.setDebugMode(true);
     }
@@ -575,6 +581,16 @@ function PlayPage() {
           onNotesChange={refetchNotes}
           onEntityClick={setEntityPopup}
           onOpenReport={setReportMode}
+          debugMode={debugMode}
+          isDebugUser={!!api.getUser()?.isDebug}
+          onToggleDebug={() => {
+            setDebugModeState(prev => {
+              const next = !prev;
+              localStorage.setItem('crucible_debug', String(next));
+              api.setDebugMode(next);
+              return next;
+            });
+          }}
         />
       </div>
 

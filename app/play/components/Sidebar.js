@@ -67,6 +67,9 @@ export default function Sidebar({
   onNotesChange,
   onEntityClick,
   onOpenReport,
+  debugMode,
+  isDebugUser,
+  onToggleDebug,
 }) {
   const [activeTab, setActiveTab] = useState('character');
   const [width, setWidth] = useState(340);
@@ -139,23 +142,37 @@ export default function Sidebar({
       <div className={styles.tabContent}>
         {renderContent()}
       </div>
-      {onOpenReport && (
+      {(onOpenReport || isDebugUser) && (
         <div className={styles.sidebarFooter}>
-          <button className={styles.footerBtn} onClick={() => onOpenReport('bug')}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="8" y="6" width="8" height="14" rx="4" /><path d="M19 10h2" /><path d="M3 10h2" />
-              <path d="M19 14h2" /><path d="M3 14h2" /><path d="M19 18h2" /><path d="M3 18h2" />
-              <path d="M16 2l-2 4" /><path d="M8 2l2 4" />
-            </svg>
-            Bug
-          </button>
-          <button className={styles.footerBtn} onClick={() => onOpenReport('suggest')}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 18h6" /><path d="M10 22h4" />
-              <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
-            </svg>
-            Suggest
-          </button>
+          {onOpenReport && (
+            <>
+              <button className={styles.footerBtn} onClick={() => onOpenReport('bug')}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="8" y="6" width="8" height="14" rx="4" /><path d="M19 10h2" /><path d="M3 10h2" />
+                  <path d="M19 14h2" /><path d="M3 14h2" /><path d="M19 18h2" /><path d="M3 18h2" />
+                  <path d="M16 2l-2 4" /><path d="M8 2l2 4" />
+                </svg>
+                Bug
+              </button>
+              <button className={styles.footerBtn} onClick={() => onOpenReport('suggest')}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 18h6" /><path d="M10 22h4" />
+                  <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
+                </svg>
+                Suggest
+              </button>
+            </>
+          )}
+          {isDebugUser && onToggleDebug && (
+            <button className={styles.footerBtn} onClick={onToggleDebug}
+              style={{ color: debugMode ? '#c9a84c' : undefined, borderColor: debugMode ? '#c9a84c33' : undefined }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" />
+              </svg>
+              Debug {debugMode ? 'ON' : 'OFF'}
+            </button>
+          )}
         </div>
       )}
     </div>

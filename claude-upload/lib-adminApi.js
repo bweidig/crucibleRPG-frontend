@@ -18,6 +18,10 @@ export function togglePlaytester(userId, isPlaytester) {
   return patch(`/api/admin/users/${userId}/playtester`, { isPlaytester });
 }
 
+export function toggleDebug(userId, isDebug) {
+  return patch(`/api/admin/users/${userId}/debug`, { isDebug });
+}
+
 // ─── Games ───
 
 export function getAdminGames({ status, search } = {}) {
