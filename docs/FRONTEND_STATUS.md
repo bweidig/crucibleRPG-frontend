@@ -525,6 +525,7 @@ All pending rgba/color fixes from previous sessions have been completed.
 
 | ID | Description | Page/Component | Severity | Status | Fixed In |
 |----|-------------|----------------|----------|--------|----------|
+| FE-1 | Play page only reads `?gameId=` param, ignores `?id=` from menu navigation -- causes silent redirect to /menu when resuming games | `/play` page.js | Blocking | Fixed | 2026-03-30 |
 
 **Severity levels:**
 - **Blocking** — Prevents playtesting or core functionality. Fix before launch.

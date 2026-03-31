@@ -53,7 +53,7 @@ function buildThemeStyle(settings) {
 function PlayPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const gameId = searchParams.get('gameId');
+  const gameId = searchParams.get('gameId') || searchParams.get('id');
   const authReady = useAuth();
 
   // ─── Core State ───
