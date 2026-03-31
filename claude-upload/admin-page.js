@@ -73,7 +73,7 @@ function SortHeader({ label, field, sortField, sortDirection, onSort, style }) {
       onClick={() => onSort(field)}
       style={{
         ...style,
-        fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600,
+        fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
         color: active ? '#c9a84c' : '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase',
         cursor: 'pointer', userSelect: 'none', transition: 'color 0.15s',
       }}
@@ -350,7 +350,7 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted }) {
             <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>Loading...</p>
           ) : userDetail ? (
             <div>
-              <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 18, fontWeight: 700, color: '#d0c098', marginBottom: 4 }}>
+              <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 20, fontWeight: 700, color: '#d0c098', marginBottom: 4 }}>
                 {userDetail.user?.displayName || selectedUser.displayName}
               </h3>
               <p style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4', marginBottom: 4 }}>{userDetail.user?.email || selectedUser.email}</p>
@@ -359,7 +359,7 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted }) {
               </p>
 
               <div style={{ marginBottom: 24 }}>
-                <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                   Total AI Spend
                 </span>
                 <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 18, color: '#d0c098', marginTop: 4 }}>
@@ -368,7 +368,7 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted }) {
               </div>
 
               {/* User games list */}
-              <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 10 }}>
+              <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 10 }}>
                 Games ({userDetail.games?.length || 0})
               </span>
               <div className={styles.tableCard}>
@@ -407,8 +407,8 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted }) {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-            <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: '#d0c098', margin: 0 }}>Users</h2>
-            <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>{filtered.length}</span>
+            <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 20, fontWeight: 700, color: '#d0c098', margin: 0 }}>Users</h2>
+            <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 14, color: '#7082a4' }}>{filtered.length}</span>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <input
@@ -431,7 +431,7 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted }) {
             <SortHeader label="Name" field="displayName" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
             <SortHeader label="Email" field="email" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
             <SortHeader label="Games" field="gameCount" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
-            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Playtester</span>
+            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Playtester</span>
             <SortHeader label="Joined" field="createdAt" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
             {!allLastActiveNull && <SortHeader label="Last Active" field="lastActiveAt" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />}
           </div>
@@ -575,7 +575,7 @@ function GamesTab({ data, loading, onRefresh }) {
             <div>
               <div style={{ marginBottom: 24 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                  <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 18, fontWeight: 700, color: '#d0c098', margin: 0 }}>
+                  <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 20, fontWeight: 700, color: '#d0c098', margin: 0 }}>
                     Game #{gameDetail.game?.id ?? selectedGame.id}
                   </h3>
                   <StatusBadge status={gameDetail.game?.status || selectedGame.status} />
@@ -685,8 +685,8 @@ function GamesTab({ data, loading, onRefresh }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-            <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: '#d0c098', margin: 0 }}>All Games</h2>
-            <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>{filtered.length}</span>
+            <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 20, fontWeight: 700, color: '#d0c098', margin: 0 }}>All Games</h2>
+            <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 14, color: '#7082a4' }}>{filtered.length}</span>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <input className={styles.searchInput} placeholder="Search by character, player, or setting..." value={search} onChange={e => setSearch(e.target.value)} />
@@ -763,7 +763,7 @@ function CostsTab({ data, loading, onRefresh }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: '#d0c098', margin: 0 }}>Costs</h2>
+        <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 20, fontWeight: 700, color: '#d0c098', margin: 0 }}>Costs</h2>
         <button className={styles.refreshBtn} onClick={onRefresh}>Refresh</button>
       </div>
 
@@ -776,13 +776,13 @@ function CostsTab({ data, loading, onRefresh }) {
           { label: 'Active Games', value: String(costs.activeGames ?? 0), sub: 'Currently in progress' },
         ].map(card => (
           <div key={card.label} className={styles.statCard}>
-            <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>
+            <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>
               {card.label}
             </div>
-            <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 22, fontWeight: 700, color: '#d0c098', marginBottom: 4 }}>
+            <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 28, fontWeight: 700, color: '#d0c098', marginBottom: 4 }}>
               {card.value}
             </div>
-            <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{card.sub}</div>
+            <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>{card.sub}</div>
           </div>
         ))}
       </div>
@@ -797,7 +797,7 @@ function CostsTab({ data, loading, onRefresh }) {
       {costs.topGames?.length > 0 && (
         <div className={styles.tableCard}>
           <div style={{ padding: '10px 16px', borderBottom: '1px solid #2a2622' }}>
-            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
               Highest-Cost Games
             </span>
           </div>
@@ -846,22 +846,22 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: '#d0c098', margin: 0 }}>Health</h2>
+        <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 20, fontWeight: 700, color: '#d0c098', margin: 0 }}>Health</h2>
         <button className={styles.refreshBtn} onClick={onRefresh}>Refresh</button>
       </div>
 
       {/* Status Cards */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 20 }}>
         <div className={styles.statCard}>
-          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Database</div>
-          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 22, fontWeight: 700, color: db.connected ? '#8aba7a' : '#e85a5a', marginBottom: 4 }}>
+          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Database</div>
+          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 28, fontWeight: 700, color: db.connected ? '#8aba7a' : '#e85a5a', marginBottom: 4 }}>
             {db.connected ? 'Connected' : 'Error'}
           </div>
-          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{db.size || '-'}</div>
+          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>{db.size || '-'}</div>
         </div>
         <div className={styles.statCard}>
-          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Errors (24h)</div>
-          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 22, fontWeight: 700, color: (errors.last24h || 0) > 0 ? '#e8845a' : '#d0c098', marginBottom: 4 }}>
+          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Errors (24h)</div>
+          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 28, fontWeight: 700, color: (errors.last24h || 0) > 0 ? '#e8845a' : '#d0c098', marginBottom: 4 }}>
             {errors.last24h ?? 0}
           </div>
           <div>
@@ -873,21 +873,21 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab }) {
           </div>
         </div>
         <div className={styles.statCard}>
-          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Stuck Games</div>
-          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 22, fontWeight: 700, color: stuck.length > 0 ? '#e8c45a' : '#d0c098', marginBottom: 4 }}>
+          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Stuck Games</div>
+          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 28, fontWeight: 700, color: stuck.length > 0 ? '#e8c45a' : '#d0c098', marginBottom: 4 }}>
             {stuck.length}
           </div>
-          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>
+          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>
             {stuck.length > 0 ? 'See below' : 'None'}
           </div>
         </div>
         <div className={styles.statCard} style={{ cursor: (reports.openBugs || reports.openSuggestions) ? 'pointer' : 'default' }}
           onClick={() => { if (reports.openBugs || reports.openSuggestions) onSwitchTab?.('Reports'); }}>
-          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Open Reports</div>
-          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 22, fontWeight: 700, color: ((reports.openBugs || 0) + (reports.openSuggestions || 0)) > 0 ? '#e8c45a' : '#d0c098', marginBottom: 4 }}>
+          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Open Reports</div>
+          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 28, fontWeight: 700, color: ((reports.openBugs || 0) + (reports.openSuggestions || 0)) > 0 ? '#e8c45a' : '#d0c098', marginBottom: 4 }}>
             {(reports.openBugs || 0) + (reports.openSuggestions || 0)}
           </div>
-          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>
+          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>
             {reports.openBugs || 0} bugs &middot; {reports.openSuggestions || 0} suggestions
           </div>
         </div>
@@ -896,19 +896,19 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab }) {
       {/* Counts */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 20 }}>
         <div className={styles.statCard}>
-          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Users</div>
-          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 22, fontWeight: 700, color: '#d0c098', marginBottom: 4 }}>{counts.totalUsers ?? 0}</div>
-          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{counts.totalPlaytesters ?? 0} playtesters</div>
+          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Users</div>
+          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 28, fontWeight: 700, color: '#d0c098', marginBottom: 4 }}>{counts.totalUsers ?? 0}</div>
+          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>{counts.totalPlaytesters ?? 0} playtesters</div>
         </div>
         <div className={styles.statCard}>
-          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Games</div>
-          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 22, fontWeight: 700, color: '#d0c098', marginBottom: 4 }}>{counts.totalGames ?? 0}</div>
-          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{counts.activeGames ?? 0} active</div>
+          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Games</div>
+          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 28, fontWeight: 700, color: '#d0c098', marginBottom: 4 }}>{counts.totalGames ?? 0}</div>
+          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>{counts.activeGames ?? 0} active</div>
         </div>
         <div className={styles.statCard}>
-          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Total Turns</div>
-          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 22, fontWeight: 700, color: '#d0c098', marginBottom: 4 }}>{counts.totalTurns ?? 0}</div>
-          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>All time</div>
+          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Total Turns</div>
+          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 28, fontWeight: 700, color: '#d0c098', marginBottom: 4 }}>{counts.totalTurns ?? 0}</div>
+          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>All time</div>
         </div>
       </div>
 
@@ -989,19 +989,19 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab }) {
       {/* Retention */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 24 }}>
         <div className={styles.statCard}>
-          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Players with Games</div>
+          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Players with Games</div>
           <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 18, fontWeight: 700, color: '#d0c098' }}>
             {retention.usersWithGames ?? 0} of {counts.totalUsers ?? 0}
           </div>
         </div>
         <div className={styles.statCard}>
-          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Created 2+ Games</div>
+          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Created 2+ Games</div>
           <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 18, fontWeight: 700, color: '#d0c098' }}>
             {retention.usersWithMultipleGames ?? 0} of {retention.usersWithGames ?? 0}
           </div>
         </div>
         <div className={styles.statCard}>
-          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Returned for 2+ Sessions</div>
+          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Returned for 2+ Sessions</div>
           <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 18, fontWeight: 700, color: '#d0c098' }}>
             {retention.returningUsers ?? 0} of {retention.usersWithGames ?? 0}
           </div>
@@ -1261,8 +1261,8 @@ function ReportsTab({ data, loading, onRefresh, onViewGame }) {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-          <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: '#d0c098', margin: 0 }}>Reports</h2>
-          <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>{reports.length}</span>
+          <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 20, fontWeight: 700, color: '#d0c098', margin: 0 }}>Reports</h2>
+          <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 14, color: '#7082a4' }}>{reports.length}</span>
         </div>
         <button className={styles.refreshBtn} onClick={onRefresh}>Refresh</button>
       </div>
@@ -1529,12 +1529,12 @@ export default function AdminPage() {
       {/* Header */}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '20px clamp(24px, 4vw, 32px)',
+        padding: '20px 48px',
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
           <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 900, color: '#c9a84c', letterSpacing: '0.06em' }}>CRUCIBLE</span>
           <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.18em' }}>RPG</span>
-          <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#7082a4', letterSpacing: '0.08em', textTransform: 'uppercase', marginLeft: 8 }}>ADMIN</span>
+          <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, color: '#7082a4', letterSpacing: '0.08em', textTransform: 'uppercase', marginLeft: 8 }}>ADMIN</span>
         </div>
         <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>
           Signed in as <span style={{ color: '#c9a84c' }}>{userEmail}</span>
@@ -1544,7 +1544,7 @@ export default function AdminPage() {
       {/* Tab Bar */}
       <div style={{
         display: 'flex', gap: 0,
-        padding: '0 clamp(24px, 4vw, 32px)',
+        padding: '0 48px',
         borderTop: '1px solid #1e2540',
         borderBottom: '1px solid #1e2540',
       }}>
@@ -1570,7 +1570,7 @@ export default function AdminPage() {
       </div>
 
       {/* Content */}
-      <div style={{ padding: '28px clamp(24px, 4vw, 32px)', maxWidth: 1400 }}>
+      <div style={{ padding: '28px 48px' }}>
         {activeTab === 'Users' && <UsersTab data={usersData} loading={usersLoading} onRefresh={() => fetchTab('Users', true)} onGameDeleted={(gameId) => setGamesData(prev => prev ? { ...prev, games: (prev.games || []).filter(g => g.id !== gameId) } : prev)} />}
         {activeTab === 'Games' && <GamesTab data={gamesData} loading={gamesLoading} onRefresh={() => fetchTab('Games', true)} />}
         {activeTab === 'Costs' && <CostsTab data={costsData} loading={costsLoading} onRefresh={() => fetchTab('Costs', true)} />}
