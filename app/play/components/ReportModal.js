@@ -28,9 +28,61 @@ const SUGGEST_CATEGORIES = [
   { id: 'other', label: 'Other' },
 ];
 
+const LABEL_MAP = {
+  gameId: 'Game ID',
+  turnNumber: 'Turn',
+  sessionTurn: 'Session Turn',
+  characterName: 'Character',
+  setting: 'Setting',
+  storyteller: 'Storyteller',
+  difficulty: 'Difficulty',
+  lastPlayerAction: 'Last Action',
+  lastNarrative: 'Last Narrative',
+  'lastResolution.stat': 'Roll Stat',
+  'lastResolution.effectiveValue': 'Effective Value',
+  'lastResolution.skillUsed': 'Skill Used',
+  'lastResolution.fortunesBalance': "Fortune's Balance",
+  'lastResolution.diceRolled': 'Dice',
+  'lastResolution.dc': 'DC',
+  'lastResolution.total': 'Roll Total',
+  'lastResolution.margin': 'Margin',
+  'lastResolution.tier': 'Outcome Tier',
+  'lastStateChanges.conditionsAdded': 'Conditions Added',
+  'lastStateChanges.conditionsRemoved': 'Conditions Removed',
+  'lastStateChanges.inventoryAdded': 'Items Gained',
+  'lastStateChanges.inventoryRemoved': 'Items Lost',
+  activeConditions: 'Active Conditions',
+  currentLocation: 'Location',
+  weather: 'Weather',
+  'inGameTime.day': 'Day',
+  'inGameTime.hour': 'Hour',
+  prevPlayerAction: 'Previous Action',
+  prevTurnNumber: 'Previous Turn',
+  aiModel: 'AI Model',
+  aiLatency: 'AI Latency',
+  browser: 'Browser',
+  windowSize: 'Window Size',
+};
+
+function flattenContext(ctx, prefix = '') {
+  const flat = [];
+  for (const [key, val] of Object.entries(ctx || {})) {
+    if (val == null) continue;
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    if (typeof val === 'object' && !Array.isArray(val)) {
+      flat.push(...flattenContext(val, fullKey));
+    } else if (Array.isArray(val) && val.length > 0) {
+      flat.push([fullKey, val.map(v => typeof v === 'object' ? (v.name || JSON.stringify(v)) : v).join(', ')]);
+    } else if (!Array.isArray(val)) {
+      flat.push([fullKey, val]);
+    }
+  }
+  return flat;
+}
+
 function ContextPreview({ mode, context }) {
   const [expanded, setExpanded] = useState(false);
-  const entries = Object.entries(context || {}).filter(([, v]) => v != null);
+  const entries = flattenContext(context);
   if (entries.length === 0) return null;
 
   return (
@@ -56,14 +108,21 @@ function ContextPreview({ mode, context }) {
         <span style={{ color: C.dim, fontSize: 10, transform: expanded ? 'rotate(0)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}>{'\u25BC'}</span>
       </button>
       {expanded && (
-        <div style={{ padding: '0 14px 12px' }}>
+        <div style={{ padding: '0 14px 12px', maxHeight: 300, overflowY: 'auto' }}>
           {entries.map(([key, val], i) => (
             <div key={key} style={{
               display: 'flex', justifyContent: 'space-between', padding: '3px 0',
               borderBottom: i < entries.length - 1 ? `1px solid ${C.borderLight}` : 'none',
+              gap: 12,
             }}>
-              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: C.dim }}>{key}</span>
-              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: C.secondary, textAlign: 'right', maxWidth: '60%' }}>
+              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: C.dim, flexShrink: 0 }}>
+                {LABEL_MAP[key] || key}
+              </span>
+              <span style={{
+                fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: C.secondary,
+                textAlign: 'right', maxWidth: '60%', overflow: 'hidden', textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}>
                 {String(val)}
               </span>
             </div>
@@ -79,7 +138,7 @@ function ContextPreview({ mode, context }) {
   );
 }
 
-export default function ReportModal({ mode, gameId, gameState, turns, onClose }) {
+export default function ReportModal({ mode, gameId, gameState, turns, characterData, debugLog, onClose }) {
   const [category, setCategory] = useState(null);
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
@@ -94,16 +153,78 @@ export default function ReportModal({ mode, gameId, gameState, turns, onClose })
     : 'What would make the game better? Describe your idea.';
   const recipient = isBug ? 'bugs@crucibleRPG.com' : 'suggestions@crucibleRPG.com';
 
-  // Build context from game state
+  // Get the last 1-2 turns for context
   const lastTurn = turns?.length > 0 ? turns[turns.length - 1] : null;
+  const prevTurn = turns?.length > 1 ? turns[turns.length - 2] : null;
+
+  // Get the most recent debug entry (if debug mode was on)
+  const lastDebug = debugLog?.length > 0 ? debugLog[0] : null;
+
+  // Build rich context
   const context = {
-    turnNumber: gameState?.clock?.totalTurn || lastTurn?.turnNumber || null,
-    characterName: gameState?.character?.name || null,
+    // Game metadata
+    gameId: gameId || null,
+    turnNumber: lastTurn?.number || gameState?.clock?.totalTurn || null,
+    sessionTurn: lastTurn?.sessionTurn || gameState?.clock?.sessionTurn || null,
+    characterName: gameState?.character?.name || characterData?.character?.name || null,
     setting: gameState?.setting || null,
     storyteller: gameState?.storyteller || null,
-    difficulty: gameState?.difficulty || null,
-    lastAction: lastTurn?.playerAction || null,
+    difficulty: gameState?.difficulty || gameState?.difficultyPreset || null,
+
+    // Last turn — what happened
+    lastPlayerAction: lastTurn?.playerAction || null,
+    lastNarrative: lastTurn?.narrative ? lastTurn.narrative.substring(0, 500) : null,
+
+    // Resolution data from last turn (the mechanical outcome)
+    lastResolution: lastTurn?.resolution ? {
+      stat: lastTurn.resolution.stat || null,
+      effectiveValue: lastTurn.resolution.effectiveValue || null,
+      skillUsed: lastTurn.resolution.skillUsed || null,
+      fortunesBalance: lastTurn.resolution.fortunesBalance || null,
+      diceRolled: lastTurn.resolution.diceRolled || null,
+      dc: lastTurn.resolution.dc || null,
+      total: lastTurn.resolution.total || null,
+      margin: lastTurn.resolution.margin || null,
+      tier: lastTurn.resolution.tier || lastTurn.resolution.tierName || null,
+    } : null,
+
+    // State changes from last turn
+    lastStateChanges: lastTurn?.stateChanges ? {
+      conditionsAdded: lastTurn.stateChanges.conditions?.added || [],
+      conditionsRemoved: lastTurn.stateChanges.conditions?.removed || [],
+      inventoryAdded: lastTurn.stateChanges.inventory?.added || [],
+      inventoryRemoved: lastTurn.stateChanges.inventory?.removed || [],
+    } : null,
+
+    // Current character state (from sidebar data if available)
+    currentStats: characterData?.stats ? Object.fromEntries(
+      Object.entries(characterData.stats).map(([stat, data]) => [
+        stat, { base: data.base, effective: data.effective }
+      ])
+    ) : null,
+    activeConditions: characterData?.conditions?.map(c => ({
+      name: c.name, stat: c.stat, penalty: c.penalty
+    })) || null,
+
+    // Location and time
+    currentLocation: lastTurn?.location || gameState?.world?.currentLocation || null,
+    weather: lastTurn?.weather || gameState?.clock?.weather || null,
+    inGameTime: lastTurn?.clock ? {
+      day: lastTurn.clock.currentDay,
+      hour: lastTurn.clock.hour,
+    } : null,
+
+    // Previous turn (for context on multi-turn issues)
+    prevPlayerAction: prevTurn?.playerAction || null,
+    prevTurnNumber: prevTurn?.number || null,
+
+    // Debug data if available
+    aiModel: lastDebug?.ai?.model || null,
+    aiLatency: lastDebug?.timing?.ai || null,
+
+    // Browser
     browser: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+    windowSize: typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : null,
   };
 
   const canSend = message.trim().length > 0 && category;

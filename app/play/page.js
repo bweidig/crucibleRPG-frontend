@@ -617,6 +617,8 @@ function PlayPage() {
           gameId={gameId}
           gameState={gameState}
           turns={turns}
+          characterData={characterData}
+          debugLog={debugLog}
           onClose={() => setReportMode(null)}
         />
       )}
