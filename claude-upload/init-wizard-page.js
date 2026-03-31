@@ -2116,7 +2116,7 @@ function InitWizardInner() {
         setLoreIndex(prev => prev + 1);
         setLoreFade(true);
       }, 300);
-    }, 2500);
+    }, 4000);
     return () => clearInterval(interval);
   }, [transitionPhase]);
 
