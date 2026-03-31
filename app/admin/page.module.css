@@ -55,6 +55,13 @@
 .clickableRow {
   composes: tableRow;
   cursor: pointer;
+  border-left: 3px solid transparent;
+  padding-left: 13px !important;
+}
+
+.clickableRow:hover {
+  border-left-color: #c9a84c;
+  background: #161a28;
 }
 
 /* ─── Nav Link ─── */
@@ -245,8 +252,9 @@
 }
 
 .panelClose:hover {
-  color: #c8c0b0;
+  color: #c9a84c;
   border-color: #3a3328;
+  background: rgba(201, 168, 76, 0.1);
 }
 
 /* ─── Collapsible Turn ─── */

@@ -210,7 +210,10 @@ function DeleteGameModal({ game, onConfirm, onCancel }) {
 function DetailPanel({ children, onClose }) {
   return (
     <div className={styles.pushPanel}>
-      <button className={styles.panelClose} onClick={onClose}>&times;</button>
+      <button className={styles.panelClose} onClick={onClose} style={{
+        width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 16, fontWeight: 600,
+      }}>&times;</button>
       <div style={{ padding: '28px 32px' }}>{children}</div>
     </div>
   );
@@ -220,17 +223,24 @@ function DetailPanel({ children, onClose }) {
 
 function TurnBlock({ entry }) {
   const [open, setOpen] = useState(false);
+  const sig = entry.significanceScore;
+  const sigLabel = sig >= 5 ? '\u2605\u2605\u2605\u2605\u2605' : sig >= 4 ? '\u2605\u2605\u2605\u2605' : sig >= 3 ? '\u2605\u2605\u2605' : sig >= 2 ? '\u2605\u2605' : sig >= 1 ? '\u2605' : '';
+  const preview = !open && entry.narratorText ? entry.narratorText.substring(0, 100) + (entry.narratorText.length > 100 ? '...' : '') : '';
   return (
     <div style={{ borderBottom: '1px solid #2a2622' }}>
       <div
         className={styles.turnHeader}
         onClick={() => setOpen(!open)}
-        style={{ padding: '8px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+        style={{ padding: '8px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}
       >
-        <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>
-          Turn {entry.turnNumber}{entry.significanceScore != null ? ` (sig: ${entry.significanceScore})` : ''}
-        </span>
-        <span style={{ color: '#7082a4', fontSize: 11 }}>{open ? '\u25B2' : '\u25BC'}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>
+            Turn {entry.turnNumber}
+          </span>
+          {sigLabel && <span style={{ fontSize: 10, color: '#c9a84c', marginLeft: 6 }}>{sigLabel}</span>}
+          {preview && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#5a6a88', marginLeft: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{preview}</span>}
+        </div>
+        <span style={{ color: '#7082a4', fontSize: 11, flexShrink: 0 }}>{open ? '\u25B2' : '\u25BC'}</span>
       </div>
       {open && (
         <div style={{ padding: '8px 10px 14px' }}>
@@ -295,13 +305,20 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted }) {
     setDetailLoading(false);
   }
 
+  const [toggleStatus, setToggleStatus] = useState({}); // { [userId]: 'saving'|'saved'|'failed' }
+
   async function handleToggle(user) {
     const newVal = !user.isPlaytester;
     setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isPlaytester: newVal } : u));
+    setToggleStatus(prev => ({ ...prev, [user.id]: 'saving' }));
     try {
       await togglePlaytester(user.id, newVal);
+      setToggleStatus(prev => ({ ...prev, [user.id]: 'saved' }));
+      setTimeout(() => setToggleStatus(prev => { const n = { ...prev }; delete n[user.id]; return n; }), 2000);
     } catch {
       setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isPlaytester: !newVal } : u));
+      setToggleStatus(prev => ({ ...prev, [user.id]: 'failed' }));
+      setTimeout(() => setToggleStatus(prev => { const n = { ...prev }; delete n[user.id]; return n; }), 3000);
     }
   }
 
@@ -318,6 +335,9 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted }) {
     if (onGameDeleted) onGameDeleted(gameId);
     setDeleteTarget(null);
   }
+
+  const allLastActiveNull = sorted.length > 0 && sorted.every(u => !u.lastActiveAt);
+  const userGridCols = allLastActiveNull ? '1.8fr 2.5fr 80px 100px 120px' : '1.8fr 2.5fr 80px 100px 120px 110px';
 
   if (loading) return <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 40 }}>Loading...</p>;
 
@@ -405,7 +425,7 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted }) {
         <div className={styles.tableCard}>
           {/* Header row */}
           <div style={{
-            display: 'grid', gridTemplateColumns: '1.8fr 2.5fr 80px 80px 110px 110px',
+            display: 'grid', gridTemplateColumns: userGridCols, gap: 12,
             padding: '10px 16px', borderBottom: '1px solid #2a2622',
           }}>
             <SortHeader label="Name" field="displayName" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
@@ -413,29 +433,34 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted }) {
             <SortHeader label="Games" field="gameCount" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
             <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Playtester</span>
             <SortHeader label="Joined" field="createdAt" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
-            <SortHeader label="Last Active" field="lastActiveAt" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
+            {!allLastActiveNull && <SortHeader label="Last Active" field="lastActiveAt" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />}
           </div>
           {/* Data rows */}
           {sorted.map(user => (
-            <div key={user.id} className={styles.tableRow} style={{
-              display: 'grid', gridTemplateColumns: '1.8fr 2.5fr 80px 80px 110px 110px',
+            <div key={user.id} className={styles.clickableRow} onClick={() => openUserDetail(user)} style={{
+              display: 'grid', gridTemplateColumns: userGridCols, gap: 12,
               padding: '10px 16px', borderBottom: '1px solid #2a2622', alignItems: 'center',
             }}>
               <div>
-                <span className={styles.nameLink} onClick={() => openUserDetail(user)}>
+                <span className={styles.nameLink}>
                   {user.displayName || 'No name'}
                 </span>
                 {currentUser?.email === user.email && <span className={styles.badgeAdmin}>ADMIN</span>}
               </div>
               <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>{user.email}</span>
               <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#c8c0b0' }}>{user.gameCount ?? 0}</span>
-              <button
-                className={user.isPlaytester ? styles.toggleOn : styles.toggleOff}
-                onClick={() => handleToggle(user)}
-                aria-label={`Toggle playtester for ${user.displayName}`}
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button
+                  className={user.isPlaytester ? styles.toggleOn : styles.toggleOff}
+                  style={{ opacity: toggleStatus[user.id] === 'saving' ? 0.5 : 1 }}
+                  onClick={e => { e.stopPropagation(); handleToggle(user); }}
+                  aria-label={`Toggle playtester for ${user.displayName}`}
+                />
+                {toggleStatus[user.id] === 'saved' && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#8aba7a' }}>Saved</span>}
+                {toggleStatus[user.id] === 'failed' && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#e85a5a' }}>Failed</span>}
+              </div>
               <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{formatDate(user.createdAt)}</span>
-              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{timeAgo(user.lastActiveAt)}</span>
+              {!allLastActiveNull && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{timeAgo(user.lastActiveAt)}</span>}
             </div>
           ))}
           {sorted.length === 0 && (
@@ -444,6 +469,11 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted }) {
             </div>
           )}
         </div>
+        {allLastActiveNull && sorted.length > 0 && (
+          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4', fontStyle: 'italic', marginTop: 8 }}>
+            Last active tracking coming soon
+          </div>
+        )}
       </div>
 
       {/* Delete game modal */}
@@ -890,13 +920,13 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab }) {
           </h4>
           <div className={styles.tableCard}>
             {stuck.map((g, i) => (
-              <div key={i} className={styles.tableRow} style={{
+              <div key={i} className={styles.clickableRow} onClick={() => { if (onSwitchTab) onSwitchTab('Games'); }} style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 padding: '10px 16px', borderBottom: '1px solid #2a2622',
               }}>
                 <div>
                   <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0' }}>
-                    {g.characterName || 'Unnamed'} &middot; {g.playerName || 'Unknown'}
+                    #{g.id} &middot; {g.characterName || 'Unnamed'} &middot; {g.playerName || 'Unknown'}
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -1343,6 +1373,51 @@ function SettingsTab({ data, loading, onRefresh }) {
           </p>
         )}
       </div>
+
+      {/* System Info */}
+      <div style={{ background: '#111528', border: '1px solid #3a3328', borderRadius: 6, padding: 20, maxWidth: 480, marginTop: 20 }}>
+        <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>
+          System Info
+        </div>
+        {[
+          ['Admin', typeof window !== 'undefined' ? (getUser()?.email || 'Unknown') : ''],
+          ['Frontend', process.env.NEXT_PUBLIC_VERSION || 'dev'],
+          ['API Base', process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'],
+        ].map(([label, val]) => (
+          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #2a2622' }}>
+            <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>{label}</span>
+            <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#8a94a8' }}>{val}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Quick Links */}
+      <div style={{ background: '#111528', border: '1px solid #3a3328', borderRadius: 6, padding: 20, maxWidth: 480, marginTop: 20 }}>
+        <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>
+          Quick Links
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[
+            ['Railway Dashboard', 'https://railway.app/dashboard'],
+            ['Vercel Dashboard', 'https://vercel.com/dashboard'],
+            ['GitHub Repo', 'https://github.com/bweidig/crucibleRPG-frontend'],
+          ].map(([label, href]) => (
+            <a key={label} href={href} target="_blank" rel="noopener noreferrer" style={{
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c9a84c',
+              textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6,
+              transition: 'color 0.15s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline'; }}
+              onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}
+            >
+              {label}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+            </a>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1397,24 +1472,23 @@ export default function AdminPage() {
   }, [router]);
 
   // Fetch tab data on first visit
+  const fetchedTabs = useRef({});
   const fetchTab = useCallback(async (tab, force = false) => {
+    if (!force && fetchedTabs.current[tab]) return;
+    fetchedTabs.current[tab] = true;
     if (tab === 'Users') {
-      if (usersData && !force) return;
       setUsersLoading(true);
       try { setUsersData(await getAdminUsers()); } catch { /* keep stale */ }
       setUsersLoading(false);
     } else if (tab === 'Games') {
-      if (gamesData && !force) return;
       setGamesLoading(true);
       try { setGamesData(await getAdminGames()); } catch { /* keep stale */ }
       setGamesLoading(false);
     } else if (tab === 'Costs') {
-      if (costsData && !force) return;
       setCostsLoading(true);
       try { setCostsData(await getAdminCosts()); } catch { /* keep stale */ }
       setCostsLoading(false);
     } else if (tab === 'Health') {
-      if (healthData && !force) return;
       setHealthLoading(true);
       try {
         const d = await getAdminHealth();
@@ -1424,7 +1498,6 @@ export default function AdminPage() {
       } catch { /* keep stale */ }
       setHealthLoading(false);
     } else if (tab === 'Reports') {
-      if (reportsData && !force) return;
       setReportsLoading(true);
       try {
         const d = await getAdminReports({ status: 'open' });
@@ -1432,12 +1505,12 @@ export default function AdminPage() {
       } catch { /* keep stale */ }
       setReportsLoading(false);
     } else if (tab === 'Settings') {
-      if (settingsData && !force) return;
       setSettingsLoading(true);
       try { setSettingsData(await getInviteCode()); } catch { /* keep stale */ }
       setSettingsLoading(false);
     }
-  }, [usersData, gamesData, costsData, healthData, reportsData, settingsData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (authChecked) fetchTab(activeTab);
