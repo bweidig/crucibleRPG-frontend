@@ -107,7 +107,7 @@ export default function Sidebar({
       case 'npcs':
         return <NPCTab glossaryData={glossaryData} onEntityClick={onEntityClick} />;
       case 'glossary':
-        return <GlossaryTab data={glossaryData} onEntityClick={onEntityClick} />;
+        return <GlossaryTab data={glossaryData} characterData={characterData} onEntityClick={onEntityClick} />;
       case 'map':
         return <MapTab data={mapData} gameId={gameId} onEntityClick={onEntityClick} />;
       case 'notes':

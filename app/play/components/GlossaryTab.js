@@ -13,7 +13,7 @@ const TABS = [
 
 const KNOWN_CATEGORIES = new Set(['npc', 'location', 'faction', 'item']);
 
-export default function GlossaryTab({ data, onEntityClick }) {
+export default function GlossaryTab({ data, characterData, onEntityClick }) {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('all');
 
@@ -85,7 +85,16 @@ export default function GlossaryTab({ data, onEntityClick }) {
       <div className={styles.resultCount}>{filtered.length} entries</div>
 
       {filtered.map(entry => (
-        <div key={entry.id || entry.term} className={styles.entryCard} onClick={() => onEntityClick?.({ term: entry.term, type: entry.category, id: entry.id })}>
+        <div key={entry.id || entry.term} className={styles.entryCard} onClick={() => {
+          const entity = { term: entry.term, type: entry.category, id: entry.id };
+          // For items, merge mechanical data from character inventory if available
+          if ((entry.category || '').toLowerCase() === 'item' && characterData) {
+            const allItems = [...(characterData.inventory?.equipped || []), ...(characterData.inventory?.carried || [])];
+            const match = allItems.find(i => i.name === entry.term);
+            if (match) Object.assign(entity, match, { term: entry.term, type: 'item' });
+          }
+          onEntityClick?.(entity);
+        }}>
           <div className={styles.entryTerm}>{entry.term}</div>
           <div className={styles.entryMeta}>
             <span className={styles.entryCategory}>{entry.category}</span>
