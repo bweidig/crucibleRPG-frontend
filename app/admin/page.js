@@ -831,11 +831,11 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab }) {
         </div>
         <div className={styles.statCard}>
           <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Errors (24h)</div>
-          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 22, fontWeight: 700, color: (errors.count24h || 0) > 0 ? '#e8845a' : '#d0c098', marginBottom: 4 }}>
-            {errors.count24h ?? 0}
+          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 22, fontWeight: 700, color: (errors.last24h || 0) > 0 ? '#e8845a' : '#d0c098', marginBottom: 4 }}>
+            {errors.last24h ?? 0}
           </div>
           <div>
-            {(errors.count24h || 0) > 0 && (
+            {(errors.last24h || 0) > 0 && (
               <button onClick={() => setShowErrors(!showErrors)} style={{ background: 'none', border: 'none', fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#c9a84c', cursor: 'pointer', padding: 0 }}>
                 {showErrors ? 'Hide details' : 'View details'}
               </button>
@@ -867,12 +867,12 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 20 }}>
         <div className={styles.statCard}>
           <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Users</div>
-          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 22, fontWeight: 700, color: '#d0c098', marginBottom: 4 }}>{counts.users ?? 0}</div>
-          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{counts.playtesters ?? 0} playtesters</div>
+          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 22, fontWeight: 700, color: '#d0c098', marginBottom: 4 }}>{counts.totalUsers ?? 0}</div>
+          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{counts.totalPlaytesters ?? 0} playtesters</div>
         </div>
         <div className={styles.statCard}>
           <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Games</div>
-          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 22, fontWeight: 700, color: '#d0c098', marginBottom: 4 }}>{counts.games ?? 0}</div>
+          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 22, fontWeight: 700, color: '#d0c098', marginBottom: 4 }}>{counts.totalGames ?? 0}</div>
           <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{counts.activeGames ?? 0} active</div>
         </div>
         <div className={styles.statCard}>
@@ -901,7 +901,14 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab }) {
                 </div>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                   <StatusBadge status={g.status} />
-                  <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#e8c45a' }}>{g.stuckReason || 'Unknown'}</span>
+                  <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#e8c45a' }}>{(() => {
+                    const ts = g.lastActivity || g.createdAt;
+                    if (!ts) return 'Unknown';
+                    const days = Math.floor((Date.now() - new Date(ts).getTime()) / 86400000);
+                    return g.status === 'initializing'
+                      ? `Initializing for ${days} day${days !== 1 ? 's' : ''}`
+                      : `No activity for ${days} day${days !== 1 ? 's' : ''}`;
+                  })()}</span>
                 </div>
               </div>
             ))}
@@ -954,7 +961,7 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab }) {
         <div className={styles.statCard}>
           <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Players with Games</div>
           <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 18, fontWeight: 700, color: '#d0c098' }}>
-            {retention.usersWithGames ?? 0} of {counts.users ?? 0}
+            {retention.usersWithGames ?? 0} of {counts.totalUsers ?? 0}
           </div>
         </div>
         <div className={styles.statCard}>
