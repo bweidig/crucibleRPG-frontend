@@ -1044,7 +1044,16 @@ function ReportCard({ report, onStatusChange, onSaveNotes, onViewGame }) {
   const [savingNotes, setSavingNotes] = useState(false);
 
   const ctx = report.context || {};
-  const ctxEntries = Object.entries(ctx).filter(([, v]) => v != null);
+  const ctxEntries = [];
+  (function flatten(obj, prefix) {
+    for (const [k, v] of Object.entries(obj)) {
+      if (v == null) continue;
+      const key = prefix ? `${prefix}.${k}` : k;
+      if (typeof v === 'object' && !Array.isArray(v)) { flatten(v, key); }
+      else if (Array.isArray(v) && v.length > 0) { ctxEntries.push([key, v.map(x => typeof x === 'object' ? (x.name || JSON.stringify(x)) : x).join(', ')]); }
+      else if (!Array.isArray(v)) { ctxEntries.push([key, v]); }
+    }
+  })(ctx, '');
   const msgTruncated = (report.message || '').length > 200 && !expanded;
 
   async function handleSaveNotes() {
