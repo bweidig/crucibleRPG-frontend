@@ -2398,6 +2398,7 @@ function InitWizardInner() {
           break;
         case 2:
           await saveCharacter();
+          await generateProposal();
           break;
         case 3:
           await saveAttributes();
