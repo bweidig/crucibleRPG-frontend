@@ -1,46 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import NavBar from '@/components/NavBar';
+import Footer from '@/components/Footer';
+import ParticleField from '@/components/ParticleField';
 import styles from './page.module.css';
-
-const EMBER_COLORS = ["#c9a84c", "#d4a94e", "#e8a840", "#d4845a", "#c0924a", "#ddb84e"];
-
-function ParticleField() {
-  const [particles] = useState(() =>
-    Array.from({ length: 60 }, (_, i) => {
-      const color = EMBER_COLORS[Math.floor(Math.random() * EMBER_COLORS.length)];
-      const size = Math.random() * 3.0 + 0.6;
-      const opacity = Math.random() * 0.30 + 0.06;
-      const floatDur = Math.random() * 14 + 6;
-      const floatDelay = Math.random() * 10;
-      const hasTwinkle = Math.random() < 0.4;
-      const twinkleDur = Math.random() * 3 + 1.5;
-      const twinkleDelay = Math.random() * 6;
-      return {
-        id: i, x: Math.random() * 100, y: Math.random() * 100,
-        size, color, opacity, floatDur, floatDelay,
-        hasTwinkle, twinkleDur, twinkleDelay,
-        blur: size > 2.5,
-      };
-    })
-  );
-
-  return (
-    <div className={styles.particleField}>
-      {particles.map(p => (
-        <div key={p.id} className={styles.particle} style={{
-          left: `${p.x}%`, top: `${p.y}%`,
-          width: p.size, height: p.size,
-          background: p.color,
-          '--p-opacity': p.opacity, opacity: p.opacity,
-          animation: `float ${p.floatDur}s ease-in-out ${p.floatDelay}s infinite${p.hasTwinkle ? `, twinkle ${p.twinkleDur}s ease-in-out ${p.twinkleDelay}s infinite` : ''}`,
-          filter: p.blur ? 'blur(0.5px)' : 'none',
-        }} />
-      ))}
-    </div>
-  );
-}
 
 function Section({ title, children }) {
   return (
@@ -97,31 +61,7 @@ export default function PrivacyPolicyPage() {
       position: 'relative',
     }}>
       <ParticleField />
-
-      {/* Nav */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '20px clamp(24px, 4vw, 56px)',
-        position: 'relative', zIndex: 10,
-        opacity: loaded ? 1 : 0, transition: 'opacity 0.8s ease 0.1s',
-      }}>
-        <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span style={{
-            fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 900,
-            color: 'var(--accent-gold)', letterSpacing: '0.06em',
-          }}>CRUCIBLE</span>
-          <span style={{
-            fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
-            color: 'var(--gold-muted)', letterSpacing: '0.18em',
-          }}>RPG</span>
-        </Link>
-        <div className={styles.navLinksGroup} style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
-          <Link href="/landing" className={styles.navLink}>Home</Link>
-          <Link href="/pricing" className={styles.navLink}>Pricing</Link>
-          <Link href="/faq" className={styles.navLink}>FAQ</Link>
-          <Link href="/rulebook" className={styles.navLink}>Rulebook</Link>
-        </div>
-      </div>
+      <NavBar />
 
       {/* Header */}
       <div style={{
@@ -250,18 +190,7 @@ export default function PrivacyPolicyPage() {
         </Section>
       </div>
 
-      {/* Footer */}
-      <footer style={{
-        padding: '24px clamp(24px, 4vw, 56px)',
-        textAlign: 'center',
-        position: 'relative', zIndex: 1,
-        borderTop: '1px solid #1e2540',
-      }}>
-        <span style={{
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
-          color: 'var(--gold-footer)', letterSpacing: '0.04em',
-        }}>&copy; 2026 CrucibleRPG &middot; Every hero needs a crucible.</span>
-      </footer>
+      <Footer />
     </div>
   );
 }

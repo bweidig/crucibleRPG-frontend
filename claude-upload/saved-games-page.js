@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import AuthAvatar from '@/components/AuthAvatar';
+import NavBar from '@/components/NavBar';
+import Footer from '@/components/Footer';
+import ParticleField from '@/components/ParticleField';
 import styles from './page.module.css';
 
 // --- SAMPLE DATA ---
@@ -65,46 +67,6 @@ const SAMPLE_SAVES = [
     summary: "You woke up in a stranger's apartment on Level 14 with no memory of last night and a new tattoo on your wrist. Someone left a note with an address and the word 'midnight.' Your fixer hasn't returned your calls in two days.",
   },
 ];
-
-// --- PARTICLE FIELD ---
-
-const EMBER_COLORS = ["#c9a84c", "#d4a94e", "#e8a840", "#d4845a", "#c0924a", "#ddb84e"];
-
-function ParticleField() {
-  const [particles] = useState(() =>
-    Array.from({ length: 60 }, (_, i) => {
-      const color = EMBER_COLORS[Math.floor(Math.random() * EMBER_COLORS.length)];
-      const size = Math.random() * 3.0 + 0.6;
-      const opacity = Math.random() * 0.30 + 0.06;
-      const floatDur = Math.random() * 14 + 6;
-      const floatDelay = Math.random() * 10;
-      const hasTwinkle = Math.random() < 0.4;
-      const twinkleDur = Math.random() * 3 + 1.5;
-      const twinkleDelay = Math.random() * 6;
-      return {
-        id: i, x: Math.random() * 100, y: Math.random() * 100,
-        size, color, opacity, floatDur, floatDelay,
-        hasTwinkle, twinkleDur, twinkleDelay,
-        blur: size > 2.5,
-      };
-    })
-  );
-
-  return (
-    <div className={styles.particleField}>
-      {particles.map(p => (
-        <div key={p.id} className={styles.particle} style={{
-          left: `${p.x}%`, top: `${p.y}%`,
-          width: p.size, height: p.size,
-          background: p.color,
-          '--p-opacity': p.opacity, opacity: p.opacity,
-          animation: `float ${p.floatDur}s ease-in-out ${p.floatDelay}s infinite${p.hasTwinkle ? `, twinkle ${p.twinkleDur}s ease-in-out ${p.twinkleDelay}s infinite` : ''}`,
-          filter: p.blur ? 'blur(0.5px)' : 'none',
-        }} />
-      ))}
-    </div>
-  );
-}
 
 // --- DIFFICULTY BADGE ---
 
@@ -463,42 +425,7 @@ export default function SavedGamesPage() {
       position: 'relative', display: 'flex', flexDirection: 'column',
     }}>
       <ParticleField />
-
-      {/* Top bar */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '24px clamp(24px, 4vw, 56px)',
-        position: 'relative', zIndex: 1,
-        opacity: loaded ? 1 : 0,
-        transition: 'opacity 0.8s ease 0.1s',
-      }}>
-        <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span style={{
-            fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 900,
-            color: 'var(--accent-gold)', letterSpacing: '0.06em',
-          }}>CRUCIBLE</span>
-          <span style={{
-            fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
-            color: 'var(--gold-muted)', letterSpacing: '0.18em',
-          }}>RPG</span>
-        </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Link
-            href="/menu"
-            className={styles.btnBack}
-            style={{
-              fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
-              color: 'var(--text-secondary-bright)', display: 'flex', alignItems: 'center', gap: 6,
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
-            </svg>
-            Main Menu
-          </Link>
-          <AuthAvatar size={32} />
-        </div>
-      </div>
+      <NavBar />
 
       {/* Content area */}
       <div style={{
@@ -548,16 +475,7 @@ export default function SavedGamesPage() {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer style={{
-        textAlign: 'center', padding: '24px clamp(24px, 4vw, 56px)',
-        position: 'relative', zIndex: 1,
-      }}>
-        <span style={{
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
-          color: 'var(--gold-footer)', letterSpacing: '0.04em',
-        }}>&copy; 2026 CrucibleRPG &middot; Every hero needs a crucible.</span>
-      </footer>
+      <Footer variant="minimal" />
 
       {/* Delete confirmation modal */}
       {deleteTarget && (

@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import * as api from '@/lib/api';
-import AuthAvatar from '@/components/AuthAvatar';
+import NavBar from '@/components/NavBar';
+import Footer from '@/components/Footer';
 import styles from './page.module.css';
 
 // --- SVG ICONS ---
@@ -2456,21 +2456,7 @@ function InitWizardInner() {
       minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)',
       display: 'flex', flexDirection: 'column', alignItems: 'center',
     }}>
-      {/* Header */}
-      <div style={{
-        width: '100%', padding: '18px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        borderBottom: '1px solid var(--border-gold-faint)', boxSizing: 'border-box',
-      }}>
-        <Link href="/menu" style={{ textDecoration: 'none', display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 900, color: 'var(--accent-gold)', letterSpacing: '0.06em' }}>
-            CRUCIBLE
-          </span>
-          <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: 'var(--gold-muted)', letterSpacing: '0.18em' }}>
-            RPG
-          </span>
-        </Link>
-        <AuthAvatar size={32} />
-      </div>
+      <div style={{ width: '100%' }}><NavBar /></div>
 
       {/* Offline banner */}
       {connectionFailed && !gameId && (
@@ -2707,6 +2693,8 @@ function InitWizardInner() {
           {saving ? 'SAVING...' : phase === 5 ? 'BEGIN ADVENTURE' : 'CONTINUE'}
         </button>
       </div>
+
+      <Footer variant="minimal" />
 
       {/* Phase transition overlay */}
       {transitionPhase !== null && (() => {

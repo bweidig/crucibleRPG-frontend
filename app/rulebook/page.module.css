@@ -15,25 +15,6 @@
   transform: translateY(-2px);
 }
 
-/* Nav link */
-.navLink {
-  font-family: var(--font-alegreya-sans);
-  font-size: 14px;
-  color: #8a9ab8;
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-.navLink:hover {
-  color: var(--accent-gold);
-}
-
-.navLinkActive {
-  composes: navLink;
-  color: var(--accent-gold);
-  font-weight: 600;
-}
-
 /* TOC link */
 .tocLink {
   display: block;
@@ -105,24 +86,7 @@
 
 /* ===== MOBILE RESPONSIVE ===== */
 
-/* TODO: mobile nav needed — hiding section links on small screens */
-
 @media (max-width: 767px) {
-  .navLinksGroup .navLink,
-  .navLinksGroup .navLinkActive {
-    display: none;
-  }
-
-  .navLinksGroup .navLink:last-child {
-    display: inline;
-  }
-
-  .navLink {
-    min-height: 44px;
-    display: inline-flex;
-    align-items: center;
-  }
-
   .mainArea {
     flex-direction: column !important;
   }

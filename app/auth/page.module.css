@@ -2,31 +2,6 @@
    Auth Page Styles
    ============================================ */
 
-/* Particle field */
-.particleField {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.particle {
-  position: absolute;
-  border-radius: 50%;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0) scale(1); opacity: var(--p-opacity); }
-  25% { opacity: calc(var(--p-opacity) * 1.8); }
-  50% { transform: translateY(-18px) scale(1.15); opacity: calc(var(--p-opacity) * 0.5); }
-  75% { opacity: calc(var(--p-opacity) * 2.0); }
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: var(--p-opacity); transform: scale(1); }
-  50% { opacity: calc(var(--p-opacity) * 2.5); transform: scale(1.4); }
-}
-
 /* Social login buttons */
 .socialButton {
   width: 100%;
@@ -104,10 +79,6 @@
 /* ===== MOBILE RESPONSIVE ===== */
 
 @media (max-width: 767px) {
-  .particleField {
-    display: none;
-  }
-
   .pageContainer {
     padding: 0 16px;
   }

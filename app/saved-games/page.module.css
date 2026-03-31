@@ -2,32 +2,6 @@
    Saved Games Page Styles
    ============================================ */
 
-/* Particle field */
-.particleField {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.particle {
-  position: absolute;
-  border-radius: 50%;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0) scale(1); opacity: var(--p-opacity); }
-  25% { opacity: calc(var(--p-opacity) * 1.8); }
-  50% { transform: translateY(-18px) scale(1.15); opacity: calc(var(--p-opacity) * 0.5); }
-  75% { opacity: calc(var(--p-opacity) * 2.0); }
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: var(--p-opacity); transform: scale(1); }
-  50% { opacity: calc(var(--p-opacity) * 2.5); transform: scale(1.4); }
-}
-
 /* Save card */
 .saveCard {
   transition: all 0.3s ease;
@@ -49,17 +23,6 @@
 .btnPrimary:hover {
   box-shadow: 0 4px 24px rgba(201, 168, 76, 0.35);
   transform: translateY(-1px);
-}
-
-/* Back link */
-.btnBack {
-  transition: all 0.2s ease;
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.btnBack:hover {
-  color: var(--accent-gold);
 }
 
 /* Delete text button */
@@ -111,13 +74,8 @@
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .particle {
-    animation: none;
-  }
-
   .saveCard,
   .btnPrimary,
-  .btnBack,
   .btnDanger,
   .deleteConfirmBtn,
   .deleteCancelBtn {
@@ -132,22 +90,12 @@
 /* ===== MOBILE RESPONSIVE ===== */
 
 @media (max-width: 767px) {
-  .particleField {
-    display: none;
-  }
-
   .saveCard {
     padding: 20px 16px !important;
   }
 
   .btnPrimary {
     min-height: 44px;
-  }
-
-  .btnBack {
-    min-height: 44px;
-    display: inline-flex;
-    align-items: center;
   }
 
   .btnDanger {

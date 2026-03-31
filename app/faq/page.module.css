@@ -2,52 +2,6 @@
    FAQ Page Styles
    ============================================ */
 
-/* Particle field */
-.particleField {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.particle {
-  position: absolute;
-  border-radius: 50%;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0) scale(1); opacity: var(--p-opacity); }
-  25% { opacity: calc(var(--p-opacity) * 1.8); }
-  50% { transform: translateY(-18px) scale(1.15); opacity: calc(var(--p-opacity) * 0.5); }
-  75% { opacity: calc(var(--p-opacity) * 2.0); }
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: var(--p-opacity); transform: scale(1); }
-  50% { opacity: calc(var(--p-opacity) * 2.5); transform: scale(1.4); }
-}
-
-/* Nav link */
-.navLink {
-  font-family: var(--font-alegreya-sans);
-  font-size: 14px;
-  color: #8a9ab8;
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-.navLink:hover {
-  color: var(--accent-gold);
-}
-
-.navLinkActive {
-  font-family: var(--font-alegreya-sans);
-  font-size: 14px;
-  color: var(--accent-gold);
-  text-decoration: none;
-}
-
 /* Category tabs */
 .tab {
   font-family: var(--font-cinzel);
@@ -142,10 +96,6 @@
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .particle {
-    animation: none;
-  }
-
   .faqAnswer {
     transition: none;
   }
@@ -158,22 +108,6 @@
 /* ===== MOBILE RESPONSIVE ===== */
 
 @media (max-width: 767px) {
-  .particleField {
-    display: none;
-  }
-
-  .navLinksGroup .navLink,
-  .navLinksGroup .navLinkActive {
-    display: none;
-  }
-
-  .navLink,
-  .navLinkActive {
-    min-height: 44px;
-    display: inline-flex;
-    align-items: center;
-  }
-
   .tab {
     min-height: 44px;
     padding: 10px 16px;

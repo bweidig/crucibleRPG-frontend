@@ -5,47 +5,12 @@ import { useRouter } from 'next/navigation';
 import Script from 'next/script';
 import Link from 'next/link';
 import { post, setToken, setUser } from '@/lib/api';
+import NavBar from '@/components/NavBar';
+import Footer from '@/components/Footer';
+import ParticleField from '@/components/ParticleField';
 import styles from './page.module.css';
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-
-const EMBER_COLORS = ["#c9a84c", "#d4a94e", "#e8a840", "#d4845a", "#c0924a", "#ddb84e"];
-
-function ParticleField() {
-  const [particles] = useState(() =>
-    Array.from({ length: 60 }, (_, i) => {
-      const color = EMBER_COLORS[Math.floor(Math.random() * EMBER_COLORS.length)];
-      const size = Math.random() * 3.0 + 0.6;
-      const opacity = Math.random() * 0.30 + 0.06;
-      const floatDur = Math.random() * 14 + 6;
-      const floatDelay = Math.random() * 10;
-      const hasTwinkle = Math.random() < 0.4;
-      const twinkleDur = Math.random() * 3 + 1.5;
-      const twinkleDelay = Math.random() * 6;
-      return {
-        id: i, x: Math.random() * 100, y: Math.random() * 100,
-        size, color, opacity, floatDur, floatDelay,
-        hasTwinkle, twinkleDur, twinkleDelay,
-        blur: size > 2.5,
-      };
-    })
-  );
-
-  return (
-    <div className={styles.particleField}>
-      {particles.map(p => (
-        <div key={p.id} className={styles.particle} style={{
-          left: `${p.x}%`, top: `${p.y}%`,
-          width: p.size, height: p.size,
-          background: p.color,
-          '--p-opacity': p.opacity, opacity: p.opacity,
-          animation: `float ${p.floatDur}s ease-in-out ${p.floatDelay}s infinite${p.hasTwinkle ? `, twinkle ${p.twinkleDur}s ease-in-out ${p.twinkleDelay}s infinite` : ''}`,
-          filter: p.blur ? 'blur(0.5px)' : 'none',
-        }} />
-      ))}
-    </div>
-  );
-}
 
 function InputField({ label, type = 'text', placeholder, value, onChange, autoComplete, children }) {
   const [focused, setFocused] = useState(false);
@@ -238,6 +203,8 @@ export default function AuthPage() {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       position: 'relative', overflow: 'hidden',
     }}>
+      <NavBar />
+
       {/* Google Identity Services script */}
       {GOOGLE_CLIENT_ID && (
         <Script
@@ -255,21 +222,6 @@ export default function AuthPage() {
         background: 'radial-gradient(circle, rgba(201,168,76,0.12) 0%, transparent 65%)',
         top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none',
       }} />
-
-      {/* Top-left wordmark */}
-      <div style={{
-        position: 'absolute', top: 22, left: 24,
-        display: 'flex', alignItems: 'baseline', gap: 8,
-      }}>
-        <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 900, color: 'var(--accent-gold)', letterSpacing: '0.06em' }}>
-            CRUCIBLE
-          </span>
-          <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: 'var(--gold-muted)', letterSpacing: '0.18em' }}>
-            RPG
-          </span>
-        </Link>
-      </div>
 
       {/* Card */}
       <form onSubmit={handleSubmit} className={styles.authCard} style={{
@@ -491,6 +443,8 @@ export default function AuthPage() {
           </div>
         )}
       </form>
+
+      <Footer variant="minimal" />
     </div>
   );
 }

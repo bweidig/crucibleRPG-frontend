@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import AuthAvatar from '@/components/AuthAvatar';
+import NavBar from '@/components/NavBar';
+import Footer from '@/components/Footer';
 import styles from './page.module.css';
 
 // --- SECTION DATA ---
@@ -162,29 +163,7 @@ export default function RulebookPage() {
         }
       `}</style>
 
-      {/* Top bar */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '24px clamp(24px, 4vw, 56px)',
-        borderBottom: '1px solid #1e2540',
-      }}>
-        <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span style={{
-            fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 900,
-            color: 'var(--accent-gold)', letterSpacing: '0.06em',
-          }}>CRUCIBLE</span>
-          <span style={{
-            fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
-            color: 'var(--gold-muted)', letterSpacing: '0.18em',
-          }}>RPG</span>
-        </Link>
-        <div className={styles.navLinksGroup} style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-          <Link href="/pricing" className={styles.navLink}>Pricing</Link>
-          <Link href="/faq" className={styles.navLink}>FAQ</Link>
-          <span className={styles.navLinkActive}>Rulebook</span>
-          <AuthAvatar size={32} />
-        </div>
-      </div>
+      <NavBar currentPage="rulebook" />
 
       {/* Hero section */}
       <div style={{
@@ -348,16 +327,7 @@ export default function RulebookPage() {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer style={{
-        padding: 24, textAlign: 'center',
-        borderTop: '1px solid #1e2540',
-      }}>
-        <span style={{
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
-          color: 'var(--gold-footer)', letterSpacing: '0.04em',
-        }}>&copy; 2026 CrucibleRPG &middot; Every hero needs a crucible.</span>
-      </footer>
+      <Footer variant="minimal" />
     </div>
   );
 }

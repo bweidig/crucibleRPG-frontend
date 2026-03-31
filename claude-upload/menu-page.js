@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { get, post, del, clearToken, isAuthenticated, getUser } from '@/lib/api';
-import AuthAvatar from '@/components/AuthAvatar';
+import NavBar from '@/components/NavBar';
+import Footer from '@/components/Footer';
+import ParticleField from '@/components/ParticleField';
 import styles from './page.module.css';
 
 // ─── GOLD PALETTE ───
@@ -22,8 +23,6 @@ const GOLD = {
 };
 
 // ─── EMBER PARTICLES ───
-
-const EMBER_COLORS = ["#c9a84c", "#d4a94e", "#e8a840", "#d4845a", "#c0924a", "#ddb84e"];
 
 // ─── FONT & SIZE OPTIONS (for display settings persistence) ───
 
@@ -114,36 +113,6 @@ function MetaLine({ game }) {
   );
 }
 
-// ─── PARTICLE FIELD ───
-
-function ParticleField() {
-  const [particles] = useState(() =>
-    Array.from({ length: 60 }, (_, i) => {
-      const color = EMBER_COLORS[Math.floor(Math.random() * EMBER_COLORS.length)];
-      const size = Math.random() * 3.0 + 0.6;
-      const opacity = Math.random() * 0.30 + 0.06;
-      const floatDur = Math.random() * 14 + 6;
-      const floatDelay = Math.random() * 10;
-      const hasTwinkle = Math.random() < 0.4;
-      const twinkleDur = Math.random() * 3 + 1.5;
-      const twinkleDelay = Math.random() * 6;
-      return { id: i, x: Math.random() * 100, y: Math.random() * 100, size, color, opacity, floatDur, floatDelay, hasTwinkle, twinkleDur, twinkleDelay, blur: size > 2.5 };
-    })
-  );
-
-  return (
-    <div className={styles.particleField}>
-      {particles.map(p => (
-        <div key={p.id} className={styles.particle} style={{
-          left: `${p.x}%`, top: `${p.y}%`, width: p.size, height: p.size,
-          background: p.color, '--p-opacity': p.opacity, opacity: p.opacity,
-          animation: `float ${p.floatDur}s ease-in-out ${p.floatDelay}s infinite${p.hasTwinkle ? `, twinkle ${p.twinkleDur}s ease-in-out ${p.twinkleDelay}s infinite` : ''}`,
-          filter: p.blur ? 'blur(0.5px)' : 'none',
-        }} />
-      ))}
-    </div>
-  );
-}
 
 // ─── CHARACTER SNAPSHOT ───
 
@@ -802,23 +771,8 @@ export default function MenuPage() {
         position: 'relative', zIndex: 1, maxWidth: 860, margin: '0 auto', padding: '0 32px', boxSizing: 'border-box',
         opacity: loaded ? 1 : 0, transition: 'opacity 0.6s',
       }}>
-        {/* Nav */}
-        <div style={{
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-          padding: "18px 0", borderBottom: "1px solid #2a2622", marginBottom: 32,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 4, userSelect: "none" }}>
-              <span style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 24, fontWeight: 900, color: "#c9a84c", letterSpacing: "0.06em" }}>CRUCIBLE</span>
-              <span style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 14, fontWeight: 600, color: "#9a8545", letterSpacing: "0.08em" }}>RPG</span>
-            </div>
-            <div style={{ fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 10, color: "#7082a4", border: "1px solid #3a3328", borderRadius: 4, padding: "2px 7px" }}>EARLY ACCESS</div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <Link href="/rulebook" className={styles.navLink} style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 13, fontWeight: 600, color: "#9a8545", letterSpacing: "0.1em" }}>RULEBOOK</Link>
-            <AuthAvatar size={32} />
-          </div>
-        </div>
+        <NavBar currentPage="menu" />
+        <div style={{ fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 10, color: "#7082a4", border: "1px solid #3a3328", borderRadius: 4, padding: "2px 7px", display: "inline-block", marginBottom: 24, marginTop: 12 }}>EARLY ACCESS</div>
 
         {/* Error */}
         {error && (
@@ -939,20 +893,7 @@ export default function MenuPage() {
         </div>
       )}
 
-      {/* ═══ FOOTER (1120px) ═══ */}
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1120, margin: '0 auto', padding: '0 32px', boxSizing: 'border-box' }}>
-        <div style={{
-          borderTop: "1px solid #2a2622", padding: "20px 0 32px", marginTop: 40,
-          display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12,
-        }}>
-          <div style={{ fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 13, color: "#a08a48" }}>
-            Crucible RPG {'\u00B7'} Early Access {'\u00B7'} v0.1.0
-          </div>
-          <div style={{ fontFamily: "var(--font-alegreya), serif", fontSize: 14, color: "#a08a48", fontStyle: "italic" }}>
-            Every hero needs a crucible.
-          </div>
-        </div>
-      </div>
+      <Footer variant="minimal" />
 
       {/* ═══ MODALS ═══ */}
       {detailTarget && (

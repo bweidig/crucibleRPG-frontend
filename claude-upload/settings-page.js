@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { isAuthenticated, getUser, setUser, getToken, clearToken, put, del } from '@/lib/api';
-import AuthAvatar from '@/components/AuthAvatar';
+import NavBar from '@/components/NavBar';
+import Footer from '@/components/Footer';
+import ParticleField from '@/components/ParticleField';
 import styles from './page.module.css';
 
 const SETTINGS_KEY = 'crucible_display_settings';
@@ -20,44 +22,6 @@ function loadDisplaySettings() {
 
 function saveDisplaySettings(settings) {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-}
-
-const EMBER_COLORS = ["#c9a84c", "#d4a94e", "#e8a840", "#d4845a", "#c0924a", "#ddb84e"];
-
-function ParticleField() {
-  const [particles] = useState(() =>
-    Array.from({ length: 60 }, (_, i) => {
-      const color = EMBER_COLORS[Math.floor(Math.random() * EMBER_COLORS.length)];
-      const size = Math.random() * 3.0 + 0.6;
-      const opacity = Math.random() * 0.30 + 0.06;
-      const floatDur = Math.random() * 14 + 6;
-      const floatDelay = Math.random() * 10;
-      const hasTwinkle = Math.random() < 0.4;
-      const twinkleDur = Math.random() * 3 + 1.5;
-      const twinkleDelay = Math.random() * 6;
-      return {
-        id: i, x: Math.random() * 100, y: Math.random() * 100,
-        size, color, opacity, floatDur, floatDelay,
-        hasTwinkle, twinkleDur, twinkleDelay,
-        blur: size > 2.5,
-      };
-    })
-  );
-
-  return (
-    <div className={styles.particleField}>
-      {particles.map(p => (
-        <div key={p.id} className={styles.particle} style={{
-          left: `${p.x}%`, top: `${p.y}%`,
-          width: p.size, height: p.size,
-          background: p.color,
-          '--p-opacity': p.opacity, opacity: p.opacity,
-          animation: `float ${p.floatDur}s ease-in-out ${p.floatDelay}s infinite${p.hasTwinkle ? `, twinkle ${p.twinkleDur}s ease-in-out ${p.twinkleDelay}s infinite` : ''}`,
-          filter: p.blur ? 'blur(0.5px)' : 'none',
-        }} />
-      ))}
-    </div>
-  );
 }
 
 // ─── FONT / SIZE MAPS ───
@@ -207,19 +171,7 @@ export default function SettingsPage() {
       minHeight: '100vh', background: '#0a0e1a', color: '#c8c0b0', position: 'relative',
     }}>
       <ParticleField />
-
-      {/* Nav */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '20px clamp(24px, 4vw, 56px)',
-        position: 'relative', zIndex: 10,
-      }}>
-        <Link href="/menu" style={{ textDecoration: 'none', display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 900, color: '#c9a84c', letterSpacing: '0.06em' }}>CRUCIBLE</span>
-          <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.18em' }}>RPG</span>
-        </Link>
-        <AuthAvatar size={32} active />
-      </div>
+      <NavBar currentPage="settings" />
 
       {/* Content */}
       <div style={{
@@ -479,20 +431,7 @@ export default function SettingsPage() {
         )}
       </div>
 
-      {/* Footer */}
-      <footer style={{
-        padding: '24px clamp(24px, 4vw, 56px)',
-        position: 'relative', zIndex: 1,
-        borderTop: '1px solid #2a2622',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      }}>
-        <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#a08a48', letterSpacing: '0.04em' }}>
-          Crucible RPG &middot; Early Access &middot; v0.1.0
-        </span>
-        <span style={{ fontFamily: 'var(--font-alegreya)', fontSize: 14, fontStyle: 'italic', color: '#a08a48' }}>
-          Every hero needs a crucible.
-        </span>
-      </footer>
+      <Footer variant="minimal" />
     </div>
   );
 }

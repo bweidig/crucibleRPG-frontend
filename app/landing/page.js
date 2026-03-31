@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import AuthAvatar from '@/components/AuthAvatar';
 import { getToken } from '@/lib/api';
+import NavBar from '@/components/NavBar';
+import Footer from '@/components/Footer';
+import ParticleField from '@/components/ParticleField';
 import styles from './page.module.css';
 
 const features = [
@@ -28,78 +30,6 @@ const faqItems = [
   { q: 'Is there a free trial?', a: 'Yes. No credit card required. You get enough turns to create a character, build a world, and play through several scenes.' },
 ];
 
-const footerLinks = [
-  { label: 'FAQ', href: '/faq' },
-  { label: 'Rulebook', href: '/rulebook' },
-  { label: 'Pricing', href: '/pricing' },
-  { label: 'Privacy', href: '/privacy' },
-  { label: 'Terms', href: '/terms' },
-];
-
-const EMBER_COLORS = ["#c9a84c", "#d4a94e", "#e8a840", "#d4845a", "#c0924a", "#ddb84e"];
-
-function ParticleField() {
-  const [particles] = useState(() =>
-    Array.from({ length: 60 }, (_, i) => {
-      const color = EMBER_COLORS[Math.floor(Math.random() * EMBER_COLORS.length)];
-      const size = Math.random() * 3.0 + 0.6;
-      const opacity = Math.random() * 0.30 + 0.06;
-      const floatDur = Math.random() * 14 + 6;
-      const floatDelay = Math.random() * 10;
-      const hasTwinkle = Math.random() < 0.4;
-      const twinkleDur = Math.random() * 3 + 1.5;
-      const twinkleDelay = Math.random() * 6;
-      return {
-        id: i, x: Math.random() * 100, y: Math.random() * 100,
-        size, color, opacity, floatDur, floatDelay,
-        hasTwinkle, twinkleDur, twinkleDelay,
-        blur: size > 2.5,
-      };
-    })
-  );
-
-  return (
-    <div className={styles.particleField}>
-      {particles.map(p => (
-        <div key={p.id} className={styles.particle} style={{
-          left: `${p.x}%`, top: `${p.y}%`,
-          width: p.size, height: p.size,
-          background: p.color,
-          '--p-opacity': p.opacity, opacity: p.opacity,
-          animation: `float ${p.floatDur}s ease-in-out ${p.floatDelay}s infinite${p.hasTwinkle ? `, twinkle ${p.twinkleDur}s ease-in-out ${p.twinkleDelay}s infinite` : ''}`,
-          filter: p.blur ? 'blur(0.5px)' : 'none',
-        }} />
-      ))}
-    </div>
-  );
-}
-
-function NavBar({ scrolled }) {
-  return (
-    <nav style={{
-      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-      padding: '0 clamp(24px, 4vw, 56px)', height: 72,
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      background: scrolled ? 'rgba(10, 14, 26, 0.94)' : 'transparent',
-      backdropFilter: scrolled ? 'blur(16px)' : 'none',
-      borderBottom: scrolled ? '1px solid var(--border-gold-faint)' : '1px solid transparent',
-      transition: 'all 0.5s ease',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 900, color: 'var(--accent-gold)', letterSpacing: '0.06em' }}>CRUCIBLE</span>
-        <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: 'var(--gold-muted)', letterSpacing: '0.18em' }}>RPG</span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 36 }}>
-        {['Features', 'How It Works', 'FAQ'].map((item) => (
-          <a key={item} href={`#${item.toLowerCase().replace(/ /g, '-')}`} className={styles.navLink}>{item}</a>
-        ))}
-        <Link href="/rulebook" className={styles.navLink}>Rulebook</Link>
-        <Link href="/pricing" className={styles.navLink}>Pricing</Link>
-        <AuthAvatar size={32} />
-      </div>
-    </nav>
-  );
-}
 
 function ScrollChevron({ loaded }) {
   const [scrolledPast, setScrolledPast] = useState(false);
@@ -392,45 +322,12 @@ function ScrollFade() {
   return <div className={styles.scrollFade} style={{ opacity: visible ? 1 : 0 }} />;
 }
 
-function Footer() {
-  return (
-    <footer style={{
-      padding: '40px clamp(24px, 4vw, 56px) 36px',
-      borderTop: '1px solid var(--border-gold-subtle)',
-      maxWidth: 1200, margin: '0 auto',
-    }}>
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        flexWrap: 'wrap', gap: 16,
-      }}>
-        <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 15, color: 'var(--gold-muted)', letterSpacing: '0.1em' }}>CRUCIBLE RPG</span>
-        <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
-          {footerLinks.map((link) => (
-            <a key={link.label} href={link.href} className={styles.footerLink}>{link.label}</a>
-          ))}
-        </div>
-      </div>
-      <div style={{
-        textAlign: 'right', marginTop: 12,
-        fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
-        color: 'var(--text-dim)',
-      }}>&copy; 2026 CrucibleRPG</div>
-    </footer>
-  );
-}
 
 export default function LandingPage() {
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const h = () => setScrolled(window.scrollY > 40);
-    window.addEventListener('scroll', h);
-    return () => window.removeEventListener('scroll', h);
-  }, []);
-
   return (
     <div className={styles.pageContainer} style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)', position: 'relative' }}>
       <ParticleField />
-      <NavBar scrolled={scrolled} />
+      <NavBar variant="landing" />
       <ScrollFade />
       <HeroSection />
       <FeaturesSection />
