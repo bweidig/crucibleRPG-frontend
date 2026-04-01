@@ -34,6 +34,19 @@
 
 ## Recent Work (This Session: 2026-03-31)
 
+### Admin Dashboard UX Review Round 2 (10 fixes)
+- **User detail game rows:** Clickable rows with eye icon navigate to Games tab game detail via pendingGameDetail pattern.
+- **Stuck games per-row delete:** Each stuck game row has a trash icon that opens DeleteGameModal. On delete, removed from local state.
+- **Multi-select bulk delete:** Checkbox column on Games table, select-all header checkbox, floating action bar with count and "Delete Selected" button. Type-to-confirm modal with progress bar. Select-all only selects visible (filtered) rows.
+- **Dim test debris rows:** Games with turnCount === 0 or no character name render at 0.6 opacity.
+- **User detail prev/next:** Arrow buttons (← →) at top of user detail panel step through sorted/filtered list. Disabled at boundaries.
+- **Costs tab clickable games:** Highest-cost game rows show game ID and navigate to game detail on click.
+- **Reports filter labels:** "Type:" and "Status:" labels before each filter group, vertical divider between them.
+- **Health tab reorder:** Retention metrics moved above Stuck Games. Order: Status → Counts → Retention → Storyteller → Setting → Stuck Games → Errors. Added "Counts include all registered users" note.
+- **Settings invite code:** Source field shows descriptive sentences instead of raw source value. Placeholder changed to "e.g., PLAYTEST2026".
+- **Users game count links:** Game count is clickable — navigates to Games tab with search pre-filled with player name via pendingSearch pattern.
+- **Files modified:** `app/admin/page.js`, `app/admin/page.module.css`, `docs/FRONTEND_STATUS.md`.
+
 ### NavBar & Footer Polish
 - **NavBar standard links:** Updated to FAQ, Rulebook, Pricing, AuthAvatar (added FAQ link before Rulebook).
 - **NavBar active page highlighting:** `currentPage` prop applies gold accent (#c9a84c) via `.navLinkActive` class. Works for faq, rulebook, pricing, and settings (AuthAvatar active border).
