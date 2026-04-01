@@ -48,6 +48,7 @@ export default function NavBar({ variant = 'standard', currentPage }) {
         <span className={styles.wordmarkRpg}>RPG</span>
       </Link>
       <div className={styles.standardLinks}>
+        <Link href="/faq" className={`${styles.navLink}${currentPage === 'faq' ? ` ${styles.navLinkActive}` : ''}`}>FAQ</Link>
         <Link href="/rulebook" className={`${styles.navLink}${currentPage === 'rulebook' ? ` ${styles.navLinkActive}` : ''}`}>Rulebook</Link>
         <Link href="/pricing" className={`${styles.navLink}${currentPage === 'pricing' ? ` ${styles.navLinkActive}` : ''}`}>Pricing</Link>
         <AuthAvatar size={32} active={currentPage === 'settings'} />

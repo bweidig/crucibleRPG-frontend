@@ -32,7 +32,14 @@
 
 ---
 
-## Recent Work (This Session: 2026-03-30)
+## Recent Work (This Session: 2026-03-31)
+
+### NavBar & Footer Polish
+- **NavBar standard links:** Updated to FAQ, Rulebook, Pricing, AuthAvatar (added FAQ link before Rulebook).
+- **NavBar active page highlighting:** `currentPage` prop applies gold accent (#c9a84c) via `.navLinkActive` class. Works for faq, rulebook, pricing, and settings (AuthAvatar active border).
+- **Landing variant:** Excludes FAQ page link — the section anchor `#faq` already covers it.
+- **Footer verified:** All 11 pages confirmed to have Footer imported and rendered (standard or minimal variant). Footer CSS already includes `position: relative; z-index: 1` on both variants.
+- **Files modified:** `components/NavBar.js`, `app/menu/page.js`, `docs/FRONTEND_STATUS.md`.
 
 ### Menu Page: Delete Game + New from Template
 - **Delete game:** Added delete button to ContinueCard (top-right, hover danger color) and GameRow expanded section (text button next to Resume Game). Both open a type-to-confirm DeleteConfirmModal.

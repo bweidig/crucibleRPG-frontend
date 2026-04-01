@@ -771,7 +771,7 @@ export default function MenuPage() {
         position: 'relative', zIndex: 1, maxWidth: 860, margin: '0 auto', padding: '0 32px', boxSizing: 'border-box',
         opacity: loaded ? 1 : 0, transition: 'opacity 0.6s',
       }}>
-        <NavBar currentPage="menu" />
+        <NavBar />
         <div style={{ fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 10, color: "#7082a4", border: "1px solid #3a3328", borderRadius: 4, padding: "2px 7px", display: "inline-block", marginBottom: 24, marginTop: 12 }}>EARLY ACCESS</div>
 
         {/* Error */}
