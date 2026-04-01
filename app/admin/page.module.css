@@ -217,9 +217,10 @@
   background: #0d1120;
   border-right: 1px solid #1e2540;
   overflow-y: auto;
-  max-height: calc(100vh - 140px);
   position: sticky;
-  top: 0;
+  top: 20px;
+  align-self: flex-start;
+  max-height: calc(100vh - 60px);
   animation: slideIn 0.2s ease;
 }
 

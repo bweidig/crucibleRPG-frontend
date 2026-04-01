@@ -48,6 +48,23 @@ function formatCostPerTurn(cost, turns) {
   return `$${(cost / turns).toFixed(3)}`;
 }
 
+function groupNarrative(entries) {
+  const turns = new Map();
+  for (const entry of entries) {
+    if (!turns.has(entry.turnNumber)) {
+      turns.set(entry.turnNumber, { turnNumber: entry.turnNumber, narratorText: null, playerAction: null, significanceScore: 0 });
+    }
+    const turn = turns.get(entry.turnNumber);
+    if (entry.role === 'ai' || entry.role === 'narrator' || entry.role === 'assistant') {
+      turn.narratorText = turn.narratorText ? turn.narratorText + '\n\n' + entry.content : entry.content;
+      if ((entry.significanceScore || 0) > turn.significanceScore) turn.significanceScore = entry.significanceScore;
+    } else if (entry.role === 'player' || entry.role === 'user') {
+      turn.playerAction = entry.content;
+    }
+  }
+  return Array.from(turns.values()).sort((a, b) => a.turnNumber - b.turnNumber);
+}
+
 // ─── SORT HELPER ───
 
 function sortData(data, field, direction) {
@@ -519,7 +536,7 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted }) {
 // GAMES TAB
 // =============================================================================
 
-function GamesTab({ data, loading, onRefresh }) {
+function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedGame, setSelectedGame] = useState(null);
@@ -554,12 +571,20 @@ function GamesTab({ data, loading, onRefresh }) {
     }
   }
 
+  useEffect(() => {
+    if (pendingGameId) {
+      openGameDetail({ id: pendingGameId });
+      if (onClearPending) onClearPending();
+    }
+  }, [pendingGameId]);
+
   async function openGameDetail(game) {
     setSelectedGame(game);
     setDetailLoading(true);
     setNarrative(null);
     try {
       const detail = await getAdminGameDetail(game.id);
+      if (detail.narrative) detail.narrative = groupNarrative(detail.narrative);
       setGameDetail(detail);
     } catch { setGameDetail(null); }
     setDetailLoading(false);
@@ -569,6 +594,8 @@ function GamesTab({ data, loading, onRefresh }) {
     if (!selectedGame) return;
     try {
       const narr = await getAdminGameNarrative(selectedGame.id);
+      if (narr?.entries) narr.entries = groupNarrative(narr.entries);
+      else if (narr?.narrative) narr.entries = groupNarrative(narr.narrative);
       setNarrative(narr);
     } catch { /* ignore */ }
   }
@@ -853,8 +880,12 @@ function CostsTab({ data, loading, onRefresh }) {
 // HEALTH TAB
 // =============================================================================
 
-function HealthTab({ data, loading, onRefresh, onSwitchTab }) {
+function HealthTab({ data, loading, onRefresh, onSwitchTab, onViewStuckGame }) {
   const [showErrors, setShowErrors] = useState(false);
+  const [deleteAllConfirm, setDeleteAllConfirm] = useState(false);
+  const [deleteAllText, setDeleteAllText] = useState('');
+  const [deleteAllProgress, setDeleteAllProgress] = useState(null);
+  const [localStuckRemoved, setLocalStuckRemoved] = useState([]);
 
   if (loading) return <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 40 }}>Loading...</p>;
 
@@ -862,7 +893,7 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab }) {
   const db = h.database || {};
   const counts = h.counts || {};
   const errors = h.errors || {};
-  const stuck = h.stuckGames || [];
+  const stuck = (h.stuckGames || []).filter(g => !localStuckRemoved.includes(g.id));
   const reports = h.reports || {};
   const storytellers = h.storytellerPopularity || [];
   const settings = h.settingPopularity || [];
@@ -879,14 +910,14 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab }) {
 
       {/* Status Cards */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 20 }}>
-        <div className={styles.statCard}>
+        <div className={styles.statCard} style={{ borderLeft: db.connected ? '3px solid #8aba7a' : '3px solid #e85a5a' }}>
           <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Database</div>
           <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 28, fontWeight: 700, color: db.connected ? '#8aba7a' : '#e85a5a', marginBottom: 4 }}>
             {db.connected ? 'Connected' : 'Error'}
           </div>
           <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>{db.size || '-'}</div>
         </div>
-        <div className={styles.statCard}>
+        <div className={styles.statCard} style={{ borderLeft: (errors.last24h || 0) > 0 ? '3px solid #e8845a' : 'none' }}>
           <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Errors (24h)</div>
           <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 28, fontWeight: 700, color: (errors.last24h || 0) > 0 ? '#e8845a' : '#d0c098', marginBottom: 4 }}>
             {errors.last24h ?? 0}
@@ -899,7 +930,7 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab }) {
             )}
           </div>
         </div>
-        <div className={styles.statCard}>
+        <div className={styles.statCard} style={{ borderLeft: stuck.length > 0 ? '3px solid #e8c45a' : 'none' }}>
           <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Stuck Games</div>
           <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 28, fontWeight: 700, color: stuck.length > 0 ? '#e8c45a' : '#d0c098', marginBottom: 4 }}>
             {stuck.length}
@@ -908,7 +939,7 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab }) {
             {stuck.length > 0 ? 'See below' : 'None'}
           </div>
         </div>
-        <div className={styles.statCard} style={{ cursor: (reports.openBugs || reports.openSuggestions) ? 'pointer' : 'default' }}
+        <div className={styles.statCard} style={{ cursor: (reports.openBugs || reports.openSuggestions) ? 'pointer' : 'default', borderLeft: ((reports.openBugs || 0) + (reports.openSuggestions || 0)) > 0 ? '3px solid #e8c45a' : 'none' }}
           onClick={() => { if (reports.openBugs || reports.openSuggestions) onSwitchTab?.('Reports'); }}>
           <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Open Reports</div>
           <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 28, fontWeight: 700, color: ((reports.openBugs || 0) + (reports.openSuggestions || 0)) > 0 ? '#e8c45a' : '#d0c098', marginBottom: 4 }}>
@@ -942,12 +973,18 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab }) {
       {/* Stuck Games */}
       {stuck.length > 0 && (
         <div style={{ marginBottom: 24 }}>
-          <h4 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 700, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
-            Stuck Games
-          </h4>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+            <h4 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 700, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>
+              Stuck Games
+            </h4>
+            <button className={styles.dangerBtn} style={{ padding: '4px 12px', fontSize: 10 }}
+              onClick={() => setDeleteAllConfirm(true)}>
+              Delete All Stuck
+            </button>
+          </div>
           <div className={styles.tableCard}>
             {stuck.map((g, i) => (
-              <div key={i} className={styles.clickableRow} onClick={() => { if (onSwitchTab) onSwitchTab('Games'); }} style={{
+              <div key={i} className={styles.clickableRow} onClick={() => { onViewStuckGame?.(g.id); }} style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 padding: '10px 16px', borderBottom: '1px solid #2a2622',
               }}>
@@ -970,6 +1007,86 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab }) {
               </div>
             ))}
           </div>
+          {/* Delete All Stuck confirmation modal */}
+          {deleteAllConfirm && (
+            <div style={{
+              position: 'fixed', inset: 0, zIndex: 300,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(0,0,0,0.7)',
+            }}>
+              <div onClick={e => e.stopPropagation()} style={{
+                background: '#111528', border: '1px solid #3a3328', borderRadius: 10,
+                padding: '24px 28px', maxWidth: 420, width: '90vw',
+              }}>
+                <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: '#d0c098', marginBottom: 12 }}>
+                  Delete All Stuck Games
+                </h3>
+                <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0', marginBottom: 4, lineHeight: 1.6 }}>
+                  This will permanently delete <strong>{stuck.length}</strong> stuck game{stuck.length !== 1 ? 's' : ''}. This cannot be undone.
+                </p>
+                {deleteAllProgress != null ? (
+                  <div style={{ marginTop: 16 }}>
+                    <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#c8c0b0', marginBottom: 8 }}>
+                      Deleting... {deleteAllProgress} / {stuck.length}
+                    </div>
+                    <div style={{ background: '#1e2540', borderRadius: 3, height: 6 }}>
+                      <div style={{ background: '#e85a5a', height: 6, borderRadius: 3, width: `${(deleteAllProgress / stuck.length) * 100}%`, transition: 'width 0.2s ease' }} />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4', marginTop: 16, marginBottom: 6 }}>
+                      Type <strong style={{ color: '#c8c0b0' }}>delete all</strong> to confirm
+                    </p>
+                    <input
+                      value={deleteAllText}
+                      onChange={e => setDeleteAllText(e.target.value)}
+                      style={{
+                        width: '100%', boxSizing: 'border-box',
+                        fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0',
+                        background: '#0a0e1a', border: '1px solid #1e2540',
+                        borderRadius: 4, padding: '10px 14px', outline: 'none',
+                      }}
+                      autoFocus
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
+                      <button className={styles.ghostBtn} onClick={() => { setDeleteAllConfirm(false); setDeleteAllText(''); }}>Cancel</button>
+                      <button
+                        onClick={async () => {
+                          if (deleteAllText !== 'delete all') return;
+                          const toDelete = [...stuck];
+                          setDeleteAllProgress(0);
+                          for (let i = 0; i < toDelete.length; i++) {
+                            try {
+                              await deleteAdminGame(toDelete[i].id);
+                              setLocalStuckRemoved(prev => [...prev, toDelete[i].id]);
+                            } catch { /* continue */ }
+                            setDeleteAllProgress(i + 1);
+                          }
+                          setDeleteAllConfirm(false);
+                          setDeleteAllText('');
+                          setDeleteAllProgress(null);
+                        }}
+                        disabled={deleteAllText !== 'delete all'}
+                        style={{
+                          fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 700,
+                          letterSpacing: '0.08em', textTransform: 'uppercase',
+                          color: deleteAllText === 'delete all' ? '#ffffff' : '#5a4a4a',
+                          background: deleteAllText === 'delete all' ? '#b83a3a' : '#2a1a1a',
+                          border: 'none', borderRadius: 4, padding: '10px 20px',
+                          cursor: deleteAllText === 'delete all' ? 'pointer' : 'default',
+                          opacity: deleteAllText === 'delete all' ? 1 : 0.5,
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        Delete All
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1248,30 +1365,33 @@ function ReportCard({ report, onStatusChange, onSaveNotes, onViewGame }) {
   );
 }
 
-function ReportsTab({ data, loading, onRefresh, onViewGame }) {
+function ReportsTab({ data, loading, onRefresh, onViewGame, onReportCountChange }) {
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('open');
   const [reports, setReports] = useState([]);
-  const [fetching, setFetching] = useState(false);
 
   useEffect(() => { if (data?.reports) setReports(data.reports); }, [data]);
 
-  // Re-fetch when filters change
-  useEffect(() => {
-    if (!data) return; // first load handled by parent
-    let cancelled = false;
-    setFetching(true);
-    getAdminReports({ type: typeFilter, status: statusFilter })
-      .then(d => { if (!cancelled) setReports(d.reports || []); })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setFetching(false); });
-    return () => { cancelled = true; };
-  }, [typeFilter, statusFilter]);
+  const visibleReports = useMemo(() => {
+    return (reports || []).filter(r => {
+      if (typeFilter !== 'all' && r.type !== typeFilter) return false;
+      if (statusFilter !== 'all' && (r.status || 'open') !== statusFilter) return false;
+      return true;
+    });
+  }, [reports, typeFilter, statusFilter]);
 
   async function handleStatusChange(reportId, newStatus) {
+    const oldReport = reports.find(r => r.id === reportId);
+    const oldStatus = oldReport?.status || 'open';
     setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: newStatus } : r));
+    if (oldStatus === 'open' && newStatus !== 'open') onReportCountChange?.(-1);
+    else if (oldStatus !== 'open' && newStatus === 'open') onReportCountChange?.(1);
     try { await updateReport(reportId, { status: newStatus }); }
-    catch { setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: r.status } : r)); }
+    catch {
+      setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: oldStatus } : r));
+      if (oldStatus === 'open' && newStatus !== 'open') onReportCountChange?.(1);
+      else if (oldStatus !== 'open' && newStatus === 'open') onReportCountChange?.(-1);
+    }
   }
 
   async function handleSaveNotes(reportId, notes) {
@@ -1289,7 +1409,7 @@ function ReportsTab({ data, loading, onRefresh, onViewGame }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
           <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 20, fontWeight: 700, color: '#d0c098', margin: 0 }}>Reports</h2>
-          <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 14, color: '#7082a4' }}>{reports.length}</span>
+          <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 14, color: '#7082a4' }}>{visibleReports.length}</span>
         </div>
         <button className={styles.refreshBtn} onClick={onRefresh}>Refresh</button>
       </div>
@@ -1305,10 +1425,10 @@ function ReportsTab({ data, loading, onRefresh, onViewGame }) {
           ))}
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
-          {REPORT_STATUSES.map(s => (
+          {['all', ...REPORT_STATUSES].map(s => (
             <button key={s} className={statusFilter === s ? styles.filterPillActive : styles.filterPill}
               onClick={() => setStatusFilter(s)}>
-              {s.charAt(0).toUpperCase() + s.slice(1)}
+              {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
             </button>
           ))}
         </div>
@@ -1316,12 +1436,10 @@ function ReportsTab({ data, loading, onRefresh, onViewGame }) {
 
       {/* Report cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {fetching ? (
-          <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 20 }}>Loading...</p>
-        ) : reports.length === 0 ? (
+        {visibleReports.length === 0 ? (
           <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 20 }}>No reports found.</p>
         ) : (
-          reports.map(r => (
+          visibleReports.map(r => (
             <ReportCard
               key={r.id}
               report={r}
@@ -1480,6 +1598,9 @@ export default function AdminPage() {
   // Open report count for tab badge
   const [openReportCount, setOpenReportCount] = useState(0);
 
+  // Pending game detail (for cross-tab navigation)
+  const [pendingGameDetail, setPendingGameDetail] = useState(null);
+
   // Auth guard
   useEffect(() => {
     if (!isAuthenticated()) { router.replace('/auth'); return; }
@@ -1527,7 +1648,7 @@ export default function AdminPage() {
     } else if (tab === 'Reports') {
       setReportsLoading(true);
       try {
-        const d = await getAdminReports({ status: 'open' });
+        const d = await getAdminReports({});
         setReportsData(d);
       } catch { /* keep stale */ }
       setReportsLoading(false);
@@ -1559,10 +1680,17 @@ export default function AdminPage() {
         padding: '20px 48px',
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 900, color: '#c9a84c', letterSpacing: '0.06em' }}>CRUCIBLE</span>
-          <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.18em' }}>RPG</span>
+          <a href="/menu" style={{ textDecoration: 'none', display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 900, color: '#c9a84c', letterSpacing: '0.06em' }}>CRUCIBLE</span>
+            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.18em' }}>RPG</span>
+          </a>
           <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, color: '#7082a4', letterSpacing: '0.08em', textTransform: 'uppercase', marginLeft: 8 }}>ADMIN</span>
         </div>
+        <nav style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+          <a href="/menu" style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textDecoration: 'none' }}>Main Menu</a>
+          <a href="/settings" style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textDecoration: 'none' }}>Settings</a>
+          <a href="/rulebook" style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textDecoration: 'none' }}>Rulebook</a>
+        </nav>
         <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>
           Signed in as <span style={{ color: '#c9a84c' }}>{userEmail}</span>
         </div>
@@ -1599,10 +1727,10 @@ export default function AdminPage() {
       {/* Content */}
       <div style={{ padding: '28px 48px' }}>
         {activeTab === 'Users' && <UsersTab data={usersData} loading={usersLoading} onRefresh={() => fetchTab('Users', true)} onGameDeleted={(gameId) => setGamesData(prev => prev ? { ...prev, games: (prev.games || []).filter(g => g.id !== gameId) } : prev)} />}
-        {activeTab === 'Games' && <GamesTab data={gamesData} loading={gamesLoading} onRefresh={() => fetchTab('Games', true)} />}
+        {activeTab === 'Games' && <GamesTab data={gamesData} loading={gamesLoading} onRefresh={() => fetchTab('Games', true)} pendingGameId={pendingGameDetail} onClearPending={() => setPendingGameDetail(null)} />}
         {activeTab === 'Costs' && <CostsTab data={costsData} loading={costsLoading} onRefresh={() => fetchTab('Costs', true)} />}
-        {activeTab === 'Health' && <HealthTab data={healthData} loading={healthLoading} onRefresh={() => fetchTab('Health', true)} onSwitchTab={setActiveTab} />}
-        {activeTab === 'Reports' && <ReportsTab data={reportsData} loading={reportsLoading} onRefresh={() => fetchTab('Reports', true)} onViewGame={(gid) => { setActiveTab('Games'); }} />}
+        {activeTab === 'Health' && <HealthTab data={healthData} loading={healthLoading} onRefresh={() => fetchTab('Health', true)} onSwitchTab={setActiveTab} onViewStuckGame={(gid) => { setPendingGameDetail(gid); setActiveTab('Games'); }} />}
+        {activeTab === 'Reports' && <ReportsTab data={reportsData} loading={reportsLoading} onRefresh={() => fetchTab('Reports', true)} onViewGame={(gid) => { setPendingGameDetail(gid); setActiveTab('Games'); }} onReportCountChange={(delta) => setOpenReportCount(prev => Math.max(0, prev + delta))} />}
         {activeTab === 'Settings' && <SettingsTab data={settingsData} loading={settingsLoading} onRefresh={() => fetchTab('Settings', true)} />}
       </div>
     </div>
