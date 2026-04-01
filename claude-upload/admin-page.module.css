@@ -2,6 +2,20 @@
    Admin Dashboard Styles
    ============================================ */
 
+/* ─── Header Link ─── */
+
+.headerLink {
+  font-family: var(--font-alegreya-sans);
+  font-size: 14px;
+  color: #7082a4;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.headerLink:hover {
+  color: #c9a84c;
+}
+
 /* ─── Sort Header ─── */
 
 .sortHeader:hover {
@@ -12,11 +26,11 @@
 
 .tab {
   font-family: var(--font-cinzel);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  padding: 14px 24px;
+  padding: 12px 20px;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
@@ -123,11 +137,11 @@
 .badge {
   display: inline-block;
   font-family: var(--font-cinzel);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  padding: 3px 10px;
+  padding: 2px 8px;
   border-radius: 3px;
   white-space: nowrap;
 }
@@ -205,22 +219,22 @@
   background: #111528;
   border: 1px solid #3a3328;
   border-radius: 6px;
-  padding: 20px 24px;
-  min-width: 180px;
+  padding: 16px 20px;
+  min-width: 160px;
 }
 
 /* ─── Detail Panel (push layout) ─── */
 
 .pushPanel {
-  width: 500px;
-  min-width: 500px;
+  width: 480px;
+  min-width: 480px;
   background: #0d1120;
   border-right: 1px solid #1e2540;
   overflow-y: auto;
   position: sticky;
-  top: 20px;
+  top: 0;
   align-self: flex-start;
-  max-height: calc(100vh - 60px);
+  max-height: calc(100vh - 120px);
   animation: slideIn 0.2s ease;
 }
 
@@ -311,18 +325,6 @@
   border-color: #e85a5a;
 }
 
-.dangerBtnSolid {
-  composes: dangerBtn;
-  background: #c83a3a;
-  border-color: #c83a3a;
-  color: #fff;
-}
-
-.dangerBtnSolid:hover {
-  background: #d44;
-  border-color: #d44;
-}
-
 .ghostBtn {
   font-family: var(--font-cinzel);
   font-size: 11px;
@@ -343,7 +345,7 @@
   border-color: #3a3328;
 }
 
-/* ─── Gold Border Button (Settings) ─── */
+/* ─── Gold Border Button ─── */
 
 .goldBtn {
   font-family: var(--font-cinzel);
@@ -466,14 +468,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.7);
   animation: fadeIn 0.15s ease;
 }
 
 .deleteModalCard {
-  background: #0d1120;
+  background: #111528;
   border: 1px solid #3a3328;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 24px 28px;
   max-width: 420px;
   width: 90vw;
@@ -568,8 +570,8 @@
 
 @media (max-width: 1023px) {
   .pushPanel {
-    width: 400px;
-    min-width: 400px;
+    width: 380px;
+    min-width: 380px;
   }
 
   .searchInput {

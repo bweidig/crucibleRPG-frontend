@@ -92,6 +92,6 @@ export function getInviteCode() {
   return get('/api/admin/invite-code');
 }
 
-export function updateInviteCode(code) {
-  return put('/api/admin/invite-code', { code });
+export function updateInviteCode(inviteCode) {
+  return put('/api/admin/invite-code', { inviteCode });
 }

@@ -12,7 +12,9 @@ import {
 } from '@/lib/adminApi';
 import styles from './page.module.css';
 
-// ─── HELPERS ───
+// ═════════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ═════════════════════════════════════════════════════════════════════════════
 
 function timeAgo(dateStr) {
   if (!dateStr) return 'Never';
@@ -29,7 +31,7 @@ function timeAgo(dateStr) {
 }
 
 function formatDate(dateStr) {
-  if (!dateStr) return '-';
+  if (!dateStr) return '—';
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
@@ -41,11 +43,6 @@ function formatCost(val) {
 function formatCostShort(val) {
   if (val == null) return '$0.00';
   return `$${Number(val).toFixed(2)}`;
-}
-
-function formatCostPerTurn(cost, turns) {
-  if (!turns) return '-';
-  return `$${(cost / turns).toFixed(3)}`;
 }
 
 function groupNarrative(entries) {
@@ -65,8 +62,6 @@ function groupNarrative(entries) {
   return Array.from(turns.values()).sort((a, b) => a.turnNumber - b.turnNumber);
 }
 
-// ─── SORT HELPER ───
-
 function sortData(data, field, direction) {
   return [...data].sort((a, b) => {
     let valA = a[field];
@@ -83,14 +78,17 @@ function sortData(data, field, direction) {
   });
 }
 
-function SortHeader({ label, field, sortField, sortDirection, onSort, style }) {
+// ═════════════════════════════════════════════════════════════════════════════
+// SHARED COMPONENTS
+// ═════════════════════════════════════════════════════════════════════════════
+
+function SortHeader({ label, field, sortField, sortDirection, onSort }) {
   const active = sortField === field;
   return (
     <span
       onClick={() => onSort(field)}
       style={{
-        ...style,
-        fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
+        fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600,
         color: active ? '#c9a84c' : '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase',
         cursor: 'pointer', userSelect: 'none', transition: 'color 0.15s',
       }}
@@ -106,8 +104,6 @@ function SortHeader({ label, field, sortField, sortDirection, onSort, style }) {
   );
 }
 
-// ─── STATUS BADGE ───
-
 function StatusBadge({ status }) {
   const s = (status || '').toLowerCase();
   let cls = styles.badge;
@@ -119,8 +115,6 @@ function StatusBadge({ status }) {
   return <span className={cls}>{label}</span>;
 }
 
-// ─── TRASH ICON SVG ───
-
 function TrashIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -130,7 +124,55 @@ function TrashIcon() {
   );
 }
 
-// ─── DELETE GAME MODAL (type-to-confirm) ───
+function StatCard({ label, value, valueColor, sub, accent, onClick, compact }) {
+  return (
+    <div
+      className={styles.statCard}
+      onClick={onClick}
+      style={{
+        borderLeft: accent ? `3px solid ${accent}` : undefined,
+        cursor: onClick ? 'pointer' : undefined,
+      }}
+    >
+      <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>
+        {label}
+      </div>
+      <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: compact ? 18 : 24, fontWeight: 700, color: valueColor || '#d0c098', marginBottom: sub ? 4 : 0 }}>
+        {value}
+      </div>
+      {sub && <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>{sub}</div>}
+    </div>
+  );
+}
+
+function Toggle({ value, onToggle }) {
+  const [status, setStatus] = useState(null);
+
+  async function handleClick(e) {
+    e.stopPropagation();
+    setStatus('saving');
+    try {
+      await onToggle();
+      setStatus('saved');
+      setTimeout(() => setStatus(null), 2000);
+    } catch {
+      setStatus('failed');
+      setTimeout(() => setStatus(null), 3000);
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <button
+        className={value ? styles.toggleOn : styles.toggleOff}
+        style={{ opacity: status === 'saving' ? 0.5 : 1 }}
+        onClick={handleClick}
+      />
+      {status === 'saved' && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#8aba7a' }}>Saved</span>}
+      {status === 'failed' && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#e85a5a' }}>Failed</span>}
+    </div>
+  );
+}
 
 function DeleteGameModal({ game, onConfirm, onCancel }) {
   const [confirmText, setConfirmText] = useState('');
@@ -142,9 +184,9 @@ function DeleteGameModal({ game, onConfirm, onCancel }) {
   const matches = confirmText === confirmWord;
 
   useEffect(() => {
-    const handleKey = (e) => { if (e.key === 'Escape') onCancel(); };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
+    const h = (e) => { if (e.key === 'Escape') onCancel(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
   }, [onCancel]);
 
   async function handleDelete() {
@@ -164,20 +206,13 @@ function DeleteGameModal({ game, onConfirm, onCancel }) {
   }
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 300,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'rgba(0,0,0,0.7)',
-    }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        background: '#111528', border: '1px solid #3a3328', borderRadius: 10,
-        padding: '24px 28px', maxWidth: 420, width: '90vw',
-      }}>
+    <div className={styles.deleteModal}>
+      <div onClick={e => e.stopPropagation()} className={styles.deleteModalCard}>
         <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: '#d0c098', marginBottom: 12 }}>
           Delete Game
         </h3>
         <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0', marginBottom: 4, lineHeight: 1.6 }}>
-          This will permanently delete <strong>{game.characterName || `Game #${game.id}`}</strong> — {game.turnCount ?? 0} turns of data. This cannot be undone.
+          This will permanently delete <strong>{game.characterName || `Game #${game.id}`}</strong> &mdash; {game.turnCount ?? 0} turns of data. This cannot be undone.
         </p>
         <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4', marginTop: 16, marginBottom: 6 }}>
           Type <strong style={{ color: '#c8c0b0' }}>{confirmWord}</strong> to confirm
@@ -222,26 +257,19 @@ function DeleteGameModal({ game, onConfirm, onCancel }) {
   );
 }
 
-// ─── DETAIL PANEL (push layout) ───
-
 function DetailPanel({ children, onClose }) {
   return (
     <div className={styles.pushPanel}>
-      <button className={styles.panelClose} onClick={onClose} style={{
-        width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 16, fontWeight: 600,
-      }}>&times;</button>
-      <div style={{ padding: '28px 32px' }}>{children}</div>
+      <button className={styles.panelClose} onClick={onClose}>&times;</button>
+      <div style={{ padding: '24px 28px' }}>{children}</div>
     </div>
   );
 }
 
-// ─── COLLAPSIBLE TURN ───
-
 function TurnBlock({ entry }) {
   const [open, setOpen] = useState(false);
   const sig = entry.significanceScore;
-  const sigLabel = sig >= 5 ? '\u2605\u2605\u2605\u2605\u2605' : sig >= 4 ? '\u2605\u2605\u2605\u2605' : sig >= 3 ? '\u2605\u2605\u2605' : sig >= 2 ? '\u2605\u2605' : sig >= 1 ? '\u2605' : '';
+  const stars = sig >= 5 ? '\u2605\u2605\u2605\u2605\u2605' : sig >= 4 ? '\u2605\u2605\u2605\u2605' : sig >= 3 ? '\u2605\u2605\u2605' : sig >= 2 ? '\u2605\u2605' : sig >= 1 ? '\u2605' : '';
   const preview = !open && entry.narratorText ? entry.narratorText.substring(0, 100) + (entry.narratorText.length > 100 ? '...' : '') : '';
   return (
     <div style={{ borderBottom: '1px solid #2a2622' }}>
@@ -254,7 +282,7 @@ function TurnBlock({ entry }) {
           <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>
             Turn {entry.turnNumber}
           </span>
-          {sigLabel && <span style={{ fontSize: 10, color: '#c9a84c', marginLeft: 6 }}>{sigLabel}</span>}
+          {stars && <span style={{ fontSize: 10, color: '#c9a84c', marginLeft: 6 }}>{stars}</span>}
           {preview && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#5a6a88', marginLeft: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{preview}</span>}
         </div>
         <span style={{ color: '#7082a4', fontSize: 11, flexShrink: 0 }}>{open ? '\u25B2' : '\u25BC'}</span>
@@ -277,9 +305,9 @@ function TurnBlock({ entry }) {
   );
 }
 
-// =============================================================================
+// ═════════════════════════════════════════════════════════════════════════════
 // USERS TAB
-// =============================================================================
+// ═════════════════════════════════════════════════════════════════════════════
 
 function UsersTab({ data, loading, onRefresh, onGameDeleted, onViewGame, onNavigateToGames }) {
   const [search, setSearch] = useState('');
@@ -289,6 +317,7 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted, onViewGame, onNavig
   const [users, setUsers] = useState([]);
   const [sortField, setSortField] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const currentUser = getUser();
 
   useEffect(() => { if (data?.users) setUsers(data.users); }, [data]);
@@ -302,65 +331,23 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted, onViewGame, onNavig
   const sorted = useMemo(() => sortData(filtered, sortField, sortDirection), [filtered, sortField, sortDirection]);
 
   function handleSort(field) {
-    if (sortField === field) {
-      setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
-    }
+    if (sortField === field) setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortField(field); setSortDirection('asc'); }
   }
-
-  const [deleteTarget, setDeleteTarget] = useState(null);
 
   async function openUserDetail(user) {
     setSelectedUser(user);
     setDetailLoading(true);
-    try {
-      const detail = await getAdminUser(user.id);
-      setUserDetail(detail);
-    } catch { setUserDetail(null); }
+    try { setUserDetail(await getAdminUser(user.id)); }
+    catch { setUserDetail(null); }
     setDetailLoading(false);
-  }
-
-  const [toggleStatus, setToggleStatus] = useState({});
-  const [debugToggleStatus, setDebugToggleStatus] = useState({});
-
-  async function handleDebugToggle(user) {
-    const newVal = !user.isDebug;
-    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isDebug: newVal } : u));
-    setDebugToggleStatus(prev => ({ ...prev, [user.id]: 'saving' }));
-    try {
-      await toggleDebug(user.id, newVal);
-      setDebugToggleStatus(prev => ({ ...prev, [user.id]: 'saved' }));
-      setTimeout(() => setDebugToggleStatus(prev => { const n = { ...prev }; delete n[user.id]; return n; }), 2000);
-    } catch {
-      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isDebug: !newVal } : u));
-      setDebugToggleStatus(prev => ({ ...prev, [user.id]: 'failed' }));
-      setTimeout(() => setDebugToggleStatus(prev => { const n = { ...prev }; delete n[user.id]; return n; }), 3000);
-    }
-  }
-
-  async function handleToggle(user) {
-    const newVal = !user.isPlaytester;
-    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isPlaytester: newVal } : u));
-    setToggleStatus(prev => ({ ...prev, [user.id]: 'saving' }));
-    try {
-      await togglePlaytester(user.id, newVal);
-      setToggleStatus(prev => ({ ...prev, [user.id]: 'saved' }));
-      setTimeout(() => setToggleStatus(prev => { const n = { ...prev }; delete n[user.id]; return n; }), 2000);
-    } catch {
-      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isPlaytester: !newVal } : u));
-      setToggleStatus(prev => ({ ...prev, [user.id]: 'failed' }));
-      setTimeout(() => setToggleStatus(prev => { const n = { ...prev }; delete n[user.id]; return n; }), 3000);
-    }
   }
 
   async function handleDeleteGame(gameId) {
     await deleteAdminGame(gameId);
     setUserDetail(prev => {
       if (!prev) return prev;
-      const updatedGames = (prev.games || []).filter(g => g.id !== gameId);
-      return { ...prev, games: updatedGames };
+      return { ...prev, games: (prev.games || []).filter(g => g.id !== gameId) };
     });
     setUsers(prev => prev.map(u =>
       u.id === selectedUser?.id ? { ...u, gameCount: Math.max(0, (u.gameCount ?? 1) - 1) } : u
@@ -369,52 +356,31 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted, onViewGame, onNavig
     setDeleteTarget(null);
   }
 
-  const allLastActiveNull = sorted.length > 0 && sorted.every(u => !u.lastActiveAt);
-  const userGridCols = allLastActiveNull ? '1.8fr 2.5fr 80px 100px 100px 120px' : '1.8fr 2.5fr 80px 100px 100px 120px 110px';
+  const gridCols = '2fr 2.5fr 70px 90px 90px 100px';
 
   if (loading) return <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 40 }}>Loading...</p>;
 
   return (
     <div style={{ display: 'flex', gap: 0 }}>
-      {/* User Detail Panel (push layout) */}
-      {selectedUser && (() => {
-        const currentIdx = sorted.findIndex(u => u.id === selectedUser.id);
-        const prevUser = currentIdx > 0 ? sorted[currentIdx - 1] : null;
-        const nextUser = currentIdx < sorted.length - 1 ? sorted[currentIdx + 1] : null;
-        return (
+      {/* User Detail Panel */}
+      {selectedUser && (
         <DetailPanel onClose={() => { setSelectedUser(null); setUserDetail(null); setDeleteTarget(null); }}>
           {detailLoading ? (
             <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>Loading...</p>
           ) : userDetail ? (
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <button onClick={() => prevUser && openUserDetail(prevUser)} disabled={!prevUser} style={{
-                  width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'none', border: '1px solid #1e2540', borderRadius: 4, cursor: prevUser ? 'pointer' : 'default',
-                  color: prevUser ? '#7082a4' : '#3a3a4a', fontSize: 14, transition: 'color 0.15s, border-color 0.15s',
-                  opacity: prevUser ? 1 : 0.4,
-                }} onMouseEnter={e => { if (prevUser) { e.currentTarget.style.color = '#c9a84c'; e.currentTarget.style.borderColor = '#3a3328'; } }}
-                   onMouseLeave={e => { e.currentTarget.style.color = prevUser ? '#7082a4' : '#3a3a4a'; e.currentTarget.style.borderColor = '#1e2540'; }}
-                >&larr;</button>
-                <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 20, fontWeight: 700, color: '#d0c098', margin: 0, flex: 1 }}>
-                  {userDetail.user?.displayName || selectedUser.displayName}
-                </h3>
-                <button onClick={() => nextUser && openUserDetail(nextUser)} disabled={!nextUser} style={{
-                  width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'none', border: '1px solid #1e2540', borderRadius: 4, cursor: nextUser ? 'pointer' : 'default',
-                  color: nextUser ? '#7082a4' : '#3a3a4a', fontSize: 14, transition: 'color 0.15s, border-color 0.15s',
-                  opacity: nextUser ? 1 : 0.4,
-                }} onMouseEnter={e => { if (nextUser) { e.currentTarget.style.color = '#c9a84c'; e.currentTarget.style.borderColor = '#3a3328'; } }}
-                   onMouseLeave={e => { e.currentTarget.style.color = nextUser ? '#7082a4' : '#3a3a4a'; e.currentTarget.style.borderColor = '#1e2540'; }}
-                >&rarr;</button>
-              </div>
-              <p style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4', marginBottom: 4 }}>{userDetail.user?.email || selectedUser.email}</p>
+              <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 18, fontWeight: 700, color: '#d0c098', marginBottom: 4 }}>
+                {userDetail.user?.displayName || selectedUser.displayName}
+              </h3>
+              <p style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4', marginBottom: 4 }}>
+                {userDetail.user?.email || selectedUser.email}
+              </p>
               <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4', marginBottom: 20 }}>
                 Joined {formatDate(userDetail.user?.createdAt)} &middot; Playtester: {userDetail.user?.isPlaytester ? 'Yes' : 'No'} &middot; Debug: {userDetail.user?.isDebug ? 'Yes' : 'No'}
               </p>
 
               <div style={{ marginBottom: 24 }}>
-                <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                   Total AI Spend
                 </span>
                 <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 18, color: '#d0c098', marginTop: 4 }}>
@@ -422,8 +388,7 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted, onViewGame, onNavig
                 </div>
               </div>
 
-              {/* User games list */}
-              <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 10 }}>
+              <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 10 }}>
                 Games ({userDetail.games?.length || 0})
               </span>
               <div className={styles.tableCard}>
@@ -432,26 +397,16 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted, onViewGame, onNavig
                     setSelectedUser(null); setUserDetail(null); setDeleteTarget(null);
                     onViewGame?.(g.id);
                   }} style={{
-                    display: 'grid', gridTemplateColumns: '1.5fr 1fr 70px 70px 80px 30px 30px',
+                    display: 'grid', gridTemplateColumns: '1.5fr 1fr 65px 55px 75px 28px',
                     padding: '8px 12px', borderBottom: '1px solid #2a2622', alignItems: 'center',
                   }}>
                     <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#c8c0b0' }}>
                       {g.characterName || <em style={{ color: '#7082a4' }}>No character yet</em>}
                     </span>
-                    <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#8a94a8' }}>{g.setting || '-'}</span>
+                    <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#8a94a8' }}>{g.setting || '—'}</span>
                     <StatusBadge status={g.status} />
                     <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#c8c0b0' }}>{g.turnCount ?? 0}</span>
                     <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#c8c0b0' }}>{formatCost(g.totalCost)}</span>
-                    <button
-                      className={styles.deleteIcon}
-                      aria-label="View game"
-                      onClick={e => { e.stopPropagation(); setSelectedUser(null); setUserDetail(null); setDeleteTarget(null); onViewGame?.(g.id); }}
-                      style={{ color: '#7082a4' }}
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
-                      </svg>
-                    </button>
                     <button
                       className={styles.deleteIcon}
                       aria-label="Delete game"
@@ -468,113 +423,89 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted, onViewGame, onNavig
             <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>Failed to load user details.</p>
           )}
         </DetailPanel>
-        );
-      })()}
+      )}
 
       {/* Main content */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-            <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 20, fontWeight: 700, color: '#d0c098', margin: 0 }}>Users</h2>
+            <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 18, fontWeight: 700, color: '#d0c098', margin: 0 }}>Users</h2>
             <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 14, color: '#7082a4' }}>{filtered.length}</span>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <input
-              className={styles.searchInput}
-              placeholder="Search by name or email..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
+            <input className={styles.searchInput} placeholder="Search by name or email..." value={search} onChange={e => setSearch(e.target.value)} />
             <button className={styles.refreshBtn} onClick={onRefresh}>Refresh</button>
           </div>
         </div>
 
-        {/* Table */}
         <div className={styles.tableCard}>
-          {/* Header row */}
-          <div style={{
-            display: 'grid', gridTemplateColumns: userGridCols, gap: 12,
-            padding: '10px 16px', borderBottom: '1px solid #2a2622',
-          }}>
+          <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 12, padding: '10px 16px', borderBottom: '1px solid #2a2622' }}>
             <SortHeader label="Name" field="displayName" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
             <SortHeader label="Email" field="email" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
             <SortHeader label="Games" field="gameCount" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
-            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Playtester</span>
-            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Debug</span>
+            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Playtester</span>
+            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Debug</span>
             <SortHeader label="Joined" field="createdAt" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
-            {!allLastActiveNull && <SortHeader label="Last Active" field="lastActiveAt" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />}
           </div>
-          {/* Data rows */}
           {sorted.map(user => (
             <div key={user.id} className={styles.clickableRow} onClick={() => openUserDetail(user)} style={{
-              display: 'grid', gridTemplateColumns: userGridCols, gap: 12,
+              display: 'grid', gridTemplateColumns: gridCols, gap: 12,
               padding: '10px 16px', borderBottom: '1px solid #2a2622', alignItems: 'center',
             }}>
               <div>
-                <span className={styles.nameLink}>
-                  {user.displayName || 'No name'}
-                </span>
+                <span className={styles.nameLink}>{user.displayName || 'No name'}</span>
                 {currentUser?.email === user.email && <span className={styles.badgeAdmin}>ADMIN</span>}
               </div>
               <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>{user.email}</span>
-              <span onClick={e => { e.stopPropagation(); if (user.gameCount > 0) onNavigateToGames?.(user.displayName || user.email); }}
-                style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#c8c0b0', cursor: user.gameCount > 0 ? 'pointer' : 'default', transition: 'color 0.15s' }}
+              <span
+                onClick={e => { e.stopPropagation(); if (user.gameCount > 0) onNavigateToGames?.(user.displayName || user.email); }}
+                style={{
+                  fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#c8c0b0',
+                  cursor: user.gameCount > 0 ? 'pointer' : 'default', transition: 'color 0.15s',
+                }}
                 onMouseEnter={e => { if (user.gameCount > 0) e.currentTarget.style.color = '#c9a84c'; }}
                 onMouseLeave={e => { e.currentTarget.style.color = '#c8c0b0'; }}
               >{user.gameCount ?? 0}</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <button
-                  className={user.isPlaytester ? styles.toggleOn : styles.toggleOff}
-                  style={{ opacity: toggleStatus[user.id] === 'saving' ? 0.5 : 1 }}
-                  onClick={e => { e.stopPropagation(); handleToggle(user); }}
-                  aria-label={`Toggle playtester for ${user.displayName}`}
-                />
-                {toggleStatus[user.id] === 'saved' && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#8aba7a' }}>Saved</span>}
-                {toggleStatus[user.id] === 'failed' && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#e85a5a' }}>Failed</span>}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <button
-                  className={user.isDebug ? styles.toggleOn : styles.toggleOff}
-                  style={{ opacity: debugToggleStatus[user.id] === 'saving' ? 0.5 : 1 }}
-                  onClick={e => { e.stopPropagation(); handleDebugToggle(user); }}
-                  aria-label={`Toggle debug for ${user.displayName}`}
-                />
-                {debugToggleStatus[user.id] === 'saved' && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#8aba7a' }}>Saved</span>}
-                {debugToggleStatus[user.id] === 'failed' && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#e85a5a' }}>Failed</span>}
-              </div>
+              <Toggle
+                value={user.isPlaytester}
+                onToggle={async () => {
+                  const newVal = !user.isPlaytester;
+                  setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isPlaytester: newVal } : u));
+                  try { await togglePlaytester(user.id, newVal); }
+                  catch (err) { setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isPlaytester: !newVal } : u)); throw err; }
+                }}
+              />
+              <Toggle
+                value={user.isDebug}
+                onToggle={async () => {
+                  const newVal = !user.isDebug;
+                  setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isDebug: newVal } : u));
+                  try { await toggleDebug(user.id, newVal); }
+                  catch (err) { setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isDebug: !newVal } : u)); throw err; }
+                }}
+              />
               <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{formatDate(user.createdAt)}</span>
-              {!allLastActiveNull && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{timeAgo(user.lastActiveAt)}</span>}
             </div>
           ))}
           {sorted.length === 0 && (
-            <div style={{ padding: 20, textAlign: 'center', fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>
-              No users found.
-            </div>
+            <div style={{ padding: 20, textAlign: 'center', fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>No users found.</div>
           )}
         </div>
-        {allLastActiveNull && sorted.length > 0 && (
-          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4', fontStyle: 'italic', marginTop: 8 }}>
-            Last active tracking coming soon
-          </div>
-        )}
+        <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4', fontStyle: 'italic', marginTop: 8 }}>
+          Last active tracking coming soon
+        </div>
       </div>
 
-      {/* Delete game modal */}
       {deleteTarget && (
-        <DeleteGameModal
-          game={deleteTarget}
-          onConfirm={handleDeleteGame}
-          onCancel={() => setDeleteTarget(null)}
-        />
+        <DeleteGameModal game={deleteTarget} onConfirm={handleDeleteGame} onCancel={() => setDeleteTarget(null)} />
       )}
     </div>
   );
 }
 
-// =============================================================================
+// ═════════════════════════════════════════════════════════════════════════════
 // GAMES TAB
-// =============================================================================
+// ═════════════════════════════════════════════════════════════════════════════
 
 function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pendingSearch, onClearPendingSearch }) {
   const [search, setSearch] = useState('');
@@ -583,16 +514,15 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
   const [gameDetail, setGameDetail] = useState(null);
   const [narrative, setNarrative] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(null);
-  const [rowDeleteTarget, setRowDeleteTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [localGames, setLocalGames] = useState(null);
   const [sortField, setSortField] = useState('id');
   const [sortDirection, setSortDirection] = useState('desc');
   const [selectedIds, setSelectedIds] = useState(new Set());
-  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [bulkDeleteText, setBulkDeleteText] = useState('');
   const [bulkDeleteProgress, setBulkDeleteProgress] = useState(null);
+  const [backstoryExpanded, setBackstoryExpanded] = useState(false);
 
   useEffect(() => {
     if (pendingSearch) {
@@ -615,12 +545,8 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
   const sorted = useMemo(() => sortData(filtered, sortField, sortDirection), [filtered, sortField, sortDirection]);
 
   function handleSort(field) {
-    if (sortField === field) {
-      setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
-    }
+    if (sortField === field) setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortField(field); setSortDirection('asc'); }
   }
 
   function toggleSelect(id) {
@@ -652,6 +578,7 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
     setSelectedGame(game);
     setDetailLoading(true);
     setNarrative(null);
+    setBackstoryExpanded(false);
     try {
       const detail = await getAdminGameDetail(game.id);
       if (detail.narrative) detail.narrative = groupNarrative(detail.narrative);
@@ -674,32 +601,34 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
     await deleteAdminGame(gameId);
     setSelectedGame(null);
     setGameDetail(null);
-    setConfirmDelete(null);
+    setDeleteTarget(null);
     setLocalGames(prev => (prev || data?.games || []).filter(g => g.id !== gameId));
   }
 
   async function handleRowDelete(gameId) {
     await deleteAdminGame(gameId);
     setLocalGames(prev => (prev || data?.games || []).filter(g => g.id !== gameId));
-    setRowDeleteTarget(null);
+    setDeleteTarget(null);
   }
 
   const statuses = ['all', 'active', 'initializing', 'completed', 'abandoned'];
+  const gameCols = '35px 45px 2fr 1.2fr 1.2fr 80px 55px 80px 70px 85px 35px';
 
   if (loading) return <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 40 }}>Loading...</p>;
 
   return (
     <div style={{ display: 'flex', gap: 0 }}>
-      {/* Game Detail Panel (push layout) */}
+      {/* Game Detail Panel */}
       {selectedGame && (
-        <DetailPanel onClose={() => { setSelectedGame(null); setGameDetail(null); setNarrative(null); setConfirmDelete(null); }}>
+        <DetailPanel onClose={() => { setSelectedGame(null); setGameDetail(null); setNarrative(null); setDeleteTarget(null); }}>
           {detailLoading ? (
             <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>Loading...</p>
           ) : gameDetail ? (
             <div>
+              {/* Header */}
               <div style={{ marginBottom: 24 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                  <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 20, fontWeight: 700, color: '#d0c098', margin: 0 }}>
+                  <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 18, fontWeight: 700, color: '#d0c098', margin: 0 }}>
                     Game #{gameDetail.game?.id ?? selectedGame.id}
                   </h3>
                   <StatusBadge status={gameDetail.game?.status || selectedGame.status} />
@@ -707,37 +636,55 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
                 <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0', marginBottom: 2 }}>
                   {gameDetail.game?.characterName || 'No character'} &middot; {gameDetail.game?.setting || 'No setting'}
                 </p>
-                <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#8a94a8', marginBottom: 2 }}>
-                  Player: {gameDetail.game?.playerName || '-'} ({gameDetail.game?.playerEmail || '-'})
+                <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#8a94a8', marginBottom: 6 }}>
+                  {gameDetail.game?.playerName || '—'} ({gameDetail.game?.playerEmail || '—'})
                 </p>
-                <p style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>
-                  Total: {formatCost(gameDetail.game?.totalCost)} &middot; {gameDetail.game?.turnCount ?? 0} turns &middot; {gameDetail.game?.costPerTurn != null ? formatCost(gameDetail.game.costPerTurn) : formatCostPerTurn(gameDetail.game?.gameplayCost ?? gameDetail.game?.totalCost, gameDetail.game?.turnCount)}/turn
+                <p style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#d0c098', marginBottom: 2 }}>
+                  Total: {formatCost(gameDetail.game?.totalCost)}
                 </p>
                 {(gameDetail.game?.initCost > 0 || gameDetail.game?.gameplayCost > 0) && (
-                  <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4', marginTop: 2 }}>
+                  <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4', marginBottom: 4 }}>
                     Init: {formatCost(gameDetail.game?.initCost)} &middot; Gameplay: {formatCost(gameDetail.game?.gameplayCost)}
                   </p>
                 )}
-                <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4', marginTop: 4 }}>
-                  Created {formatDate(gameDetail.game?.createdAt)} &middot; Last played {timeAgo(gameDetail.game?.lastPlayedAt || gameDetail.game?.lastPlayed)}
+                <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>
+                  {gameDetail.game?.turnCount ?? 0} turns &middot; Created {formatDate(gameDetail.game?.createdAt)} &middot; Last played {timeAgo(gameDetail.game?.lastPlayedAt || gameDetail.game?.lastPlayed)}
                 </p>
               </div>
+
+              {/* Character */}
               {gameDetail.character && (
                 <div style={{ marginBottom: 24 }}>
-                  <h4 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 700, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Character</h4>
+                  <h4 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 700, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Character</h4>
                   <div style={{ background: '#111528', border: '1px solid #3a3328', borderRadius: 6, padding: 16 }}>
-                    <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0', marginBottom: 8 }}><strong style={{ color: '#d0c098' }}>{gameDetail.character.name}</strong></p>
+                    <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0', marginBottom: 8 }}>
+                      <strong style={{ color: '#d0c098' }}>{gameDetail.character.name}</strong>
+                    </p>
                     {gameDetail.character.backstory && (
-                      <p style={{ fontFamily: 'var(--font-alegreya)', fontStyle: 'italic', fontSize: 13, color: '#8a94a8', marginBottom: 12, lineHeight: 1.6 }}>
-                        {gameDetail.character.backstory.length > 300 ? gameDetail.character.backstory.slice(0, 300) + '...' : gameDetail.character.backstory}
-                      </p>
+                      <div style={{ marginBottom: 12 }}>
+                        <p style={{ fontFamily: 'var(--font-alegreya)', fontStyle: 'italic', fontSize: 13, color: '#8a94a8', lineHeight: 1.6, margin: 0 }}>
+                          {!backstoryExpanded && gameDetail.character.backstory.length > 300
+                            ? gameDetail.character.backstory.slice(0, 300) + '...'
+                            : gameDetail.character.backstory}
+                        </p>
+                        {gameDetail.character.backstory.length > 300 && (
+                          <button onClick={() => setBackstoryExpanded(!backstoryExpanded)} style={{
+                            background: 'none', border: 'none', color: '#c9a84c', fontSize: 12,
+                            fontFamily: 'var(--font-alegreya-sans)', cursor: 'pointer', padding: 0, marginTop: 4,
+                          }}>{backstoryExpanded ? 'Show less' : 'Show more'}</button>
+                        )}
+                      </div>
                     )}
                     {gameDetail.character.stats && (
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px', marginBottom: 12 }}>
                         {Object.entries(gameDetail.character.stats).map(([stat, val]) => (
                           <div key={stat} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: '1px solid #2a2622' }}>
                             <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545' }}>{stat.toUpperCase()}</span>
-                            <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#c8c0b0' }}>{typeof val === 'object' ? `${val.base ?? val.effective ?? '-'}` : val}</span>
+                            <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#c8c0b0' }}>
+                              {typeof val === 'object'
+                                ? (val.base != null && val.effective != null ? `${val.base}/${val.effective}` : `${val.base ?? val.effective ?? '—'}`)
+                                : val}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -781,22 +728,32 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
                   </div>
                 </div>
               )}
+
+              {/* Narrative Log */}
               <div style={{ marginBottom: 24 }}>
-                <h4 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 700, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Narrative Log</h4>
+                <h4 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 700, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Narrative Log</h4>
                 <div className={styles.tableCard}>
                   {(narrative?.entries || gameDetail.narrative || []).slice(0, narrative ? undefined : 200).map((entry, i) => (
                     <TurnBlock key={i} entry={entry} />
                   ))}
                   {!narrative && (gameDetail.narrative?.length || 0) > 200 && (
-                    <button onClick={loadFullNarrative} style={{ width: '100%', padding: 12, background: 'none', border: 'none', fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#c9a84c', cursor: 'pointer' }}>Load full narrative</button>
+                    <button onClick={loadFullNarrative} style={{ width: '100%', padding: 12, background: 'none', border: 'none', fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#c9a84c', cursor: 'pointer' }}>
+                      Load full narrative
+                    </button>
                   )}
                   {(!gameDetail.narrative || gameDetail.narrative.length === 0) && !narrative && (
                     <div style={{ padding: 14, textAlign: 'center', fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>No narrative entries.</div>
                   )}
                 </div>
               </div>
+
+              {/* Delete */}
               <div style={{ borderTop: '1px solid #1e2540', paddingTop: 20 }}>
-                <button className={styles.dangerBtn} onClick={() => setRowDeleteTarget({ ...selectedGame, characterName: gameDetail.game?.characterName, turnCount: gameDetail.game?.turnCount })}>Delete Game</button>
+                <button className={styles.dangerBtn} onClick={() => setDeleteTarget({
+                  id: gameDetail.game?.id ?? selectedGame.id,
+                  characterName: gameDetail.game?.characterName,
+                  turnCount: gameDetail.game?.turnCount ?? 0,
+                })}>Delete Game</button>
               </div>
             </div>
           ) : (
@@ -809,7 +766,7 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-            <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 20, fontWeight: 700, color: '#d0c098', margin: 0 }}>All Games</h2>
+            <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 18, fontWeight: 700, color: '#d0c098', margin: 0 }}>All Games</h2>
             <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 14, color: '#7082a4' }}>{filtered.length}</span>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -817,6 +774,7 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
             <button className={styles.refreshBtn} onClick={onRefresh}>Refresh</button>
           </div>
         </div>
+
         <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
           {statuses.map(s => (
             <button key={s} className={statusFilter === s ? styles.filterPillActive : styles.filterPill} onClick={() => setStatusFilter(s)}>
@@ -824,7 +782,7 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
             </button>
           ))}
         </div>
-        {/* Bulk action bar */}
+
         {selectedIds.size > 0 && (
           <div className={styles.bulkBar}>
             <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0' }}>
@@ -840,8 +798,9 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
             </button>
           </div>
         )}
+
         <div className={styles.tableCard} style={{ overflowX: 'auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '35px 50px 2fr 1.2fr 1.2fr 85px 60px 90px 80px 90px 40px', padding: '10px 16px', borderBottom: '1px solid #2a2622', minWidth: 940 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: gameCols, padding: '10px 16px', borderBottom: '1px solid #2a2622', minWidth: 900 }}>
             <input type="checkbox" className={styles.checkbox}
               checked={sorted.length > 0 && sorted.every(g => selectedIds.has(g.id))}
               onChange={toggleSelectAll} />
@@ -859,29 +818,35 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
           {sorted.map(game => {
             const isDim = game.turnCount === 0 || !game.characterName;
             return (
-            <div key={game.id} className={styles.clickableRow} onClick={() => openGameDetail(game)} style={{
-              display: 'grid', gridTemplateColumns: '35px 50px 2fr 1.2fr 1.2fr 85px 60px 90px 80px 90px 40px',
-              padding: '10px 16px', borderBottom: '1px solid #2a2622', alignItems: 'center', minWidth: 940,
-              opacity: isDim ? 0.6 : 1,
-            }}>
-              <input type="checkbox" className={styles.checkbox}
-                checked={selectedIds.has(game.id)}
-                onChange={() => toggleSelect(game.id)}
-                onClick={e => e.stopPropagation()} />
-              <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>#{game.id}</span>
-              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0' }}>{game.characterName || <em style={{ color: '#7082a4' }}>No character yet</em>}</span>
-              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#8a94a8' }}>{game.playerName || '-'}</span>
-              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#8a94a8' }}>{game.setting || '-'}</span>
-              <StatusBadge status={game.status} />
-              <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#c8c0b0' }}>{game.turnCount ?? 0}</span>
-              <div className={styles.costCell}>
-                <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: (game.totalCost || 0) > 0.5 ? '#e8c45a' : '#c8c0b0', fontWeight: (game.totalCost || 0) > 0.5 ? 600 : 400 }}>{formatCost(game.totalCost)}</span>
-                {(game.initCost > 0) && <div className={styles.costBreakdown}>Init: {formatCost(game.initCost)} &middot; Gameplay: {formatCost(game.gameplayCost)}</div>}
+              <div key={game.id} className={styles.clickableRow} onClick={() => openGameDetail(game)} style={{
+                display: 'grid', gridTemplateColumns: gameCols,
+                padding: '10px 16px', borderBottom: '1px solid #2a2622', alignItems: 'center', minWidth: 900,
+                opacity: isDim ? 0.55 : 1,
+              }}>
+                <input type="checkbox" className={styles.checkbox}
+                  checked={selectedIds.has(game.id)}
+                  onChange={() => toggleSelect(game.id)}
+                  onClick={e => e.stopPropagation()} />
+                <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>#{game.id}</span>
+                <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0' }}>
+                  {game.characterName || <em style={{ color: '#7082a4' }}>No character yet</em>}
+                </span>
+                <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#8a94a8' }}>{game.playerName || '—'}</span>
+                <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#8a94a8' }}>{game.setting || '—'}</span>
+                <StatusBadge status={game.status} />
+                <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#c8c0b0' }}>{game.turnCount ?? 0}</span>
+                <div className={styles.costCell}>
+                  <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: (game.totalCost || 0) > 0.5 ? '#e8c45a' : '#c8c0b0', fontWeight: (game.totalCost || 0) > 0.5 ? 600 : 400 }}>
+                    {formatCost(game.totalCost)}
+                  </span>
+                  {game.initCost > 0 && <div className={styles.costBreakdown}>Init: {formatCost(game.initCost)} &middot; Gameplay: {formatCost(game.gameplayCost)}</div>}
+                </div>
+                <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>
+                  {!game.turnCount ? '\u2014' : game.costPerTurn != null ? formatCost(game.costPerTurn) : `$${((game.gameplayCost ?? game.totalCost) / game.turnCount).toFixed(3)}`}
+                </span>
+                <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{timeAgo(game.lastPlayedAt || game.lastPlayed)}</span>
+                <button className={styles.deleteIcon} aria-label="Delete game" onClick={e => { e.stopPropagation(); setDeleteTarget(game); }}><TrashIcon /></button>
               </div>
-              <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>{game.costPerTurn != null ? formatCost(game.costPerTurn) : formatCostPerTurn(game.gameplayCost ?? game.totalCost, game.turnCount)}</span>
-              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{timeAgo(game.lastPlayedAt || game.lastPlayed)}</span>
-              <button className={styles.deleteIcon} aria-label="Delete game" onClick={e => { e.stopPropagation(); setRowDeleteTarget(game); }}><TrashIcon /></button>
-            </div>
             );
           })}
           {sorted.length === 0 && (
@@ -890,26 +855,20 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
         </div>
       </div>
 
-      {/* Delete game modal (type-to-confirm) */}
-      {rowDeleteTarget && (
-        <DeleteGameModal
-          game={rowDeleteTarget}
-          onConfirm={handleRowDelete}
-          onCancel={() => setRowDeleteTarget(null)}
-        />
+      {/* Row delete modal */}
+      {deleteTarget && !selectedGame && (
+        <DeleteGameModal game={deleteTarget} onConfirm={handleRowDelete} onCancel={() => setDeleteTarget(null)} />
+      )}
+
+      {/* Detail panel delete modal */}
+      {deleteTarget && selectedGame && (
+        <DeleteGameModal game={deleteTarget} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
       )}
 
       {/* Bulk delete modal */}
       {bulkDeleteConfirm && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 300,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,0.7)',
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            background: '#111528', border: '1px solid #3a3328', borderRadius: 10,
-            padding: '24px 28px', maxWidth: 420, width: '90vw',
-          }}>
+        <div className={styles.deleteModal}>
+          <div onClick={e => e.stopPropagation()} className={styles.deleteModalCard}>
             <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: '#d0c098', marginBottom: 12 }}>
               Delete {selectedIds.size} Games
             </h3>
@@ -969,9 +928,7 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
                       opacity: bulkDeleteText === `delete ${selectedIds.size}` ? 1 : 0.5,
                       transition: 'all 0.2s ease',
                     }}
-                  >
-                    Delete All
-                  </button>
+                  >Delete All</button>
                 </div>
               </>
             )}
@@ -982,9 +939,9 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
   );
 }
 
-// =============================================================================
+// ═════════════════════════════════════════════════════════════════════════════
 // COSTS TAB
-// =============================================================================
+// ═════════════════════════════════════════════════════════════════════════════
 
 function CostsTab({ data, loading, onRefresh, onViewGame }) {
   if (loading) return <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 40 }}>Loading...</p>;
@@ -994,29 +951,17 @@ function CostsTab({ data, loading, onRefresh, onViewGame }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 20, fontWeight: 700, color: '#d0c098', margin: 0 }}>Costs</h2>
+        <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 18, fontWeight: 700, color: '#d0c098', margin: 0 }}>Costs</h2>
         <button className={styles.refreshBtn} onClick={onRefresh}>Refresh</button>
       </div>
 
-      {/* Stat Cards */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 12 }}>
-        {[
-          { label: 'Total Spend', value: formatCostShort(costs.totalSpend), sub: 'Across all games' },
-          { label: 'Total Turns', value: String(costs.totalTurns ?? 0), sub: 'All users combined' },
-          { label: 'Avg Cost/Turn', value: formatCost(costs.avgCostPerTurn), sub: 'Gameplay only' },
-          { label: 'Active Games', value: String(costs.activeGames ?? 0), sub: 'Currently in progress' },
-        ].map(card => (
-          <div key={card.label} className={styles.statCard}>
-            <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>
-              {card.label}
-            </div>
-            <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 28, fontWeight: 700, color: '#d0c098', marginBottom: 4 }}>
-              {card.value}
-            </div>
-            <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>{card.sub}</div>
-          </div>
-        ))}
+        <StatCard label="Total Spend" value={formatCostShort(costs.totalSpend)} sub="Across all games" />
+        <StatCard label="Total Turns" value={String(costs.totalTurns ?? 0)} sub="All users combined" />
+        <StatCard label="Avg Cost/Turn" value={formatCost(costs.avgCostPerTurn)} sub="Gameplay only" />
+        <StatCard label="Active Games" value={String(costs.activeGames ?? 0)} sub="Currently in progress" />
       </div>
+
       {(costs.totalInitCost != null || costs.totalGameplayCost != null) && (
         <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4', marginBottom: 28 }}>
           Init costs: {formatCost(costs.totalInitCost)} &middot; Gameplay costs: {formatCost(costs.totalGameplayCost)}
@@ -1024,11 +969,10 @@ function CostsTab({ data, loading, onRefresh, onViewGame }) {
       )}
       {costs.totalInitCost == null && costs.totalGameplayCost == null && <div style={{ marginBottom: 28 }} />}
 
-      {/* Top Cost Games */}
       {costs.topGames?.length > 0 && (
         <div className={styles.tableCard}>
           <div style={{ padding: '10px 16px', borderBottom: '1px solid #2a2622' }}>
-            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
               Highest-Cost Games
             </span>
           </div>
@@ -1055,9 +999,9 @@ function CostsTab({ data, loading, onRefresh, onViewGame }) {
   );
 }
 
-// =============================================================================
+// ═════════════════════════════════════════════════════════════════════════════
 // HEALTH TAB
-// =============================================================================
+// ═════════════════════════════════════════════════════════════════════════════
 
 function HealthTab({ data, loading, onRefresh, onSwitchTab, onViewStuckGame }) {
   const [showErrors, setShowErrors] = useState(false);
@@ -1084,100 +1028,107 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab, onViewStuckGame }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 20, fontWeight: 700, color: '#d0c098', margin: 0 }}>Health</h2>
+        <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 18, fontWeight: 700, color: '#d0c098', margin: 0 }}>Health</h2>
         <button className={styles.refreshBtn} onClick={onRefresh}>Refresh</button>
       </div>
 
-      {/* Status Cards */}
+      {/* Row 1: Status Cards */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 20 }}>
-        <div className={styles.statCard} style={{ borderLeft: db.connected ? '3px solid #8aba7a' : '3px solid #e85a5a' }}>
-          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Database</div>
-          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 28, fontWeight: 700, color: db.connected ? '#8aba7a' : '#e85a5a', marginBottom: 4 }}>
-            {db.connected ? 'Connected' : 'Error'}
-          </div>
-          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>{db.size || '-'}</div>
-        </div>
-        <div className={styles.statCard} style={{ borderLeft: (errors.last24h || 0) > 0 ? '3px solid #e8845a' : 'none' }}>
-          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Errors (24h)</div>
-          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 28, fontWeight: 700, color: (errors.last24h || 0) > 0 ? '#e8845a' : '#d0c098', marginBottom: 4 }}>
-            {errors.last24h ?? 0}
-          </div>
-          <div>
-            {(errors.last24h || 0) > 0 && (
-              <button onClick={() => setShowErrors(!showErrors)} style={{ background: 'none', border: 'none', fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#c9a84c', cursor: 'pointer', padding: 0 }}>
-                {showErrors ? 'Hide details' : 'View details'}
-              </button>
-            )}
-          </div>
-        </div>
-        <div className={styles.statCard} style={{ borderLeft: stuck.length > 0 ? '3px solid #e8c45a' : 'none' }}>
-          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Stuck Games</div>
-          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 28, fontWeight: 700, color: stuck.length > 0 ? '#e8c45a' : '#d0c098', marginBottom: 4 }}>
-            {stuck.length}
-          </div>
-          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>
-            {stuck.length > 0 ? 'See below' : 'None'}
-          </div>
-        </div>
-        <div className={styles.statCard} style={{ cursor: (reports.openBugs || reports.openSuggestions) ? 'pointer' : 'default', borderLeft: ((reports.openBugs || 0) + (reports.openSuggestions || 0)) > 0 ? '3px solid #e8c45a' : 'none' }}
-          onClick={() => { if (reports.openBugs || reports.openSuggestions) onSwitchTab?.('Reports'); }}>
-          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Open Reports</div>
-          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 28, fontWeight: 700, color: ((reports.openBugs || 0) + (reports.openSuggestions || 0)) > 0 ? '#e8c45a' : '#d0c098', marginBottom: 4 }}>
-            {(reports.openBugs || 0) + (reports.openSuggestions || 0)}
-          </div>
-          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>
-            {reports.openBugs || 0} bugs &middot; {reports.openSuggestions || 0} suggestions
-          </div>
-        </div>
+        <StatCard
+          label="Database"
+          value={db.connected ? 'Connected' : 'Error'}
+          valueColor={db.connected ? '#8aba7a' : '#e85a5a'}
+          accent={db.connected ? '#8aba7a' : '#e85a5a'}
+          sub={db.size || 'Unavailable'}
+        />
+        <StatCard
+          label="Errors (24h)"
+          value={errors.last24h ?? 0}
+          valueColor={(errors.last24h || 0) > 0 ? '#e8845a' : '#d0c098'}
+          accent={(errors.last24h || 0) > 0 ? '#e8845a' : undefined}
+          sub={
+            (errors.last24h || 0) > 0
+              ? <button onClick={() => setShowErrors(!showErrors)} style={{ background: 'none', border: 'none', fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#c9a84c', cursor: 'pointer', padding: 0 }}>{showErrors ? 'Hide details' : 'View details'}</button>
+              : undefined
+          }
+        />
+        <StatCard
+          label="Stuck Games"
+          value={stuck.length}
+          valueColor={stuck.length > 0 ? '#e8c45a' : '#d0c098'}
+          accent={stuck.length > 0 ? '#e8c45a' : undefined}
+          sub={stuck.length > 0 ? 'See below' : 'None'}
+        />
+        <StatCard
+          label="Open Reports"
+          value={(reports.openBugs || 0) + (reports.openSuggestions || 0)}
+          valueColor={((reports.openBugs || 0) + (reports.openSuggestions || 0)) > 0 ? '#e8c45a' : '#d0c098'}
+          accent={((reports.openBugs || 0) + (reports.openSuggestions || 0)) > 0 ? '#e8c45a' : undefined}
+          onClick={() => { if (reports.openBugs || reports.openSuggestions) onSwitchTab?.('Reports'); }}
+          sub={`${reports.openBugs || 0} bugs \u00B7 ${reports.openSuggestions || 0} suggestions`}
+        />
       </div>
 
-      {/* Counts */}
+      {/* Row 2: Count Cards */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 20 }}>
-        <div className={styles.statCard}>
-          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Users</div>
-          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 28, fontWeight: 700, color: '#d0c098', marginBottom: 4 }}>{counts.totalUsers ?? 0}</div>
-          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>{counts.totalPlaytesters ?? 0} playtesters</div>
-        </div>
-        <div className={styles.statCard}>
-          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Games</div>
-          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 28, fontWeight: 700, color: '#d0c098', marginBottom: 4 }}>{counts.totalGames ?? 0}</div>
-          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>{counts.activeGames ?? 0} active</div>
-        </div>
-        <div className={styles.statCard}>
-          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Total Turns</div>
-          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 28, fontWeight: 700, color: '#d0c098', marginBottom: 4 }}>{counts.totalTurns ?? 0}</div>
-          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>All time</div>
-        </div>
+        <StatCard label="Users" value={counts.totalUsers ?? 0} sub={`${counts.totalPlaytesters ?? 0} playtesters`} />
+        <StatCard label="Games" value={counts.totalGames ?? 0} sub={`${counts.activeGames ?? 0} active`} />
+        <StatCard label="Total Turns" value={counts.totalTurns ?? 0} sub="All time" />
       </div>
 
-      {/* Retention */}
+      {/* Row 3: Retention Cards */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 4 }}>
-        <div className={styles.statCard}>
-          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Players with Games</div>
-          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 18, fontWeight: 700, color: '#d0c098' }}>
-            {retention.usersWithGames ?? 0} of {counts.totalUsers ?? 0}
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Created 2+ Games</div>
-          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 18, fontWeight: 700, color: '#d0c098' }}>
-            {retention.usersWithMultipleGames ?? 0} of {retention.usersWithGames ?? 0}
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Returned for 2+ Sessions</div>
-          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 18, fontWeight: 700, color: '#d0c098' }}>
-            {retention.returningUsers ?? 0} of {retention.usersWithGames ?? 0}
-          </div>
-        </div>
+        <StatCard compact label="Players with Games" value={`${retention.usersWithGames ?? 0} of ${counts.totalUsers ?? 0}`} />
+        <StatCard compact label="Created 2+ Games" value={`${retention.usersWithMultipleGames ?? 0} of ${retention.usersWithGames ?? 0}`} />
+        <StatCard compact label="Returned for 2+ Sessions" value={`${retention.returningUsers ?? 0} of ${retention.usersWithGames ?? 0}`} />
       </div>
       <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4', fontStyle: 'italic', marginBottom: 24 }}>Counts include all registered users</p>
+
+      {/* Storyteller Popularity */}
+      {storytellers.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <h4 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 700, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+            Storyteller Popularity
+          </h4>
+          <div className={styles.tableCard} style={{ padding: 16 }}>
+            {storytellers.map((st, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: i < storytellers.length - 1 ? 10 : 0 }}>
+                <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#c8c0b0', minWidth: 100 }}>{st.name}</span>
+                <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4', minWidth: 30 }}>{st.count}</span>
+                <div style={{ flex: 1, background: '#1e2540', borderRadius: 3, height: 6 }}>
+                  <div className={styles.popBar} style={{ width: `${(st.count / maxST) * 100}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Setting Popularity */}
+      {settings.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <h4 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 700, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+            Setting Popularity
+          </h4>
+          <div className={styles.tableCard} style={{ padding: 16 }}>
+            {settings.map((se, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: i < settings.length - 1 ? 10 : 0 }}>
+                <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#c8c0b0', minWidth: 100 }}>{se.name}</span>
+                <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4', minWidth: 30 }}>{se.count}</span>
+                <div style={{ flex: 1, background: '#1e2540', borderRadius: 3, height: 6 }}>
+                  <div className={styles.popBar} style={{ width: `${(se.count / maxSE) * 100}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Stuck Games */}
       {stuck.length > 0 && (
         <div style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-            <h4 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 700, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <h4 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 700, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>
               Stuck Games
             </h4>
             <button className={styles.dangerBtn} style={{ padding: '4px 12px', fontSize: 10 }}
@@ -1185,17 +1136,18 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab, onViewStuckGame }) {
               Delete All Stuck
             </button>
           </div>
+          <p style={{ fontFamily: 'var(--font-alegreya)', fontStyle: 'italic', fontSize: 12, color: '#7082a4', marginBottom: 10 }}>
+            Games stuck in initialization for 3+ days, or active with no turns in 14+ days.
+          </p>
           <div className={styles.tableCard}>
             {stuck.map((g, i) => (
-              <div key={i} className={styles.clickableRow} onClick={() => { onViewStuckGame?.(g.id); }} style={{
+              <div key={i} className={styles.clickableRow} onClick={() => onViewStuckGame?.(g.id)} style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 padding: '10px 16px', borderBottom: '1px solid #2a2622',
               }}>
-                <div>
-                  <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0' }}>
-                    #{g.id} &middot; {g.characterName || 'Unnamed'} &middot; {g.playerName || 'Unknown'}
-                  </span>
-                </div>
+                <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0' }}>
+                  #{g.id} &middot; {g.characterName || 'Unnamed'} &middot; {g.playerName || 'Unknown'}
+                </span>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                   <StatusBadge status={g.status} />
                   <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#e8c45a' }}>{(() => {
@@ -1213,7 +1165,7 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab, onViewStuckGame }) {
               </div>
             ))}
           </div>
-          {/* Delete single stuck game modal */}
+
           {stuckDeleteTarget && (
             <DeleteGameModal
               game={stuckDeleteTarget}
@@ -1225,17 +1177,10 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab, onViewStuckGame }) {
               onCancel={() => setStuckDeleteTarget(null)}
             />
           )}
-          {/* Delete All Stuck confirmation modal */}
+
           {deleteAllConfirm && (
-            <div style={{
-              position: 'fixed', inset: 0, zIndex: 300,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'rgba(0,0,0,0.7)',
-            }}>
-              <div onClick={e => e.stopPropagation()} style={{
-                background: '#111528', border: '1px solid #3a3328', borderRadius: 10,
-                padding: '24px 28px', maxWidth: 420, width: '90vw',
-              }}>
+            <div className={styles.deleteModal}>
+              <div onClick={e => e.stopPropagation()} className={styles.deleteModalCard}>
                 <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: '#d0c098', marginBottom: 12 }}>
                   Delete All Stuck Games
                 </h3>
@@ -1296,9 +1241,7 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab, onViewStuckGame }) {
                           opacity: deleteAllText === 'delete all' ? 1 : 0.5,
                           transition: 'all 0.2s ease',
                         }}
-                      >
-                        Delete All
-                      </button>
+                      >Delete All</button>
                     </div>
                   </>
                 )}
@@ -1308,50 +1251,10 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab, onViewStuckGame }) {
         </div>
       )}
 
-      {/* Storyteller Popularity */}
-      {storytellers.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <h4 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 700, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
-            Storyteller Popularity
-          </h4>
-          <div className={styles.tableCard} style={{ padding: 16 }}>
-            {storytellers.map((st, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: i < storytellers.length - 1 ? 10 : 0 }}>
-                <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#c8c0b0', minWidth: 100 }}>{st.name}</span>
-                <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4', minWidth: 30 }}>{st.count}</span>
-                <div style={{ flex: 1, background: '#1e2540', borderRadius: 3, height: 6 }}>
-                  <div className={styles.popBar} style={{ width: `${(st.count / maxST) * 100}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Setting Popularity */}
-      {settings.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <h4 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 700, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
-            Setting Popularity
-          </h4>
-          <div className={styles.tableCard} style={{ padding: 16 }}>
-            {settings.map((se, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: i < settings.length - 1 ? 10 : 0 }}>
-                <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#c8c0b0', minWidth: 100 }}>{se.name}</span>
-                <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4', minWidth: 30 }}>{se.count}</span>
-                <div style={{ flex: 1, background: '#1e2540', borderRadius: 3, height: 6 }}>
-                  <div className={styles.popBar} style={{ width: `${(se.count / maxSE) * 100}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Recent Errors */}
       {showErrors && errors.recent?.length > 0 && (
         <div style={{ marginBottom: 24 }}>
-          <h4 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 700, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+          <h4 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 700, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
             Recent Errors
           </h4>
           <div className={styles.tableCard}>
@@ -1376,9 +1279,9 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab, onViewStuckGame }) {
   );
 }
 
-// =============================================================================
+// ═════════════════════════════════════════════════════════════════════════════
 // REPORTS TAB
-// =============================================================================
+// ═════════════════════════════════════════════════════════════════════════════
 
 const REPORT_STATUSES = ['open', 'reviewed', 'resolved', 'dismissed'];
 
@@ -1440,11 +1343,7 @@ function ReportCard({ report, onStatusChange, onSaveNotes, onViewGame }) {
   }
 
   return (
-    <div style={{
-      background: '#111528', border: '1px solid #3a3328', borderRadius: 8,
-      padding: '16px 20px',
-    }}>
-      {/* Header row */}
+    <div style={{ background: '#111528', border: '1px solid #3a3328', borderRadius: 8, padding: '16px 20px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <ReportTypeBadge type={report.type} />
@@ -1459,18 +1358,16 @@ function ReportCard({ report, onStatusChange, onSaveNotes, onViewGame }) {
         <ReportStatusBadge status={report.status} />
       </div>
 
-      {/* Player info */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#8a94a8' }}>
-          {report.playerName || 'Unknown'} ({report.playerEmail || '-'})
+          {report.playerName || 'Unknown'} ({report.playerEmail || '—'})
           {report.gameId && (
-            <span> &middot; Game #{report.gameId}{report.characterName ? ` &middot; ${report.characterName}` : ''}{ctx.turnNumber ? ` &middot; Turn ${ctx.turnNumber}` : ''}</span>
+            <span> &middot; Game #{report.gameId}{report.characterName ? ` \u00B7 ${report.characterName}` : ''}{ctx.turnNumber ? ` \u00B7 Turn ${ctx.turnNumber}` : ''}</span>
           )}
         </span>
         <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{timeAgo(report.createdAt)}</span>
       </div>
 
-      {/* Message */}
       <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0', lineHeight: 1.6, margin: '0 0 10px' }}>
         {msgTruncated ? report.message.slice(0, 200) + '...' : report.message}
         {msgTruncated && (
@@ -1481,7 +1378,6 @@ function ReportCard({ report, onStatusChange, onSaveNotes, onViewGame }) {
         )}
       </p>
 
-      {/* Context toggle */}
       {ctxEntries.length > 0 && (
         <div style={{ marginBottom: 10 }}>
           <button onClick={() => setShowContext(!showContext)} style={{
@@ -1495,7 +1391,7 @@ function ReportCard({ report, onStatusChange, onSaveNotes, onViewGame }) {
               {ctxEntries.map(([key, val]) => (
                 <div key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
                   <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#6b83a3' }}>{key}</span>
-                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: '#8a94a8', maxWidth: '60%', textAlign: 'right' }}>{String(val)}</span>
+                  <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11, color: '#8a94a8', maxWidth: '60%', textAlign: 'right' }}>{String(val)}</span>
                 </div>
               ))}
             </div>
@@ -1503,31 +1399,20 @@ function ReportCard({ report, onStatusChange, onSaveNotes, onViewGame }) {
         </div>
       )}
 
-      {/* Admin actions */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-        {/* Status pills */}
         <div style={{ display: 'flex', gap: 4 }}>
           {REPORT_STATUSES.map(s => (
-            <button
-              key={s}
+            <button key={s}
               className={(report.status || 'open') === s ? styles.filterPillActive : styles.filterPill}
               onClick={() => onStatusChange(report.id, s)}
               style={{ padding: '3px 8px' }}
-            >
-              {s.charAt(0).toUpperCase() + s.slice(1)}
-            </button>
+            >{s.charAt(0).toUpperCase() + s.slice(1)}</button>
           ))}
         </div>
-
-        {/* Notes toggle */}
         <button onClick={() => setShowNotes(!showNotes)} style={{
           background: 'none', border: 'none', cursor: 'pointer', padding: 0,
           fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: report.adminNotes ? '#8a94a8' : '#7082a4',
-        }}>
-          {report.adminNotes ? 'Edit note' : 'Add note'}
-        </button>
-
-        {/* View Game */}
+        }}>{report.adminNotes ? 'Edit note' : 'Add note'}</button>
         {report.gameId && (
           <button onClick={() => onViewGame(report.gameId)} style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: 0,
@@ -1536,7 +1421,6 @@ function ReportCard({ report, onStatusChange, onSaveNotes, onViewGame }) {
         )}
       </div>
 
-      {/* Notes editor */}
       {showNotes && (
         <div style={{ marginTop: 10 }}>
           <textarea
@@ -1601,16 +1485,14 @@ function ReportsTab({ data, loading, onRefresh, onViewGame, onReportCountChange 
 
   return (
     <div>
-      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-          <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 20, fontWeight: 700, color: '#d0c098', margin: 0 }}>Reports</h2>
+          <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 18, fontWeight: 700, color: '#d0c098', margin: 0 }}>Reports</h2>
           <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 14, color: '#7082a4' }}>{visibleReports.length}</span>
         </div>
         <button className={styles.refreshBtn} onClick={onRefresh}>Refresh</button>
       </div>
 
-      {/* Filters */}
       <div style={{ display: 'flex', gap: 20, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4', marginRight: 6 }}>Type:</span>
@@ -1633,19 +1515,12 @@ function ReportsTab({ data, loading, onRefresh, onViewGame, onReportCountChange 
         </div>
       </div>
 
-      {/* Report cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {visibleReports.length === 0 ? (
           <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 20 }}>No reports found.</p>
         ) : (
           visibleReports.map(r => (
-            <ReportCard
-              key={r.id}
-              report={r}
-              onStatusChange={handleStatusChange}
-              onSaveNotes={handleSaveNotes}
-              onViewGame={onViewGame}
-            />
+            <ReportCard key={r.id} report={r} onStatusChange={handleStatusChange} onSaveNotes={handleSaveNotes} onViewGame={onViewGame} />
           ))
         )}
       </div>
@@ -1653,9 +1528,9 @@ function ReportsTab({ data, loading, onRefresh, onViewGame, onReportCountChange 
   );
 }
 
-// =============================================================================
+// ═════════════════════════════════════════════════════════════════════════════
 // SETTINGS TAB
-// =============================================================================
+// ═════════════════════════════════════════════════════════════════════════════
 
 function SettingsTab({ data, loading, onRefresh }) {
   const [newCode, setNewCode] = useState('');
@@ -1769,9 +1644,9 @@ function SettingsTab({ data, loading, onRefresh }) {
   );
 }
 
-// =============================================================================
+// ═════════════════════════════════════════════════════════════════════════════
 // MAIN ADMIN PAGE
-// =============================================================================
+// ═════════════════════════════════════════════════════════════════════════════
 
 const TABS = ['Users', 'Games', 'Costs', 'Health', 'Reports', 'Settings'];
 
@@ -1781,7 +1656,6 @@ export default function AdminPage() {
   const [authChecked, setAuthChecked] = useState(false);
   const [userEmail, setUserEmail] = useState('');
 
-  // Tab data caches
   const [usersData, setUsersData] = useState(null);
   const [gamesData, setGamesData] = useState(null);
   const [costsData, setCostsData] = useState(null);
@@ -1789,7 +1663,6 @@ export default function AdminPage() {
   const [reportsData, setReportsData] = useState(null);
   const [settingsData, setSettingsData] = useState(null);
 
-  // Loading states
   const [usersLoading, setUsersLoading] = useState(false);
   const [gamesLoading, setGamesLoading] = useState(false);
   const [costsLoading, setCostsLoading] = useState(false);
@@ -1797,32 +1670,22 @@ export default function AdminPage() {
   const [reportsLoading, setReportsLoading] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(false);
 
-  // Open report count for tab badge
   const [openReportCount, setOpenReportCount] = useState(0);
-
-  // Pending game detail (for cross-tab navigation)
   const [pendingGameDetail, setPendingGameDetail] = useState(null);
   const [pendingSearch, setPendingSearch] = useState(null);
 
-  // Auth guard
   useEffect(() => {
     if (!isAuthenticated()) { router.replace('/auth'); return; }
     const user = getUser();
     setUserEmail(user?.email || '');
-
-    // Admin check: try fetching users; 403 means not admin
     getAdminUsers()
-      .then(data => {
-        setUsersData(data);
-        setAuthChecked(true);
-      })
+      .then(data => { setUsersData(data); setAuthChecked(true); })
       .catch(err => {
         if (err.status === 403) router.replace('/menu');
         else router.replace('/auth');
       });
   }, [router]);
 
-  // Fetch tab data on first visit
   const fetchedTabs = useRef({});
   const fetchTab = useCallback(async (tab, force = false) => {
     if (!force && fetchedTabs.current[tab]) return;
@@ -1850,10 +1713,7 @@ export default function AdminPage() {
       setHealthLoading(false);
     } else if (tab === 'Reports') {
       setReportsLoading(true);
-      try {
-        const d = await getAdminReports({});
-        setReportsData(d);
-      } catch { /* keep stale */ }
+      try { setReportsData(await getAdminReports({})); } catch { /* keep stale */ }
       setReportsLoading(false);
     } else if (tab === 'Settings') {
       setSettingsLoading(true);
@@ -1880,7 +1740,7 @@ export default function AdminPage() {
       {/* Header */}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '20px 48px',
+        padding: '16px 40px', borderBottom: '1px solid #1e2540',
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
           <a href="/menu" style={{ textDecoration: 'none', display: 'flex', alignItems: 'baseline', gap: 8 }}>
@@ -1889,10 +1749,12 @@ export default function AdminPage() {
           </a>
           <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, color: '#7082a4', letterSpacing: '0.08em', textTransform: 'uppercase', marginLeft: 8 }}>ADMIN</span>
         </div>
-        <nav style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
-          <a href="/menu" style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textDecoration: 'none' }}>Main Menu</a>
-          <a href="/settings" style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textDecoration: 'none' }}>Settings</a>
-          <a href="/rulebook" style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textDecoration: 'none' }}>Rulebook</a>
+        <nav style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <a href="/menu" className={styles.headerLink}>Main Menu</a>
+          <span style={{ color: '#7082a4' }}>&middot;</span>
+          <a href="/settings" className={styles.headerLink}>Settings</a>
+          <span style={{ color: '#7082a4' }}>&middot;</span>
+          <a href="/rulebook" className={styles.headerLink}>Rulebook</a>
         </nav>
         <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>
           Signed in as <span style={{ color: '#c9a84c' }}>{userEmail}</span>
@@ -1902,8 +1764,7 @@ export default function AdminPage() {
       {/* Tab Bar */}
       <div style={{
         display: 'flex', gap: 0,
-        padding: '0 48px',
-        borderTop: '1px solid #1e2540',
+        padding: '0 40px',
         borderBottom: '1px solid #1e2540',
       }}>
         {TABS.map(tab => (
@@ -1916,9 +1777,9 @@ export default function AdminPage() {
             {tab}
             {tab === 'Reports' && openReportCount > 0 && (
               <span style={{
-                position: 'absolute', top: 6, right: 4,
+                position: 'absolute', top: 4, right: 2,
                 background: '#c9a84c', color: '#0a0e1a',
-                fontFamily: "'JetBrains Mono', monospace", fontSize: 9, fontWeight: 700,
+                fontFamily: 'var(--font-jetbrains-mono)', fontSize: 9, fontWeight: 700,
                 width: 16, height: 16, borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>{openReportCount}</span>
@@ -1928,13 +1789,53 @@ export default function AdminPage() {
       </div>
 
       {/* Content */}
-      <div style={{ padding: '28px 48px' }}>
-        {activeTab === 'Users' && <UsersTab data={usersData} loading={usersLoading} onRefresh={() => fetchTab('Users', true)} onGameDeleted={(gameId) => setGamesData(prev => prev ? { ...prev, games: (prev.games || []).filter(g => g.id !== gameId) } : prev)} onViewGame={(gid) => { setPendingGameDetail(gid); setActiveTab('Games'); }} onNavigateToGames={(playerName) => { setPendingSearch(playerName); setActiveTab('Games'); }} />}
-        {activeTab === 'Games' && <GamesTab data={gamesData} loading={gamesLoading} onRefresh={() => fetchTab('Games', true)} pendingGameId={pendingGameDetail} onClearPending={() => setPendingGameDetail(null)} pendingSearch={pendingSearch} onClearPendingSearch={() => setPendingSearch(null)} />}
-        {activeTab === 'Costs' && <CostsTab data={costsData} loading={costsLoading} onRefresh={() => fetchTab('Costs', true)} onViewGame={(gid) => { setPendingGameDetail(gid); setActiveTab('Games'); }} />}
-        {activeTab === 'Health' && <HealthTab data={healthData} loading={healthLoading} onRefresh={() => fetchTab('Health', true)} onSwitchTab={setActiveTab} onViewStuckGame={(gid) => { setPendingGameDetail(gid); setActiveTab('Games'); }} />}
-        {activeTab === 'Reports' && <ReportsTab data={reportsData} loading={reportsLoading} onRefresh={() => fetchTab('Reports', true)} onViewGame={(gid) => { setPendingGameDetail(gid); setActiveTab('Games'); }} onReportCountChange={(delta) => setOpenReportCount(prev => Math.max(0, prev + delta))} />}
-        {activeTab === 'Settings' && <SettingsTab data={settingsData} loading={settingsLoading} onRefresh={() => fetchTab('Settings', true)} />}
+      <div style={{ padding: '24px 40px' }}>
+        {activeTab === 'Users' && (
+          <UsersTab
+            data={usersData} loading={usersLoading}
+            onRefresh={() => fetchTab('Users', true)}
+            onGameDeleted={(gameId) => setGamesData(prev => prev ? { ...prev, games: (prev.games || []).filter(g => g.id !== gameId) } : prev)}
+            onViewGame={(gid) => { setPendingGameDetail(gid); setActiveTab('Games'); }}
+            onNavigateToGames={(playerName) => { setPendingSearch(playerName); setActiveTab('Games'); }}
+          />
+        )}
+        {activeTab === 'Games' && (
+          <GamesTab
+            data={gamesData} loading={gamesLoading}
+            onRefresh={() => fetchTab('Games', true)}
+            pendingGameId={pendingGameDetail} onClearPending={() => setPendingGameDetail(null)}
+            pendingSearch={pendingSearch} onClearPendingSearch={() => setPendingSearch(null)}
+          />
+        )}
+        {activeTab === 'Costs' && (
+          <CostsTab
+            data={costsData} loading={costsLoading}
+            onRefresh={() => fetchTab('Costs', true)}
+            onViewGame={(gid) => { setPendingGameDetail(gid); setActiveTab('Games'); }}
+          />
+        )}
+        {activeTab === 'Health' && (
+          <HealthTab
+            data={healthData} loading={healthLoading}
+            onRefresh={() => fetchTab('Health', true)}
+            onSwitchTab={setActiveTab}
+            onViewStuckGame={(gid) => { setPendingGameDetail(gid); setActiveTab('Games'); }}
+          />
+        )}
+        {activeTab === 'Reports' && (
+          <ReportsTab
+            data={reportsData} loading={reportsLoading}
+            onRefresh={() => fetchTab('Reports', true)}
+            onViewGame={(gid) => { setPendingGameDetail(gid); setActiveTab('Games'); }}
+            onReportCountChange={(delta) => setOpenReportCount(prev => Math.max(0, prev + delta))}
+          />
+        )}
+        {activeTab === 'Settings' && (
+          <SettingsTab
+            data={settingsData} loading={settingsLoading}
+            onRefresh={() => fetchTab('Settings', true)}
+          />
+        )}
       </div>
     </div>
   );

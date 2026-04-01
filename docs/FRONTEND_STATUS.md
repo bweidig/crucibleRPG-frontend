@@ -34,18 +34,24 @@
 
 ## Recent Work (This Session: 2026-03-31)
 
-### Admin Dashboard UX Review Round 2 (10 fixes)
-- **User detail game rows:** Clickable rows with eye icon navigate to Games tab game detail via pendingGameDetail pattern.
-- **Stuck games per-row delete:** Each stuck game row has a trash icon that opens DeleteGameModal. On delete, removed from local state.
-- **Multi-select bulk delete:** Checkbox column on Games table, select-all header checkbox, floating action bar with count and "Delete Selected" button. Type-to-confirm modal with progress bar. Select-all only selects visible (filtered) rows.
-- **Dim test debris rows:** Games with turnCount === 0 or no character name render at 0.6 opacity.
-- **User detail prev/next:** Arrow buttons (← →) at top of user detail panel step through sorted/filtered list. Disabled at boundaries.
-- **Costs tab clickable games:** Highest-cost game rows show game ID and navigate to game detail on click.
-- **Reports filter labels:** "Type:" and "Status:" labels before each filter group, vertical divider between them.
-- **Health tab reorder:** Retention metrics moved above Stuck Games. Order: Status → Counts → Retention → Storyteller → Setting → Stuck Games → Errors. Added "Counts include all registered users" note.
-- **Settings invite code:** Source field shows descriptive sentences instead of raw source value. Placeholder changed to "e.g., PLAYTEST2026".
-- **Users game count links:** Game count is clickable — navigates to Games tab with search pre-filled with player name via pendingSearch pattern.
-- **Files modified:** `app/admin/page.js`, `app/admin/page.module.css`, `docs/FRONTEND_STATUS.md`.
+### Admin Dashboard Full Rewrite
+Complete rewrite of `app/admin/page.js` and `app/admin/page.module.css` for consistent spacing, sizing, and clean code organization. Replaced ~15 incremental prompt layers with a single cohesive implementation.
+
+**Key changes from previous version:**
+- **Consistent layout:** Header 16px 40px with bottom border, tab bar 0 40px, content 24px 40px. No more mixed 48px/40px padding.
+- **Adjusted typography:** Tab bar 13px (was 14), StatusBadge 10px/2px 8px (was 11px/3px 10px), SortHeader 11px (was 12), StatCard value 24px (was 28), StatCard label 11px (was 12).
+- **Detail panel:** 480px (was 500px), padding 24px 28px (was 28px 32px). Removed prev/next arrows from user detail — close and click another row.
+- **Reusable components:** Extracted `StatCard` (with compact/accent/onClick props), `Toggle` (self-contained save/fail feedback, replaces per-tab toggleStatus state objects).
+- **Dim rows:** Games with 0 turns or no character at 0.55 opacity (was 0.6).
+- **Health tab order fixed:** Status → Counts → Retention → Storyteller → Setting → Stuck Games → Errors. Added explanation line for stuck games section.
+- **Header nav:** Links with `·` separators and CSS hover class (headerLink). "Signed in as" far right.
+- **CSS cleanup:** Uses `deleteModal`/`deleteModalCard` classes (was inline), removed unused `dangerBtnSolid`, responsive panel 380px (was 400px).
+- **Game detail layout:** Cost split into "Total" line + "Init · Gameplay" line + "turns · created · last played" line. Backstory truncated at 300 chars with expand toggle.
+- **adminApi.js fix:** `updateInviteCode` now sends `{ inviteCode }` (was `{ code }`) to match backend field name.
+
+**All features preserved:** Cross-tab navigation (5 source points), checkbox bulk delete with progress, client-side report filtering, toggle save/fail feedback, type-to-confirm delete modals, sortable tables, status filter pills, narrative log grouping.
+
+**Files modified:** `app/admin/page.js`, `app/admin/page.module.css`, `lib/adminApi.js`, `docs/FRONTEND_STATUS.md`.
 
 ### NavBar & Footer Polish
 - **NavBar standard links:** Updated to FAQ, Rulebook, Pricing, AuthAvatar (added FAQ link before Rulebook).
