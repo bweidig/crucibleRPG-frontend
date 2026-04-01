@@ -356,7 +356,7 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted, onViewGame, onNavig
     setDeleteTarget(null);
   }
 
-  const gridCols = '2fr 2.5fr 70px 90px 90px 100px';
+  const gridCols = '1.5fr 2fr 70px 90px 90px 100px';
 
   if (loading) return <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 40 }}>Loading...</p>;
 
@@ -612,7 +612,7 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
   }
 
   const statuses = ['all', 'active', 'initializing', 'completed', 'abandoned'];
-  const gameCols = '35px 45px 2fr 1.2fr 1.2fr 80px 55px 80px 70px 85px 35px';
+  const gameCols = '35px 45px 1fr 1fr 1fr 90px 60px 85px 75px 85px 35px';
 
   if (loading) return <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 40 }}>Loading...</p>;
 
@@ -800,7 +800,7 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
         )}
 
         <div className={styles.tableCard} style={{ overflowX: 'auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: gameCols, padding: '10px 16px', borderBottom: '1px solid #2a2622', minWidth: 900 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: gameCols, gap: 8, padding: '10px 16px', borderBottom: '1px solid #2a2622', minWidth: 900 }}>
             <input type="checkbox" className={styles.checkbox}
               checked={sorted.length > 0 && sorted.every(g => selectedIds.has(g.id))}
               onChange={toggleSelectAll} />
@@ -819,7 +819,7 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
             const isDim = game.turnCount === 0 || !game.characterName;
             return (
               <div key={game.id} className={styles.clickableRow} onClick={() => openGameDetail(game)} style={{
-                display: 'grid', gridTemplateColumns: gameCols,
+                display: 'grid', gridTemplateColumns: gameCols, gap: 8,
                 padding: '10px 16px', borderBottom: '1px solid #2a2622', alignItems: 'center', minWidth: 900,
                 opacity: isDim ? 0.55 : 1,
               }}>
@@ -1740,7 +1740,7 @@ export default function AdminPage() {
       {/* Header */}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '16px 40px', borderBottom: '1px solid #1e2540',
+        padding: '16px 40px', maxWidth: 1280, borderBottom: '1px solid #1e2540',
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
           <a href="/menu" style={{ textDecoration: 'none', display: 'flex', alignItems: 'baseline', gap: 8 }}>
@@ -1764,7 +1764,7 @@ export default function AdminPage() {
       {/* Tab Bar */}
       <div style={{
         display: 'flex', gap: 0,
-        padding: '0 40px',
+        padding: '0 40px', maxWidth: 1280,
         borderBottom: '1px solid #1e2540',
       }}>
         {TABS.map(tab => (
@@ -1789,7 +1789,7 @@ export default function AdminPage() {
       </div>
 
       {/* Content */}
-      <div style={{ padding: '24px 40px' }}>
+      <div style={{ padding: '24px 40px', maxWidth: 1200 }}>
         {activeTab === 'Users' && (
           <UsersTab
             data={usersData} loading={usersLoading}
