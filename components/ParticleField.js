@@ -7,10 +7,12 @@ const EMBER_COLORS = ["#c9a84c", "#d4a94e", "#e8a840", "#d4845a", "#c0924a", "#d
 
 // Depth layer config: max parallax shift in px (opposite to cursor)
 const LAYERS = [
-  { maxShift: 4 },   // far (smallest particles)
-  { maxShift: 8 },   // mid
-  { maxShift: 14 },  // near (largest particles)
+  { maxShift: 2 },   // far (smallest particles)
+  { maxShift: 4 },   // mid
+  { maxShift: 6 },   // near (largest particles)
 ];
+
+const DEADZONE = 100; // px from viewport center — ignore small movements
 
 function assignLayer(size) {
   if (size < 1.4) return 0;      // far
@@ -60,18 +62,30 @@ export default function ParticleField({ count = 35 }) {
     const handleMouseMove = (e) => {
       const cx = window.innerWidth / 2;
       const cy = window.innerHeight / 2;
-      // Normalized offset: -1 to 1
+      const dx = e.clientX - cx;
+      const dy = e.clientY - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < DEADZONE) {
+        targetOffset.current = { x: 0, y: 0 };
+        return;
+      }
+
+      // Scale from deadzone edge to viewport edge
+      const maxDist = Math.sqrt(cx * cx + cy * cy);
+      const scale = (dist - DEADZONE) / (maxDist - DEADZONE);
+      const angle = Math.atan2(dy, dx);
       targetOffset.current = {
-        x: -(e.clientX - cx) / cx,
-        y: -(e.clientY - cy) / cy,
+        x: -Math.cos(angle) * scale,
+        y: -Math.sin(angle) * scale,
       };
     };
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
 
-    // Lerp loop for smooth movement
+    // Lerp loop for smooth movement — heavy damping for lazy drift
     const lerp = (a, b, t) => a + (b - a) * t;
-    const lerpFactor = 0.06;
+    const lerpFactor = 0.025;
 
     const animate = () => {
       LAYERS.forEach((layer, i) => {
