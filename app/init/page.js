@@ -1995,6 +1995,7 @@ function InitWizardInner() {
   const [loreIndex, setLoreIndex] = useState(0);
   const [loreFade, setLoreFade] = useState(true);
   const [worldGenStatus, setWorldGenStatus] = useState(null); // null, 'generating', 'complete', 'error'
+  const [worldGenName, setWorldGenName] = useState(null);
   const [proposalLoading, setProposalLoading] = useState(false);
   const [proposal, setProposal] = useState(null);
   const [adjustedStats, setAdjustedStats] = useState(null);
@@ -2182,6 +2183,7 @@ function InitWizardInner() {
       const res = await api.get(`/api/init/${gameId}/world-status`);
       if (res.status === 'complete') {
         setWorldGenStatus('complete');
+        setWorldGenName(res.worldName || null);
         return;
       }
       worldPollCount.current += 1;
@@ -2446,7 +2448,7 @@ function InitWizardInner() {
             const prebuiltWorld = selectedWorld ? PREBUILT_WORLDS.find(w => w.id === selectedWorld) : null;
             sessionStorage.setItem('crucible_loading_summary', JSON.stringify({
               characterName: character?.name || null,
-              worldName: prebuiltWorld ? prebuiltWorld.name : settingName,
+              worldName: prebuiltWorld ? prebuiltWorld.name : (worldGenName || settingName),
               settingArchetype: settingName,
               isPrebuilt: !!prebuiltWorld,
               storyteller: stName,

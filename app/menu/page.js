@@ -400,7 +400,7 @@ export default function MenuPage() {
     async function fetchGames() {
       try {
         const data = await get('/api/games');
-        const sorted = (data.games || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const sorted = (data.games || []).sort((a, b) => new Date(b.lastPlayedAt || b.createdAt) - new Date(a.lastPlayedAt || a.createdAt));
         setGames(sorted);
 
         // Auto-fetch hero game detail for stats
@@ -585,7 +585,7 @@ export default function MenuPage() {
                 <span style={{
                   fontFamily: 'var(--font-jetbrains)', fontSize: 12,
                   color: 'var(--text-muted)', flexShrink: 0, marginLeft: 12,
-                }}>{formatTimeAgo(heroGame.createdAt)}</span>
+                }}>{formatTimeAgo(heroGame.lastPlayedAt || heroGame.createdAt)}</span>
               </div>
 
               {/* World name */}
@@ -687,7 +687,7 @@ export default function MenuPage() {
                           <span style={{
                             fontFamily: 'var(--font-jetbrains)', fontSize: 11,
                             color: 'var(--text-muted)', flexShrink: 0, marginLeft: 12,
-                          }}>{formatTimeAgo(game.createdAt)}</span>
+                          }}>{formatTimeAgo(game.lastPlayedAt || game.createdAt)}</span>
                         </div>
 
                         {/* World */}
@@ -775,7 +775,7 @@ export default function MenuPage() {
                           <span style={{
                             fontFamily: 'var(--font-jetbrains)', fontSize: 10,
                             color: 'var(--text-dim)', marginLeft: 'auto',
-                          }}>{formatTimeAgo(game.createdAt)}</span>
+                          }}>{formatTimeAgo(game.lastPlayedAt || game.createdAt)}</span>
                         </div>
                       </div>
                     );

@@ -80,6 +80,15 @@ New `CardNoise` component (`components/CardNoise.js`) adds a subtle feTurbulence
 ### claude-upload Sync Catchup
 Synced all files that were modified across the Apr 1 and Apr 2 sessions but not yet copied to claude-upload: `FRONTEND_STATUS.md`, `design-system.md`, `app-layout.js`, `component-CardNoise.js`, `faq-page.module.css`, `landing-page.module.css`, `component-NavBar.module.css`, `component-ScrollReveal.js`, `hook-useScrollReveal.js`. Removed duplicate `layout.js` (correct copy is `app-layout.js`).
 
+### Wire New Backend Fields (lastPlayedAt, worldName)
+Two backend field integrations:
+
+**Menu page — lastPlayedAt:** Games now sort by `lastPlayedAt` (falling back to `createdAt` if null). All three `formatTimeAgo` displays (hero card, narrative cards, compact cards) use `lastPlayedAt || createdAt` so active games show recency of last play.
+
+**Init wizard — worldName:** Added `worldGenName` state. When `pollWorldStatus` returns `status: 'complete'`, captures `res.worldName`. The phase 5 sessionStorage write now uses `worldGenName || settingName` for custom worlds, so AI-generated names (e.g. "The Fraying Throne") propagate to the /play loading screen.
+
+**Files modified:** `app/menu/page.js`, `app/init/page.js`.
+
 ---
 
 ## Previous Work (2026-04-01)
