@@ -30,13 +30,13 @@ function FeaturesSection() {
           <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, color: 'var(--accent-gold)', letterSpacing: '0.25em' }}>FEATURES</span>
         </div>
       </ScrollReveal>
-      <div className={styles.featuresGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 32 }}>
+      <div className={styles.featuresGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 40 }}>
         {features.map((f, i) => (
           <ScrollReveal key={i} delay={i * 0.15} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div className={styles.featureCard} style={{
               padding: '36px 32px', borderRadius: 8,
-              border: '1px solid #1e2030',
-              background: '#101420', flex: 1,
+              border: '1px solid #252a40',
+              background: '#151a2c', flex: 1,
             }}>
               <p style={{
                 fontFamily: 'var(--font-alegreya)', fontSize: 16, fontStyle: 'italic', fontWeight: 400,

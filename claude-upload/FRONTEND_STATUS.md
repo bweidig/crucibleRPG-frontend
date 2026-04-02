@@ -34,6 +34,11 @@
 
 ## Recent Work (This Session: 2026-04-02)
 
+### Card Contrast and Hover Fix
+Feature cards were nearly invisible against the page background. Bumped card bg #101420→#151a2c, border #1e2030→#252a40, gap 32→40px. Hover now has translateY(-2px), stronger gold box-shadow (0.12 opacity), and gold-tinted border. Hero tagline bumped from clamp max 30px to 36px to reduce the scale jump from the 80px wordmark.
+
+**Files modified:** `app/landing/page.js`, `app/landing/page.module.css`, `app/landing/HeroSection.js`.
+
 ### Auth Page Layout Fix and Polish
 Fixed broken horizontal layout (missing `flexDirection: 'column'`) and added visual polish:
 
