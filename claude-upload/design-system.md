@@ -40,11 +40,10 @@ Use this document when implementing or updating any CrucibleRPG frontend page. A
 | Success | `#8aba7a` | 8.1:1 | Resolution success, positive states |
 
 **Gold Label Colors:**
-| Role | Hex | Usage |
-|------|-----|-------|
-| Muted gold labels | `#9a8545` | Stat category labels (SETTING, TURNS, etc.) |
-| Footer text | `#a08a48` | Footer copyright line |
-| RPG wordmark | `#9a8545` | "RPG" next to CRUCIBLE in wordmark |
+| Role | Hex | CSS Variable | Usage |
+|------|-----|-------------|-------|
+| Muted gold labels | `#9a8545` | `--gold-muted` | Stat category labels (SETTING, TURNS, etc.), RPG wordmark |
+| Footer text | `#a08a48` | `--gold-footer` | Footer copyright line |
 
 **Brown Theme Colors (sidebar/inventory):**
 | Role | Hex | Usage |
@@ -80,6 +79,16 @@ Use this document when implementing or updating any CrucibleRPG frontend page. A
 |------|-----|-------|
 | Primary border | `#252a40` | Panel borders, dividers, card outlines |
 | Light border | `#161c34` | Subtle separators |
+
+**Gold-Tinted Utility Tokens (solid hex, computed against bgMain):**
+| Role | Hex | CSS Variable | Usage |
+|------|-----|-------------|-------|
+| Gold border faint | `#16181e` | `--border-gold-faint` | Subtle card/input borders on marketing pages |
+| Gold border subtle | `#1f1f21` | `--border-gold-subtle` | Pricing cards, slightly warmer border |
+| Gold border light | `#272522` | `--border-gold-light` | Visible warm border, pricing highlight |
+| Gold bg faint | `#0e111b` | `--bg-gold-faint` | Feature cards, pricing free trial card |
+| Gold bg subtle | `#13151d` | `--bg-gold-subtle` | Pricing subscription card, CTA hover |
+| Gold bg light | `#191a1e` | `--bg-gold-light` | Active tab background, checkbox active |
 
 ---
 
