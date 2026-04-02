@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import ParticleField from '@/components/ParticleField';
+import ScrollReveal from '@/components/ScrollReveal';
 import styles from './page.module.css';
 
 // --- PLACEHOLDER CONFIG (easy to swap later) ---
@@ -99,30 +100,23 @@ export default function PricingPage() {
         textAlign: 'center', padding: '60px 24px 20px',
         position: 'relative', zIndex: 1,
       }}>
-        <div style={{
-          opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(16px)',
-          transition: 'all 1s cubic-bezier(0.16,1,0.3,1) 0.1s',
-        }}>
+        <ScrollReveal>
           <span style={{
             fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600,
             color: 'var(--accent-gold)', letterSpacing: '0.25em',
           }}>PRICING</span>
-        </div>
 
-        <h1 style={{
-          fontFamily: 'var(--font-alegreya)', fontSize: 'clamp(26px, 3.5vw, 34px)',
-          fontStyle: 'italic', fontWeight: 500, color: '#9a9480',
-          marginTop: 20, marginBottom: 14,
-          opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(16px)',
-          transition: 'all 1s cubic-bezier(0.16,1,0.3,1) 0.2s',
-        }}>No tiers. No gates. Just the whole world for one price.</h1>
+          <h1 style={{
+            fontFamily: 'var(--font-alegreya)', fontSize: 'clamp(26px, 3.5vw, 34px)',
+            fontStyle: 'italic', fontWeight: 500, color: '#9a9480',
+            marginTop: 20, marginBottom: 14,
+          }}>No tiers. No gates. Just the whole world for one price.</h1>
 
-        <p style={{
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 17, fontWeight: 300,
-          color: 'var(--text-muted)', maxWidth: 480, margin: '0 auto', lineHeight: 1.7,
-          opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(16px)',
-          transition: 'all 1s cubic-bezier(0.16,1,0.3,1) 0.3s',
-        }}>Every storyteller. Every setting. Every feature. Start free or jump right in.</p>
+          <p style={{
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 17, fontWeight: 300,
+            color: 'var(--text-muted)', maxWidth: 480, margin: '0 auto', lineHeight: 1.7,
+          }}>Every storyteller. Every setting. Every feature. Start free or jump right in.</p>
+        </ScrollReveal>
       </div>
 
       {/* Pricing cards */}
@@ -130,11 +124,10 @@ export default function PricingPage() {
         display: 'flex', justifyContent: 'center', gap: 24,
         padding: '48px 24px 32px', flexWrap: 'wrap',
         position: 'relative', zIndex: 1,
-        opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(16px)',
-        transition: 'all 1s cubic-bezier(0.16,1,0.3,1) 0.4s',
       }}>
 
         {/* Free Trial */}
+        <ScrollReveal delay={0}>
         <div className={styles.priceCard} style={{
           background: 'var(--bg-gold-faint)',
           border: '1px solid var(--border-gold-subtle)',
@@ -181,8 +174,10 @@ export default function PricingPage() {
             }}
           >TRY IT FREE</button>
         </div>
+        </ScrollReveal>
 
         {/* Subscription */}
+        <ScrollReveal delay={0.1}>
         <div className={styles.priceCard} style={{
           background: 'var(--bg-gold-subtle)',
           border: '1px solid var(--border-card-separator)',
@@ -247,6 +242,7 @@ export default function PricingPage() {
             }}
           >SUBSCRIBE</button>
         </div>
+        </ScrollReveal>
       </div>
 
       {/* Top-up section */}
@@ -254,43 +250,45 @@ export default function PricingPage() {
         maxWidth: 640, margin: '0 auto',
         padding: '48px 24px 32px',
         position: 'relative', zIndex: 1,
-        opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(16px)',
-        transition: 'all 1s cubic-bezier(0.16,1,0.3,1) 0.55s',
       }}>
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <span style={{
-            fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
-            color: 'var(--gold-muted)', letterSpacing: '0.2em',
-          }}>NEED MORE TURNS?</span>
+        <ScrollReveal>
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <span style={{
+              fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
+              color: 'var(--gold-muted)', letterSpacing: '0.2em',
+            }}>NEED MORE TURNS?</span>
           <p style={{
             fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 300,
             color: 'var(--text-muted)', marginTop: 10, lineHeight: 1.6,
           }}>Top-up packs for when the story can't wait. Available to subscribers anytime.</p>
         </div>
+        </ScrollReveal>
 
         <div style={{
           display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap',
         }}>
           {PRICING.topups.map((pack, i) => (
-            <div key={i} className={styles.topupCard} style={{
-              background: 'var(--bg-gold-faint)',
-              border: '1px solid var(--border-gold-subtle)',
-              borderRadius: 8, padding: '20px 24px',
-              textAlign: 'center', flex: '1 1 160px', maxWidth: 190,
-            }}>
-              <div style={{
-                fontFamily: 'var(--font-jetbrains)', fontSize: 22,
-                fontWeight: 500, color: 'var(--text-heading)', marginBottom: 4,
-              }}>{pack.turns}</div>
-              <div style={{
-                fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
-                color: 'var(--text-muted)', marginBottom: 12,
-              }}>turns</div>
-              <div style={{
-                fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700,
-                color: 'var(--accent-gold)',
-              }}>${pack.price}</div>
-            </div>
+            <ScrollReveal key={i} delay={i * 0.1}>
+              <div className={styles.topupCard} style={{
+                background: 'var(--bg-gold-faint)',
+                border: '1px solid var(--border-gold-subtle)',
+                borderRadius: 8, padding: '20px 24px',
+                textAlign: 'center', flex: '1 1 160px', maxWidth: 190,
+              }}>
+                <div style={{
+                  fontFamily: 'var(--font-jetbrains)', fontSize: 22,
+                  fontWeight: 500, color: 'var(--text-heading)', marginBottom: 4,
+                }}>{pack.turns}</div>
+                <div style={{
+                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
+                  color: 'var(--text-muted)', marginBottom: 12,
+                }}>turns</div>
+                <div style={{
+                  fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700,
+                  color: 'var(--accent-gold)',
+                }}>${pack.price}</div>
+              </div>
+            </ScrollReveal>
           ))}
         </div>
       </div>
@@ -300,31 +298,33 @@ export default function PricingPage() {
         maxWidth: 560, margin: '0 auto',
         padding: '48px 24px 40px',
         position: 'relative', zIndex: 1,
-        opacity: loaded ? 1 : 0,
-        transition: 'opacity 1s ease 0.6s',
       }}>
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <span style={{
-            fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
-            color: 'var(--gold-muted)', letterSpacing: '0.2em',
-          }}>COMMON QUESTIONS</span>
-        </div>
+        <ScrollReveal>
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <span style={{
+              fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
+              color: 'var(--gold-muted)', letterSpacing: '0.2em',
+            }}>COMMON QUESTIONS</span>
+          </div>
+        </ScrollReveal>
 
         {FAQ_ITEMS.map((item, i) => (
-          <div key={i} style={{
-            marginBottom: 28,
-            paddingBottom: 28,
-            borderBottom: i < FAQ_ITEMS.length - 1 ? '1px solid var(--border-gold-faint)' : 'none',
-          }}>
+          <ScrollReveal key={i} delay={i * 0.1}>
             <div style={{
-              fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 700,
-              color: 'var(--text-heading)', marginBottom: 8,
-            }}>{item.q}</div>
-            <div style={{
-              fontFamily: 'var(--font-alegreya-sans)', fontSize: 15,
-              fontWeight: 300, color: 'var(--text-muted)', lineHeight: 1.7,
-            }}>{item.a}</div>
-          </div>
+              marginBottom: 28,
+              paddingBottom: 28,
+              borderBottom: i < FAQ_ITEMS.length - 1 ? '1px solid var(--border-gold-faint)' : 'none',
+            }}>
+              <div style={{
+                fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 700,
+                color: 'var(--text-heading)', marginBottom: 8,
+              }}>{item.q}</div>
+              <div style={{
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 15,
+                fontWeight: 300, color: 'var(--text-muted)', lineHeight: 1.7,
+              }}>{item.a}</div>
+            </div>
+          </ScrollReveal>
         ))}
       </div>
 

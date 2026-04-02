@@ -29,6 +29,15 @@
   border-color: #3a3328;
 }
 
+/* FAQ item hover */
+.faqItem {
+  transition: border-bottom-color 0.4s ease;
+}
+
+.faqItem:hover {
+  border-bottom-color: var(--border-card-hover);
+}
+
 /* FAQ question button */
 .faqQuestion {
   width: 100%;

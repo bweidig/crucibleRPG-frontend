@@ -7,11 +7,11 @@ import { getToken } from '@/lib/api';
 import styles from './NavBar.module.css';
 
 export default function NavBar({ variant = 'standard', currentPage }) {
-  const [scrolled, setScrolled] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   useEffect(() => {
     if (variant !== 'landing') return;
-    const h = () => setScrolled(window.scrollY > 40);
+    const h = () => setScrollProgress(Math.min(window.scrollY / 300, 1));
     window.addEventListener('scroll', h, { passive: true });
     return () => window.removeEventListener('scroll', h);
   }, [variant]);
@@ -21,9 +21,10 @@ export default function NavBar({ variant = 'standard', currentPage }) {
   if (variant === 'landing') {
     return (
       <nav className={styles.landingNav} style={{
-        background: scrolled ? 'rgba(10, 14, 26, 0.94)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(16px)' : 'none',
-        borderBottom: scrolled ? '1px solid var(--border-gold-faint)' : '1px solid transparent',
+        background: scrollProgress > 0 ? `rgba(10, 14, 26, ${0.85 * scrollProgress})` : 'transparent',
+        backdropFilter: scrollProgress > 0 ? `blur(${16 * scrollProgress}px)` : 'none',
+        WebkitBackdropFilter: scrollProgress > 0 ? `blur(${16 * scrollProgress}px)` : 'none',
+        borderBottom: scrollProgress > 0.5 ? `1px solid rgba(30, 37, 64, ${scrollProgress * 0.6})` : '1px solid transparent',
       }}>
         <Link href={wordmarkHref} className={styles.wordmark}>
           <span className={styles.wordmarkCrucible}>CRUCIBLE</span>

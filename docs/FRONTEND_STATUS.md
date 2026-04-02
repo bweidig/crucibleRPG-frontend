@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-03-30
+**Last Updated:** 2026-04-01
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -32,7 +32,28 @@
 
 ---
 
-## Recent Work (This Session: 2026-03-31)
+## Recent Work (This Session: 2026-04-01)
+
+### Scroll-Reveal Animations Across Public Pages
+Added `ScrollReveal` component and `useScrollReveal` hook (IntersectionObserver-based, respects `prefers-reduced-motion`). Wrapped all below-the-fold sections on landing, FAQ, pricing, and rulebook pages.
+
+**Key changes:**
+- **`ScrollReveal` component** (`components/ScrollReveal.js`): Wraps children with fade-up animation (30px translateY, 0.7s cubic-bezier) triggered on scroll into viewport. Accepts `delay` prop for staggered reveals.
+- **`useScrollReveal` hook** (`hooks/useScrollReveal.js`): IntersectionObserver with 15% threshold, -60px root margin. Fires once per element. Skips animation entirely when `prefers-reduced-motion: reduce` is active.
+- **Landing hero cascade:** Replaced single boolean `loaded` fade-in with 5-stage staggered reveal (80ms–900ms). Each element (wordmark, tagline, sub-tagline, CTAs, chevron) has independent distance/duration/easing. Scroll chevron now tied to stage 5 instead of a separate timer.
+- **Landing sections:** Features grid, How It Works steps, FAQ accordion, and bottom CTA all wrapped in `ScrollReveal` with per-item stagger delays.
+- **FAQ page:** Header, category tabs, and each FAQ item wrapped in `ScrollReveal`.
+- **Pricing page:** Hero, price cards, top-up packs, FAQ items, and bottom CTA wrapped in `ScrollReveal`.
+- **Rulebook page:** Hero section replaced manual fade-in with `ScrollReveal`.
+- **Landing CSS additions:** Feature card hover (border-color + gold h3 transition), step item hover (circle border + gold h3), FAQ question border hover, `prefers-reduced-motion` overrides for all animated elements. Tablet and mobile responsive rules for section spacing.
+- **NavBar landing variant:** Added in-page anchor links (Features, How It Works, FAQ) with `.sectionLink` class hidden on mobile. Underline hover animation on all nav links.
+
+**Files created:** `components/ScrollReveal.js`, `hooks/useScrollReveal.js`.
+**Files modified:** `app/landing/page.js`, `app/landing/page.module.css`, `app/faq/page.js`, `app/faq/page.module.css`, `app/pricing/page.js`, `app/rulebook/page.js`, `components/NavBar.js`, `components/NavBar.module.css`.
+
+---
+
+## Previous Work (2026-03-31)
 
 ### Admin Dashboard Full Rewrite
 Complete rewrite of `app/admin/page.js` and `app/admin/page.module.css` for consistent spacing, sizing, and clean code organization. Replaced ~15 incremental prompt layers with a single cohesive implementation.

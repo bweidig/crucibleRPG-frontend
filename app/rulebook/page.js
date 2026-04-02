@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
+import ScrollReveal from '@/components/ScrollReveal';
 import styles from './page.module.css';
 
 // --- SECTION DATA ---
@@ -166,37 +167,24 @@ export default function RulebookPage() {
       <NavBar currentPage="rulebook" />
 
       {/* Hero section */}
-      <div style={{
-        textAlign: 'center', padding: '48px 24px 36px',
-      }}>
+      <ScrollReveal>
         <div style={{
-          opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(16px)',
-          transition: 'all 1s cubic-bezier(0.16,1,0.3,1) 0.1s',
+          textAlign: 'center', padding: '48px 24px 36px',
         }}>
           <h1 style={{
             fontFamily: 'var(--font-cinzel)', fontSize: 'clamp(26px, 3.5vw, 34px)',
             fontWeight: 700, color: '#d0c098', marginBottom: 12,
           }}>The Rulebook</h1>
-        </div>
-        <div style={{
-          opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(16px)',
-          transition: 'all 1s cubic-bezier(0.16,1,0.3,1) 0.2s',
-        }}>
           <p style={{
             fontFamily: 'var(--font-alegreya)', fontSize: 18, fontStyle: 'italic',
             fontWeight: 400, color: '#9a9480', marginBottom: 8,
-          }}>Real rules. Real consequences. Here's how the system works.</p>
-        </div>
-        <div style={{
-          opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(16px)',
-          transition: 'all 1s cubic-bezier(0.16,1,0.3,1) 0.3s',
-        }}>
+          }}>Real rules. Real consequences. Here&rsquo;s how the system works.</p>
           <span style={{
             fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
             color: 'var(--text-muted)',
           }}>21 sections &middot; Player-friendly reference &middot; No spoilers</span>
         </div>
-      </div>
+      </ScrollReveal>
 
       {/* Main area: TOC sidebar + content */}
       <div className={styles.mainArea} style={{

@@ -7,6 +7,7 @@ import { getToken } from '@/lib/api';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import ParticleField from '@/components/ParticleField';
+import ScrollReveal from '@/components/ScrollReveal';
 import styles from './page.module.css';
 
 const features = [
@@ -31,16 +32,8 @@ const faqItems = [
 ];
 
 
-function ScrollChevron({ loaded }) {
+function ScrollChevron({ heroStage }) {
   const [scrolledPast, setScrolledPast] = useState(false);
-  const [appeared, setAppeared] = useState(false);
-
-  useEffect(() => {
-    if (loaded && !appeared) {
-      const timer = setTimeout(() => setAppeared(true), 800);
-      return () => clearTimeout(timer);
-    }
-  }, [loaded, appeared]);
 
   useEffect(() => {
     const handleScroll = () => setScrolledPast(window.scrollY > 100);
@@ -48,7 +41,7 @@ function ScrollChevron({ loaded }) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const isVisible = appeared && !scrolledPast;
+  const isVisible = heroStage >= 5 && !scrolledPast;
 
   return (
     <button
@@ -58,6 +51,7 @@ function ScrollChevron({ loaded }) {
       style={{
         opacity: isVisible ? 0.4 : 0,
         pointerEvents: isVisible ? 'auto' : 'none',
+        transition: 'opacity 0.5s ease',
       }}
     >
       <svg viewBox="0 0 24 12" width={28} height={14} style={{ display: 'block' }}>
@@ -68,9 +62,37 @@ function ScrollChevron({ loaded }) {
 }
 
 function HeroSection() {
-  const [loaded, setLoaded] = useState(false);
+  const [heroStage, setHeroStage] = useState(0);
   const router = useRouter();
-  useEffect(() => { setTimeout(() => setLoaded(true), 150); }, []);
+
+  useEffect(() => {
+    const timers = [
+      setTimeout(() => setHeroStage(1), 80),
+      setTimeout(() => setHeroStage(2), 320),
+      setTimeout(() => setHeroStage(3), 520),
+      setTimeout(() => setHeroStage(4), 680),
+      setTimeout(() => setHeroStage(5), 900),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  const heroConfigs = [
+    null,
+    { dist: 24, dur: 0.7,  opDur: 0.5,  ease: 'cubic-bezier(0.16, 1, 0.3, 1)' },
+    { dist: 18, dur: 0.6,  opDur: 0.4,  ease: 'cubic-bezier(0.16, 1, 0.3, 1)' },
+    { dist: 12, dur: 0.5,  opDur: 0.35, ease: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+    { dist: 8,  dur: 0.45, opDur: 0.3,  ease: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+    { dist: 6,  dur: 0.5,  opDur: 0.35, ease: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+  ];
+
+  const heroStyle = (stage) => {
+    const cfg = heroConfigs[stage];
+    return {
+      opacity: heroStage >= stage ? 1 : 0,
+      transform: heroStage >= stage ? 'translateY(0)' : `translateY(${cfg.dist}px)`,
+      transition: `opacity ${cfg.opDur}s ${cfg.ease}, transform ${cfg.dur}s ${cfg.ease}`,
+    };
+  };
 
   const handleCTA = () => {
     router.push(getToken() ? '/menu' : '/auth');
@@ -89,12 +111,7 @@ function HeroSection() {
       }} />
 
       {/* Wordmark */}
-      <div style={{
-        opacity: loaded ? 1 : 0,
-        transform: loaded ? 'translateY(0)' : 'translateY(20px)',
-        transition: 'all 1.2s cubic-bezier(0.16, 1, 0.3, 1)',
-        marginBottom: 52, textAlign: 'center',
-      }}>
+      <div style={{ ...heroStyle(1), marginBottom: 52, textAlign: 'center' }}>
         <div style={{
           fontFamily: 'var(--font-cinzel)', fontSize: 'clamp(52px, 8vw, 80px)', fontWeight: 900,
           color: 'var(--accent-gold)', letterSpacing: '0.08em', lineHeight: 1,
@@ -110,8 +127,7 @@ function HeroSection() {
         fontFamily: 'var(--font-alegreya)', fontSize: 'clamp(22px, 3.2vw, 30px)',
         fontStyle: 'italic', fontWeight: 500, color: '#9a9480',
         textAlign: 'center', maxWidth: 600, lineHeight: 1.7, marginBottom: 16,
-        opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(16px)',
-        transition: 'all 1s cubic-bezier(0.16,1,0.3,1) 0.2s',
+        ...heroStyle(2),
       }}>Your story. Your choices. No table required.</h1>
 
       {/* Sub-tagline */}
@@ -119,15 +135,13 @@ function HeroSection() {
         fontFamily: 'var(--font-alegreya-sans)', fontSize: 'clamp(16px, 2vw, 19px)',
         fontWeight: 300, color: 'var(--text-dim)', textAlign: 'center', maxWidth: 560,
         lineHeight: 1.7, marginBottom: 52,
-        opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(16px)',
-        transition: 'all 1s cubic-bezier(0.16,1,0.3,1) 0.35s',
+        ...heroStyle(3),
       }}>A solo tabletop RPG powered by AI. Real mechanics, real consequences, and a world that remembers everything you do.</p>
 
       {/* CTAs */}
       <div style={{
         display: 'flex', gap: 18, flexWrap: 'wrap', justifyContent: 'center',
-        opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(16px)',
-        transition: 'all 1s cubic-bezier(0.16,1,0.3,1) 0.5s',
+        ...heroStyle(4),
       }}>
         <button onClick={handleCTA} className={styles.ctaPrimary} style={{
           fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 700, color: 'var(--bg-main)',
@@ -144,8 +158,7 @@ function HeroSection() {
         </a>
       </div>
 
-      {/* Scroll chevron */}
-      <ScrollChevron loaded={loaded} />
+      <ScrollChevron heroStage={heroStage} />
     </section>
   );
 }
@@ -153,25 +166,29 @@ function HeroSection() {
 function FeaturesSection() {
   return (
     <section id="features" className={styles.featuresSection} style={{ padding: '100px clamp(24px, 5vw, 60px)', maxWidth: 1000, margin: '0 auto' }}>
-      <div style={{ textAlign: 'center', marginBottom: 64 }}>
-        <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, color: 'var(--accent-gold)', letterSpacing: '0.25em' }}>FEATURES</span>
-      </div>
+      <ScrollReveal>
+        <div style={{ textAlign: 'center', marginBottom: 64 }}>
+          <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, color: 'var(--accent-gold)', letterSpacing: '0.25em' }}>FEATURES</span>
+        </div>
+      </ScrollReveal>
       <div className={styles.featuresGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 28 }}>
         {features.map((f, i) => (
-          <div key={i} className={styles.featureCard} style={{
-            padding: '36px 32px', borderRadius: 8,
-            border: '1px solid var(--border-gold-faint)',
-            background: 'var(--bg-gold-faint)',
-          }}>
-            <h3 style={{
-              fontFamily: 'var(--font-cinzel)', fontSize: 19, fontWeight: 700,
-              color: 'var(--text-heading)', marginBottom: 14, lineHeight: 1.4,
-            }}>{f.title}</h3>
-            <p style={{
-              fontFamily: 'var(--font-alegreya-sans)', fontSize: 17, fontWeight: 300,
-              color: 'var(--text-muted)', lineHeight: 1.75,
-            }}>{f.desc}</p>
-          </div>
+          <ScrollReveal key={i} delay={i * 0.1} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div className={styles.featureCard} style={{
+              padding: '36px 32px', borderRadius: 8,
+              border: '1px solid var(--border-gold-faint)',
+              background: 'var(--bg-gold-faint)', flex: 1,
+            }}>
+              <h3 style={{
+                fontFamily: 'var(--font-cinzel)', fontSize: 19, fontWeight: 700,
+                marginBottom: 14, lineHeight: 1.4,
+              }}>{f.title}</h3>
+              <p style={{
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 17, fontWeight: 300,
+                color: 'var(--text-muted)', lineHeight: 1.75,
+              }}>{f.desc}</p>
+            </div>
+          </ScrollReveal>
         ))}
       </div>
     </section>
@@ -181,37 +198,41 @@ function FeaturesSection() {
 function HowItWorksSection() {
   return (
     <section id="how-it-works" className={styles.howSection} style={{ padding: '100px clamp(24px, 5vw, 60px)', maxWidth: 800, margin: '0 auto' }}>
-      <div style={{ textAlign: 'center', marginBottom: 64 }}>
-        <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, color: 'var(--accent-gold)', letterSpacing: '0.25em' }}>HOW IT WORKS</span>
-      </div>
+      <ScrollReveal>
+        <div style={{ textAlign: 'center', marginBottom: 64 }}>
+          <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, color: 'var(--accent-gold)', letterSpacing: '0.25em' }}>HOW IT WORKS</span>
+        </div>
+      </ScrollReveal>
       <div style={{ position: 'relative' }}>
         <div className={styles.stepLine} style={{
           position: 'absolute', left: 27, top: 28, bottom: 28, width: 1,
           background: 'linear-gradient(to bottom, var(--border-card-separator), var(--bg-gold-faint))',
         }} />
         {steps.map((step, i) => (
-          <div key={i} className={styles.stepItem} style={{
-            display: 'flex', gap: 32, alignItems: 'flex-start',
-            marginBottom: i < steps.length - 1 ? 52 : 0, position: 'relative',
-          }}>
-            <div className={styles.stepCircle} style={{
-              width: 56, height: 56, borderRadius: '50%',
-              border: '1px solid var(--border-card-separator)', background: 'var(--bg-main)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700,
-              color: 'var(--accent-gold)', flexShrink: 0, position: 'relative', zIndex: 1,
-            }}>{step.num}</div>
-            <div style={{ paddingTop: 4 }}>
-              <h3 style={{
-                fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 700,
-                color: 'var(--text-heading)', marginBottom: 10,
-              }}>{step.title}</h3>
-              <p style={{
-                fontFamily: 'var(--font-alegreya-sans)', fontSize: 17, fontWeight: 300,
-                color: 'var(--text-muted)', lineHeight: 1.75,
-              }}>{step.desc}</p>
+          <ScrollReveal key={i} delay={i * 0.12}>
+            <div className={styles.stepItem} style={{
+              display: 'flex', gap: 32, alignItems: 'flex-start',
+              marginBottom: i < steps.length - 1 ? 52 : 0, position: 'relative',
+            }}>
+              <div className={styles.stepCircle} style={{
+                width: 56, height: 56, borderRadius: '50%',
+                border: '1px solid var(--border-card-separator)', background: 'var(--bg-main)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700,
+                color: 'var(--accent-gold)', flexShrink: 0, position: 'relative', zIndex: 1,
+              }}>{step.num}</div>
+              <div style={{ paddingTop: 4 }}>
+                <h3 style={{
+                  fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 700,
+                  marginBottom: 10,
+                }}>{step.title}</h3>
+                <p style={{
+                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 17, fontWeight: 300,
+                  color: 'var(--text-muted)', lineHeight: 1.75,
+                }}>{step.desc}</p>
+              </div>
             </div>
-          </div>
+          </ScrollReveal>
         ))}
       </div>
     </section>
@@ -223,47 +244,53 @@ function FAQSection() {
 
   return (
     <section id="faq" style={{ padding: '100px clamp(24px, 5vw, 60px)', maxWidth: 700, margin: '0 auto' }}>
-      <div style={{ textAlign: 'center', marginBottom: 64 }}>
-        <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, color: 'var(--accent-gold)', letterSpacing: '0.25em' }}>FAQ</span>
-      </div>
+      <ScrollReveal>
+        <div style={{ textAlign: 'center', marginBottom: 64 }}>
+          <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, color: 'var(--accent-gold)', letterSpacing: '0.25em' }}>FAQ</span>
+        </div>
+      </ScrollReveal>
       <div>
         {faqItems.map((item, i) => (
-          <div key={i}>
-            <button
-              className={styles.faqQuestion}
-              onClick={() => setOpenIndex(openIndex === i ? null : i)}
-            >
-              <span style={{
-                fontFamily: 'var(--font-cinzel)', fontSize: 17, fontWeight: 600,
-                color: 'var(--text-heading)', transition: 'color 0.2s ease',
-              }}>{item.q}</span>
-              <svg
-                className={styles.faqChevron}
-                width={14} height={14} viewBox="0 0 14 14"
-                style={{ transform: openIndex === i ? 'rotate(180deg)' : 'rotate(0deg)' }}
+          <ScrollReveal key={i} delay={i * 0.08}>
+            <div>
+              <button
+                className={styles.faqQuestion}
+                onClick={() => setOpenIndex(openIndex === i ? null : i)}
               >
-                <polyline points="2,5 7,10 12,5" fill="none" stroke="#7082a4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            <div
-              className={styles.faqAnswer}
-              style={{
-                maxHeight: openIndex === i ? 300 : 0,
-                opacity: openIndex === i ? 1 : 0,
-                padding: openIndex === i ? '0 0 20px' : '0',
-              }}
-            >
-              <p style={{
-                fontFamily: 'var(--font-alegreya-sans)', fontSize: 17, fontWeight: 300,
-                color: 'var(--text-muted)', lineHeight: 1.75,
-              }}>{item.a}</p>
+                <span style={{
+                  fontFamily: 'var(--font-cinzel)', fontSize: 17, fontWeight: 600,
+                  color: 'var(--text-heading)', transition: 'color 0.2s ease',
+                }}>{item.q}</span>
+                <svg
+                  className={styles.faqChevron}
+                  width={14} height={14} viewBox="0 0 14 14"
+                  style={{ transform: openIndex === i ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                >
+                  <polyline points="2,5 7,10 12,5" fill="none" stroke="#7082a4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <div
+                className={styles.faqAnswer}
+                style={{
+                  maxHeight: openIndex === i ? 300 : 0,
+                  opacity: openIndex === i ? 1 : 0,
+                  padding: openIndex === i ? '0 0 20px' : '0',
+                }}
+              >
+                <p style={{
+                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 17, fontWeight: 300,
+                  color: 'var(--text-muted)', lineHeight: 1.75,
+                }}>{item.a}</p>
+              </div>
             </div>
-          </div>
+          </ScrollReveal>
         ))}
       </div>
-      <div style={{ textAlign: 'center', marginTop: 32 }}>
-        <Link href="/faq" className={styles.faqSeeAll}>See all questions &rarr;</Link>
-      </div>
+      <ScrollReveal delay={0.3}>
+        <div style={{ textAlign: 'center', marginTop: 32 }}>
+          <Link href="/faq" className={styles.faqSeeAll}>See all questions &rarr;</Link>
+        </div>
+      </ScrollReveal>
     </section>
   );
 }
@@ -281,20 +308,26 @@ function CTASection() {
         background: 'radial-gradient(circle, rgba(201,168,76,0.04) 0%, transparent 65%)',
         top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none',
       }} />
-      <h2 style={{
-        fontFamily: 'var(--font-cinzel)', fontSize: 'clamp(26px, 3.5vw, 36px)',
-        fontWeight: 700, color: 'var(--text-heading)', marginBottom: 18, position: 'relative',
-      }}>Every Hero Needs a Crucible. Yours is waiting.</h2>
-      <p style={{
-        fontFamily: 'var(--font-alegreya-sans)', fontSize: 18, fontWeight: 300,
-        color: 'var(--text-dim)', lineHeight: 1.7, maxWidth: 500, margin: '0 auto 40px', position: 'relative',
-      }}>No group required. No prep time. The engine knows the rules so you don't have to. Just you and a world that reacts to everything you do.</p>
-      <button onClick={handleCTA} className={styles.ctaPrimary} style={{
-        fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: 'var(--bg-main)',
-        background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
-        border: 'none', borderRadius: 6, padding: '18px 48px',
-        cursor: 'pointer', letterSpacing: '0.1em', position: 'relative',
-      }}>CREATE YOUR CHARACTER</button>
+      <ScrollReveal>
+        <h2 style={{
+          fontFamily: 'var(--font-cinzel)', fontSize: 'clamp(26px, 3.5vw, 36px)',
+          fontWeight: 700, color: 'var(--text-heading)', marginBottom: 18, position: 'relative',
+        }}>Every Hero Needs a Crucible. Yours is waiting.</h2>
+      </ScrollReveal>
+      <ScrollReveal delay={0.1}>
+        <p style={{
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 18, fontWeight: 300,
+          color: 'var(--text-dim)', lineHeight: 1.7, maxWidth: 500, margin: '0 auto 40px', position: 'relative',
+        }}>No group required. No prep time. The engine knows the rules so you don't have to. Just you and a world that reacts to everything you do.</p>
+      </ScrollReveal>
+      <ScrollReveal delay={0.2}>
+        <button onClick={handleCTA} className={styles.ctaPrimary} style={{
+          fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: 'var(--bg-main)',
+          background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
+          border: 'none', borderRadius: 6, padding: '18px 48px',
+          cursor: 'pointer', letterSpacing: '0.1em', position: 'relative',
+        }}>CREATE YOUR CHARACTER</button>
+      </ScrollReveal>
     </section>
   );
 }

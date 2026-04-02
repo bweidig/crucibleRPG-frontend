@@ -106,6 +106,51 @@
   text-decoration: underline;
 }
 
+/* Feature card hover */
+.featureCard {
+  transition: border-color 0.4s ease;
+}
+
+.featureCard:hover {
+  border-color: var(--border-card-hover);
+}
+
+.featureCard h3 {
+  color: var(--text-heading);
+  transition: color 0.4s ease;
+}
+
+.featureCard:hover h3 {
+  color: var(--accent-gold);
+}
+
+/* Step item hover */
+.stepCircle {
+  transition: border-color 0.4s ease, color 0.4s ease;
+}
+
+.stepItem:hover .stepCircle {
+  border-color: var(--border-card-hover);
+}
+
+.stepItem h3 {
+  color: var(--text-heading);
+  transition: color 0.4s ease;
+}
+
+.stepItem:hover h3 {
+  color: var(--accent-gold);
+}
+
+/* FAQ question border hover */
+.faqQuestion {
+  transition: border-bottom-color 0.4s ease;
+}
+
+.faqQuestion:hover {
+  border-bottom-color: var(--border-card-hover);
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .scrollFade {

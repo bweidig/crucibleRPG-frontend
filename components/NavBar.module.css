@@ -63,6 +63,7 @@
 
 /* Nav links */
 .navLink {
+  position: relative;
   font-family: var(--font-cinzel);
   font-size: 12px;
   font-weight: 600;
@@ -73,8 +74,25 @@
   transition: color 0.2s ease;
 }
 
+.navLink::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--accent-gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
 .navLink:hover {
   color: #c9a84c;
+}
+
+.navLink:hover::after {
+  transform: scaleX(1);
 }
 
 .navLinkActive {

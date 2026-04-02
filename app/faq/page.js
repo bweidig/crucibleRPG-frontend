@@ -5,6 +5,7 @@ import Link from 'next/link';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import ParticleField from '@/components/ParticleField';
+import ScrollReveal from '@/components/ScrollReveal';
 import styles from './page.module.css';
 
 // ─── FAQ DATA ───
@@ -185,7 +186,7 @@ function Chevron({ open }) {
 // ─── FAQ ITEM ───
 function FAQItem({ question, answer, open, onToggle }) {
   return (
-    <div style={{ borderBottom: '1px solid #1e2540' }}>
+    <div className={styles.faqItem} style={{ borderBottom: '1px solid #1e2540' }}>
       <button
         className={styles.faqQuestion}
         onClick={onToggle}
@@ -264,73 +265,72 @@ export default function FAQPage() {
       <NavBar currentPage="faq" />
 
       {/* Header */}
-      <div style={{
-        textAlign: 'center',
-        padding: '48px 24px 12px',
-        position: 'relative', zIndex: 1,
-        opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(12px)',
-        transition: 'all 0.8s cubic-bezier(0.16,1,0.3,1) 0.15s',
-      }}>
+      <ScrollReveal>
         <div style={{
-          fontFamily: 'var(--font-cinzel)',
-          fontSize: 14, fontWeight: 600,
-          color: '#c9a84c',
-          letterSpacing: '0.25em',
-          marginBottom: 16,
-        }}>FAQ</div>
-        <h1 style={{
-          fontFamily: 'var(--font-alegreya)',
-          fontSize: 'clamp(22px, 3vw, 28px)',
-          fontWeight: 500,
-          fontStyle: 'italic',
-          color: '#d0c098',
-          letterSpacing: '0.02em',
-          marginBottom: 12,
-          marginTop: 0,
-        }}>Questions adventurers ask before the journey begins.</h1>
-        <p style={{
-          fontFamily: 'var(--font-alegreya-sans)',
-          fontSize: 15, fontWeight: 400,
-          color: '#8a94a8',
-          maxWidth: 460, margin: '0 auto',
-        }}>Everything you need to know about the game, your characters, and how it all works.</p>
-      </div>
+          textAlign: 'center',
+          padding: '48px 24px 12px',
+          position: 'relative', zIndex: 1,
+        }}>
+          <div style={{
+            fontFamily: 'var(--font-cinzel)',
+            fontSize: 14, fontWeight: 600,
+            color: '#c9a84c',
+            letterSpacing: '0.25em',
+            marginBottom: 16,
+          }}>FAQ</div>
+          <h1 style={{
+            fontFamily: 'var(--font-alegreya)',
+            fontSize: 'clamp(22px, 3vw, 28px)',
+            fontWeight: 500,
+            fontStyle: 'italic',
+            color: '#d0c098',
+            letterSpacing: '0.02em',
+            marginBottom: 12,
+            marginTop: 0,
+          }}>Questions adventurers ask before the journey begins.</h1>
+          <p style={{
+            fontFamily: 'var(--font-alegreya-sans)',
+            fontSize: 15, fontWeight: 400,
+            color: '#8a94a8',
+            maxWidth: 460, margin: '0 auto',
+          }}>Everything you need to know about the game, your characters, and how it all works.</p>
+        </div>
+      </ScrollReveal>
 
       {/* Category Tabs */}
-      <div style={{
-        display: 'flex', justifyContent: 'center', flexWrap: 'wrap',
-        gap: 8, padding: '32px 24px 40px',
-        position: 'relative', zIndex: 1,
-        opacity: loaded ? 1 : 0,
-        transition: 'opacity 0.8s ease 0.25s',
-      }}>
-        {CATEGORIES.map(cat => (
-          <button
-            key={cat.id}
-            className={activeCategory === cat.id ? styles.tabActive : styles.tab}
-            onClick={() => handleCategoryChange(cat.id)}
-          >
-            {cat.label}
-          </button>
-        ))}
-      </div>
+      <ScrollReveal delay={0.1}>
+        <div style={{
+          display: 'flex', justifyContent: 'center', flexWrap: 'wrap',
+          gap: 8, padding: '32px 24px 40px',
+          position: 'relative', zIndex: 1,
+        }}>
+          {CATEGORIES.map(cat => (
+            <button
+              key={cat.id}
+              className={activeCategory === cat.id ? styles.tabActive : styles.tab}
+              onClick={() => handleCategoryChange(cat.id)}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      </ScrollReveal>
 
       {/* FAQ Items */}
       <div style={{
         maxWidth: 620, margin: '0 auto',
         padding: '0 clamp(24px, 5vw, 48px) 64px',
         position: 'relative', zIndex: 1,
-        opacity: loaded ? 1 : 0,
-        transition: 'opacity 0.8s ease 0.35s',
       }}>
         {items.map((item, i) => (
-          <FAQItem
-            key={`${activeCategory}-${i}`}
-            question={item.q}
-            answer={renderAnswer(item)}
-            open={!!openItems[i]}
-            onToggle={() => toggleItem(i)}
-          />
+          <ScrollReveal key={`${activeCategory}-${i}`} delay={i * 0.06}>
+            <FAQItem
+              question={item.q}
+              answer={renderAnswer(item)}
+              open={!!openItems[i]}
+              onToggle={() => toggleItem(i)}
+            />
+          </ScrollReveal>
         ))}
       </div>
 
