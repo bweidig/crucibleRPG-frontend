@@ -197,12 +197,16 @@ export default function AuthPage() {
     setError('');
   }
 
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => { setLoaded(true); }, []);
+
   return (
     <div className={styles.pageContainer} style={{
       minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      display: 'flex', flexDirection: 'column',
       position: 'relative', overflow: 'hidden',
     }}>
+      <ParticleField />
       <NavBar />
 
       {/* Google Identity Services script */}
@@ -214,20 +218,26 @@ export default function AuthPage() {
         />
       )}
 
-      <ParticleField />
-
-      {/* Radial glow */}
+      {/* Center the form card in remaining space */}
       <div style={{
-        position: 'absolute', width: 1000, height: 1000, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(201,168,76,0.12) 0%, transparent 65%)',
-        top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none',
-      }} />
+        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        position: 'relative', zIndex: 1,
+        padding: '24px clamp(16px, 5vw, 32px)',
+      }}>
+        {/* Radial glow */}
+        <div style={{
+          position: 'absolute', width: 1000, height: 1000, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(201,168,76,0.12) 0%, transparent 65%)',
+          top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none',
+        }} />
 
-      {/* Card */}
-      <form onSubmit={handleSubmit} className={styles.authCard} style={{
+        {/* Card */}
+        <form onSubmit={handleSubmit} className={styles.authCard} style={{
         width: '100%', maxWidth: 440, padding: '40px 36px', position: 'relative', zIndex: 1,
         background: 'var(--bg-card)', border: '1px solid var(--border-gold-faint)', borderRadius: 12,
         backdropFilter: 'blur(20px)',
+        opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(16px)',
+        transition: 'opacity 0.6s ease-out, transform 0.6s ease-out',
       }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 30 }}>
@@ -259,13 +269,13 @@ export default function AuthPage() {
               { id: 'signup', label: 'Sign Up' },
               { id: 'signin', label: 'Sign In' },
             ].map(tab => (
-              <button key={tab.id} type="button" onClick={() => switchMode(tab.id)} style={{
-                flex: 1, padding: '10px 0', cursor: 'pointer',
-                fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600,
-                color: mode === tab.id ? 'var(--accent-gold)' : 'var(--text-dim)',
-                background: mode === tab.id ? 'var(--bg-gold-light)' : 'transparent',
-                border: 'none', borderRadius: 4, transition: 'all 0.2s',
-              }}>{tab.label}</button>
+              <button key={tab.id} type="button" onClick={() => switchMode(tab.id)}
+                className={mode === tab.id ? styles.tabActive : styles.tabInactive}
+                style={{
+                  flex: 1, padding: '10px 0', cursor: 'pointer',
+                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600,
+                  borderRadius: 4,
+                }}>{tab.label}</button>
             ))}
           </div>
         )}
@@ -367,9 +377,9 @@ export default function AuthPage() {
                 fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5,
               }}>
                 I agree to the{' '}
-                <a href="/terms" target="_blank" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}>Terms of Service</a>
+                <a href="/terms" target="_blank" className={styles.legalLink}>Terms of Service</a>
                 {' '}and{' '}
-                <a href="/privacy" target="_blank" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}>Privacy Policy</a>
+                <a href="/privacy" target="_blank" className={styles.legalLink}>Privacy Policy</a>
               </span>
             </div>
           </>
@@ -443,6 +453,7 @@ export default function AuthPage() {
           </div>
         )}
       </form>
+      </div>
 
       <Footer variant="minimal" />
     </div>

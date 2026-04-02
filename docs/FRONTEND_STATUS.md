@@ -34,6 +34,18 @@
 
 ## Recent Work (This Session: 2026-04-02)
 
+### Auth Page Layout Fix and Polish
+Fixed broken horizontal layout (missing `flexDirection: 'column'`) and added visual polish:
+
+1. **Layout fix:** Page container now uses flex column. NavBar at top, Footer at bottom, form card centered in remaining space via a flex-grow wrapper.
+2. **Entrance animation:** Form card fades in with 16px slide-up over 0.6s ease-out on mount.
+3. **Tab transitions:** Active tab gets gold treatment. Inactive tabs warm to gold on hover via CSS classes.
+4. **Link hovers:** "Forgot password?", "Back to Sign In", Terms/Privacy links all shift to gold on hover.
+5. **Submit button:** Already had hover state (translateY(-1px) + gold box-shadow) — verified working.
+6. **Particles:** Moved `<ParticleField />` before NavBar so it renders behind all content. Google button left as Google-rendered (restyling risks breaking the OAuth flow).
+
+**Files modified:** `app/auth/page.js`, `app/auth/page.module.css`.
+
 ### Landing Page Polish Pass (Design Audit)
 Seven tuning adjustments to `/landing` based on a design audit:
 
