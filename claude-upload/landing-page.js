@@ -35,8 +35,8 @@ function FeaturesSection() {
           <ScrollReveal key={i} delay={i * 0.15} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div className={styles.featureCard} style={{
               padding: '36px 32px', borderRadius: 8,
-              border: '1px solid #252a40',
-              background: '#151a2c', flex: 1,
+              border: '1px solid var(--border-primary)',
+              background: 'var(--bg-card)', flex: 1,
             }}>
               <p style={{
                 fontFamily: 'var(--font-alegreya)', fontSize: 16, fontStyle: 'italic', fontWeight: 400,

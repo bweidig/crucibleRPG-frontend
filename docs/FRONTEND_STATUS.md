@@ -34,6 +34,11 @@
 
 ## Recent Work (This Session: 2026-04-02)
 
+### Global Card Contrast Token Update
+Updated global CSS tokens for card visibility across all pages: `--bg-card` #111528→#151a2c, `--bg-card-elevated` #161b30→#1a2038, `--border-primary` #1e2540→#252a40. Landing feature cards switched from hardcoded hex to `var(--bg-card)` and `var(--border-primary)`. Design system doc updated with new values.
+
+**Files modified:** `app/globals.css`, `app/landing/page.js`, `docs/design-system.md`.
+
 ### Card Contrast and Hover Fix
 Feature cards were nearly invisible against the page background. Bumped card bg #101420→#151a2c, border #1e2030→#252a40, gap 32→40px. Hover now has translateY(-2px), stronger gold box-shadow (0.12 opacity), and gold-tinted border. Hero tagline bumped from clamp max 30px to 36px to reduce the scale jump from the 80px wordmark.
 

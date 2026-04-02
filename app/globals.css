@@ -6,9 +6,9 @@
   /* Backgrounds */
   --bg-main: #0a0e1a;
   --bg-panel: #0d1120;
-  --bg-card: #111528;
+  --bg-card: #151a2c;
   --bg-input: #0a0e1a;
-  --bg-card-elevated: #161b30;
+  --bg-card-elevated: #1a2038;
   --bg-resolution: #0e1420;
 
   /* Text colors (all WCAG AA — no rgba) */
@@ -38,7 +38,7 @@
   --resolution-dim: #668954;
 
   /* Borders */
-  --border-primary: #1e2540;
+  --border-primary: #252a40;
   --border-light: #161c34;
   --border-card: #3a3328;
   --border-card-hover: #564b2e;
