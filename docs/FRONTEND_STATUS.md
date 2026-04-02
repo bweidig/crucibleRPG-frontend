@@ -65,7 +65,20 @@ Complete rewrite of `/menu` from 3-column grid to single centered 680px column w
 **Games in setup:** Render in their natural position by recency with "New Character" name, "Setting up..." world, "Character creation in progress." blurb (full cards) or no blurb (compact), "SETUP" JetBrains Mono badge.
 
 **Files modified:** `app/menu/page.js`, `app/menu/page.module.css`, `app/globals.css`, `docs/design-system.md`.
-**Files synced to claude-upload:** `menu-page.js`, `menu-page.module.css`, `globals.css`.
+
+### Menu Page Entrance Animations
+Added staggered fade-in-up entrance animations to all menu page content sections. Each section uses opacity + translateY transitions keyed to a `loaded` state, with increasing delays (0.05s–0.5s) and cubic-bezier(0.16, 1, 0.3, 1) easing. Applied to both empty state (heading, subtitle, body, CTA) and returning player layout (welcome, hero card, NEW GAME button, YOUR GAMES, OLDER GAMES). No ScrollReveal — all above-fold content animates on page load.
+
+**Files modified:** `app/menu/page.js`.
+
+### Card Grain Texture Experiment
+New `CardNoise` component (`components/CardNoise.js`) adds a subtle feTurbulence SVG filter noise overlay to card surfaces. `NoiseFilter` SVG defined once in `app/layout.js`. Applied to hero card (opacity 0.03), narrative cards (0.025), compact cards (0.025), and NEW GAME button (0.02). Respects `prefers-reduced-motion` — skips rendering entirely when reduced motion is preferred. This is an experiment; easily removable if it doesn't work on real screens.
+
+**Files created:** `components/CardNoise.js`.
+**Files modified:** `app/layout.js`, `app/menu/page.js`.
+
+### claude-upload Sync Catchup
+Synced all files that were modified across the Apr 1 and Apr 2 sessions but not yet copied to claude-upload: `FRONTEND_STATUS.md`, `design-system.md`, `app-layout.js`, `component-CardNoise.js`, `faq-page.module.css`, `landing-page.module.css`, `component-NavBar.module.css`, `component-ScrollReveal.js`, `hook-useScrollReveal.js`. Removed duplicate `layout.js` (correct copy is `app-layout.js`).
 
 ---
 

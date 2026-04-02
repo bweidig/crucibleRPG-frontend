@@ -6,6 +6,7 @@ import {
 } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
+import { NoiseFilter } from "@/components/CardNoise";
 
 const cinzel = Cinzel({
   subsets: ["latin"],
@@ -64,6 +65,7 @@ export default function RootLayout({ children }) {
       <body
         className={`${cinzel.variable} ${alegreya.variable} ${alegreyaSans.variable} ${jetbrainsMono.variable} ${lexieReadable.variable}`}
       >
+        <NoiseFilter />
         {children}
       </body>
     </html>

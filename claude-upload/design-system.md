@@ -20,6 +20,7 @@ Use this document when implementing or updating any CrucibleRPG frontend page. A
 | Panel background | `#0d1120` | Sidebar, secondary panels |
 | Card background | `#111528` | Cards, elevated surfaces, popups |
 | Input background | `#0a0e1a` | Text inputs, textareas |
+| Elevated card background | `#161b30` | Cards, interactive surfaces, buttons that need to read clearly against bgMain |
 | Resolution background | `#0e1420` | Dice roll resolution blocks |
 
 **Text Colors (all pass 4.5:1 on all dark backgrounds):**

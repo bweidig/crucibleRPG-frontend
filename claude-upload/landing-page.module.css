@@ -1,0 +1,262 @@
+/* ============================================
+   Landing Page Styles
+   ============================================ */
+
+/* Primary CTA button */
+.ctaPrimary {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.ctaPrimary:hover {
+  box-shadow: 0 4px 30px rgba(201, 168, 76, 0.45);
+  transform: translateY(-2px);
+}
+
+/* Secondary / ghost CTA button */
+.ctaSecondary {
+  transition: all 0.3s ease;
+}
+
+.ctaSecondary:hover {
+  background: var(--bg-gold-subtle);
+  border-color: var(--border-card-hover);
+  color: var(--accent-gold);
+}
+
+/* Scroll chevron */
+.scrollChevron {
+  position: absolute;
+  bottom: 64px;
+  left: 50%;
+  background: none;
+  border: none;
+  padding: 12px;
+  cursor: pointer;
+  color: var(--accent-gold);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  filter: drop-shadow(0 0 6px rgba(201, 168, 76, 0.25));
+  animation: chevronFloat 3s ease-in-out infinite;
+}
+
+@keyframes chevronFloat {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(7px); }
+}
+
+/* Scroll fade indicator */
+.scrollFade {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(to bottom, transparent, #0a0e1a);
+  pointer-events: none;
+  z-index: 50;
+  transition: opacity 300ms;
+}
+
+/* FAQ section */
+.faqQuestion {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 0;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border-gold-faint);
+  cursor: pointer;
+  text-align: left;
+}
+
+.faqQuestion:hover span {
+  color: #c9a84c !important;
+}
+
+.faqQuestion:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.faqChevron {
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+.faqAnswer {
+  overflow: hidden;
+  transition: max-height 0.35s ease, opacity 0.25s ease, padding 0.35s ease;
+}
+
+.faqSeeAll {
+  font-family: var(--font-alegreya-sans);
+  font-size: 15px;
+  color: var(--accent-gold);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.faqSeeAll:hover {
+  text-decoration: underline;
+}
+
+/* Feature card hover */
+.featureCard {
+  transition: border-color 0.4s ease;
+}
+
+.featureCard:hover {
+  border-color: var(--border-card-hover);
+}
+
+.featureCard h3 {
+  color: var(--text-heading);
+  transition: color 0.4s ease;
+}
+
+.featureCard:hover h3 {
+  color: var(--accent-gold);
+}
+
+/* Step item hover */
+.stepCircle {
+  transition: border-color 0.4s ease, color 0.4s ease;
+}
+
+.stepItem:hover .stepCircle {
+  border-color: var(--border-card-hover);
+}
+
+.stepItem h3 {
+  color: var(--text-heading);
+  transition: color 0.4s ease;
+}
+
+.stepItem:hover h3 {
+  color: var(--accent-gold);
+}
+
+/* FAQ question border hover */
+.faqQuestion {
+  transition: border-bottom-color 0.4s ease;
+}
+
+.faqQuestion:hover {
+  border-bottom-color: var(--border-card-hover);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .scrollFade {
+    transition: none;
+  }
+
+  .scrollChevron {
+    animation: none;
+    transform: translateX(-50%);
+  }
+
+  .faqAnswer {
+    transition: none;
+  }
+
+  .faqChevron {
+    transition: none;
+  }
+}
+
+/* ===== TABLET RESPONSIVE ===== */
+
+@media (max-width: 1023px) {
+  .featuresSection,
+  .howSection,
+  .ctaSection {
+    padding-top: 70px !important;
+    padding-bottom: 70px !important;
+  }
+
+  .featureCard {
+    padding: 30px 28px !important;
+  }
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+
+/* TODO: mobile nav needed — section links hidden, only wordmark + sign-in visible */
+
+@media (max-width: 767px) {
+  .pageContainer {
+    overflow-x: hidden;
+  }
+
+  .heroSection {
+    padding-top: 100px !important;
+    padding-bottom: 60px !important;
+  }
+
+  .scrollChevron {
+    bottom: 40px;
+  }
+
+  .featuresSection {
+    padding-top: 60px !important;
+    padding-bottom: 60px !important;
+  }
+
+  .featuresGrid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .featureCard {
+    padding: 24px 20px !important;
+  }
+
+  .howSection {
+    padding-top: 60px !important;
+    padding-bottom: 60px !important;
+  }
+
+  .stepItem {
+    gap: 20px !important;
+  }
+
+  .stepItem:not(:last-child) {
+    margin-bottom: 36px !important;
+  }
+
+  .stepCircle {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 14px !important;
+  }
+
+  .stepLine {
+    left: 21px !important;
+  }
+
+  .ctaSection {
+    padding-top: 60px !important;
+    padding-bottom: 60px !important;
+  }
+
+  .faqQuestion {
+    min-height: 44px;
+  }
+
+  .faqSeeAll {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .scrollFade {
+    height: 40px;
+  }
+}
