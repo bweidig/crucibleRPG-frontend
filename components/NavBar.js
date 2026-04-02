@@ -31,9 +31,9 @@ export default function NavBar({ variant = 'standard', currentPage }) {
           <span className={styles.wordmarkRpg}>RPG</span>
         </Link>
         <div className={styles.landingLinks}>
-          <a href="#features" className={styles.navLink + ' ' + styles.sectionLink}>Features</a>
-          <a href="#how-it-works" className={styles.navLink + ' ' + styles.sectionLink}>How It Works</a>
-          <a href="#faq" className={styles.navLink + ' ' + styles.sectionLink}>FAQ</a>
+          <a href="#features" onClick={e => { e.preventDefault(); document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }); }} className={styles.navLink + ' ' + styles.sectionLink}>Features</a>
+          <a href="#how-it-works" onClick={e => { e.preventDefault(); document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' }); }} className={styles.navLink + ' ' + styles.sectionLink}>How It Works</a>
+          <a href="#faq" onClick={e => { e.preventDefault(); document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' }); }} className={styles.navLink + ' ' + styles.sectionLink}>FAQ</a>
           <Link href="/rulebook" className={`${styles.navLink}${currentPage === 'rulebook' ? ` ${styles.navLinkActive}` : ''}`}>Rulebook</Link>
           <Link href="/pricing" className={`${styles.navLink}${currentPage === 'pricing' ? ` ${styles.navLinkActive}` : ''}`}>Pricing</Link>
           <AuthAvatar size={32} active={currentPage === 'settings'} />

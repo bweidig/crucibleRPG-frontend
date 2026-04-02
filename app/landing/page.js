@@ -24,7 +24,7 @@ const steps = [
 
 function FeaturesSection() {
   return (
-    <section id="features" className={styles.featuresSection} style={{ padding: '120px clamp(24px, 5vw, 60px) 100px', maxWidth: 1000, margin: '0 auto' }}>
+    <section id="features" className={styles.featuresSection} style={{ padding: '120px clamp(24px, 5vw, 60px) 100px', maxWidth: 1000, margin: '0 auto', scrollMarginTop: 96 }}>
       <ScrollReveal>
         <div style={{ textAlign: 'center', marginBottom: 64 }}>
           <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, color: 'var(--accent-gold)', letterSpacing: '0.25em' }}>FEATURES</span>
@@ -60,7 +60,7 @@ function FeaturesSection() {
 
 function HowItWorksSection() {
   return (
-    <section id="how-it-works" className={styles.howSection} style={{ padding: '80px clamp(24px, 5vw, 60px) 80px', maxWidth: 800, margin: '0 auto' }}>
+    <section id="how-it-works" className={styles.howSection} style={{ padding: '80px clamp(24px, 5vw, 60px) 80px', maxWidth: 800, margin: '0 auto', scrollMarginTop: 96 }}>
       <ScrollReveal>
         <div style={{ textAlign: 'center', marginBottom: 64 }}>
           <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, color: 'var(--accent-gold)', letterSpacing: '0.25em' }}>HOW IT WORKS</span>
