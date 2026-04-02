@@ -6,6 +6,7 @@ import { get, post, del, clearToken, isAuthenticated, getUser } from '@/lib/api'
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import ParticleField from '@/components/ParticleField';
+import { CardNoise } from '@/components/CardNoise';
 import styles from './page.module.css';
 
 // ─── FONT & SIZE OPTIONS (for display settings persistence) ───
@@ -572,7 +573,9 @@ export default function MenuPage() {
               borderRadius: 10, padding: '28px 32px',
               boxShadow: '0 4px 24px rgba(0,0,0,0.3), 0 0 1px rgba(201,168,76,0.08)',
               marginBottom: 16,
+              position: 'relative', overflow: 'hidden',
             }}>
+              <CardNoise opacity={0.03} />
               {/* Header row */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
                 <div style={{
@@ -628,7 +631,7 @@ export default function MenuPage() {
             </div>{/* end CONTINUE YOUR ADVENTURE stagger wrapper */}
 
             {/* NEW GAME button */}
-            <button className={styles.newGameBtn} onClick={() => router.push('/init')} style={{
+            <div className={styles.newGameBtn} onClick={() => router.push('/init')} role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') router.push('/init'); }} style={{
               opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(10px)',
               transition: 'opacity 1s cubic-bezier(0.16, 1, 0.3, 1) 0.35s, transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.35s',
               width: '100%', padding: '14px 0', borderRadius: 5,
@@ -637,7 +640,11 @@ export default function MenuPage() {
               border: '1px solid var(--border-card)',
               boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
               marginBottom: 32,
-            }}>NEW GAME</button>
+              position: 'relative', overflow: 'hidden', textAlign: 'center',
+            }}>
+              <CardNoise opacity={0.02} />
+              <span style={{ position: 'relative', zIndex: 1 }}>NEW GAME</span>
+            </div>
 
             {/* YOUR GAMES section (narrative cards, games at index 1-2) */}
             {narrativeGames.length > 0 && (
@@ -659,7 +666,9 @@ export default function MenuPage() {
                         borderLeft: '3px solid var(--border-card)',
                         boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
                         cursor: 'pointer',
+                        position: 'relative', overflow: 'hidden',
                       }}>
+                        <CardNoise opacity={0.025} />
                         {/* Header */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -732,7 +741,9 @@ export default function MenuPage() {
                         boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                         cursor: 'pointer',
                         display: 'flex', flexDirection: 'column',
+                        position: 'relative', overflow: 'hidden',
                       }}>
+                        <CardNoise opacity={0.025} />
                         {/* Name */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                           <span className={styles.compactCardName} style={{
