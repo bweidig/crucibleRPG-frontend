@@ -470,7 +470,6 @@ export default function MenuPage() {
         maxWidth: 680, width: '100%', margin: '0 auto',
         padding: '0 clamp(20px, 5vw, 32px)',
         boxSizing: 'border-box',
-        opacity: loaded ? 1 : 0, transition: 'opacity 0.6s',
         display: 'flex', flexDirection: 'column',
       }}>
         {/* Error */}
@@ -506,16 +505,22 @@ export default function MenuPage() {
                 fontFamily: 'var(--font-cinzel)', fontSize: 'clamp(30px, 5vw, 42px)', fontWeight: 700,
                 color: 'var(--accent-gold)', marginBottom: 16, marginTop: 0,
                 position: 'relative',
+                opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(18px)',
+                transition: 'opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.05s, transform 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.05s',
               }}>Every story starts here.</h1>
               <p style={{
                 fontFamily: 'var(--font-alegreya)', fontSize: 18, fontStyle: 'italic', fontWeight: 500,
                 color: 'var(--text-secondary)', marginBottom: 12,
                 position: 'relative',
+                opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(10px)',
+                transition: 'opacity 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s, transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s',
               }}>Choose a world, create a character, and see what happens.</p>
               <p style={{
                 fontFamily: 'var(--font-alegreya-sans)', fontSize: 15,
                 color: 'var(--text-dim)', marginBottom: 36,
                 position: 'relative',
+                opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(10px)',
+                transition: 'opacity 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s, transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s',
               }}>No prep needed. The engine knows the rules so you don&rsquo;t have to.</p>
               <button className={styles.btnPrimary} onClick={() => router.push('/init')} style={{
                 fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 700,
@@ -524,6 +529,8 @@ export default function MenuPage() {
                 border: 'none', borderRadius: 6, padding: '16px 44px',
                 boxShadow: '0 2px 20px rgba(201,168,76,0.2)',
                 position: 'relative',
+                opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(10px)',
+                transition: 'opacity 1s cubic-bezier(0.16, 1, 0.3, 1) 0.4s, transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.4s',
               }}>BEGIN YOUR STORY</button>
             </div>
           </div>
@@ -537,14 +544,22 @@ export default function MenuPage() {
               <h1 style={{
                 fontFamily: 'var(--font-cinzel)', fontSize: 'clamp(30px, 5vw, 42px)', fontWeight: 700,
                 color: 'var(--accent-gold)', marginBottom: 10, marginTop: 0,
+                opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(18px)',
+                transition: 'opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.05s, transform 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.05s',
               }}>Welcome back.</h1>
               <p style={{
                 fontFamily: 'var(--font-alegreya)', fontSize: 17, fontStyle: 'italic', fontWeight: 500,
                 color: 'var(--text-secondary-bright)', margin: 0,
+                opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(10px)',
+                transition: 'opacity 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s, transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s',
               }}>Pick up where you left off, or start something new.</p>
             </div>
 
             {/* CONTINUE YOUR ADVENTURE */}
+            <div style={{
+              opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(14px)',
+              transition: 'opacity 1s cubic-bezier(0.16, 1, 0.3, 1) 0.25s, transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.25s',
+            }}>
             <SectionLabel text="CONTINUE YOUR ADVENTURE" />
 
             {/* Hero Card */}
@@ -610,8 +625,12 @@ export default function MenuPage() {
               </div>
             </div>
 
+            </div>{/* end CONTINUE YOUR ADVENTURE stagger wrapper */}
+
             {/* NEW GAME button */}
             <button className={styles.newGameBtn} onClick={() => router.push('/init')} style={{
+              opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(10px)',
+              transition: 'opacity 1s cubic-bezier(0.16, 1, 0.3, 1) 0.35s, transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.35s',
               width: '100%', padding: '14px 0', borderRadius: 5,
               fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, letterSpacing: '0.08em',
               color: 'var(--text-secondary)', background: 'var(--bg-card-elevated)',
@@ -622,7 +641,11 @@ export default function MenuPage() {
 
             {/* YOUR GAMES section (narrative cards, games at index 1-2) */}
             {narrativeGames.length > 0 && (
-              <div style={{ marginBottom: olderGames.length > 0 ? 0 : 48 }}>
+              <div style={{
+                marginBottom: olderGames.length > 0 ? 0 : 48,
+                opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(10px)',
+                transition: 'opacity 1s cubic-bezier(0.16, 1, 0.3, 1) 0.45s, transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.45s',
+              }}>
                 <SectionLabel text="YOUR GAMES" count={otherGamesCount} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {narrativeGames.map(game => {
@@ -690,7 +713,11 @@ export default function MenuPage() {
 
             {/* OLDER GAMES section (compact 2-column grid, games at index 3+) */}
             {olderGames.length > 0 && (
-              <div style={{ marginTop: 28, marginBottom: 48 }}>
+              <div style={{
+                marginTop: 28, marginBottom: 48,
+                opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(10px)',
+                transition: 'opacity 1s cubic-bezier(0.16, 1, 0.3, 1) 0.5s, transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.5s',
+              }}>
                 <SectionLabel text="OLDER GAMES" count={olderGames.length} />
                 <div className={styles.compactGrid}>
                   {olderGames.map(game => {
