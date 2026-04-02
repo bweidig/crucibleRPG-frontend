@@ -7,12 +7,12 @@ const EMBER_COLORS = ["#c9a84c", "#d4a94e", "#e8a840", "#d4845a", "#c0924a", "#d
 
 // Depth layer config: max parallax shift in px (opposite to cursor)
 const LAYERS = [
-  { maxShift: 2 },   // far (smallest particles)
-  { maxShift: 4 },   // mid
-  { maxShift: 6 },   // near (largest particles)
+  { maxShift: 1 },   // far (smallest particles)
+  { maxShift: 2 },   // mid
+  { maxShift: 3 },   // near (largest particles)
 ];
 
-const DEADZONE = 100; // px from viewport center — ignore small movements
+const DEADZONE = 180; // px from viewport center — ignore small movements
 
 function assignLayer(size) {
   if (size < 1.4) return 0;      // far
@@ -85,7 +85,7 @@ export default function ParticleField({ count = 35 }) {
 
     // Lerp loop for smooth movement — heavy damping for lazy drift
     const lerp = (a, b, t) => a + (b - a) * t;
-    const lerpFactor = 0.025;
+    const lerpFactor = 0.01;
 
     const animate = () => {
       LAYERS.forEach((layer, i) => {
