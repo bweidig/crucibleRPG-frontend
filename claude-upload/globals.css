@@ -114,6 +114,16 @@ html, body {
   40%, 80% { transform: translateX(8px); }
 }
 
+/* Chrome autofill dark theme override */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-main) inset !important;
+  -webkit-text-fill-color: #c8c0b0 !important;
+  caret-color: #c8c0b0;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 /* Accessibility: respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

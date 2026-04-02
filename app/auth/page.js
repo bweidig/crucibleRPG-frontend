@@ -16,7 +16,7 @@ function InputField({ label, type = 'text', placeholder, value, onChange, autoCo
   const [focused, setFocused] = useState(false);
 
   return (
-    <div style={{ marginBottom: 20 }}>
+    <div style={{ marginBottom: 16 }}>
       <label style={{
         fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 500,
         color: 'var(--text-muted)', letterSpacing: '0.03em',
@@ -38,7 +38,7 @@ function InputField({ label, type = 'text', placeholder, value, onChange, autoCo
             fontFamily: 'var(--font-alegreya-sans)', fontSize: 16, color: 'var(--text-primary)',
             outline: 'none', boxSizing: 'border-box',
             transition: 'border-color 0.2s, box-shadow 0.2s',
-            boxShadow: focused ? '0 0 12px rgba(201,168,76,0.06)' : 'none',
+            boxShadow: focused ? 'rgba(201,168,76,0.15) 0 0 0 3px, rgba(201,168,76,0.08) 0 0 16px' : 'none',
           }}
         />
         {children}
@@ -49,7 +49,7 @@ function InputField({ label, type = 'text', placeholder, value, onChange, autoCo
 
 function Divider({ text }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '24px 0' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '18px 0' }}>
       <div style={{ flex: 1, height: 1, background: 'var(--border-gold-faint)' }} />
       <span style={{
         fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--gold-muted)',
@@ -233,17 +233,16 @@ export default function AuthPage() {
 
         {/* Card */}
         <form onSubmit={handleSubmit} className={styles.authCard} style={{
-        width: '100%', maxWidth: 440, padding: '40px 36px', position: 'relative', zIndex: 1,
-        background: 'var(--bg-card)', border: '1px solid var(--border-gold-faint)', borderRadius: 12,
+        width: '100%', maxWidth: 440, padding: '32px 28px', position: 'relative', zIndex: 1,
+        background: 'var(--bg-card)', border: '1px solid rgba(201,168,76,0.08)', borderRadius: 12,
         backdropFilter: 'blur(20px)',
-        opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(16px)',
-        transition: 'opacity 0.6s ease-out, transform 0.6s ease-out',
+        boxShadow: '0 0 80px rgba(201,168,76,0.04), 0 4px 24px rgba(0,0,0,0.3)',
       }}>
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: 30 }}>
+        <div className={loaded ? styles.stagger0 : styles.staggerHidden} style={{ textAlign: 'center', marginBottom: 20 }}>
           <h1 style={{
-            fontFamily: 'var(--font-cinzel)', fontSize: 24, fontWeight: 700, color: 'var(--text-heading)',
-            marginBottom: 6,
+            fontFamily: 'var(--font-cinzel)', fontSize: 28, fontWeight: 700, color: 'var(--text-heading)',
+            marginBottom: 14,
           }}>
             {mode === 'signup' ? 'Create Your Account' : mode === 'signin' ? 'Welcome Back' : 'Reset Password'}
           </h1>
@@ -261,8 +260,8 @@ export default function AuthPage() {
 
         {/* Toggle tabs */}
         {mode !== 'forgot' && (
-          <div style={{
-            display: 'flex', marginBottom: 26, background: 'var(--bg-main)', borderRadius: 6, padding: 3,
+          <div className={loaded ? styles.stagger1 : styles.staggerHidden} style={{
+            display: 'flex', marginBottom: 20, background: 'var(--bg-main)', borderRadius: 6, padding: 3,
             border: '1px solid var(--border-gold-faint)',
           }}>
             {[
@@ -281,6 +280,7 @@ export default function AuthPage() {
         )}
 
         {/* Invite code — shown above Google button on signup so user fills it first */}
+        <div className={loaded ? styles.stagger2 : styles.staggerHidden}>
         {mode === 'signup' && (
           <InputField
             label="Invite Code"
@@ -320,8 +320,11 @@ export default function AuthPage() {
             )}
           </div>
         )}
+        </div>
 
+        <div className={loaded ? styles.stagger3 : styles.staggerHidden}>
         <Divider text="or" />
+        </div>
 
         {/* Error message */}
         {error && (
@@ -332,6 +335,7 @@ export default function AuthPage() {
           }}>{error}</div>
         )}
 
+        <div className={loaded ? styles.stagger4 : styles.staggerHidden}>
         {/* Sign Up form */}
         {mode === 'signup' && (
           <>
@@ -451,7 +455,10 @@ export default function AuthPage() {
           </>
         )}
 
+        </div>{/* end stagger4 */}
+
         {/* Submit */}
+        <div className={loaded ? styles.stagger5 : styles.staggerHidden}>
         <button type="submit" className={styles.submitButton} disabled={loading || mode === 'forgot'}
           style={loading || mode === 'forgot' ? { opacity: 0.6, cursor: 'not-allowed' } : {}}>
           {loading
@@ -467,6 +474,7 @@ export default function AuthPage() {
             </button>
           </div>
         )}
+        </div>{/* end stagger5 */}
       </form>
       </div>
 

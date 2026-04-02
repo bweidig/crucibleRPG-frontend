@@ -5,7 +5,7 @@ const VARIANTS = {
   fadeUp:     { hidden: 'translateY(30px)',  visible: 'translateY(0)', duration: 0.7 },
   fadeLeft:   { hidden: 'translateX(-20px)', visible: 'translateX(0)', duration: 0.6 },
   fadeOnly:   { hidden: 'none',             visible: 'none',          duration: 0.5 },
-  fadeUpSlow: { hidden: 'translateY(40px)',  visible: 'translateY(0)', duration: 0.8 },
+  fadeUpSlow: { hidden: 'translateY(40px)',  visible: 'translateY(0)', duration: 1.2 },
 };
 
 export default function ScrollReveal({ children, delay = 0, variant = 'fadeUp', style = {}, className = '' }) {

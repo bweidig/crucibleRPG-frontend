@@ -68,8 +68,9 @@ function HowItWorksSection() {
       </ScrollReveal>
       <div style={{ position: 'relative' }}>
         <div className={styles.stepLine} style={{
-          position: 'absolute', left: 27, top: 28, bottom: 28, width: 1,
+          position: 'absolute', left: 27, top: 28, bottom: 28, width: 2,
           background: 'linear-gradient(to bottom, var(--border-card-separator), var(--bg-gold-faint))',
+          boxShadow: '0 0 8px rgba(201,168,76,0.1)',
         }} />
         {steps.map((step, i) => (
           <ScrollReveal key={i} delay={i * 0.12} variant="fadeLeft">

@@ -34,6 +34,27 @@
 
 ## Recent Work (This Session: 2026-04-02)
 
+### Auth Polish + Landing Quick Fixes Batch
+12-item design audit batch across auth and landing pages:
+
+**Auth (items 1-6):**
+1. Chrome autofill dark theme override in globals.css (prevents white input backgrounds)
+2. Input focus ring: visible 3px gold spread + ambient glow (was barely visible 0.06 opacity)
+3. Heading 24→28px, heading-to-subtitle gap 6→14px
+4. Staggered entrance: 6 animation groups cascade 0-300ms via CSS keyframes (was single card fade)
+5. Card atmospheric glow: faint gold border (rgba 0.08) + depth shadow
+6. Tighter card for viewport fit: padding 40/36→32/28, field gaps 20→16px, divider 24→18px
+
+**Landing (items 7-12):**
+7. How It Works connecting line: 1→2px width + gold box-shadow glow
+8. Step circle hover: gold box-shadow + border-color transition
+9. CTA reveal: fadeUpSlow duration 0.8→1.2s
+10. FAQ accordion: already had transitions (verified working)
+11. "See all questions" hover: underline-offset 4px
+12. Border-radius: already consistent (8px cards, 6px buttons) — no changes needed
+
+**Files modified:** `app/globals.css`, `app/auth/page.js`, `app/auth/page.module.css`, `app/landing/page.js`, `app/landing/page.module.css`, `components/ScrollReveal.js`.
+
 ### Global Card Contrast Token Update
 Updated global CSS tokens for card visibility across all pages: `--bg-card` #111528→#151a2c, `--bg-card-elevated` #161b30→#1a2038, `--border-primary` #1e2540→#252a40. Landing feature cards switched from hardcoded hex to `var(--bg-card)` and `var(--border-primary)`. Design system doc updated with new values.
 

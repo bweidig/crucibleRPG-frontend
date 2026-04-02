@@ -103,7 +103,9 @@
 }
 
 .faqSeeAll:hover {
+  color: var(--accent-gold);
   text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 /* Feature card hover */
@@ -129,11 +131,12 @@
 
 /* Step item hover */
 .stepCircle {
-  transition: border-color 0.4s ease, color 0.4s ease;
+  transition: border-color 0.3s ease-out, box-shadow 0.3s ease-out;
 }
 
 .stepItem:hover .stepCircle {
-  border-color: var(--border-card-hover);
+  border-color: rgba(201, 168, 76, 0.3);
+  box-shadow: 0 0 16px rgba(201, 168, 76, 0.15);
 }
 
 .stepItem h3 {
