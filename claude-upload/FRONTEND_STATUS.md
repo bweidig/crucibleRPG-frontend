@@ -80,6 +80,20 @@ New `CardNoise` component (`components/CardNoise.js`) adds a subtle feTurbulence
 ### claude-upload Sync Catchup
 Synced all files that were modified across the Apr 1 and Apr 2 sessions but not yet copied to claude-upload: `FRONTEND_STATUS.md`, `design-system.md`, `app-layout.js`, `component-CardNoise.js`, `faq-page.module.css`, `landing-page.module.css`, `component-NavBar.module.css`, `component-ScrollReveal.js`, `hook-useScrollReveal.js`. Removed duplicate `layout.js` (correct copy is `app-layout.js`).
 
+### Feature Card Epigraphs + Server-Side Rendering for Marketing Pages
+
+**Feature card epigraphs:** Added italic gold Alegreya epigraph lines above each feature card heading on /landing. Four atmospheric scene fragments that dramatize each feature.
+
+**SSR conversion:** Converted 5 marketing pages from client-rendered to server components. Static content now reaches the browser as pre-rendered HTML (faster FCP, better SEO).
+- `/terms` and `/privacy` — Removed `'use client'`. Replaced `loaded` state with new `ClientFadeIn` client component wrapper.
+- `/pricing` — Removed `'use client'` and unused `loaded` state (all animations already handled by ScrollReveal).
+- `/faq` — Extracted interactive content (category tabs, accordion state) into `FAQContent` client component. Page shell, header, and bottom CTA render server-side.
+- `/landing` — Extracted `HeroSection`, `FAQSection`, `CTASection`, `ScrollFade` into separate client component files. `FeaturesSection` and `HowItWorksSection` stay inline as static content with ScrollReveal wrappers.
+- `/rulebook` — Left as `'use client'`. Scroll spy with ref arrays across 22 sections makes clean extraction too risky.
+
+**Files created:** `components/ClientFadeIn.js`, `app/faq/FAQContent.js`, `app/landing/HeroSection.js`, `app/landing/FAQSection.js`, `app/landing/CTASection.js`, `app/landing/ScrollFade.js`.
+**Files modified:** `app/landing/page.js`, `app/faq/page.js`, `app/terms/page.js`, `app/privacy/page.js`, `app/pricing/page.js`.
+
 ### Wire New Backend Fields (lastPlayedAt, worldName)
 Two backend field integrations:
 

@@ -1,9 +1,7 @@
-'use client';
-
-import { useState, useEffect } from 'react';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import ParticleField from '@/components/ParticleField';
+import ClientFadeIn from '@/components/ClientFadeIn';
 import styles from './page.module.css';
 
 function Section({ title, children }) {
@@ -50,9 +48,6 @@ function LegalList({ items }) {
 }
 
 export default function PrivacyPolicyPage() {
-  const [loaded, setLoaded] = useState(false);
-  useEffect(() => { setLoaded(true); }, []);
-
   return (
     <div className={styles.pageContainer} style={{
       minHeight: '100vh',
@@ -64,12 +59,10 @@ export default function PrivacyPolicyPage() {
       <NavBar />
 
       {/* Header */}
-      <div style={{
+      <ClientFadeIn delay={0.15} style={{
         textAlign: 'center',
         padding: '48px 24px 40px',
         position: 'relative', zIndex: 1,
-        opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(12px)',
-        transition: 'all 0.8s cubic-bezier(0.16,1,0.3,1) 0.15s',
       }}>
         <h1 style={{
           fontFamily: 'var(--font-cinzel)',
@@ -84,16 +77,14 @@ export default function PrivacyPolicyPage() {
           fontSize: 14,
           color: 'var(--gold-muted)',
         }}>Last updated: March 15, 2026</p>
-      </div>
+      </ClientFadeIn>
 
       {/* Content */}
-      <div style={{
+      <ClientFadeIn delay={0.35} translateY={0} style={{
         maxWidth: 720,
         margin: '0 auto',
         padding: '0 clamp(24px, 5vw, 48px) 64px',
         position: 'relative', zIndex: 1,
-        opacity: loaded ? 1 : 0,
-        transition: 'opacity 0.8s ease 0.35s',
       }}>
         {/* Intro */}
         <p style={{
@@ -188,7 +179,7 @@ export default function PrivacyPolicyPage() {
         <Section title="Contact">
           <p>If you have questions about this policy or your data, contact us at <a className={styles.legalLink} href="mailto:support@crucibleRPG.com">support@crucibleRPG.com</a>.</p>
         </Section>
-      </div>
+      </ClientFadeIn>
 
       <Footer />
     </div>

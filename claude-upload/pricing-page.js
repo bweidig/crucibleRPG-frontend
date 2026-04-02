@@ -1,6 +1,3 @@
-'use client';
-
-import { useState, useEffect } from 'react';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import ParticleField from '@/components/ParticleField';
@@ -84,9 +81,6 @@ function Feature({ text }) {
 // --- MAIN ---
 
 export default function PricingPage() {
-  const [loaded, setLoaded] = useState(false);
-  useEffect(() => { setTimeout(() => setLoaded(true), 150); }, []);
-
   return (
     <div className={styles.pageContainer} style={{
       minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)',
