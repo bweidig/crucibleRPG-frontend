@@ -24,26 +24,26 @@ const steps = [
 
 function FeaturesSection() {
   return (
-    <section id="features" className={styles.featuresSection} style={{ padding: '100px clamp(24px, 5vw, 60px)', maxWidth: 1000, margin: '0 auto' }}>
+    <section id="features" className={styles.featuresSection} style={{ padding: '120px clamp(24px, 5vw, 60px) 100px', maxWidth: 1000, margin: '0 auto' }}>
       <ScrollReveal>
         <div style={{ textAlign: 'center', marginBottom: 64 }}>
           <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, color: 'var(--accent-gold)', letterSpacing: '0.25em' }}>FEATURES</span>
         </div>
       </ScrollReveal>
-      <div className={styles.featuresGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 28 }}>
+      <div className={styles.featuresGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 32 }}>
         {features.map((f, i) => (
-          <ScrollReveal key={i} delay={i * 0.1} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <ScrollReveal key={i} delay={i * 0.15} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div className={styles.featureCard} style={{
               padding: '36px 32px', borderRadius: 8,
-              border: '1px solid var(--border-gold-faint)',
-              background: 'var(--bg-gold-faint)', flex: 1,
+              border: '1px solid #1e2030',
+              background: '#101420', flex: 1,
             }}>
               <p style={{
-                fontFamily: 'var(--font-alegreya)', fontSize: 15, fontStyle: 'italic', fontWeight: 400,
-                color: 'var(--accent-gold)', opacity: 0.85, lineHeight: 1.6, marginBottom: 14,
+                fontFamily: 'var(--font-alegreya)', fontSize: 16, fontStyle: 'italic', fontWeight: 400,
+                color: 'var(--accent-gold)', lineHeight: 1.6, marginBottom: 14,
               }}>{f.epigraph}</p>
               <h3 style={{
-                fontFamily: 'var(--font-cinzel)', fontSize: 19, fontWeight: 700,
+                fontFamily: 'var(--font-cinzel)', fontSize: 27, fontWeight: 700,
                 marginBottom: 14, lineHeight: 1.4,
               }}>{f.title}</h3>
               <p style={{
@@ -60,7 +60,7 @@ function FeaturesSection() {
 
 function HowItWorksSection() {
   return (
-    <section id="how-it-works" className={styles.howSection} style={{ padding: '100px clamp(24px, 5vw, 60px)', maxWidth: 800, margin: '0 auto' }}>
+    <section id="how-it-works" className={styles.howSection} style={{ padding: '80px clamp(24px, 5vw, 60px) 80px', maxWidth: 800, margin: '0 auto' }}>
       <ScrollReveal>
         <div style={{ textAlign: 'center', marginBottom: 64 }}>
           <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, color: 'var(--accent-gold)', letterSpacing: '0.25em' }}>HOW IT WORKS</span>
@@ -72,7 +72,7 @@ function HowItWorksSection() {
           background: 'linear-gradient(to bottom, var(--border-card-separator), var(--bg-gold-faint))',
         }} />
         {steps.map((step, i) => (
-          <ScrollReveal key={i} delay={i * 0.12}>
+          <ScrollReveal key={i} delay={i * 0.12} variant="fadeLeft">
             <div className={styles.stepItem} style={{
               display: 'flex', gap: 32, alignItems: 'flex-start',
               marginBottom: i < steps.length - 1 ? 52 : 0, position: 'relative',
@@ -86,7 +86,7 @@ function HowItWorksSection() {
               }}>{step.num}</div>
               <div style={{ paddingTop: 4 }}>
                 <h3 style={{
-                  fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 700,
+                  fontFamily: 'var(--font-cinzel)', fontSize: 24, fontWeight: 700,
                   marginBottom: 10,
                 }}>{step.title}</h3>
                 <p style={{

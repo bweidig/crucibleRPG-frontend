@@ -34,6 +34,19 @@
 
 ## Recent Work (This Session: 2026-04-02)
 
+### Landing Page Polish Pass (Design Audit)
+Seven tuning adjustments to `/landing` based on a design audit:
+
+1. **Typography bumps:** Feature card h3 19→27px, epigraphs 15→16px (removed opacity:0.85), step headings 22→24px, FAQ questions 17→19px.
+2. **Feature card hover:** Added background shift (#101420→#12151f) and subtle gold box-shadow on hover. Added background/box-shadow to transition.
+3. **Feature card defaults:** Background #101420, border #1e2030 (more visible against page bg). Grid gap 28→32px.
+4. **Section spacing variation:** Features 120px top, How It Works 80px, FAQ 60/80px, CTA 120/100px. Breaks the flat 100px rhythm.
+5. **ScrollReveal variants:** Added `variant` prop to ScrollReveal component. `fadeUp` (default), `fadeLeft` (How It Works steps, -20px X), `fadeOnly` (FAQ items, opacity only), `fadeUpSlow` (CTA section, 40px/0.8s). Feature card stagger increased to i*0.15.
+6. **Particle will-change:** Added `will-change: transform, opacity` to `.particle` CSS for GPU compositing.
+7. **Particle cursor parallax:** Particles grouped into 3 depth layers by size. Mouse movement applies opposite-direction parallax via rAF lerp loop (4/8/14px max shift). Layer wrapper divs receive transform, preserving existing float/twinkle keyframes. Disabled on touch devices and `prefers-reduced-motion`.
+
+**Files modified:** `app/landing/page.js`, `app/landing/page.module.css`, `app/landing/FAQSection.js`, `app/landing/CTASection.js`, `components/ScrollReveal.js`, `components/ParticleField.js`, `components/ParticleField.module.css`.
+
 ### Menu Page Redesign: Single-Column Layout with Progressive Density
 Complete rewrite of `/menu` from 3-column grid to single centered 680px column with progressive information density.
 

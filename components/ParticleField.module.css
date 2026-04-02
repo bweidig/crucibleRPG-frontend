@@ -6,9 +6,16 @@
   z-index: 0;
 }
 
+.particleLayer {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
 .particle {
   position: absolute;
   border-radius: 50%;
+  will-change: transform, opacity;
 }
 
 @keyframes float {

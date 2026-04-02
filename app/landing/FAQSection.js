@@ -16,7 +16,7 @@ export default function FAQSection() {
   const [openIndex, setOpenIndex] = useState(null);
 
   return (
-    <section id="faq" style={{ padding: '100px clamp(24px, 5vw, 60px)', maxWidth: 700, margin: '0 auto' }}>
+    <section id="faq" style={{ padding: '60px clamp(24px, 5vw, 60px) 80px', maxWidth: 700, margin: '0 auto' }}>
       <ScrollReveal>
         <div style={{ textAlign: 'center', marginBottom: 64 }}>
           <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, color: 'var(--accent-gold)', letterSpacing: '0.25em' }}>FAQ</span>
@@ -24,14 +24,14 @@ export default function FAQSection() {
       </ScrollReveal>
       <div>
         {faqItems.map((item, i) => (
-          <ScrollReveal key={i} delay={i * 0.08}>
+          <ScrollReveal key={i} delay={i * 0.08} variant="fadeOnly">
             <div>
               <button
                 className={styles.faqQuestion}
                 onClick={() => setOpenIndex(openIndex === i ? null : i)}
               >
                 <span style={{
-                  fontFamily: 'var(--font-cinzel)', fontSize: 17, fontWeight: 600,
+                  fontFamily: 'var(--font-cinzel)', fontSize: 19, fontWeight: 600,
                   color: 'var(--text-heading)', transition: 'color 0.2s ease',
                 }}>{item.q}</span>
                 <svg

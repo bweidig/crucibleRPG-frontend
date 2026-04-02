@@ -108,11 +108,13 @@
 
 /* Feature card hover */
 .featureCard {
-  transition: border-color 0.4s ease;
+  transition: border-color 0.4s ease, background 0.4s ease, box-shadow 0.5s ease;
 }
 
 .featureCard:hover {
   border-color: var(--border-card-hover);
+  background: #12151f;
+  box-shadow: 0 2px 24px rgba(201, 168, 76, 0.05);
 }
 
 .featureCard h3 {
