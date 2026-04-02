@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-01
+**Last Updated:** 2026-04-02
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -13,7 +13,7 @@
 | Coming Soon | `/` | Complete | Waitlist + auth-check | None |
 | Landing | `/landing` | Complete | Auth-aware CTA routing | None |
 | Auth | `/auth` | Complete | Google Sign-In | None |
-| Main Menu | `/menu` | Complete | Delete games + snapshots import | Game creation not wired. Settings modal removed (moved to /settings). |
+| Main Menu | `/menu` | Complete (redesigned) | Delete games + auto-fetch hero stats | Single-column layout. Snapshots/display settings removed from this page. |
 | Init Wizard | `/init` | Complete (reworked) | All 10 endpoints wired | Gracefully skips API when no gameId |
 | Loading Screen | `/loading` | Removed (merged into /play) | N/A | N/A |
 | Saved Games | `/saved-games` | Complete | None (mock data) | Needs API wiring for real saves |
@@ -32,7 +32,44 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-01)
+## Recent Work (This Session: 2026-04-02)
+
+### Menu Page Redesign: Single-Column Layout with Progressive Density
+Complete rewrite of `/menu` from 3-column grid to single centered 680px column with progressive information density.
+
+**Design system addition:**
+- New CSS variable `--bg-card-elevated: #161b30` — elevated card/button surfaces that read clearly against bgMain. Added to `docs/design-system.md` and `app/globals.css`.
+
+**Layout architecture (top to bottom):**
+- **Empty state (0 games):** Vertically centered cinematic — "Every story starts here." heading, subtitle, body text, gold "BEGIN YOUR STORY" CTA with radial glow.
+- **Welcome heading:** "Welcome back." in Cinzel gold, italic subtitle below.
+- **CONTINUE YOUR ADVENTURE:** Section label + hero card (always expanded, no expand/collapse).
+- **Hero card:** Left gold border, elevated bg, character name + time header row, world name, full narrative blurb, auto-fetched character stats grid (6 stat boxes with danger/success coloring), condition badges, skill badges with "+X more" toggle, RESUME/CONTINUE SETUP button + metadata footer.
+- **NEW GAME button:** Full-width ghost-style button (elevated bg, secondary text, warms to gold on hover).
+- **YOUR GAMES:** Section label with count + full-width narrative cards (games at index 1-2). Left accent border warms to gold on hover, character name shifts to gold. Full blurb, metadata footer.
+- **OLDER GAMES:** Section label with count + 2-column compact grid (games at index 3+). Name + world + metadata only, no blurb. Stacks to single column below 480px.
+- **Footer:** Sticks to viewport bottom via flex layout.
+
+**What was removed:**
+- `SnapshotPickerModal` and "From Template" button (accessible via init Phase 2)
+- `DisplaySettings` modal and its button (lives on /settings page)
+- `HeroCard` expand/collapse behavior
+- 3-column game grid and 1120px outer wrapper
+- `GOLD` palette object (replaced with CSS variables)
+
+**What was preserved:**
+- Auth check + redirect, game sorting, `GameDetailModal`, `DeleteConfirmModal`, `SettingIcon`, `formatTimeAgo`, `ParticleField`, font/size localStorage persistence.
+
+**DiffBadge updated:** Now uses design system badge colors exactly (solid hex, no rgba).
+
+**Games in setup:** Render in their natural position by recency with "New Character" name, "Setting up..." world, "Character creation in progress." blurb (full cards) or no blurb (compact), "SETUP" JetBrains Mono badge.
+
+**Files modified:** `app/menu/page.js`, `app/menu/page.module.css`, `app/globals.css`, `docs/design-system.md`.
+**Files synced to claude-upload:** `menu-page.js`, `menu-page.module.css`, `globals.css`.
+
+---
+
+## Previous Work (2026-04-01)
 
 ### Scroll-Reveal Animations Across Public Pages
 Added `ScrollReveal` component and `useScrollReveal` hook (IntersectionObserver-based, respects `prefers-reduced-motion`). Wrapped all below-the-fold sections on landing, FAQ, pricing, and rulebook pages.
@@ -70,8 +107,6 @@ Three changes to the init-to-play transition flow:
 - Updated cycling lore messages to match Prologue theme: "The world takes shape...", "Setting the stage...", "Preparing your first scene...", etc.
 
 **Files modified:** `app/init/page.js`, `app/play/page.js`.
-
----
 
 ## Previous Work (2026-03-31)
 

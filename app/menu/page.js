@@ -8,22 +8,6 @@ import Footer from '@/components/Footer';
 import ParticleField from '@/components/ParticleField';
 import styles from './page.module.css';
 
-// ─── GOLD PALETTE ───
-
-const GOLD = {
-  accent: "#d4a94e",
-  light: "#ffe8a0",
-  dim: "#a08040",
-  gradient: "linear-gradient(135deg, rgba(212,169,78,0.10) 0%, rgba(180,120,40,0.03) 100%)",
-  iconBg: "linear-gradient(135deg, rgba(212,169,78,0.15), rgba(140,100,30,0.06))",
-  border: "rgba(212,169,78,0.22)",
-  borderHover: "rgba(212,169,78,0.4)",
-  glow: "rgba(212,169,78,0.08)",
-  stripe: "#c9a84c",
-};
-
-// ─── EMBER PARTICLES ───
-
 // ─── FONT & SIZE OPTIONS (for display settings persistence) ───
 
 const FONT_OPTIONS = [
@@ -76,45 +60,41 @@ function SettingIcon({ setting, color }) {
 function DiffBadge({ difficulty }) {
   if (!difficulty) return null;
   const map = {
-    Forgiving: { color: "#8aba7a", bg: "rgba(138,186,122,0.12)", border: "rgba(138,186,122,0.3)" },
-    Standard:  { color: "#b0b8cc", bg: "rgba(176,184,204,0.1)",  border: "rgba(176,184,204,0.2)" },
-    Harsh:     { color: "#e8c45a", bg: "rgba(232,196,90,0.12)",  border: "rgba(232,196,90,0.3)" },
-    Brutal:    { color: "#e8845a", bg: "rgba(232,132,90,0.12)",  border: "rgba(232,132,90,0.3)" },
+    Forgiving: { color: "#7aba7a", bg: "#142018", border: "#7aba7a33" },
+    Standard:  { color: "#8a94a8", bg: "#161a20", border: "#8a94a833" },
+    Harsh:     { color: "#e8c45a", bg: "#1e1a12", border: "#e8c45a33" },
+    Brutal:    { color: "#e85a5a", bg: "#201416", border: "#e85a5a33" },
   };
   const d = map[difficulty] || map.Standard;
   return (
     <span style={{
-      fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 12, fontWeight: 500,
+      fontFamily: "var(--font-jetbrains)", fontSize: 12, fontWeight: 500,
       padding: '3px 10px', borderRadius: 10, letterSpacing: '0.06em',
       color: d.color, background: d.bg, border: `1px solid ${d.border}`,
     }}>{difficulty.toUpperCase()}</span>
   );
 }
 
-// ─── METADATA LINE ───
+// ─── SECTION LABEL ───
 
-function MetaLine({ game }) {
-  const sep = <span style={{ color: '#3a4460', margin: '0 10px' }}>{'\u00B7'}</span>;
-  const isSetup = !game.character?.name || game.status === 'initializing';
+function SectionLabel({ text, count }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
-      {game.storyteller && game.storyteller !== 'pending' && (
-        <><span style={{ fontFamily: "var(--font-alegreya-sans), sans-serif", fontSize: 14, color: '#8a90a4' }}>{game.storyteller}</span>{sep}</>
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 14 }}>
+      <span style={{
+        fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600,
+        color: 'var(--accent-gold)', letterSpacing: '0.15em',
+      }}>{text}</span>
+      {count != null && (
+        <span style={{
+          fontFamily: 'var(--font-jetbrains)', fontSize: 12,
+          color: 'var(--text-dim)',
+        }}>({count})</span>
       )}
-      {game.turnCount > 0 && (
-        <><span style={{ fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 13, color: '#8a90a4' }}>{game.turnCount}</span>
-        <span style={{ fontFamily: "var(--font-alegreya-sans), sans-serif", fontSize: 14, color: '#8a90a4' }}> turns</span>{sep}</>
-      )}
-      {game.difficulty && <><DiffBadge difficulty={game.difficulty} />{sep}</>}
-      <span style={{ fontFamily: "var(--font-alegreya-sans), sans-serif", fontSize: 14, color: '#5a6a88', textTransform: 'capitalize' }}>
-        {isSetup ? 'In Setup' : game.status}
-      </span>
     </div>
   );
 }
 
-
-// ─── CHARACTER SNAPSHOT ───
+// ─── CHARACTER SNAPSHOT (for hero card) ───
 
 function CharacterSnapshot({ detail }) {
   const [showAllConds, setShowAllConds] = useState(false);
@@ -135,20 +115,20 @@ function CharacterSnapshot({ detail }) {
   const hiddenSkillCount = skills.length - 4;
 
   return (
-    <div style={{ padding: '16px 0', marginBottom: 14, borderTop: '1px solid rgba(212,169,78,0.12)', borderBottom: '1px solid rgba(212,169,78,0.12)' }}>
-      {/* Stats */}
+    <div style={{ padding: '14px 0', borderTop: '1px solid var(--border-card-separator)', borderBottom: '1px solid var(--border-card-separator)' }}>
+      {/* Stats grid */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: conditions.length > 0 || skills.length > 0 ? 14 : 0 }}>
         {Object.entries(stats).map(([key, val]) => {
           const base = typeof val === 'object' ? (val.base ?? val.effective ?? 0) : val;
           const effective = typeof val === 'object' ? (val.effective ?? val.base ?? 0) : val;
-          const color = effective < base ? '#e8845a' : effective > base ? '#8aba7a' : '#c8c0b0';
+          const color = effective < base ? 'var(--color-danger)' : effective > base ? 'var(--color-success)' : 'var(--text-primary)';
           return (
             <div key={key} style={{
               minWidth: 52, padding: '6px 8px', textAlign: 'center',
-              background: 'rgba(255,255,255,0.02)', borderRadius: 6, border: '1px solid rgba(255,255,255,0.04)',
+              background: 'var(--bg-main)', borderRadius: 5, border: '1px solid var(--border-primary)',
             }}>
-              <div style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 10, fontWeight: 700, color: '#a08040', letterSpacing: '0.08em' }}>{key.toUpperCase()}</div>
-              <div style={{ fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 16, fontWeight: 500, color }}>{Number(effective).toFixed(1)}</div>
+              <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 700, color: '#9a8545', letterSpacing: '0.08em' }}>{key.toUpperCase()}</div>
+              <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 15, fontWeight: 500, color }}>{Number(effective).toFixed(1)}</div>
             </div>
           );
         })}
@@ -157,7 +137,6 @@ function CharacterSnapshot({ detail }) {
       {/* Conditions */}
       {conditions.length > 0 && (
         <div style={{ marginBottom: skills.length > 0 ? 12 : 0 }}>
-          <div style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 10, fontWeight: 600, color: '#6b83a3', letterSpacing: '0.12em', marginBottom: 6 }}>CONDITIONS</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
             {visibleConds.map((c, i) => {
               const name = typeof c === 'string' ? c : c.name;
@@ -166,21 +145,21 @@ function CharacterSnapshot({ detail }) {
               const stat = typeof c === 'object' ? c.stat : null;
               return (
                 <span key={i} style={{
-                  fontFamily: "var(--font-alegreya-sans), sans-serif", fontSize: 12,
+                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 12,
                   padding: '3px 10px', borderRadius: 10,
-                  color: isBuff ? '#8aba7a' : '#e8a860',
-                  background: isBuff ? 'rgba(138,186,122,0.08)' : 'rgba(232,168,96,0.08)',
-                  border: `1px solid ${isBuff ? 'rgba(138,186,122,0.2)' : 'rgba(232,168,96,0.2)'}`,
+                  color: isBuff ? 'var(--color-success)' : 'var(--color-danger)',
+                  background: isBuff ? '#142018' : '#201416',
+                  border: `1px solid ${isBuff ? '#8aba7a33' : '#e8845a33'}`,
                 }}>
                   {name}
-                  {penalty != null && <span style={{ fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 11, marginLeft: 4 }}>{penalty > 0 ? `-${penalty}` : `+${Math.abs(penalty)}`}</span>}
-                  {stat && <span style={{ fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 11, marginLeft: 2, opacity: 0.7 }}>{stat}</span>}
+                  {penalty != null && <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, marginLeft: 4 }}>{penalty > 0 ? `-${penalty}` : `+${Math.abs(penalty)}`}</span>}
+                  {stat && <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, marginLeft: 2, opacity: 0.7 }}>{stat}</span>}
                 </span>
               );
             })}
             {hiddenCondCount > 0 && (
               <span className={styles.toggleLink} onClick={() => setShowAllConds(!showAllConds)}
-                style={{ fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 11, color: '#8a90a4' }}>
+                style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, color: 'var(--text-secondary)', cursor: 'pointer' }}>
                 {showAllConds ? 'show less' : `+${hiddenCondCount} more`}
               </span>
             )}
@@ -191,211 +170,30 @@ function CharacterSnapshot({ detail }) {
       {/* Skills */}
       {skills.length > 0 && (
         <div>
-          <div style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 10, fontWeight: 600, color: '#6b83a3', letterSpacing: '0.12em', marginBottom: 6 }}>TOP SKILLS</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
             {visibleSkills.map((sk, i) => {
               const name = typeof sk === 'string' ? sk : sk.name || sk.scope;
               const mod = typeof sk === 'object' ? sk.modifier : null;
               return (
                 <span key={i} style={{
-                  fontFamily: "var(--font-alegreya-sans), sans-serif", fontSize: 12, color: '#a0a4b4',
+                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: 'var(--text-secondary)',
                   padding: '3px 10px', borderRadius: 10,
-                  background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+                  background: 'var(--bg-main)', border: '1px solid var(--border-primary)',
                 }}>
                   {name}
-                  {mod != null && <span style={{ fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 11, color: '#c9a84c', marginLeft: 4 }}>+{mod}</span>}
+                  {mod != null && <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, color: 'var(--accent-gold)', marginLeft: 4 }}>+{mod}</span>}
                 </span>
               );
             })}
             {hiddenSkillCount > 0 && (
               <span className={styles.toggleLink} onClick={() => setShowAllSkills(!showAllSkills)}
-                style={{ fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 11, color: '#8a90a4' }}>
+                style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, color: 'var(--text-secondary)', cursor: 'pointer' }}>
                 {showAllSkills ? 'show less' : `+${hiddenSkillCount} more`}
               </span>
             )}
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-// ─── HERO CARD ───
-
-function HeroCard({ game, onNavigate, onDelete }) {
-  const [expanded, setExpanded] = useState(false);
-  const [detail, setDetail] = useState(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-
-  async function handleExpand() {
-    setExpanded(prev => !prev);
-    if (!detail && !detailLoading) {
-      setDetailLoading(true);
-      try {
-        const data = await get(`/api/games/${game.id}`);
-        setDetail(data.character || data.game?.character || null);
-      } catch { setDetail(null); }
-      setDetailLoading(false);
-    }
-  }
-
-  return (
-    <div className={styles.heroCard} onClick={handleExpand} style={{
-      background: '#1c2240', borderRadius: 14, overflow: 'hidden', padding: '28px 36px',
-      borderTop: '1px solid rgba(212,169,78,0.35)',
-      borderRight: '1px solid rgba(212,169,78,0.35)',
-      borderBottom: '1px solid rgba(212,169,78,0.35)',
-      borderLeft: '4px solid #c9a84c',
-      position: 'relative',
-    }}>
-      {/* Timestamp + delete */}
-      <div style={{ position: 'absolute', top: 16, right: 18, display: 'flex', alignItems: 'center', gap: 10, zIndex: 2 }}>
-        <span style={{ fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 13, color: '#7082a4' }}>
-          {formatTimeAgo(game.createdAt)}
-        </span>
-        <button className={styles.deleteBtn} onClick={e => { e.stopPropagation(); onDelete(game); }}
-          style={{ background: 'none', border: 'none', padding: 2, color: '#5a6a88', fontSize: 16, lineHeight: 1 }}
-        >&times;</button>
-      </div>
-
-      {/* Headline */}
-      <div style={{
-        fontFamily: "var(--font-cinzel), serif", fontSize: 'clamp(20px, 2.8vw, 26px)', fontWeight: 700,
-        color: GOLD.accent, letterSpacing: '0.06em', marginBottom: 14,
-      }}>Continue Your Adventure</div>
-
-      {/* Character + icon */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-        <div style={{
-          width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-          background: GOLD.iconBg, border: `1px solid ${GOLD.border}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <SettingIcon setting={game.setting} color={GOLD.accent} />
-        </div>
-        <div>
-          <div style={{ fontFamily: "var(--font-alegreya-sans), sans-serif", fontSize: 18, fontWeight: 500, color: '#c8c0b0' }}>
-            {game.character?.name || 'New Character'}
-          </div>
-          <div style={{ fontFamily: "var(--font-alegreya-sans), sans-serif", fontSize: 14, color: GOLD.dim }}>
-            {game.setting !== 'pending' ? game.setting : 'Setting up'}
-          </div>
-        </div>
-      </div>
-
-      {/* Blurb (clamped to 2 lines in collapsed, still 2 in expanded since full is in modal) */}
-      {game.blurb && (
-        <p style={{
-          fontFamily: "var(--font-alegreya), serif", fontSize: 17, fontStyle: 'italic',
-          color: '#a0a4b4', lineHeight: 1.65, margin: '0 0 14px',
-          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-        }}>{game.blurb}</p>
-      )}
-
-      {/* Expanded content */}
-      {expanded && (
-        <div style={{ animation: 'expandIn 0.25s ease' }}>
-          {/* Resume button */}
-          <button className={styles.resumeBtn} onClick={e => { e.stopPropagation(); onNavigate(game); }}
-            style={{
-              background: `linear-gradient(135deg, ${GOLD.accent}, ${GOLD.light})`,
-              fontFamily: "var(--font-cinzel), serif", fontSize: 16, fontWeight: 700,
-              color: '#0a0e1a', padding: '13px 40px', borderRadius: 8,
-              border: 'none', letterSpacing: '0.08em', marginBottom: 20,
-            }}>RESUME</button>
-
-          {/* Character snapshot */}
-          {detailLoading && (
-            <p style={{ fontFamily: "var(--font-alegreya), serif", fontStyle: 'italic', fontSize: 14, color: '#7082a4', margin: '10px 0' }}>Loading character...</p>
-          )}
-          {detail && <CharacterSnapshot detail={detail} />}
-        </div>
-      )}
-
-      {/* Metadata line */}
-      <div style={{ marginTop: expanded ? 0 : 6 }}>
-        <MetaLine game={game} />
-      </div>
-    </div>
-  );
-}
-
-// ─── GAME TILE ───
-
-function GameTile({ game, onClick }) {
-  const isSetup = !game.character?.name || game.status === 'initializing';
-
-  return (
-    <div className={styles.gameCard} onClick={onClick} style={{
-      background: '#161c32', borderRadius: 10, overflow: 'hidden',
-      borderTop: '1px solid rgba(212,169,78,0.10)',
-      borderRight: '1px solid rgba(212,169,78,0.10)',
-      borderBottom: '1px solid rgba(212,169,78,0.10)',
-      borderLeft: '4px solid #c9a84c',
-      minHeight: 160, padding: 18, display: 'flex', flexDirection: 'column', gap: 10,
-    }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{
-          width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-          background: GOLD.iconBg, border: `1px solid ${GOLD.border}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'transform 0.25s',
-        }}>
-          <SettingIcon setting={game.setting} color={GOLD.accent} />
-        </div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{
-              fontFamily: "var(--font-alegreya-sans), sans-serif", fontSize: 17, fontWeight: 600,
-              color: '#c8c0b0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              transition: 'color 0.25s',
-            }}>{game.character?.name || 'New Character'}</span>
-            {isSetup && (
-              <span style={{
-                fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 10, color: '#7082a4',
-                background: 'rgba(112,130,164,0.12)', padding: '1px 5px', borderRadius: 3,
-              }}>SETUP</span>
-            )}
-          </div>
-          <div style={{ fontFamily: "var(--font-alegreya-sans), sans-serif", fontSize: 13, color: GOLD.dim }}>
-            {game.setting !== 'pending' ? game.setting : 'New World'}
-          </div>
-        </div>
-      </div>
-
-      {/* Blurb */}
-      {game.blurb ? (
-        <div style={{
-          fontFamily: "var(--font-alegreya), serif", fontSize: 15, fontStyle: 'italic',
-          color: '#8a8e9e', lineHeight: 1.55,
-          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-        }}>{game.blurb}</div>
-      ) : isSetup ? (
-        <div style={{
-          fontFamily: "var(--font-alegreya), serif", fontSize: 15, fontStyle: 'italic',
-          color: '#5a6a88', lineHeight: 1.55,
-        }}>Character creation in progress.</div>
-      ) : null}
-
-      {/* Footer */}
-      <div style={{
-        marginTop: 'auto', paddingTop: 6,
-        borderTop: `1px solid ${GOLD.border}`,
-        display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
-      }}>
-        {game.turnCount > 0 && (
-          <span style={{
-            fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 12, color: GOLD.accent,
-            background: GOLD.glow, padding: '2px 7px', borderRadius: 4,
-          }}>{game.turnCount} turns</span>
-        )}
-        <DiffBadge difficulty={game.difficulty} />
-        <span style={{
-          fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 12, color: '#5a6a88',
-          marginLeft: 'auto',
-        }}>{formatTimeAgo(game.createdAt)}</span>
-      </div>
     </div>
   );
 }
@@ -423,14 +221,16 @@ function GameDetailModal({ game, onClose, onNavigate, onDelete }) {
       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', animation: 'fadeIn 0.2s' }} />
       <div onClick={e => e.stopPropagation()} style={{
         position: 'relative', zIndex: 1, maxWidth: 640, width: '92%',
-        background: '#111528', borderRadius: 12, padding: '32px 36px 28px',
-        borderTop: `1px solid ${GOLD.border}`, borderRight: `1px solid ${GOLD.border}`,
-        borderBottom: `1px solid ${GOLD.border}`, borderLeft: `4px solid ${GOLD.stripe}`,
+        background: 'var(--bg-card)', borderRadius: 12, padding: '32px 36px 28px',
+        borderTop: '1px solid var(--border-card)',
+        borderRight: '1px solid var(--border-card)',
+        borderBottom: '1px solid var(--border-card)',
+        borderLeft: '4px solid var(--accent-gold)',
         animation: 'expandIn 0.25s',
       }}>
         <button onClick={onClose} style={{
           position: 'absolute', top: 14, right: 16,
-          background: 'none', border: 'none', color: '#5a6a88', fontSize: 18, cursor: 'pointer',
+          background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: 18, cursor: 'pointer',
           transition: 'color 0.2s',
         }}>&times;</button>
 
@@ -438,50 +238,51 @@ function GameDetailModal({ game, onClose, onNavigate, onDelete }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
           <div style={{
             width: 42, height: 42, borderRadius: 10, flexShrink: 0,
-            background: GOLD.iconBg, border: `1px solid ${GOLD.border}`,
+            background: 'var(--bg-card)', border: '1px solid var(--border-card)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <SettingIcon setting={game.setting} color={GOLD.accent} />
+            <SettingIcon setting={game.setting} color="var(--accent-gold)" />
           </div>
           <div>
-            <div style={{ fontFamily: "var(--font-alegreya-sans), sans-serif", fontSize: 24, fontWeight: 600, color: '#e0d8c8' }}>
+            <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 24, fontWeight: 600, color: 'var(--text-heading)' }}>
               {game.character?.name || 'New Character'}
             </div>
-            <div style={{ fontFamily: "var(--font-alegreya-sans), sans-serif", fontSize: 15, color: GOLD.dim }}>
+            <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#9a8545' }}>
               {game.setting !== 'pending' ? game.setting : 'New World'}
             </div>
           </div>
         </div>
 
-        {/* Blurb (full, not clamped) */}
+        {/* Blurb */}
         {game.blurb ? (
-          <p style={{ fontFamily: "var(--font-alegreya), serif", fontSize: 16, fontStyle: 'italic', color: '#a0a4b4', lineHeight: 1.7, margin: '0 0 16px' }}>{game.blurb}</p>
+          <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 16, fontStyle: 'italic', color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 16px' }}>{game.blurb}</p>
         ) : isSetup ? (
-          <p style={{ fontFamily: "var(--font-alegreya), serif", fontSize: 16, fontStyle: 'italic', color: '#5a6a88', lineHeight: 1.7, margin: '0 0 16px' }}>Character creation in progress.</p>
+          <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 16, fontStyle: 'italic', color: 'var(--text-dim)', lineHeight: 1.7, margin: '0 0 16px' }}>Character creation in progress.</p>
         ) : null}
 
         {/* Character snapshot */}
         {loading && (
-          <p style={{ fontFamily: "var(--font-alegreya), serif", fontStyle: 'italic', fontSize: 14, color: '#7082a4', margin: '10px 0' }}>Loading character...</p>
+          <p style={{ fontFamily: 'var(--font-alegreya)', fontStyle: 'italic', fontSize: 14, color: 'var(--text-muted)', margin: '10px 0' }}>Loading character...</p>
         )}
         {!loading && detail && <CharacterSnapshot detail={detail} />}
 
         {/* Metadata */}
-        <div style={{ marginBottom: 20 }}>
+        <div style={{ marginBottom: 20, marginTop: 14 }}>
           <MetaLine game={game} />
         </div>
 
         {/* Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <button className={styles.resumeBtn} onClick={onNavigate} style={{
-            background: `linear-gradient(135deg, ${GOLD.accent}, ${GOLD.light})`,
-            fontFamily: "var(--font-cinzel), serif", fontSize: 14, fontWeight: 700,
-            color: '#0a0e1a', padding: '11px 32px', borderRadius: 8,
+            background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
+            fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
+            color: 'var(--bg-main)', padding: '11px 32px', borderRadius: 8,
             border: 'none', letterSpacing: '0.08em',
           }}>{isSetup ? 'CONTINUE SETUP' : 'RESUME'}</button>
           <button className={styles.deleteBtn} onClick={onDelete} style={{
             background: 'none', border: 'none', padding: '8px 12px',
-            fontFamily: "var(--font-alegreya-sans), sans-serif", fontSize: 14, color: '#5a6a88',
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-dim)',
+            cursor: 'pointer',
           }}>Delete</button>
         </div>
       </div>
@@ -489,50 +290,19 @@ function GameDetailModal({ game, onClose, onNavigate, onDelete }) {
   );
 }
 
-// ─── DISPLAY SETTINGS MODAL ───
+// ─── METADATA LINE ───
 
-function DisplaySettings({ font, setFont, textSize, setTextSize, onClose }) {
-  const sz = SIZE_OPTIONS.find(s => s.id === textSize) || SIZE_OPTIONS[1];
-  const ff = (FONT_OPTIONS.find(f => f.id === font) || FONT_OPTIONS[0]).family;
+function MetaLine({ game, small }) {
+  const sep = <span style={{ color: '#3a4460', margin: '0 6px' }}>{'\u00B7'}</span>;
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={onClose}>
-      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }} />
-      <div onClick={e => e.stopPropagation()} style={{
-        background: "#111528", border: "1px solid #1e2540", borderRadius: 10,
-        padding: "24px 28px", maxWidth: 460, width: "90%",
-        position: "relative", zIndex: 1, maxHeight: "85vh", overflowY: "auto",
-      }}>
-        <h2 style={{ fontFamily: "var(--font-cinzel), serif", fontSize: sz.heading - 8, color: "#d0c098", marginBottom: 20, marginTop: 0 }}>Display Settings</h2>
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ fontFamily: ff, fontSize: sz.base, color: "#8a94a8", display: "block", marginBottom: 8 }}>Font</label>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {FONT_OPTIONS.map(f => (
-              <button key={f.id} onClick={() => setFont(f.id)} style={{
-                padding: "8px 12px", cursor: "pointer", borderRadius: 6, textAlign: "left",
-                border: `1px solid ${font === f.id ? "#c9a84c" : "#3a3328"}`,
-                background: font === f.id ? "#0d1120" : "transparent",
-                fontFamily: f.family, fontSize: sz.base,
-                color: font === f.id ? "#c9a84c" : "#c8c0b0", transition: "all 0.2s",
-              }}>{f.label}</button>
-            ))}
-          </div>
-        </div>
-        <div style={{ marginBottom: 8 }}>
-          <label style={{ fontFamily: ff, fontSize: sz.base, color: "#8a94a8", display: "block", marginBottom: 8 }}>Text Size</label>
-          <div style={{ display: "flex", gap: 6 }}>
-            {SIZE_OPTIONS.map(s => (
-              <button key={s.id} onClick={() => setTextSize(s.id)} style={{
-                flex: 1, padding: "8px 0", cursor: "pointer", borderRadius: 6,
-                border: `1px solid ${textSize === s.id ? "#c9a84c" : "#3a3328"}`,
-                background: textSize === s.id ? "#0d1120" : "transparent",
-                fontFamily: ff, fontSize: sz.base - 2,
-                color: textSize === s.id ? "#c9a84c" : "#8a94a8", transition: "all 0.2s",
-              }}>{s.label}</button>
-            ))}
-          </div>
-        </div>
-        <button onClick={onClose} style={{ position: "absolute", top: 12, right: 14, background: "none", border: "none", color: "#6b83a3", fontSize: 16, cursor: "pointer" }}>{'\u2715'}</button>
-      </div>
+    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
+      {game.storyteller && game.storyteller !== 'pending' && (
+        <><span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: small ? 12 : 13, color: 'var(--text-dim)' }}>{game.storyteller}</span>{sep}</>
+      )}
+      {game.turnCount > 0 && (
+        <><span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: small ? 10 : 12, color: 'var(--text-dim)' }}>{game.turnCount} turns</span>{sep}</>
+      )}
+      {game.difficulty && <><DiffBadge difficulty={game.difficulty} /></>}
     </div>
   );
 }
@@ -563,35 +333,35 @@ function DeleteConfirmModal({ game, onConfirm, onCancel }) {
     <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }} />
       <div onClick={e => e.stopPropagation()} style={{
-        background: "#111528", border: "1px solid #3a3328", borderRadius: 10,
+        background: "var(--bg-card)", border: "1px solid var(--border-card)", borderRadius: 10,
         padding: "24px 28px", maxWidth: 420, width: "90%", position: "relative", zIndex: 1,
       }}>
-        <h3 style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 16, fontWeight: 700, color: '#e8845a', marginBottom: 12, marginTop: 0 }}>Delete Game</h3>
+        <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: 'var(--color-danger)', marginBottom: 12, marginTop: 0 }}>Delete Game</h3>
         <div style={{ marginBottom: 6 }}>
-          {game.character?.name && <div style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 15, color: "#d0c098", marginBottom: 2 }}>{game.character.name}</div>}
-          {game.setting !== 'pending' && <div style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 12, fontWeight: 600, color: "#c9a84c", letterSpacing: "0.1em" }}>{game.setting}</div>}
+          {game.character?.name && <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 15, color: 'var(--text-heading)', marginBottom: 2 }}>{game.character.name}</div>}
+          {game.setting !== 'pending' && <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: 'var(--accent-gold)', letterSpacing: '0.1em' }}>{game.setting}</div>}
         </div>
-        <p style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: "#c8c0b0", lineHeight: 1.6, marginBottom: 0 }}>
+        <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.6, marginBottom: 0 }}>
           This will permanently delete this game and all of its history. This cannot be undone.
         </p>
-        <p style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 13, color: "#8a94a8", marginTop: 16, marginBottom: 6 }}>
-          Type <strong style={{ color: "#c8c0b0" }}>{confirmWord}</strong> to confirm
+        <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--text-secondary)', marginTop: 16, marginBottom: 6 }}>
+          Type <strong style={{ color: 'var(--text-primary)' }}>{confirmWord}</strong> to confirm
         </p>
         <input value={text} onChange={e => setText(e.target.value)} autoFocus style={{
           width: '100%', boxSizing: 'border-box',
-          fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: "#c8c0b0",
-          background: "#0a0e1a", border: `1px solid ${shaking ? '#e8845a' : '#1e2540'}`,
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-primary)',
+          background: 'var(--bg-main)', border: `1px solid ${shaking ? 'var(--color-danger)' : 'var(--border-primary)'}`,
           borderRadius: 4, padding: '10px 14px', outline: 'none',
           transition: 'border-color 0.2s', animation: shaking ? 'shake 0.4s ease' : 'none',
         }} />
-        {error && <p style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 13, color: '#e8845a', marginTop: 8 }}>{error}</p>}
+        {error && <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--color-danger)', marginTop: 8 }}>{error}</p>}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 18 }}>
           <button onClick={onCancel} disabled={deleting} style={{
-            fontFamily: "var(--font-cinzel), serif", fontSize: 12, fontWeight: 600,
-            background: "none", border: "none", color: "#8a94a8", cursor: "pointer", padding: "10px 16px",
+            fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
+            background: "none", border: "none", color: 'var(--text-secondary)', cursor: "pointer", padding: "10px 16px",
           }}>Cancel</button>
           <button onClick={handleDelete} disabled={!matches || deleting} style={{
-            fontFamily: "var(--font-cinzel), serif", fontSize: 12, fontWeight: 600,
+            fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
             color: matches && !deleting ? '#ffffff' : '#5a4a4a',
             background: matches && !deleting ? '#b83a3a' : '#2a1a1a',
             border: 'none', borderRadius: 4, padding: '10px 20px',
@@ -604,83 +374,6 @@ function DeleteConfirmModal({ game, onConfirm, onCancel }) {
   );
 }
 
-// ─── SNAPSHOT PICKER MODAL ───
-
-function SnapshotPickerModal({ onClose, onSelect }) {
-  const [snapshots, setSnapshots] = useState(null);
-  const [error, setError] = useState(null);
-  const [creating, setCreating] = useState(null);
-
-  useEffect(() => {
-    get('/api/games/snapshots').then(data => setSnapshots(data.snapshots || data || [])).catch(() => setSnapshots([]));
-  }, []);
-  useEffect(() => {
-    const h = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [onClose]);
-
-  async function handleSelect(snap) {
-    setCreating(snap.id); setError(null);
-    try { const result = await post(`/api/games/snapshots/${snap.id}/import-mine`); onSelect(result.gameId); }
-    catch (err) { setError(err.message || 'Failed to create game from snapshot'); setCreating(null); }
-  }
-
-  return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={onClose}>
-      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }} />
-      <div onClick={e => e.stopPropagation()} style={{
-        background: "#111528", border: "1px solid #3a3328", borderRadius: 10,
-        padding: "24px 28px", maxWidth: 500, width: "90%", position: "relative", zIndex: 1,
-        maxHeight: "80vh", overflowY: "auto",
-      }}>
-        <button onClick={onClose} style={{ position: "absolute", top: 12, right: 14, background: "none", border: "none", color: "#6b83a3", fontSize: 16, cursor: "pointer" }}>{'\u2715'}</button>
-        {snapshots === null ? (
-          <p style={{ fontFamily: "var(--font-alegreya)", fontStyle: 'italic', fontSize: 15, color: "#7082a4", textAlign: 'center', padding: 20 }}>Loading your worlds...</p>
-        ) : snapshots.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '10px 0' }}>
-            <h3 style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 18, fontWeight: 700, color: "#d0c098", marginBottom: 12, marginTop: 0 }}>No Saved Worlds</h3>
-            <p style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: "#8a94a8", lineHeight: 1.7, marginBottom: 20 }}>
-              World snapshots let you replay a world you have already built with a new character. You can save a world snapshot from the settings menu during any active game.
-            </p>
-            <button onClick={onClose} style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 13, fontWeight: 600, color: "#c9a84c", background: 'none', border: "1px solid #3a3328", borderRadius: 6, padding: '10px 24px', cursor: 'pointer' }}>Got it</button>
-          </div>
-        ) : (
-          <div>
-            <h3 style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 16, fontWeight: 700, color: "#d0c098", marginBottom: 16, marginTop: 0 }}>Choose a World</h3>
-            {error && <p style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 13, color: '#e8845a', marginBottom: 12 }}>{error}</p>}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {snapshots.map(snap => (
-                <div key={snap.id} onClick={() => !creating && handleSelect(snap)} className={styles.gameCard} style={{
-                  background: '#0d1120', borderLeft: `3px solid ${GOLD.stripe}`,
-                  borderTop: '1px solid rgba(255,255,255,0.04)', borderRight: '1px solid rgba(255,255,255,0.04)',
-                  borderBottom: '1px solid rgba(255,255,255,0.04)',
-                  borderRadius: 8, padding: '14px 16px',
-                  opacity: creating && creating !== snap.id ? 0.5 : 1,
-                }}>
-                  <div style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 15, fontWeight: 700, color: "#d0c098", marginBottom: 4 }}>
-                    {creating === snap.id ? 'Creating game...' : snap.name}
-                  </div>
-                  <div style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 11, fontWeight: 600, color: GOLD.accent, letterSpacing: '0.1em', marginBottom: 6 }}>
-                    {snap.setting || snap.settingName}
-                  </div>
-                  <div style={{ fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 11, color: "#7082a4", marginBottom: 4 }}>
-                    {snap.factionCount || 0} factions {'\u00B7'} {snap.npcCount || 0} NPCs {'\u00B7'} {snap.locationCount || 0} locations
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 10, color: "#9a8545" }}>{snap.type === 'fresh_start' ? 'Fresh Start' : 'Branch'}</span>
-                    <span style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 12, color: "#7082a4" }}>{formatTimeAgo(snap.createdAt)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ═══════════════════════════════════════
 // MAIN PAGE
 // ═══════════════════════════════════════
@@ -688,36 +381,35 @@ function SnapshotPickerModal({ onClose, onSelect }) {
 export default function MenuPage() {
   const router = useRouter();
   const [games, setGames] = useState(null);
-  const [playerName, setPlayerName] = useState('');
   const [font, setFont] = useState("lexie");
   const [textSize, setTextSize] = useState("medium");
-  const [showSettings, setShowSettings] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
   const [isPlaytester, setIsPlaytester] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [showSnapshots, setShowSnapshots] = useState(false);
   const [detailTarget, setDetailTarget] = useState(null);
+  const [heroDetail, setHeroDetail] = useState(null);
 
   // Auth check + fetch games
   useEffect(() => {
     if (!isAuthenticated()) { router.replace('/auth'); return; }
     const user = getUser();
     if (user) setIsPlaytester(!!user.isPlaytester);
-    if (user?.displayName) {
-      setPlayerName(user.displayName);
-    } else {
-      try {
-        const token = localStorage.getItem('crucible_token');
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setPlayerName(payload.email?.split('@')[0] || 'Adventurer');
-      } catch { setPlayerName('Adventurer'); }
-    }
 
     async function fetchGames() {
       try {
         const data = await get('/api/games');
-        setGames((data.games || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+        const sorted = (data.games || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        setGames(sorted);
+
+        // Auto-fetch hero game detail for stats
+        if (sorted.length > 0) {
+          const heroGame = sorted[0];
+          try {
+            const heroData = await get(`/api/games/${heroGame.id}`);
+            setHeroDetail(heroData.character || heroData.game?.character || null);
+          } catch { setHeroDetail(null); }
+        }
       } catch (err) {
         if (err.status === 401) { clearToken(); router.replace('/auth'); return; }
         setError('Failed to load games. Please try again.');
@@ -736,8 +428,6 @@ export default function MenuPage() {
     try { localStorage.setItem('crucible_display_settings', JSON.stringify({ font, textSize })); } catch {}
   }, [font, textSize]);
 
-  function handleLogout() { clearToken(); router.push('/landing'); }
-
   function navigateToGame(game) {
     router.push(game.status === 'active' ? `/play?id=${game.id}` : `/init?id=${game.id}`);
   }
@@ -749,149 +439,315 @@ export default function MenuPage() {
     if (detailTarget?.id === gameId) setDetailTarget(null);
   }
 
-  // Loading
+  // Loading state
   if (games === null) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0a0e1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ fontFamily: "var(--font-alegreya), serif", fontSize: 18, fontStyle: 'italic', color: '#7082a4' }}>Loading...</div>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ fontFamily: 'var(--font-alegreya)', fontSize: 18, fontStyle: 'italic', color: 'var(--text-muted)' }}>Loading...</div>
       </div>
     );
   }
 
   const hasGames = games.length > 0;
-  const activeGame = hasGames ? games[0] : null;
-  const otherGames = hasGames ? games.slice(1) : [];
+  const heroGame = hasGames ? games[0] : null;
+  const narrativeGames = games.slice(1, 3);   // index 1-2: full-width narrative cards
+  const olderGames = games.slice(3);           // index 3+: compact 2-column grid
+  const otherGamesCount = games.length - 1;    // total non-hero games
+
+  const heroIsSetup = heroGame && (!heroGame.character?.name || heroGame.status === 'initializing');
 
   return (
-    <div className={styles.pageContainer} style={{ minHeight: "100vh", background: "#0a0e1a", color: "#c8c0b0", position: "relative" }}>
+    <div className={styles.pageContainer} style={{
+      minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)',
+      position: 'relative', display: 'flex', flexDirection: 'column',
+    }}>
       <ParticleField />
+      <NavBar />
 
-      {/* ═══ NAV + WELCOME + HERO (860px) ═══ */}
+      {/* ═══ MAIN CONTENT ═══ */}
       <div style={{
-        position: 'relative', zIndex: 1, maxWidth: 860, margin: '0 auto', padding: '0 32px', boxSizing: 'border-box',
+        flex: 1, position: 'relative', zIndex: 1,
+        maxWidth: 680, width: '100%', margin: '0 auto',
+        padding: '0 clamp(20px, 5vw, 32px)',
+        boxSizing: 'border-box',
         opacity: loaded ? 1 : 0, transition: 'opacity 0.6s',
+        display: 'flex', flexDirection: 'column',
       }}>
-        <NavBar />
-        <div style={{ fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 10, color: "#7082a4", border: "1px solid #3a3328", borderRadius: 4, padding: "2px 7px", display: "inline-block", marginBottom: 24, marginTop: 12 }}>EARLY ACCESS</div>
-
         {/* Error */}
         {error && (
-          <div style={{ background: '#201416', border: '1px solid #5a3020', borderRadius: 6, padding: '10px 14px', marginBottom: 18, fontFamily: "var(--font-alegreya-sans), sans-serif", fontSize: 14, color: '#e8845a' }}>{error}</div>
+          <div style={{ background: '#201416', border: '1px solid #5a3020', borderRadius: 6, padding: '10px 14px', marginBottom: 18, marginTop: 12, fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--color-danger)' }}>{error}</div>
         )}
 
         {/* Playtester gate */}
         {!isPlaytester && (
-          <div style={{ background: "#111528", border: "1px solid #3a3328", borderRadius: 12, padding: "48px 40px", textAlign: "center", marginBottom: 32, animation: "fadeIn 0.5s ease both" }}>
-            <div style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 28, fontWeight: 700, color: "#c9a84c", marginBottom: 16 }}>Account Created</div>
-            <p style={{ fontFamily: "var(--font-alegreya), serif", fontSize: 18, fontStyle: "italic", color: "#8a94a8", lineHeight: 1.7, maxWidth: 480, margin: "0 auto 20px" }}>Your account is pending playtester access.</p>
-            <p style={{ fontFamily: "var(--font-alegreya-sans), sans-serif", fontSize: 14, color: "#7082a4", lineHeight: 1.6, maxWidth: 400, margin: "0 auto" }}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-card)', borderRadius: 12, padding: '48px 40px', textAlign: 'center', marginBottom: 32, marginTop: 24, animation: 'fadeIn 0.5s ease both' }}>
+            <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 28, fontWeight: 700, color: 'var(--accent-gold)', marginBottom: 16 }}>Account Created</div>
+            <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 18, fontStyle: 'italic', color: 'var(--text-secondary)', lineHeight: 1.7, maxWidth: 480, margin: '0 auto 20px' }}>Your account is pending playtester access.</p>
+            <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 400, margin: '0 auto' }}>
               Crucible RPG is in early access. Once your account is approved, you will be able to create and play games from here.
             </p>
           </div>
         )}
 
-        {/* Welcome + Hero */}
-        {isPlaytester && (
-          <div style={{ position: 'relative' }}>
-            {/* Warm glow */}
-            <div style={{
-              position: 'absolute', width: 800, height: 500, top: -80, left: '50%', transform: 'translateX(-50%)',
-              background: 'radial-gradient(ellipse, rgba(212,169,78,0.13) 0%, rgba(232,168,64,0.05) 35%, transparent 65%)',
-              pointerEvents: 'none',
-            }} />
+        {/* ─── EMPTY STATE (0 games) ─── */}
+        {isPlaytester && !hasGames && (
+          <div style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <div style={{ textAlign: 'center', position: 'relative', padding: '40px 0' }}>
+              {/* Radial glow */}
+              <div style={{
+                position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -60%)',
+                width: 500, height: 300, borderRadius: '50%',
+                background: 'radial-gradient(ellipse, rgba(201,168,76,0.06) 0%, transparent 70%)',
+                pointerEvents: 'none',
+              }} />
+              <h1 style={{
+                fontFamily: 'var(--font-cinzel)', fontSize: 'clamp(30px, 5vw, 42px)', fontWeight: 700,
+                color: 'var(--accent-gold)', marginBottom: 16, marginTop: 0,
+                position: 'relative',
+              }}>Every story starts here.</h1>
+              <p style={{
+                fontFamily: 'var(--font-alegreya)', fontSize: 18, fontStyle: 'italic', fontWeight: 500,
+                color: 'var(--text-secondary)', marginBottom: 12,
+                position: 'relative',
+              }}>Choose a world, create a character, and see what happens.</p>
+              <p style={{
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 15,
+                color: 'var(--text-dim)', marginBottom: 36,
+                position: 'relative',
+              }}>No prep needed. The engine knows the rules so you don&rsquo;t have to.</p>
+              <button className={styles.btnPrimary} onClick={() => router.push('/init')} style={{
+                fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 700,
+                color: 'var(--bg-main)', letterSpacing: '0.1em',
+                background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
+                border: 'none', borderRadius: 6, padding: '16px 44px',
+                boxShadow: '0 2px 20px rgba(201,168,76,0.2)',
+                position: 'relative',
+              }}>BEGIN YOUR STORY</button>
+            </div>
+          </div>
+        )}
 
-            {hasGames ? (
-              <>
-                {/* Welcome heading */}
-                <div style={{
-                  fontFamily: "var(--font-cinzel), serif", fontSize: 'clamp(36px, 5.5vw, 48px)', fontWeight: 700,
-                  color: '#d4a94e', textAlign: 'center', letterSpacing: '0.03em',
-                  opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0) scale(1)' : 'translateY(18px) scale(0.97)',
-                  transition: 'all 1.2s cubic-bezier(0.16,1,0.3,1) 0.05s',
-                }}>Welcome back.</div>
-                <div style={{
-                  fontFamily: "var(--font-alegreya), serif", fontSize: 18, fontStyle: 'italic', fontWeight: 400,
-                  color: '#8a8a78', textAlign: 'center', marginBottom: 36,
-                  opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(10px)',
-                  transition: 'all 1s ease 0.2s',
-                }}>Pick up where you left off, or start something new.</div>
+        {/* ─── RETURNING PLAYER LAYOUT (1+ games) ─── */}
+        {isPlaytester && hasGames && (
+          <div>
+            {/* Welcome */}
+            <div style={{ textAlign: 'center', paddingTop: 16, marginBottom: 36 }}>
+              <h1 style={{
+                fontFamily: 'var(--font-cinzel)', fontSize: 'clamp(30px, 5vw, 42px)', fontWeight: 700,
+                color: 'var(--accent-gold)', marginBottom: 10, marginTop: 0,
+              }}>Welcome back.</h1>
+              <p style={{
+                fontFamily: 'var(--font-alegreya)', fontSize: 17, fontStyle: 'italic', fontWeight: 500,
+                color: 'var(--text-secondary-bright)', margin: 0,
+              }}>Pick up where you left off, or start something new.</p>
+            </div>
 
-                {/* Hero card */}
-                <div style={{
-                  marginBottom: 24,
-                  opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(14px)',
-                  transition: 'all 1s cubic-bezier(0.16,1,0.3,1) 0.2s',
-                }}>
-                  <HeroCard game={activeGame} onNavigate={navigateToGame} onDelete={setDeleteTarget} />
-                </div>
+            {/* CONTINUE YOUR ADVENTURE */}
+            <SectionLabel text="CONTINUE YOUR ADVENTURE" />
 
-                {/* Action buttons */}
+            {/* Hero Card */}
+            <div className={styles.heroCard} style={{
+              background: 'var(--bg-card-elevated)',
+              borderTop: '1px solid var(--border-card)',
+              borderRight: '1px solid var(--border-card)',
+              borderBottom: '1px solid var(--border-card)',
+              borderLeft: '4px solid var(--accent-gold)',
+              borderRadius: 10, padding: '28px 32px',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.3), 0 0 1px rgba(201,168,76,0.08)',
+              marginBottom: 16,
+            }}>
+              {/* Header row */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
                 <div style={{
-                  display: 'flex', gap: 12, marginBottom: 48,
-                  opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(10px)',
-                  transition: 'all 1s ease 0.35s',
-                }}>
-                  <button className={styles.newGameBtn} onClick={() => router.push('/init')} style={{
-                    flex: 1, padding: '17px 0', borderRadius: 10,
-                    fontFamily: "var(--font-cinzel), serif", fontSize: 16, fontWeight: 700, letterSpacing: '0.08em',
-                    background: 'linear-gradient(135deg, #c9a84c, #ddb84e)', border: 'none', color: '#0a0e1a',
-                    boxShadow: '0 2px 16px rgba(201,168,76,0.2)',
-                  }}>New Game</button>
-                  {isPlaytester && (
-                    <button className={styles.templateBtn} onClick={() => setShowSnapshots(true)} style={{
-                      padding: '17px 24px', borderRadius: 10,
-                      fontFamily: "var(--font-cinzel), serif", fontSize: 14, fontWeight: 600, letterSpacing: '0.06em',
-                      background: 'rgba(201,168,76,0.04)', border: '1px solid rgba(201,168,76,0.2)', color: '#c9a84c',
-                    }}>From Template</button>
-                  )}
-                </div>
-              </>
-            ) : (
-              /* New player */
-              <div style={{ textAlign: 'center', padding: '60px 0 48px' }}>
-                <div style={{
-                  fontFamily: "var(--font-cinzel), serif", fontSize: 'clamp(36px, 5.5vw, 48px)', fontWeight: 700,
-                  color: '#d4a94e', letterSpacing: '0.03em', marginBottom: 16,
-                  opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0) scale(1)' : 'translateY(18px) scale(0.97)',
-                  transition: 'all 1.2s cubic-bezier(0.16,1,0.3,1) 0.05s',
-                }}>Welcome, {playerName}.</div>
-                <div style={{
-                  fontFamily: "var(--font-alegreya), serif", fontSize: 18, fontStyle: 'italic', fontWeight: 400,
-                  color: '#8a8a78', marginBottom: 40,
-                  opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(10px)',
-                  transition: 'all 1s ease 0.2s',
-                }}>Your first story is waiting.</div>
-                <button className={styles.newGameBtn} onClick={() => router.push('/init')} style={{
-                  padding: '18px 48px', borderRadius: 10,
-                  fontFamily: "var(--font-cinzel), serif", fontSize: 16, fontWeight: 700, letterSpacing: '0.1em',
-                  background: 'linear-gradient(135deg, #c9a84c, #ddb84e)', border: 'none', color: '#0a0e1a',
+                  fontFamily: 'var(--font-cinzel)', fontSize: 20, fontWeight: 700,
+                  color: 'var(--text-heading)',
+                }}>{heroIsSetup ? 'New Character' : (heroGame.character?.name || 'New Character')}</div>
+                <span style={{
+                  fontFamily: 'var(--font-jetbrains)', fontSize: 12,
+                  color: 'var(--text-muted)', flexShrink: 0, marginLeft: 12,
+                }}>{formatTimeAgo(heroGame.createdAt)}</span>
+              </div>
+
+              {/* World name */}
+              <div style={{
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
+                color: '#9a8545', marginBottom: 14,
+              }}>{heroIsSetup ? 'Setting up...' : (heroGame.setting !== 'pending' ? heroGame.setting : 'New World')}</div>
+
+              {/* Blurb / Setup message */}
+              {heroIsSetup ? (
+                <p style={{
+                  fontFamily: 'var(--font-alegreya)', fontSize: 16.5, fontStyle: 'italic',
+                  color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 14px',
+                }}>Character creation in progress.</p>
+              ) : heroGame.blurb ? (
+                <p style={{
+                  fontFamily: 'var(--font-alegreya)', fontSize: 16.5, fontStyle: 'italic',
+                  color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 14px',
+                }}>{heroGame.blurb}</p>
+              ) : null}
+
+              {/* Stats / Conditions / Skills (only for non-setup games) */}
+              {!heroIsSetup && heroDetail && <CharacterSnapshot detail={heroDetail} />}
+
+              {/* Footer row */}
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                flexWrap: 'wrap', gap: 12, marginTop: 14,
+              }}>
+                <button className={styles.resumeBtn} onClick={() => navigateToGame(heroGame)} style={{
+                  background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
+                  fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
+                  color: 'var(--bg-main)', padding: '11px 32px', borderRadius: 6,
+                  border: 'none', letterSpacing: '0.08em',
                   boxShadow: '0 2px 16px rgba(201,168,76,0.2)',
-                  opacity: loaded ? 1 : 0, transition: 'opacity 1s ease 0.3s',
-                }}>New Game</button>
+                }}>{heroIsSetup ? 'CONTINUE SETUP' : 'RESUME'}</button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <MetaLine game={heroGame} />
+                </div>
+              </div>
+            </div>
+
+            {/* NEW GAME button */}
+            <button className={styles.newGameBtn} onClick={() => router.push('/init')} style={{
+              width: '100%', padding: '14px 0', borderRadius: 5,
+              fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, letterSpacing: '0.08em',
+              color: 'var(--text-secondary)', background: 'var(--bg-card-elevated)',
+              border: '1px solid var(--border-card)',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
+              marginBottom: 32,
+            }}>NEW GAME</button>
+
+            {/* YOUR GAMES section (narrative cards, games at index 1-2) */}
+            {narrativeGames.length > 0 && (
+              <div style={{ marginBottom: olderGames.length > 0 ? 0 : 48 }}>
+                <SectionLabel text="YOUR GAMES" count={otherGamesCount} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {narrativeGames.map(game => {
+                    const isSetup = !game.character?.name || game.status === 'initializing';
+                    return (
+                      <div key={game.id} className={styles.narrativeCard} onClick={() => setDetailTarget(game)} style={{
+                        background: 'var(--bg-card-elevated)', borderRadius: 8, padding: '22px 26px',
+                        borderTop: '1px solid var(--border-card)',
+                        borderRight: '1px solid var(--border-card)',
+                        borderBottom: '1px solid var(--border-card)',
+                        borderLeft: '3px solid var(--border-card)',
+                        boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
+                        cursor: 'pointer',
+                      }}>
+                        {/* Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span className={styles.narrativeCardName} style={{
+                              fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700,
+                              color: 'var(--text-heading)', transition: 'color 0.2s',
+                            }}>{isSetup ? 'New Character' : (game.character?.name || 'New Character')}</span>
+                            {isSetup && (
+                              <span style={{
+                                fontFamily: 'var(--font-jetbrains)', fontSize: 10, color: 'var(--text-muted)',
+                                background: 'var(--bg-main)', padding: '1px 5px', borderRadius: 3,
+                                border: '1px solid var(--border-primary)',
+                              }}>SETUP</span>
+                            )}
+                          </div>
+                          <span style={{
+                            fontFamily: 'var(--font-jetbrains)', fontSize: 11,
+                            color: 'var(--text-muted)', flexShrink: 0, marginLeft: 12,
+                          }}>{formatTimeAgo(game.createdAt)}</span>
+                        </div>
+
+                        {/* World */}
+                        <div style={{
+                          fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
+                          color: '#9a8545', marginBottom: 10,
+                        }}>{isSetup ? 'Setting up...' : (game.setting !== 'pending' ? game.setting : 'New World')}</div>
+
+                        {/* Blurb */}
+                        {isSetup ? (
+                          <p style={{
+                            fontFamily: 'var(--font-alegreya)', fontSize: 15, fontStyle: 'italic',
+                            color: 'var(--text-secondary-bright)', lineHeight: 1.7, margin: '0 0 14px',
+                          }}>Character creation in progress.</p>
+                        ) : game.blurb ? (
+                          <p style={{
+                            fontFamily: 'var(--font-alegreya)', fontSize: 15, fontStyle: 'italic',
+                            color: 'var(--text-secondary-bright)', lineHeight: 1.7, margin: '0 0 14px',
+                          }}>{game.blurb}</p>
+                        ) : null}
+
+                        {/* Metadata footer */}
+                        <div style={{ borderTop: '1px solid var(--border-card-separator)', paddingTop: 10 }}>
+                          <MetaLine game={game} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* OLDER GAMES section (compact 2-column grid, games at index 3+) */}
+            {olderGames.length > 0 && (
+              <div style={{ marginTop: 28, marginBottom: 48 }}>
+                <SectionLabel text="OLDER GAMES" count={olderGames.length} />
+                <div className={styles.compactGrid}>
+                  {olderGames.map(game => {
+                    const isSetup = !game.character?.name || game.status === 'initializing';
+                    return (
+                      <div key={game.id} className={styles.compactCard} onClick={() => setDetailTarget(game)} style={{
+                        background: 'var(--bg-card-elevated)', borderRadius: 6, padding: '16px 18px',
+                        borderTop: '1px solid var(--border-card)',
+                        borderRight: '1px solid var(--border-card)',
+                        borderBottom: '1px solid var(--border-card)',
+                        borderLeft: '3px solid var(--border-card)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                        cursor: 'pointer',
+                        display: 'flex', flexDirection: 'column',
+                      }}>
+                        {/* Name */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                          <span className={styles.compactCardName} style={{
+                            fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
+                            color: 'var(--text-heading)', transition: 'color 0.2s',
+                          }}>{isSetup ? 'New Character' : (game.character?.name || 'New Character')}</span>
+                          {isSetup && (
+                            <span style={{
+                              fontFamily: 'var(--font-jetbrains)', fontSize: 10, color: 'var(--text-muted)',
+                              background: 'var(--bg-main)', padding: '1px 5px', borderRadius: 3,
+                              border: '1px solid var(--border-primary)',
+                            }}>SETUP</span>
+                          )}
+                        </div>
+
+                        {/* World */}
+                        <div style={{
+                          fontFamily: 'var(--font-alegreya-sans)', fontSize: 12,
+                          color: '#9a8545',
+                        }}>{isSetup ? 'Setting up...' : (game.setting !== 'pending' ? game.setting : 'New World')}</div>
+
+                        {/* Footer */}
+                        <div style={{
+                          marginTop: 'auto', paddingTop: 10,
+                          borderTop: '1px solid var(--border-card-separator)',
+                          display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4,
+                        }}>
+                          <MetaLine game={game} small />
+                          <span style={{
+                            fontFamily: 'var(--font-jetbrains)', fontSize: 10,
+                            color: 'var(--text-dim)', marginLeft: 'auto',
+                          }}>{formatTimeAgo(game.createdAt)}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
         )}
       </div>
-
-      {/* ═══ GAME GRID (1120px) ═══ */}
-      {isPlaytester && hasGames && otherGames.length > 0 && (
-        <div style={{
-          position: 'relative', zIndex: 1, maxWidth: 1120, margin: '0 auto', padding: '0 32px', boxSizing: 'border-box',
-          opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(10px)',
-          transition: 'all 1s ease 0.45s',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 16 }}>
-            <span style={{ fontFamily: "var(--font-cinzel), serif", fontSize: 15, fontWeight: 600, color: '#c9a84c', letterSpacing: '0.15em' }}>YOUR GAMES</span>
-            <span style={{ fontFamily: "var(--font-jetbrains-mono), monospace", fontSize: 13, color: '#5a6a88' }}>({otherGames.length})</span>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
-            {otherGames.map(g => (
-              <GameTile key={g.id} game={g} onClick={() => setDetailTarget(g)} />
-            ))}
-          </div>
-        </div>
-      )}
 
       <Footer variant="minimal" />
 
@@ -906,12 +762,6 @@ export default function MenuPage() {
       )}
       {deleteTarget && (
         <DeleteConfirmModal game={deleteTarget} onConfirm={handleDeleteGame} onCancel={() => setDeleteTarget(null)} />
-      )}
-      {showSnapshots && (
-        <SnapshotPickerModal onClose={() => setShowSnapshots(false)} onSelect={(gameId) => { setShowSnapshots(false); router.push(`/init?id=${gameId}`); }} />
-      )}
-      {showSettings && (
-        <DisplaySettings font={font} setFont={setFont} textSize={textSize} setTextSize={setTextSize} onClose={() => setShowSettings(false)} />
       )}
     </div>
   );
