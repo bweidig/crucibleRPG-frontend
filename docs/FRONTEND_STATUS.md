@@ -51,6 +51,26 @@ Added `ScrollReveal` component and `useScrollReveal` hook (IntersectionObserver-
 **Files created:** `components/ScrollReveal.js`, `hooks/useScrollReveal.js`.
 **Files modified:** `app/landing/page.js`, `app/landing/page.module.css`, `app/faq/page.js`, `app/faq/page.module.css`, `app/pricing/page.js`, `app/rulebook/page.js`, `components/NavBar.js`, `components/NavBar.module.css`.
 
+### Init Phase Crossfade + /play Loading Screen Updates
+Three changes to the init-to-play transition flow:
+
+**1. Init phase crossfade for non-generation transitions:**
+- Phases 0→1, 1→2, 3→4, 4→5 now use a light content crossfade (300ms fade-out with slight upward slide, then fade-in) instead of the full 2-second ember overlay.
+- Phase 2→3 (character → proposal generation) keeps the full ember overlay since real AI generation is happening.
+- New `contentFading` state drives the crossfade on the main content wrapper div.
+
+**2. Phase 5 → /play: skip init overlay:**
+- "BEGIN ADVENTURE" on Phase 5 now fades out init content and navigates directly to `/play`. No redundant init ember overlay in between.
+- Enhanced `crucible_loading_summary` sessionStorage write: now includes `settingArchetype`, `isPrebuilt`, and resolved prebuilt world name.
+
+**3. /play loading screen updates:**
+- Added "PROLOGUE" gold Cinzel label above ember particles, matching init overlay style (same font, size, weight, color, letter-spacing).
+- Summary bar World field: prebuilt worlds show just their name ("The Fraying Throne"), custom/archetype worlds show "Sword & Soil" or "Name (Archetype)" format.
+- ENTER button: uses resolved world name ("ENTER THE FRAYING THRONE" for prebuilt).
+- Updated cycling lore messages to match Prologue theme: "The world takes shape...", "Setting the stage...", "Preparing your first scene...", etc.
+
+**Files modified:** `app/init/page.js`, `app/play/page.js`.
+
 ---
 
 ## Previous Work (2026-03-31)

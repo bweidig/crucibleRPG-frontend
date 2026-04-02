@@ -1,14 +1,4 @@
-// =============================================================================
-// PLAY PAGE — FULL SOURCE (app/play/page.js + all components)
-// This is a concatenation for reference only. The actual app splits these into
-// separate files under app/play/ and app/play/components/.
-// =============================================================================
-
-
-// =============================================================================
 // FILE: app/play/page.js
-// =============================================================================
-
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
@@ -64,7 +54,7 @@ function buildThemeStyle(settings) {
 function PlayPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const gameId = searchParams.get('gameId');
+  const gameId = searchParams.get('gameId') || searchParams.get('id');
   const authReady = useAuth();
 
   // ─── Core State ───
@@ -118,7 +108,13 @@ function PlayPage() {
   // Load debug mode from localStorage and register debug callback
   useEffect(() => {
     const stored = localStorage.getItem('crucible_debug');
-    if (stored === 'true') {
+    const user = api.getUser();
+    if (stored === null && user?.isDebug) {
+      // First visit with debug flag — auto-enable
+      setDebugModeState(true);
+      api.setDebugMode(true);
+      localStorage.setItem('crucible_debug', 'true');
+    } else if (stored === 'true') {
       setDebugModeState(true);
       api.setDebugMode(true);
     }
@@ -482,7 +478,7 @@ function PlayPage() {
   }, [dataReady, enterReady]);
 
   // Lore fragment cycling
-  const LORE_FRAGMENTS = ['Forging your world...', 'Laying the foundations...', 'Populating the streets...', 'Seeding rumors and secrets...', 'Setting the stage...', 'Lighting the lanterns...'];
+  const LORE_FRAGMENTS = ['The world takes shape...', 'Setting the stage...', 'Preparing your first scene...', 'Populating the streets...', 'Seeding rumors and secrets...', 'Lighting the lanterns...'];
   useEffect(() => {
     if (overlayDismissed) return;
     const interval = setInterval(() => {
@@ -586,6 +582,16 @@ function PlayPage() {
           onNotesChange={refetchNotes}
           onEntityClick={setEntityPopup}
           onOpenReport={setReportMode}
+          debugMode={debugMode}
+          isDebugUser={!!api.getUser()?.isDebug}
+          onToggleDebug={() => {
+            setDebugModeState(prev => {
+              const next = !prev;
+              localStorage.setItem('crucible_debug', String(next));
+              api.setDebugMode(next);
+              return next;
+            });
+          }}
         />
       </div>
 
@@ -628,6 +634,8 @@ function PlayPage() {
           gameId={gameId}
           gameState={gameState}
           turns={turns}
+          characterData={characterData}
+          debugLog={debugLog}
           onClose={() => setReportMode(null)}
         />
       )}
@@ -683,7 +691,10 @@ function PlayPage() {
               <div style={{ display: 'flex', gap: 20, marginBottom: 44, flexWrap: 'wrap', justifyContent: 'center' }}>
                 {[
                   { label: 'Character', value: loadingSummary.characterName },
-                  { label: 'World', value: loadingSummary.worldName },
+                  { label: 'World', value: loadingSummary.isPrebuilt
+                    ? loadingSummary.worldName
+                    : `${loadingSummary.worldName || 'New World'}${loadingSummary.settingArchetype && loadingSummary.settingArchetype !== loadingSummary.worldName ? ` (${loadingSummary.settingArchetype})` : ''}`
+                  },
                   { label: 'Voice', value: loadingSummary.storyteller },
                   { label: 'Difficulty', value: loadingSummary.difficulty },
                 ].filter(item => item.value).map((item, i, arr) => (
@@ -697,6 +708,13 @@ function PlayPage() {
                 ))}
               </div>
             )}
+
+            {/* Phase label — matches init overlay pattern */}
+            <div style={{
+              fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
+              color: '#c9a84c', letterSpacing: '0.18em', textTransform: 'uppercase',
+              marginBottom: 32,
+            }}>PROLOGUE</div>
 
             {/* Firefly embers */}
             <div style={{ width: 160, height: 160, position: 'relative' }}>
@@ -753,7 +771,7 @@ function PlayPage() {
                 onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 36px rgba(201,168,76,0.5)'; }}
                 onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 0 24px rgba(201,168,76,0.3)'; }}
               >
-                ENTER {loadingSummary?.worldName?.toUpperCase() || 'THE WORLD'}
+                ENTER {(loadingSummary?.worldName || 'THE WORLD').toUpperCase()}
               </button>
             </div>
 
@@ -807,610 +825,7 @@ export default function Page() {
   );
 }
 
-
-// =============================================================================
-// FILE: app/play/components/TopBar.js
-// =============================================================================
-
-import Link from 'next/link';
-import AuthAvatar from '@/components/AuthAvatar';
-import styles from './TopBar.module.css';
-
-function SidebarIcon({ color }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="15" y1="3" x2="15" y2="21" />
-    </svg>
-  );
-}
-
-function BookIcon({ color }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-    </svg>
-  );
-}
-
-function SettingsIcon({ color }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-    </svg>
-  );
-}
-
-function formatTopBarClock(clock) {
-  if (!clock) return null;
-  const hour = clock.hour ?? Math.floor((clock.globalClock || 0) / 60);
-  const minute = clock.minute ?? ((clock.globalClock || 0) % 60);
-  const day = clock.day ?? clock.currentDay;
-  const period = hour >= 12 ? 'PM' : 'AM';
-  const displayHour = hour % 12 || 12;
-  const timeStr = `${displayHour}:${String(minute).padStart(2, '0')} ${period}`;
-  return { day, timeStr, weather: clock.weather || null };
-}
-
-export default function TopBar({ setting, clock, sseConnected, sidebarOpen, onToggleSidebar, onOpenSettings, debugMode }) {
-  const clockData = formatTopBarClock(clock);
-
-  return (
-    <header className={styles.topBar}>
-      <div className={styles.left}>
-        <Link href="/menu" className={styles.wordmark}>
-          <span className={styles.crucible}>CRUCIBLE</span>
-          <span className={styles.rpg}>RPG</span>
-        </Link>
-        {setting && (
-          <>
-            <div className={styles.separator} />
-            <span className={styles.settingName}>{setting}</span>
-          </>
-        )}
-      </div>
-      <div className={styles.right}>
-        {clockData && (
-          <div className={styles.clockDisplay}>
-            {clockData.day && <span className={styles.clockSegment}>Day {clockData.day}</span>}
-            <span className={styles.clockDot}>{'\u00b7'}</span>
-            <span className={styles.clockSegment}>{clockData.timeStr}</span>
-            {clockData.weather && (
-              <>
-                <span className={styles.clockDot}>{'\u00b7'}</span>
-                <span className={styles.clockWeather}>{clockData.weather}</span>
-              </>
-            )}
-          </div>
-        )}
-        {debugMode && (
-          <div className={styles.debugBadge} title="Debug mode active (Ctrl+Shift+D to toggle)">
-            DEBUG
-          </div>
-        )}
-        <Link
-          href="/rulebook"
-          target="_blank"
-          className={styles.iconButton}
-          title="Rulebook"
-          aria-label="Rulebook"
-        >
-          <BookIcon color="#7082a4" />
-        </Link>
-        <button
-          className={styles.iconButton}
-          onClick={onOpenSettings}
-          title="Display settings"
-          aria-label="Display settings"
-        >
-          <SettingsIcon color="#7082a4" />
-        </button>
-        <button
-          className={styles.iconButton}
-          onClick={onToggleSidebar}
-          title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-          aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-        >
-          <SidebarIcon color={sidebarOpen ? '#c9a84c' : '#7082a4'} />
-        </button>
-        <AuthAvatar size={28} />
-        <div
-          className={styles.connectionDot}
-          style={{ background: sseConnected ? '#8aba7a' : '#e8845a' }}
-          title={sseConnected ? 'Connected' : 'Disconnected'}
-          aria-label={sseConnected ? 'Server connected' : 'Server disconnected'}
-        />
-      </div>
-    </header>
-  );
-}
-
-
-// =============================================================================
-// FILE: app/play/components/Sidebar.js
-// =============================================================================
-
-import { useState, useCallback } from 'react';
-import CharacterTab from './CharacterTab';
-import InventoryTab from './InventoryTab';
-import NPCTab from './NPCTab';
-import GlossaryTab from './GlossaryTab';
-import MapTab from './MapTab';
-import NotesTab from './NotesTab';
-import styles from './Sidebar.module.css';
-
-// ─── SVG Tab Icons (from mockup's TabIcons) ───
-
-const TabIcons = {
-  character: (color) => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-    </svg>
-  ),
-  inventory: (color) => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" />
-      <path d="M16 10a4 4 0 0 1-8 0" />
-    </svg>
-  ),
-  npcs: (color) => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  ),
-  glossary: (color) => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-    </svg>
-  ),
-  map: (color) => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-      <line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" />
-    </svg>
-  ),
-  notes: (color) => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
-      <line x1="8" y1="13" x2="16" y2="13" /><line x1="8" y1="17" x2="12" y2="17" />
-    </svg>
-  ),
-};
-
-const TABS = [
-  { id: 'character', label: 'Character' },
-  { id: 'inventory', label: 'Inventory' },
-  { id: 'npcs', label: 'NPCs' },
-  { id: 'glossary', label: 'Glossary' },
-  { id: 'map', label: 'Map' },
-  { id: 'notes', label: 'Notes' },
-];
-
-export default function Sidebar({
-  collapsed,
-  characterData,
-  glossaryData,
-  mapData,
-  notesData,
-  gameId,
-  notifications,
-  onClearNotification,
-  onNotesChange,
-  onEntityClick,
-  onOpenReport,
-}) {
-  const [activeTab, setActiveTab] = useState('character');
-  const [width, setWidth] = useState(340);
-
-  const handleTabClick = useCallback((tabId) => {
-    setActiveTab(tabId);
-    if (notifications?.[tabId]) {
-      onClearNotification?.(tabId);
-    }
-  }, [notifications, onClearNotification]);
-
-  // ─── Resize Handle ───
-  const handleMouseDown = useCallback((e) => {
-    e.preventDefault();
-    const startX = e.clientX;
-    const startWidth = width;
-
-    const onMove = (moveE) => {
-      const delta = startX - moveE.clientX;
-      setWidth(Math.max(280, Math.min(600, startWidth + delta)));
-    };
-    const onUp = () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  }, [width]);
-
-  if (collapsed) return null;
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'character':
-        return <CharacterTab data={characterData} onEntityClick={onEntityClick} />;
-      case 'inventory':
-        return <InventoryTab data={characterData} onEntityClick={onEntityClick} />;
-      case 'npcs':
-        return <NPCTab glossaryData={glossaryData} onEntityClick={onEntityClick} />;
-      case 'glossary':
-        return <GlossaryTab data={glossaryData} onEntityClick={onEntityClick} />;
-      case 'map':
-        return <MapTab data={mapData} gameId={gameId} onEntityClick={onEntityClick} />;
-      case 'notes':
-        return <NotesTab data={notesData} gameId={gameId} onNotesChange={onNotesChange} />;
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className={styles.sidebar} style={{ width }}>
-      <div className={styles.resizeHandle} onMouseDown={handleMouseDown} />
-      <div className={styles.tabBar}>
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ''}`}
-            onClick={() => handleTabClick(tab.id)}
-            title={tab.label}
-            aria-label={tab.label}
-          >
-            {TabIcons[tab.id](activeTab === tab.id ? '#c9a84c' : '#7082a4')}
-            {notifications?.[tab.id] > 0 && (
-              <span className={styles.badge}>{notifications[tab.id]}</span>
-            )}
-          </button>
-        ))}
-      </div>
-      <div className={styles.tabContent}>
-        {renderContent()}
-      </div>
-      {onOpenReport && (
-        <div className={styles.sidebarFooter}>
-          <button className={styles.footerBtn} onClick={() => onOpenReport('bug')}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="8" y="6" width="8" height="14" rx="4" /><path d="M19 10h2" /><path d="M3 10h2" />
-              <path d="M19 14h2" /><path d="M3 14h2" /><path d="M19 18h2" /><path d="M3 18h2" />
-              <path d="M16 2l-2 4" /><path d="M8 2l2 4" />
-            </svg>
-            Bug
-          </button>
-          <button className={styles.footerBtn} onClick={() => onOpenReport('suggest')}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 18h6" /><path d="M10 22h4" />
-              <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
-            </svg>
-            Suggest
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-// =============================================================================
-// FILE: app/play/components/NarrativePanel.js
-// =============================================================================
-
-import { useRef, useEffect, forwardRef } from 'react';
-import TurnBlock from './TurnBlock';
-import TalkToGM from './TalkToGM';
-import styles from './NarrativePanel.module.css';
-
-const NarrativePanel = forwardRef(function NarrativePanel({ turns, sessionRecap, worldBriefing, gameId, onTurnResponse }, ref) {
-  const newTurnRef = useRef(null);
-  const bottomRef = useRef(null);
-
-  // Auto-scroll: new turns scroll to turn header at top; initial load scrolls to bottom
-  useEffect(() => {
-    if (turns.length === 0) return;
-    const lastTurn = turns[turns.length - 1];
-    if (lastTurn._isNew && newTurnRef.current) {
-      requestAnimationFrame(() => {
-        newTurnRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    } else {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [turns.length]);
-
-  return (
-    <div className={styles.narrativeWrapper}>
-      <div className={styles.narrativeScroll} ref={ref}>
-        <div className={styles.narrativeInner}>
-          {worldBriefing && (
-            <div className={styles.worldBriefing}>
-              <div className={styles.briefingLabel}>Prologue</div>
-              <div className={styles.briefingText}>{worldBriefing}</div>
-            </div>
-          )}
-
-          {sessionRecap && (
-            <div className={styles.sessionRecap}>
-              <div className={styles.recapHeader}>PREVIOUSLY...</div>
-              <div className={styles.recapText}>{sessionRecap}</div>
-            </div>
-          )}
-
-          {turns.length === 0 && (
-            <div className={styles.emptyState}>Starting your adventure...</div>
-          )}
-
-          {turns.map((turn, i) => {
-            const isLast = i === turns.length - 1;
-            const isNew = !!turn._isNew;
-            return (
-              <TurnBlock
-                key={turn.number ?? i}
-                turn={turn}
-                isNew={isNew}
-                ref={isLast && isNew ? newTurnRef : undefined}
-              />
-            );
-          })}
-
-          <div ref={bottomRef} />
-        </div>
-      </div>
-
-      <TalkToGM gameId={gameId} onTurnResponse={onTurnResponse} />
-    </div>
-  );
-});
-
-export default NarrativePanel;
-
-
-// =============================================================================
-// FILE: app/play/components/TurnBlock.js
-// =============================================================================
-
-import React, { useState, forwardRef } from 'react';
-import InlineDicePanel from './InlineDicePanel';
-import ResolutionBlock from './ResolutionBlock';
-import styles from './TurnBlock.module.css';
-
-// Format clock fields for display
-function formatTime(clock) {
-  if (!clock) return null;
-  const hour = clock.hour ?? Math.floor((clock.globalClock || 0) / 60);
-  const minute = clock.minute ?? ((clock.globalClock || 0) % 60);
-  const period = hour >= 12 ? 'PM' : 'AM';
-  const displayHour = hour % 12 || 12;
-  return `${displayHour}:${String(minute).padStart(2, '0')} ${period}`;
-}
-
-function getTimeEmoji(clock) {
-  if (!clock) return null;
-  const hour = clock.hour ?? Math.floor((clock.globalClock || 0) / 60);
-  if (hour >= 5 && hour < 8) return '\u{1F305}';   // sunrise
-  if (hour >= 8 && hour < 18) return '\u2600\uFE0F'; // sun
-  if (hour >= 18 && hour < 21) return '\u{1F307}';  // sunset
-  return '\u{1F319}';                                 // night
-}
-
-function getWeatherEmoji(weather) {
-  if (!weather) return null;
-  const w = weather.toLowerCase();
-  if (w.includes('clear') || w.includes('sunny')) return '\u2600\uFE0F';
-  if (w.includes('cloud') || w.includes('overcast')) return '\u2601\uFE0F';
-  if (w.includes('storm') || w.includes('thunder')) return '\u26C8\uFE0F';
-  if (w.includes('rain') || w.includes('drizzle')) return '\u{1F327}\uFE0F';
-  if (w.includes('snow') || w.includes('blizzard')) return '\u2744\uFE0F';
-  if (w.includes('fog') || w.includes('mist')) return '\u{1F32B}\uFE0F';
-  if (w.includes('wind')) return '\u{1F32C}\uFE0F';
-  return null;
-}
-
-// Render narrative text: \n\n = paragraph break, \n = <br>
-function renderNarrative(text) {
-  if (!text) return null;
-  return text.split('\n\n').map((paragraph, i) => {
-    const lines = paragraph.split('\n');
-    return (
-      <p key={i}>
-        {lines.map((line, j) => (
-          <React.Fragment key={j}>
-            {j > 0 && <br />}
-            {line}
-          </React.Fragment>
-        ))}
-      </p>
-    );
-  });
-}
-
-// ─── Status Change Badges ───
-// Conditions: added=warning(orange), removed=cleared(green), modified=escalated(orange)
-// Inventory: added=gained(gold), removed=lost(orange), modified=modified(blue)
-// CON conditions get red instead of orange
-
-function StatusBadges({ stateChanges }) {
-  if (!stateChanges) return null;
-
-  const badges = [];
-
-  // Conditions
-  const conds = stateChanges.conditions;
-  if (conds) {
-    if (Array.isArray(conds.added)) {
-      conds.added.forEach(item => {
-        const name = typeof item === 'string' ? item : (item.name || 'Unknown condition');
-        const isCon = (typeof item === 'object' && item !== null) ? (item.stat || '').toLowerCase() === 'con' : false;
-        badges.push({
-          type: isCon ? 'condConDanger' : 'condAdded',
-          text: `\u26A0 ${name}${(typeof item === 'object' && item?.penalty) ? `: ${item.penalty} ${(item.stat || '').toUpperCase()}` : ''}`,
-          key: `cond-add-${name}`,
-        });
-      });
-    }
-    if (Array.isArray(conds.removed)) {
-      conds.removed.forEach(item => {
-        const name = typeof item === 'string' ? item : (item.name || 'Unknown condition');
-        badges.push({
-          type: 'condRemoved',
-          text: `\u2713 ${name} cleared`,
-          key: `cond-rm-${name}`,
-        });
-      });
-    }
-    if (Array.isArray(conds.modified)) {
-      conds.modified.forEach(item => {
-        const name = typeof item === 'string' ? item : (item.name || 'Unknown condition');
-        const isCon = (typeof item === 'object' && item !== null) ? (item.stat || '').toLowerCase() === 'con' : false;
-        badges.push({
-          type: isCon ? 'condConDanger' : 'condModified',
-          text: `\u26A0 ${name}${(typeof item === 'object' && item?.previousName) ? ` \u2192 ${item.name}` : ' escalated'}`,
-          key: `cond-mod-${name}`,
-        });
-      });
-    }
-  }
-
-  // Inventory
-  const inv = stateChanges.inventory;
-  if (inv) {
-    if (Array.isArray(inv.added)) {
-      inv.added.forEach(item => {
-        const name = typeof item === 'string' ? item : (item.name || 'Unknown item');
-        badges.push({
-          type: 'invAdded',
-          text: `+ ${name}`,
-          key: `inv-add-${name}`,
-        });
-      });
-    }
-    if (Array.isArray(inv.removed)) {
-      inv.removed.forEach(item => {
-        const name = typeof item === 'string' ? item : (item.name || 'Unknown item');
-        badges.push({
-          type: 'invRemoved',
-          text: `\u2013 ${name}`,
-          key: `inv-rm-${name}`,
-        });
-      });
-    }
-    if (Array.isArray(inv.modified)) {
-      inv.modified.forEach(item => {
-        const name = typeof item === 'string' ? item : (item.name || 'Unknown item');
-        badges.push({
-          type: 'invModified',
-          text: `~ ${name}`,
-          key: `inv-mod-${name}`,
-        });
-      });
-    }
-  }
-
-  if (badges.length === 0) return null;
-
-  const badgeClass = (type) => {
-    switch (type) {
-      case 'condAdded':    return styles.badgeCondWarning;
-      case 'condModified': return styles.badgeCondWarning;
-      case 'condConDanger':return styles.badgeCondCon;
-      case 'condRemoved':  return styles.badgeCondCleared;
-      case 'invAdded':     return styles.badgeInvGained;
-      case 'invRemoved':   return styles.badgeInvLost;
-      case 'invModified':  return styles.badgeInvModified;
-      default:             return styles.badgeCondWarning;
-    }
-  };
-
-  return (
-    <div className={styles.badges}>
-      {badges.map(b => (
-        <span key={b.key} className={`${styles.badge} ${badgeClass(b.type)}`}>
-          {b.text}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-const TurnBlock = forwardRef(function TurnBlock({ turn, isNew }, ref) {
-  const hasResolution = !!turn.resolution;
-  const shouldAnimate = isNew && hasResolution;
-  const [showContent, setShowContent] = useState(!shouldAnimate);
-
-  const timeStr = formatTime(turn.clock);
-  const timeEmoji = getTimeEmoji(turn.clock);
-  const day = turn.clock?.day ?? turn.clock?.currentDay;
-  const weatherEmoji = getWeatherEmoji(turn.weather);
-
-  return (
-    <div className={styles.turnBlock} ref={ref}>
-      <div className={styles.turnHeader}>
-        {turn.location && (
-          <span className={styles.headerChip}>
-            <span className={styles.headerEmoji}>{'\u{1F4CD}'}</span>
-            <span className={styles.headerValue}>{turn.location}</span>
-          </span>
-        )}
-        {day && (
-          <span className={styles.headerChip}>
-            <span className={styles.headerEmoji}>{'\u{1F4C5}'}</span>
-            <span className={styles.headerValue}>Day {day}</span>
-          </span>
-        )}
-        {timeStr && (
-          <span className={styles.headerChip}>
-            <span className={styles.headerEmoji}>{timeEmoji}</span>
-            <span className={styles.headerValue}>{timeStr}</span>
-          </span>
-        )}
-        {turn.weather && (
-          <span className={styles.headerChip}>
-            {weatherEmoji && <span className={styles.headerEmoji}>{weatherEmoji}</span>}
-            <span className={styles.headerValue}>{turn.weather}</span>
-          </span>
-        )}
-        <span className={styles.headerChip}>
-          <span className={styles.headerEmoji}>{'\u{1F504}'}</span>
-          <span className={styles.headerValue}>Turn {turn.number}</span>
-        </span>
-      </div>
-
-      {turn.playerAction && (
-        <div className={styles.playerAction}>{turn.playerAction}</div>
-      )}
-
-      {/* Dice display — shows Fortune's Balance, animated d20s */}
-      <InlineDicePanel
-        resolution={turn.resolution}
-        animate={shouldAnimate}
-        onComplete={() => setShowContent(true)}
-      />
-
-      {/* Resolution + narrative appear after dice animation completes */}
-      {showContent && (
-        <>
-          <ResolutionBlock resolution={turn.resolution} />
-
-          <div className={styles.narrativeText}>
-            {renderNarrative(turn.narrative)}
-          </div>
-
-          <StatusBadges stateChanges={turn.stateChanges} />
-        </>
-      )}
-    </div>
-  );
-});
-
-export default TurnBlock;
-
-
-// =============================================================================
 // FILE: app/play/components/ActionPanel.js
-// =============================================================================
-
 import { useState, useCallback } from 'react';
 import styles from './ActionPanel.module.css';
 
@@ -1496,11 +911,1397 @@ export default function ActionPanel({ actions, submitting, error, onSubmit }) {
   );
 }
 
+// FILE: app/play/components/CharacterTab.js
+import PanelSection from './PanelSection';
+import styles from './CharacterTab.module.css';
+import sidebarStyles from './Sidebar.module.css';
+
+const BASE_STAT_ORDER = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+const STAT_LABELS = {
+  str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA', pot: 'POT',
+};
+const STAT_FULL = {
+  str: 'Strength', dex: 'Dexterity', con: 'Constitution',
+  int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma', pot: 'Potency',
+};
+
+function StatBar({ statKey, stat, onEntityClick }) {
+  const effective = stat.effective ?? stat.base ?? 0;
+  const base = stat.base ?? 0;
+  const hasPenalty = effective < base;
+  const pctEffective = Math.min((effective / 20) * 100, 100);
+  const pctBase = Math.min((base / 20) * 100, 100);
+
+  return (
+    <div className={styles.statRow} title={STAT_FULL[statKey]} onClick={() => onEntityClick?.({ term: STAT_LABELS[statKey], type: 'stat' })} style={{ cursor: 'pointer' }}>
+      <div className={styles.statHeader}>
+        <span className={styles.statName}>{STAT_LABELS[statKey]}</span>
+        <span className={`${styles.statValue} ${hasPenalty ? styles.statPenalized : styles.statNormal}`}>
+          {effective.toFixed(1)}
+          {hasPenalty && <span className={styles.statBase}> / {base.toFixed(1)}</span>}
+        </span>
+      </div>
+      <div className={styles.barTrack}>
+        {hasPenalty && (
+          <div className={styles.barBase} style={{ width: `${pctBase}%` }} />
+        )}
+        <div
+          className={`${styles.barFill} ${hasPenalty ? styles.barPenalized : styles.barNormal}`}
+          style={{ width: `${pctEffective}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+export default function CharacterTab({ data, onEntityClick }) {
+  if (!data) {
+    return <div className={sidebarStyles.loadingState}>Loading character...</div>;
+  }
+
+  const stats = data.stats || {};
+  const skills = Array.isArray(data.skills) ? data.skills : [];
+  const conditions = Array.isArray(data.conditions) ? data.conditions : [];
+  const companions = Array.isArray(data.companions) ? data.companions : [];
+
+  const activeSkills = skills.filter(s => s.type === 'active');
+  const foundationalSkills = skills.filter(s => s.type === 'foundational');
+
+  return (
+    <div>
+      {data.character?.name && (
+        <div style={{
+          fontFamily: 'var(--font-cinzel)', fontSize: '15px', fontWeight: 700,
+          color: 'var(--text-heading)', marginBottom: '12px'
+        }}>
+          {data.character.name}
+        </div>
+      )}
+
+      <PanelSection title="Stats">
+        {(() => {
+          const order = [...BASE_STAT_ORDER];
+          const potStat = stats.pot;
+          if (potStat && (potStat.base > 0 || potStat.effective > 0)) order.push('pot');
+          return order.map(key => {
+            const stat = stats[key];
+            if (!stat) return null;
+            return <StatBar key={key} statKey={key} stat={stat} onEntityClick={onEntityClick} />;
+          });
+        })()}
+      </PanelSection>
+
+      <PanelSection title="Skills">
+        {skills.length === 0 ? (
+          <div className={sidebarStyles.emptyState}>No skills yet</div>
+        ) : (
+          <>
+            {activeSkills.map((skill, i) => (
+              <div key={`a-${i}`} className={styles.skillRow}>
+                <span>
+                  <span className={styles.skillName}>{skill.name}</span>
+                  <span className={styles.skillType}>active</span>
+                </span>
+                <span className={styles.skillModifier}>+{skill.modifier?.toFixed(1)}</span>
+              </div>
+            ))}
+            {foundationalSkills.map((skill, i) => (
+              <div key={`f-${i}`} className={styles.skillRow}>
+                <span>
+                  <span className={styles.skillName}>{skill.name}</span>
+                  <span className={styles.skillType}>foundational</span>
+                </span>
+                <span className={styles.skillModifier}>+{skill.modifier?.toFixed(1)}</span>
+              </div>
+            ))}
+          </>
+        )}
+      </PanelSection>
+
+      <PanelSection title="Conditions" defaultOpen={conditions.length > 0}>
+        {conditions.length === 0 ? (
+          <div className={sidebarStyles.emptyState}>No active conditions</div>
+        ) : (
+          conditions.map((cond, i) => {
+            const isCon = (cond.stat || '').toLowerCase() === 'con';
+            const val = cond.penalty ?? 0;
+            const isBuff = cond.isBuff != null ? cond.isBuff === true : val < 0;
+            const absVal = Math.abs(val);
+            const signedVal = isBuff ? `+${absVal.toFixed(1)}` : `\u2212${absVal.toFixed(1)}`;
+            return (
+              <div key={cond.id || i} className={styles.conditionCard} onClick={() => onEntityClick?.({ term: cond.name, type: 'condition', id: cond.id })} style={{ cursor: 'pointer' }}>
+                <div className={`${styles.conditionHeader} ${isCon ? styles.conditionHeaderCon : ''}`}>
+                  {cond.name}: <span className={isBuff ? styles.conditionBuff : styles.conditionPenalty}>{signedVal}</span> {(cond.stat || '').toUpperCase()}
+                </div>
+                <div className={styles.conditionDetail}>
+                  {cond.durationType?.replace(/_/g, ' ')}
+                  {cond.escalation ? ` \u00b7 Escalates \u2192 ${cond.escalation}` : ''}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </PanelSection>
+
+      {companions.length > 0 && (
+        <PanelSection title="Companions">
+          {companions.map((comp, i) => (
+            <div key={comp.id || i} className={styles.skillRow}>
+              <span className={styles.skillName}>{comp.name}</span>
+              <span className={styles.skillModifier}>{comp.specialty}</span>
+            </div>
+          ))}
+        </PanelSection>
+      )}
+    </div>
+  );
+}
+
+// FILE: app/play/components/DebugPanel.js
+'use client';
+
+import React, { useState, useRef, useCallback } from 'react';
+import styles from './DebugPanel.module.css';
 
 // =============================================================================
+// Formatting Helpers
+// =============================================================================
+
+function fmtTime(date) {
+  const h = String(date.getHours()).padStart(2, '0');
+  const m = String(date.getMinutes()).padStart(2, '0');
+  const s = String(date.getSeconds()).padStart(2, '0');
+  return `${h}:${m}:${s}`;
+}
+
+function fmtDateTime(date) {
+  const y = date.getFullYear();
+  const mo = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  let h = date.getHours();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  const min = String(date.getMinutes()).padStart(2, '0');
+  return `${y}-${mo}-${d} ${h}:${min} ${ampm}`;
+}
+
+function fmtCost(cost) {
+  if (cost == null) return null;
+  return `$${cost.toFixed(4)}`;
+}
+
+function shortPath(url) {
+  let p = url.replace(/\/api\/game\/\d+\//, '/');
+  p = p.replace(/\/api\/games\/\d+/, '/games/:id');
+  return p;
+}
+
+function fmtClockTime(c) {
+  if (!c) return '??:??';
+  return `${String(c.hour ?? 0).padStart(2, '0')}:${String(c.minute ?? 0).padStart(2, '0')}`;
+}
+
+function fmtChangeList(group) {
+  if (!group) return '(none)';
+  const parts = [];
+  if (Array.isArray(group.added)) {
+    group.added.forEach(c => parts.push(`+${typeof c === 'string' ? c : c.name || JSON.stringify(c)}`));
+  }
+  if (Array.isArray(group.removed)) {
+    group.removed.forEach(c => parts.push(`-${typeof c === 'string' ? c : c.name || JSON.stringify(c)}`));
+  }
+  if (Array.isArray(group.modified)) {
+    group.modified.forEach(c => parts.push(`~${typeof c === 'string' ? c : c.name || JSON.stringify(c)}`));
+  }
+  return parts.length ? parts.join(', ') : '(none)';
+}
+
+function parseActionLabel(label) {
+  if (!label) return { text: '?', type: '' };
+  if (label.startsWith('choice: ')) return { text: `Choice ${label.slice(8)}`, type: 'choice' };
+  if (label.startsWith('custom: ')) return { text: label.slice(8), type: 'custom' };
+  if (label.startsWith('command: ')) return { text: label.slice(9), type: 'command' };
+  return { text: label, type: '' };
+}
+
+function itemName(item) {
+  return typeof item === 'string' ? item : item.name || JSON.stringify(item);
+}
+
+// =============================================================================
+// Plain Text Export
+// =============================================================================
+
+const KNOWN_DEBUG_KEYS = ['timing', 'ai', 'resolution', 'stateChanges', 'narrative', 'context', 'rowCounts', 'turn', 'turnCost', 'turnCostBreakdown', 'gameTotalCost'];
+
+function entryToText(entry) {
+  const d = entry.debug || {};
+  const lines = [];
+  const isAdvancing = entry.method === 'POST' && (entry.url.includes('/action') || entry.url.includes('/talk-to-gm'));
+  const turnNum = entry.turnNumber || d.turn;
+
+  // Header
+  if (isAdvancing && turnNum) {
+    lines.push(`=== TURN ${turnNum} — ${fmtDateTime(entry.timestamp)} ===`);
+    const action = parseActionLabel(entry.actionLabel);
+    lines.push(`Action: "${action.text}"${action.type ? ` (${action.type})` : ''}`);
+    lines.push(`Endpoint: ${entry.method} ${entry.url}`);
+  } else {
+    lines.push(`=== ${entry.method} ${entry.url} — ${fmtDateTime(entry.timestamp)} ===`);
+  }
+
+  // Timing
+  const t = d.timing || {};
+  const totalMs = t.total || entry.durationMs;
+  const timingParts = [];
+  if (t.ai) timingParts.push(`AI: ${t.ai}ms`);
+  if (t.db) timingParts.push(`DB: ${t.db}ms`);
+  if (t.parse) timingParts.push(`Parse: ${t.parse}ms`);
+  const timingDetail = timingParts.length ? ` (${timingParts.join(', ')})` : '';
+  lines.push(`Status: ${entry.status} | Total: ${totalMs}ms${timingDetail}`);
+
+  // [ai-cost] line
+  if (d.turnCostBreakdown) {
+    const parts = Object.entries(d.turnCostBreakdown).map(([task, cost]) => `${task}: ${fmtCost(cost)}`);
+    if (d.turnCost != null) parts.push(`total: ${fmtCost(d.turnCost)}`);
+    lines.push(`[ai-cost] ${parts.join(' | ')}`);
+  } else if (d.ai) {
+    lines.push(`[ai-cost] ${d.ai.task || 'narrative'}: ${d.ai.model || '?'} ${fmtCost(d.ai.estimatedCost) || '?'}`);
+  }
+
+  // AI Call
+  if (d.ai) {
+    lines.push('');
+    lines.push('AI Call:');
+    lines.push(`  Provider: ${d.ai.provider || '?'} | Model: ${d.ai.model || '?'} | Task: ${d.ai.task || '?'}`);
+    const tok = d.ai.tokens || {};
+    lines.push(`  Tokens: ${tok.prompt || 0} in / ${tok.completion || 0} out / ${tok.total || 0} total${tok.cached ? ` (${tok.cached} cached)` : ''}`);
+    lines.push(`  Estimated Cost: ${fmtCost(d.ai.estimatedCost) || '?'} | Attempts: ${d.ai.attempts || 1}`);
+  }
+
+  // Resolution
+  if (d.resolution) {
+    const r = d.resolution;
+    lines.push('');
+    lines.push('Resolution:');
+    const stat = (r.stat || '???').toUpperCase();
+    const effVal = r.effectiveValue ?? r.effective ?? '?';
+    const skillStr = r.skillUsed ? ` + ${r.skillUsed}(${r.skillModifier ?? 0})` : '';
+    const equipStr = ` + Equip(${r.equipmentQuality ?? 0})`;
+    const dieStr = ` + d20(${r.dieSelected ?? '?'})`;
+    lines.push(`  ${stat} ${effVal}${skillStr}${equipStr}${dieStr} = ${r.total ?? '?'} vs DC ${r.dc ?? '?'}`);
+    lines.push(`  Fortune's Balance: ${r.fortunesBalance || '?'} | Debt: ${r.debtPenalty ?? 0} | Combat: ${r.isCombat ? 'Yes' : 'No'}`);
+    const margin = r.margin != null ? (r.margin >= 0 ? '+' : '') + r.margin : '?';
+    lines.push(`  Margin: ${margin} | Tier: ${r.tier || '?'} ${r.tierName || ''}`);
+  }
+
+  // State Changes
+  if (d.stateChanges) {
+    const sc = d.stateChanges;
+    lines.push('');
+    lines.push('State Changes:');
+    lines.push(`  DB Tables: ${Array.isArray(sc.tablesWritten) ? sc.tablesWritten.join(', ') : '(none)'}`);
+    lines.push(`  Conditions: ${fmtChangeList(sc.conditions)}`);
+    lines.push(`  Inventory: ${fmtChangeList(sc.inventory)}`);
+    lines.push(`  NPCs Created: ${Array.isArray(sc.npcsCreated) && sc.npcsCreated.length ? sc.npcsCreated.join(', ') : '(none)'}`);
+    lines.push(`  NPCs Updated: ${Array.isArray(sc.npcsUpdated) && sc.npcsUpdated.length ? sc.npcsUpdated.join(', ') : '(none)'}`);
+    lines.push(`  Locations Created: ${Array.isArray(sc.locationsCreated) && sc.locationsCreated.length ? sc.locationsCreated.join(', ') : '(none)'}`);
+    if (sc.clock) {
+      const b = sc.clock.before || {};
+      const a = sc.clock.after || {};
+      lines.push(`  Clock: Day ${b.day ?? '?'} ${fmtClockTime(b)} \u2192 Day ${a.day ?? '?'} ${fmtClockTime(a)}`);
+    } else {
+      lines.push('  Clock: (no change)');
+    }
+    lines.push(`  Skills: ${Array.isArray(sc.skillsChanged) && sc.skillsChanged.length ? sc.skillsChanged.join(', ') : '(none)'}`);
+  }
+
+  // Narrative
+  if (d.narrative) {
+    const n = d.narrative;
+    lines.push('');
+    lines.push('Narrative:');
+    lines.push(`  AI Response: ${n.aiResponseLength ?? '?'} chars | Narrative: ${n.narrativeLength ?? '?'} chars | Options: ${n.optionsGenerated ?? '?'}`);
+    const parseErrs = Array.isArray(n.parseErrors) && n.parseErrors.length ? n.parseErrors.join(', ') : 'none';
+    lines.push(`  Parse Errors: ${parseErrs} | JSON Repair: ${n.jsonRepair ? 'yes' : 'no'}`);
+  }
+
+  // Context
+  if (d.context) {
+    const ctx = d.context;
+    const layers = ctx.layers || {};
+    lines.push('');
+    lines.push('Context Budget:');
+    lines.push(`  L1: ${layers.L1 ?? 0} | L2: ${layers.L2 ?? 0} | L3: ${layers.L3 ?? 0} | L4: ${layers.L4 ?? 0} | Total: ${layers.total ?? 0} tokens`);
+    if (Array.isArray(ctx.npcs) && ctx.npcs.length) lines.push(`  NPCs: ${ctx.npcs.join(', ')}`);
+    if (Array.isArray(ctx.locations) && ctx.locations.length) lines.push(`  Locations: ${ctx.locations.join(', ')}`);
+    lines.push(`  Active Anchors: ${ctx.activeAnchors ?? 0}`);
+  }
+
+  // Row Counts (GET endpoints)
+  if (d.rowCounts) {
+    lines.push('');
+    lines.push(`Rows: ${Object.entries(d.rowCounts).map(([k, v]) => `${v} ${k}`).join(', ')}`);
+  }
+
+  return lines.join('\n');
+}
+
+function allEntriesToText(entries) {
+  return entries.map(entryToText).join('\n\n' + '\u2500'.repeat(60) + '\n\n');
+}
+
+// =============================================================================
+// Developer View — Detail Section Components
+// =============================================================================
+
+function TimingSection({ timing, clientMs }) {
+  const total = timing?.total || clientMs;
+  const ai = timing?.ai || 0;
+  const db = timing?.db || 0;
+  const parse = timing?.parse || 0;
+  const other = Math.max(0, total - ai - db - parse);
+
+  const segments = [
+    { label: 'AI', value: ai, color: '#6b8aff' },
+    { label: 'DB', value: db, color: '#8aba7a' },
+    { label: 'Parse', value: parse, color: '#e8c45a' },
+    { label: 'Other', value: other, color: '#7082a4' },
+  ].filter(s => s.value > 0);
+
+  return (
+    <div className={styles.section}>
+      <div className={styles.sectionTitle}>Timing</div>
+      <div className={styles.timingBar}>
+        {segments.map(seg => (
+          <div
+            key={seg.label}
+            className={styles.timingSegment}
+            style={{ flex: seg.value, background: seg.color }}
+            title={`${seg.label}: ${seg.value}ms`}
+          />
+        ))}
+      </div>
+      <div className={styles.timingLabels}>
+        {segments.map(seg => (
+          <span key={seg.label} className={styles.timingLabel}>
+            <span className={styles.timingDot} style={{ background: seg.color }} />
+            {seg.label}: {(seg.value / 1000).toFixed(1)}s
+          </span>
+        ))}
+        <span className={styles.timingLabel} style={{ marginLeft: 'auto' }}>
+          Total: {(total / 1000).toFixed(1)}s
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function AiSection({ ai }) {
+  const tok = ai.tokens || {};
+  return (
+    <div className={styles.section}>
+      <div className={styles.sectionTitle}>AI Call</div>
+      <div className={styles.kvGrid}>
+        <span className={styles.kvLabel}>Provider</span>
+        <span className={styles.kvValue}>{ai.provider || '?'}</span>
+        <span className={styles.kvLabel}>Model</span>
+        <span className={styles.kvValue}>{ai.model || '?'}</span>
+        <span className={styles.kvLabel}>Task</span>
+        <span className={styles.kvValue}>{ai.task || '?'}</span>
+        <span className={styles.kvLabel}>Tokens</span>
+        <span className={styles.kvValue}>
+          {(tok.prompt || 0).toLocaleString()} in / {(tok.completion || 0).toLocaleString()} out / {(tok.total || 0).toLocaleString()} total
+          {tok.cached ? ` (${tok.cached.toLocaleString()} cached)` : ''}
+        </span>
+        <span className={styles.kvLabel}>Cost</span>
+        <span className={styles.kvValueAccent}>{fmtCost(ai.estimatedCost) || '?'}</span>
+        <span className={styles.kvLabel}>Attempts</span>
+        <span className={styles.kvValue}>{ai.attempts || 1}</span>
+      </div>
+    </div>
+  );
+}
+
+function ResolutionSection({ resolution }) {
+  const r = resolution;
+  const stat = (r.stat || '?').toUpperCase();
+  const margin = r.margin != null ? (r.margin >= 0 ? '+' : '') + Number(r.margin).toFixed(1) : '?';
+  const marginColor = r.margin >= 0 ? '#8aba7a' : '#e8845a';
+
+  return (
+    <div className={styles.section}>
+      <div className={styles.sectionTitle}>Resolution</div>
+      <div className={styles.resolutionBlock}>
+        <div className={styles.kvGrid}>
+          <span className={styles.kvLabel}>Stat</span>
+          <span className={styles.kvValue}>{stat} {r.effectiveValue ?? r.effective ?? '?'}</span>
+          {r.skillUsed && (
+            <React.Fragment>
+              <span className={styles.kvLabel}>Skill</span>
+              <span className={styles.kvValue}>{r.skillUsed} (+{r.skillModifier ?? 0})</span>
+            </React.Fragment>
+          )}
+          <span className={styles.kvLabel}>Equipment</span>
+          <span className={styles.kvValue}>{r.equipmentQuality ?? 0}</span>
+          <span className={styles.kvLabel}>Fortune&apos;s Balance</span>
+          <span className={styles.kvValue}>{r.fortunesBalance || '?'}</span>
+          {r.crucibleRoll != null && (
+            <React.Fragment>
+              <span className={styles.kvLabel}>Crucible Roll</span>
+              <span className={styles.kvValue}>{r.crucibleRoll}{r.crucibleExtreme ? ' (EXTREME)' : ''}</span>
+            </React.Fragment>
+          )}
+          <span className={styles.kvLabel}>Dice</span>
+          <span className={styles.kvValue}>
+            [{Array.isArray(r.diceRolled) ? r.diceRolled.join(', ') : r.dieSelected || '?'}] &rarr; {r.dieSelected}
+          </span>
+          <span className={styles.kvLabel}>DC</span>
+          <span className={styles.kvValue}>{r.dc ?? '?'}</span>
+          <span className={styles.kvLabel}>Total</span>
+          <span className={styles.kvValue}>{r.total ?? '?'}</span>
+          <span className={styles.kvLabel}>Result</span>
+          <span className={styles.kvValue} style={{ color: marginColor }}>
+            {margin} &rarr; {r.tier} {r.tierName || ''}
+          </span>
+          {r.debtPenalty != null && r.debtPenalty !== 0 && (
+            <React.Fragment>
+              <span className={styles.kvLabel}>Debt</span>
+              <span className={styles.kvValueDanger}>{r.debtPenalty}</span>
+            </React.Fragment>
+          )}
+          <span className={styles.kvLabel}>Combat</span>
+          <span className={styles.kvValue}>{r.isCombat ? 'Yes' : 'No'}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StateChangesSection({ stateChanges }) {
+  const sc = stateChanges;
+  return (
+    <div className={styles.section}>
+      <div className={styles.sectionTitle}>State Changes</div>
+      <div className={styles.kvGrid}>
+        <span className={styles.kvLabel}>DB Tables</span>
+        <span className={styles.kvValue}>{Array.isArray(sc.tablesWritten) ? sc.tablesWritten.join(', ') : '(none)'}</span>
+        <span className={styles.kvLabel}>Conditions</span>
+        <span className={styles.kvValue}>{fmtChangeList(sc.conditions)}</span>
+        <span className={styles.kvLabel}>Inventory</span>
+        <span className={styles.kvValue}>{fmtChangeList(sc.inventory)}</span>
+        <span className={styles.kvLabel}>NPCs Created</span>
+        <span className={styles.kvValue}>{Array.isArray(sc.npcsCreated) && sc.npcsCreated.length ? sc.npcsCreated.join(', ') : '(none)'}</span>
+        <span className={styles.kvLabel}>NPCs Updated</span>
+        <span className={styles.kvValue}>{Array.isArray(sc.npcsUpdated) && sc.npcsUpdated.length ? sc.npcsUpdated.join(', ') : '(none)'}</span>
+        <span className={styles.kvLabel}>Locations</span>
+        <span className={styles.kvValue}>{Array.isArray(sc.locationsCreated) && sc.locationsCreated.length ? sc.locationsCreated.join(', ') : '(none)'}</span>
+        {sc.clock && (
+          <React.Fragment>
+            <span className={styles.kvLabel}>Clock</span>
+            <span className={styles.kvValue}>
+              Day {sc.clock.before?.day ?? '?'} {fmtClockTime(sc.clock.before)} &rarr; Day {sc.clock.after?.day ?? '?'} {fmtClockTime(sc.clock.after)}
+            </span>
+          </React.Fragment>
+        )}
+        <span className={styles.kvLabel}>Skills</span>
+        <span className={styles.kvValue}>{Array.isArray(sc.skillsChanged) && sc.skillsChanged.length ? sc.skillsChanged.join(', ') : '(none)'}</span>
+      </div>
+    </div>
+  );
+}
+
+function NarrativeSection({ narrative }) {
+  const n = narrative;
+  const hasErrors = Array.isArray(n.parseErrors) && n.parseErrors.length > 0;
+  return (
+    <div className={styles.section}>
+      <div className={styles.sectionTitle}>Narrative</div>
+      <div className={styles.kvGrid}>
+        <span className={styles.kvLabel}>AI Response</span>
+        <span className={styles.kvValue}>{n.aiResponseLength ?? '?'} chars</span>
+        <span className={styles.kvLabel}>Narrative</span>
+        <span className={styles.kvValue}>{n.narrativeLength ?? '?'} chars</span>
+        <span className={styles.kvLabel}>Options</span>
+        <span className={styles.kvValue}>{n.optionsGenerated ?? '?'}</span>
+        <span className={styles.kvLabel}>Parse Errors</span>
+        <span className={hasErrors ? styles.kvValueDanger : styles.kvValue}>
+          {hasErrors ? n.parseErrors.join(', ') : 'none'}
+        </span>
+        <span className={styles.kvLabel}>JSON Repair</span>
+        <span className={n.jsonRepair ? styles.kvValueWarning : styles.kvValue}>
+          {n.jsonRepair ? 'yes' : 'no'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function ContextSection({ context }) {
+  const ctx = context;
+  const layers = ctx.layers || {};
+  return (
+    <div className={styles.section}>
+      <div className={styles.sectionTitle}>Context Budget</div>
+      <div className={styles.contextLayers}>
+        {['L1', 'L2', 'L3', 'L4'].map(key => (
+          <div key={key} className={styles.layerChip}>
+            <span className={styles.layerKey}>{key}</span>
+            <span className={styles.layerVal}>{(layers[key] || 0).toLocaleString()}</span>
+          </div>
+        ))}
+        <div className={styles.layerChipAccent}>
+          <span className={styles.layerKey}>Total</span>
+          <span className={styles.layerVal} style={{ color: '#c9a84c' }}>
+            {(layers.total || 0).toLocaleString()}
+          </span>
+        </div>
+      </div>
+      {Array.isArray(ctx.npcs) && ctx.npcs.length > 0 && (
+        <div className={styles.contextRow}>
+          <span className={styles.kvLabel}>NPCs</span>
+          <span className={styles.kvValue}>{ctx.npcs.join(', ')}</span>
+        </div>
+      )}
+      {Array.isArray(ctx.locations) && ctx.locations.length > 0 && (
+        <div className={styles.contextRow}>
+          <span className={styles.kvLabel}>Locations</span>
+          <span className={styles.kvValue}>{ctx.locations.join(', ')}</span>
+        </div>
+      )}
+      <div className={styles.contextRow}>
+        <span className={styles.kvLabel}>Active Anchors</span>
+        <span className={styles.kvValue}>{ctx.activeAnchors ?? 0}</span>
+      </div>
+    </div>
+  );
+}
+
+function RowCountsSection({ rowCounts }) {
+  return (
+    <div className={styles.section}>
+      <div className={styles.sectionTitle}>Row Counts</div>
+      <div className={styles.kvGrid}>
+        {Object.entries(rowCounts).map(([key, val]) => (
+          <React.Fragment key={key}>
+            <span className={styles.kvLabel}>{key}</span>
+            <span className={styles.kvValue}>{val}</span>
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RawFallbackSection({ debug }) {
+  const unknownKeys = Object.keys(debug).filter(k => !KNOWN_DEBUG_KEYS.includes(k));
+  if (unknownKeys.length === 0) return null;
+  const unknownData = Object.fromEntries(unknownKeys.map(k => [k, debug[k]]));
+  return (
+    <div className={styles.section}>
+      <div className={styles.sectionTitle}>Other Debug Data</div>
+      <pre className={styles.rawJson}>{JSON.stringify(unknownData, null, 2)}</pre>
+    </div>
+  );
+}
+
+// =============================================================================
+// Developer View — Entry Row
+// =============================================================================
+
+function EntryRow({ entry, expanded, onToggle }) {
+  const d = entry.debug || {};
+  const statusColor = entry.status >= 500 ? '#e8845a' : entry.status >= 400 ? '#e8c45a' : '#8aba7a';
+  const duration = d.timing?.total || entry.durationMs;
+  const cost = d.turnCost ?? d.ai?.estimatedCost;
+  const path = shortPath(entry.url);
+  const turnNum = entry.turnNumber || d.turn;
+  const [copied, setCopied] = useState(false);
+
+  // Build action display for summary line
+  let actionDisplay = '';
+  const isAction = entry.url.includes('/action');
+  if (isAction && turnNum) {
+    actionDisplay = `Turn ${turnNum}: "${entry.actionLabel || '?'}"`;
+  } else if (entry.method === 'GET' && d.rowCounts) {
+    actionDisplay = Object.entries(d.rowCounts).map(([k, v]) => `${v} ${k}`).join(', ');
+  } else if (entry.actionLabel) {
+    actionDisplay = entry.actionLabel;
+  }
+
+  const handleCopy = (e) => {
+    e.stopPropagation();
+    try {
+      navigator.clipboard.writeText(entryToText(entry)).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      });
+    } catch { /* clipboard not available */ }
+  };
+
+  return (
+    <div className={styles.entryRow}>
+      <div className={styles.entrySummary} onClick={onToggle}>
+        <span className={styles.entryTime}>[{fmtTime(entry.timestamp)}]</span>
+        <span className={styles.entrySep}>&mdash;</span>
+        <span className={styles.entryMethod}>{entry.method} {path}</span>
+        <span className={styles.entrySep}>&mdash;</span>
+        <span className={styles.entryStatus} style={{ color: statusColor }}>{entry.status}</span>
+        <span className={styles.entrySep}>&mdash;</span>
+        <span className={styles.entryDuration}>{duration}ms</span>
+        {cost != null && (
+          <>
+            <span className={styles.entrySep}>&mdash;</span>
+            <span className={styles.entryCost}>{fmtCost(cost)}</span>
+          </>
+        )}
+        {actionDisplay && (
+          <>
+            <span className={styles.entrySep}>&mdash;</span>
+            <span className={styles.entryAction}>{actionDisplay}</span>
+          </>
+        )}
+        <span className={styles.entryChevron}>{expanded ? '\u25BC' : '\u25B6'}</span>
+      </div>
+      {expanded && (
+        <div className={styles.entryDetail}>
+          <div className={styles.detailActions}>
+            <button
+              className={copied ? styles.copyEntryBtnSuccess : styles.copyEntryBtn}
+              onClick={handleCopy}
+            >
+              {copied ? '\u2713 Copied' : 'Copy Entry'}
+            </button>
+          </div>
+          <TimingSection timing={d.timing} clientMs={entry.durationMs} />
+          {d.ai && <AiSection ai={d.ai} />}
+          {d.turnCostBreakdown && (
+            <div className={styles.section}>
+              <div className={styles.sectionTitle}>Cost Breakdown</div>
+              <div className={styles.kvGrid}>
+                {Object.entries(d.turnCostBreakdown).map(([task, taskCost]) => (
+                  <React.Fragment key={task}>
+                    <span className={styles.kvLabel}>{task}</span>
+                    <span className={styles.kvValueAccent}>{fmtCost(taskCost)}</span>
+                  </React.Fragment>
+                ))}
+                {d.turnCost != null && (
+                  <React.Fragment>
+                    <span className={styles.kvLabel}>Turn Total</span>
+                    <span className={styles.kvValueAccent}>{fmtCost(d.turnCost)}</span>
+                  </React.Fragment>
+                )}
+              </div>
+            </div>
+          )}
+          {d.resolution && <ResolutionSection resolution={d.resolution} />}
+          {d.stateChanges && <StateChangesSection stateChanges={d.stateChanges} />}
+          {d.narrative && <NarrativeSection narrative={d.narrative} />}
+          {d.context && <ContextSection context={d.context} />}
+          {d.rowCounts && <RowCountsSection rowCounts={d.rowCounts} />}
+          <RawFallbackSection debug={d} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// Designer View — Section Components
+// =============================================================================
+
+function DesignerResolution({ resolution }) {
+  const r = resolution;
+  const stat = (r.stat || '?').toUpperCase();
+  const effVal = r.effectiveValue ?? r.effective ?? '?';
+  const parts = [`${stat} ${effVal}`];
+  if (r.skillUsed) parts.push(`${r.skillUsed} ${r.skillModifier ?? 0}`);
+  if (r.equipmentQuality) parts.push(`Equip ${r.equipmentQuality}`);
+  parts.push(`d20(${r.dieSelected ?? '?'})`);
+  const mathLine = `${parts.join(' + ')} = ${r.total ?? '?'} vs DC ${r.dc ?? '?'}`;
+
+  const margin = r.margin != null ? (r.margin >= 0 ? '+' : '') + Number(r.margin).toFixed(1) : '?';
+  const fb = r.fortunesBalance || '?';
+  const tierStr = [r.tierName, r.tier ? `(${r.tier})` : null].filter(Boolean).join(' ');
+  const detailLine = `Fortune\u2019s Balance: ${fb} | Margin: ${margin} | Tier: ${tierStr || '?'}`;
+  const marginColor = r.margin >= 0 ? '#8aba7a' : '#e8845a';
+
+  return (
+    <div className={styles.dSection}>
+      <div className={styles.dSectionTitle}>Resolution</div>
+      <div className={styles.dResLine}>{mathLine}</div>
+      <div className={styles.dResLine} style={{ color: marginColor }}>{detailLine}</div>
+    </div>
+  );
+}
+
+function DesignerStateChanges({ stateChanges }) {
+  const sc = stateChanges;
+  const lines = [];
+
+  // Conditions
+  if (sc.conditions) {
+    (sc.conditions.added || []).forEach(c => {
+      const name = itemName(c);
+      const detail = typeof c === 'object' && c.penalty != null
+        ? ` (${c.penalty} ${(c.stat || '').toUpperCase()}, ${(c.durationType || '').replace(/_/g, ' ')})`
+        : typeof c === 'object' && c.durationType ? ` (${c.durationType.replace(/_/g, ' ')})` : '';
+      lines.push({ emoji: '\u26A0\uFE0F', text: `Condition Added: ${name}${detail}`, cls: 'warning' });
+    });
+    (sc.conditions.removed || []).forEach(c => {
+      lines.push({ emoji: '\u2705', text: `Condition Removed: ${itemName(c)}`, cls: 'success' });
+    });
+    (sc.conditions.modified || []).forEach(c => {
+      lines.push({ emoji: '\u26A0\uFE0F', text: `Condition Changed: ${itemName(c)}`, cls: 'warning' });
+    });
+  }
+
+  // Inventory
+  if (sc.inventory) {
+    (sc.inventory.added || []).forEach(item => {
+      lines.push({ emoji: '\uD83D\uDCE6', text: `Gained: ${itemName(item)}`, cls: '' });
+    });
+    (sc.inventory.removed || []).forEach(item => {
+      lines.push({ emoji: '\uD83D\uDCE6', text: `Lost: ${itemName(item)}`, cls: 'warning' });
+    });
+  }
+
+  // Clock
+  if (sc.clock) {
+    const b = sc.clock.before || {};
+    const a = sc.clock.after || {};
+    lines.push({ emoji: '\uD83D\uDD50', text: `Clock: Day ${b.day ?? '?'} ${fmtClockTime(b)} \u2192 Day ${a.day ?? '?'} ${fmtClockTime(a)}`, cls: '' });
+  }
+
+  // NPCs
+  if (Array.isArray(sc.npcsCreated) && sc.npcsCreated.length) {
+    sc.npcsCreated.forEach(n => lines.push({ emoji: '\uD83D\uDC64', text: `NPC Met: ${n}`, cls: '' }));
+  }
+  if (Array.isArray(sc.npcsUpdated) && sc.npcsUpdated.length) {
+    sc.npcsUpdated.forEach(n => lines.push({ emoji: '\uD83D\uDC64', text: `NPC Updated: ${n}`, cls: '' }));
+  }
+
+  // Locations
+  if (Array.isArray(sc.locationsCreated) && sc.locationsCreated.length) {
+    sc.locationsCreated.forEach(l => lines.push({ emoji: '\uD83D\uDCCD', text: `Location Discovered: ${l}`, cls: '' }));
+  }
+
+  // Skills
+  if (Array.isArray(sc.skillsChanged) && sc.skillsChanged.length) {
+    sc.skillsChanged.forEach(s => lines.push({ emoji: '\u2694\uFE0F', text: `Skill Changed: ${s}`, cls: '' }));
+  }
+
+  if (lines.length === 0) return null;
+
+  return (
+    <div className={styles.dSection}>
+      <div className={styles.dSectionTitle}>State Changes</div>
+      {lines.map((line, i) => (
+        <div key={i} className={`${styles.dChangeLine} ${line.cls === 'warning' ? styles.dChangeWarning : line.cls === 'success' ? styles.dChangeSuccess : ''}`}>
+          <span className={styles.dChangeEmoji}>{line.emoji}</span>
+          <span>{line.text}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DesignerNpcs({ context }) {
+  if (!context?.npcs?.length) return null;
+  const npcParts = context.npcs.map(npc => {
+    if (typeof npc === 'string') return npc;
+    if (npc.name) return `${npc.name}${npc.disposition != null ? `: ${npc.disposition}${npc.attitude ? ` (${npc.attitude})` : ''}` : ''}`;
+    return JSON.stringify(npc);
+  });
+
+  return (
+    <div className={styles.dSection}>
+      <div className={styles.dSectionTitle}>NPCs Active</div>
+      <div className={styles.dNpcLine}>{npcParts.join(' | ')}</div>
+    </div>
+  );
+}
+
+function DesignerContextBudget({ context }) {
+  if (!context?.layers) return null;
+  const layers = context.layers;
+  const parts = ['L1', 'L2', 'L3', 'L4']
+    .map(k => `${k}: ${layers[k] ? layers[k].toLocaleString() + ' tok' : '\u2014'}`)
+  if (layers.total) parts.push(`Total: ${layers.total.toLocaleString()} tok`);
+  const complexity = context.sceneComplexity;
+
+  return (
+    <div className={styles.dSection}>
+      <div className={styles.dSectionTitle}>Context Budget</div>
+      <div className={styles.dContextLine}>
+        {parts.join(' | ')}
+        {complexity ? ` | Complexity: ${complexity}` : ''}
+      </div>
+    </div>
+  );
+}
+
+function DesignerAiCalls({ debug }) {
+  const d = debug;
+  const breakdown = d.turnCostBreakdown;
+
+  if (breakdown) {
+    return (
+      <div className={styles.dSection}>
+        <div className={styles.dSectionTitle}>AI Calls</div>
+        {Object.entries(breakdown).map(([task, cost]) => (
+          <div key={task} className={styles.dAiLine}>
+            <span className={styles.dAiTask}>{task}</span>: <span className={styles.dAiCost}>{fmtCost(cost)}</span>
+          </div>
+        ))}
+        {d.turnCost != null && (
+          <div className={styles.dAiLine} style={{ borderTop: '1px solid #2a2a44', paddingTop: 3, marginTop: 3 }}>
+            <span className={styles.dAiTask}>total</span>: <span className={styles.dAiCost}>{fmtCost(d.turnCost)}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Fallback: single AI call info
+  if (d.ai) {
+    const tok = d.ai.tokens || {};
+    return (
+      <div className={styles.dSection}>
+        <div className={styles.dSectionTitle}>AI Calls</div>
+        <div className={styles.dAiLine}>
+          <span className={styles.dAiTask}>{d.ai.task || 'narrative'}</span>: {d.ai.model || '?'} &mdash; <span className={styles.dAiCost}>{fmtCost(d.ai.estimatedCost) || '?'}</span>
+          {' '}({(tok.completion || 0).toLocaleString()} tok out{tok.cached ? `, ${tok.cached.toLocaleString()} cached` : ''})
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+// =============================================================================
+// Designer View — Turn Card
+// =============================================================================
+
+function DesignerTurnCard({ entry, expanded, onToggle }) {
+  const d = entry.debug || {};
+  const r = d.resolution;
+  const turnNum = entry.turnNumber || d.turn;
+  const action = parseActionLabel(entry.actionLabel);
+  const stat = r ? (r.stat || '?').toUpperCase() : null;
+  const tierStr = r ? [r.tierName, r.tier ? `(${r.tier})` : null].filter(Boolean).join(' ') : null;
+  const cost = d.turnCost ?? d.ai?.estimatedCost;
+  const duration = d.timing?.total || entry.durationMs;
+  const durationSec = (duration / 1000).toFixed(1);
+
+  return (
+    <div className={styles.turnCard}>
+      <div className={styles.turnCardSummary} onClick={onToggle}>
+        <span className={styles.turnNum}>Turn {turnNum || '?'}:</span>
+        <span className={styles.turnAction}>&ldquo;{action.text}&rdquo;</span>
+        {tierStr && <><span className={styles.turnSep}>&mdash;</span><span className={styles.turnOutcome}>{tierStr}</span></>}
+        {stat && <><span className={styles.turnSep}>&mdash;</span><span className={styles.turnStat}>{stat}</span></>}
+        {cost != null && <><span className={styles.turnSep}>&mdash;</span><span className={styles.turnCost}>{fmtCost(cost)}</span></>}
+        <span className={styles.turnSep}>&mdash;</span>
+        <span className={styles.turnDuration}>{durationSec}s</span>
+        <span className={styles.turnChevron}>{expanded ? '\u25BC' : '\u25B6'}</span>
+      </div>
+      {expanded && (
+        <div className={styles.turnCardDetail}>
+          {r && <DesignerResolution resolution={r} />}
+          {d.stateChanges && <DesignerStateChanges stateChanges={d.stateChanges} />}
+          <DesignerNpcs context={d.context} />
+          <DesignerContextBudget context={d.context} />
+          <DesignerAiCalls debug={d} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// Shared — Cost Bar
+// =============================================================================
+
+function CostBar({ entries }) {
+  // Most recent entry with gameTotalCost
+  const gameTotalEntry = entries.find(e => e.debug?.gameTotalCost != null);
+  const gameTotalCost = gameTotalEntry?.debug?.gameTotalCost;
+
+  // Most recent POST /action entry for turn cost
+  const lastTurnEntry = entries.find(e =>
+    e.method === 'POST' && e.url.includes('/action') && e.debug
+  );
+  const turnCost = lastTurnEntry?.debug?.turnCost ?? lastTurnEntry?.debug?.ai?.estimatedCost;
+  const breakdown = lastTurnEntry?.debug?.turnCostBreakdown;
+
+  return (
+    <div className={styles.costBar}>
+      <div className={styles.costBarLine}>
+        <span className={styles.costLabel}>Game Total:</span>
+        <span className={styles.costValue}>{gameTotalCost != null ? fmtCost(gameTotalCost) : '\u2014'}</span>
+        <span className={styles.costSep}>|</span>
+        <span className={styles.costLabel}>Last Turn:</span>
+        <span className={styles.costValue}>{turnCost != null ? fmtCost(turnCost) : '\u2014'}</span>
+      </div>
+      {breakdown && (
+        <div className={styles.costBreakdown}>
+          ({Object.entries(breakdown).map(([task, taskCost], i) => (
+            <span key={task}>{i > 0 && ' \u00B7 '}{task}: {fmtCost(taskCost)}</span>
+          ))})
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// Main Debug Panel
+// =============================================================================
+
+export default function DebugPanel({ entries, onClear }) {
+  const [collapsed, setCollapsed] = useState(false);
+  const [height, setHeight] = useState(300);
+  const [expandedId, setExpandedId] = useState(null);
+  const [copyFeedback, setCopyFeedback] = useState(false);
+  const [view, setView] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('crucible_debug_view') || 'designer';
+    }
+    return 'designer';
+  });
+  const panelRef = useRef(null);
+
+  const handleViewChange = (v) => {
+    setView(v);
+    setExpandedId(null);
+    if (typeof window !== 'undefined') localStorage.setItem('crucible_debug_view', v);
+  };
+
+  // Drag to resize
+  const handleDragStart = useCallback((e) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startHeight = height;
+
+    const handleDrag = (moveEvent) => {
+      const delta = startY - moveEvent.clientY;
+      setHeight(Math.max(100, Math.min(window.innerHeight - 100, startHeight + delta)));
+    };
+
+    const handleDragEnd = () => {
+      document.removeEventListener('mousemove', handleDrag);
+      document.removeEventListener('mouseup', handleDragEnd);
+    };
+
+    document.addEventListener('mousemove', handleDrag);
+    document.addEventListener('mouseup', handleDragEnd);
+  }, [height]);
+
+  const handleCopyAll = useCallback(() => {
+    try {
+      navigator.clipboard.writeText(allEntriesToText(entries)).then(() => {
+        setCopyFeedback(true);
+        setTimeout(() => setCopyFeedback(false), 1500);
+      });
+    } catch { /* clipboard not available */ }
+  }, [entries]);
+
+  // Filter turn entries for designer view
+  const turnEntries = entries.filter(e =>
+    e.method === 'POST' && (e.url.includes('/action') || e.url.includes('/talk-to-gm'))
+  );
+
+  return (
+    <div
+      ref={panelRef}
+      className={styles.panel}
+      style={{ height: collapsed ? 36 : height }}
+    >
+      {/* Drag handle (only when expanded) */}
+      {!collapsed && (
+        <div className={styles.dragHandle} onMouseDown={handleDragStart}>
+          <div className={styles.dragGrip} />
+        </div>
+      )}
+
+      {/* Header bar */}
+      <div className={styles.headerBar} onClick={() => setCollapsed(prev => !prev)}>
+        <div className={styles.headerLeft}>
+          <span className={styles.headerLabel}>
+            {collapsed ? '\u25B2' : '\u25BC'} DEBUG
+          </span>
+          <span className={styles.headerCount}>
+            {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
+          </span>
+        </div>
+        <div className={styles.headerRight}>
+          <button
+            className={copyFeedback ? styles.headerBtnSuccess : styles.headerBtn}
+            onClick={(e) => { e.stopPropagation(); handleCopyAll(); }}
+          >
+            {copyFeedback ? '\u2713 Copied' : 'Copy All'}
+          </button>
+          <button
+            className={styles.headerBtn}
+            onClick={(e) => { e.stopPropagation(); onClear(); }}
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+
+      {/* Panels below header (only when expanded) */}
+      {!collapsed && (
+        <>
+          {/* Sticky cost bar */}
+          <CostBar entries={entries} />
+
+          {/* View toggle */}
+          <div className={styles.viewToggle}>
+            <button
+              className={view === 'designer' ? styles.viewTabActive : styles.viewTab}
+              onClick={() => handleViewChange('designer')}
+            >Designer</button>
+            <button
+              className={view === 'developer' ? styles.viewTabActive : styles.viewTab}
+              onClick={() => handleViewChange('developer')}
+            >Developer</button>
+          </div>
+
+          {/* Scrollable content */}
+          <div className={styles.contentArea}>
+            {view === 'designer' ? (
+              turnEntries.length === 0 ? (
+                <div className={styles.emptyState}>No turns yet. Take an action to see turn data here.</div>
+              ) : (
+                turnEntries.map(entry => (
+                  <DesignerTurnCard
+                    key={entry.id}
+                    entry={entry}
+                    expanded={expandedId === entry.id}
+                    onToggle={() => setExpandedId(prev => prev === entry.id ? null : entry.id)}
+                  />
+                ))
+              )
+            ) : (
+              entries.length === 0 ? (
+                <div className={styles.emptyState}>No debug entries yet. API responses with _debug data will appear here.</div>
+              ) : (
+                entries.map(entry => (
+                  <EntryRow
+                    key={entry.id}
+                    entry={entry}
+                    expanded={expandedId === entry.id}
+                    onToggle={() => setExpandedId(prev => prev === entry.id ? null : entry.id)}
+                  />
+                ))
+              )
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// FILE: app/play/components/EntityPopup.js
+import { useState, useEffect, useCallback } from 'react';
+import * as api from '@/lib/api';
+import styles from './EntityPopup.module.css';
+
+function getDurabilityColor(dur, max) {
+  if (!max) return '#8a94a8';
+  const pct = (dur / max) * 100;
+  if (pct === 0) return '#8a3a3a';
+  if (pct <= 25) return '#e85a5a';
+  if (pct <= 50) return '#e8845a';
+  if (pct <= 75) return '#e8c45a';
+  return '#8aba7a';
+}
+
+export default function EntityPopup({ entity, glossaryData, notesData, gameId, onClose, onNotesChange }) {
+  const [noteText, setNoteText] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // Close on Escape
+  useEffect(() => {
+    const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
+  // Look up entity in glossary
+  const entries = glossaryData?.entries || [];
+  const match = entries.find(e =>
+    (e.term || '').toLowerCase() === (entity.term || '').toLowerCase()
+  );
+
+  // Find existing notes for this entity
+  const notes = (notesData?.notes || []).filter(n =>
+    (n.entityName || '').toLowerCase() === (entity.term || '').toLowerCase() ||
+    (n.entityType === entity.type && n.entityId === entity.id)
+  );
+
+  // Item durability from entity data (if passed directly)
+  const hasDurability = entity.durability != null && entity.maxDurability != null;
+
+  const handleSaveNote = useCallback(async () => {
+    const text = noteText.trim();
+    if (!text || !gameId || saving) return;
+
+    setSaving(true);
+    try {
+      const body = {
+        entityType: entity.type || 'general',
+        text,
+      };
+      if (entity.id != null) body.entityId = entity.id;
+      await api.post(`/api/game/${gameId}/notes`, body);
+      setNoteText('');
+      onNotesChange?.();
+    } catch (err) {
+      console.error('Failed to save note:', err);
+    } finally {
+      setSaving(false);
+    }
+  }, [noteText, gameId, saving, entity, onNotesChange]);
+
+  return (
+    <div className={styles.overlay} onClick={onClose}>
+      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+        <div className={styles.header}>
+          <span className={styles.entityName}>{entity.term || entity.name || 'Unknown'}</span>
+          <button className={styles.closeButton} onClick={onClose} aria-label="Close">&times;</button>
+        </div>
+
+        <div className={styles.body}>
+          {match ? (
+            <>
+              <div className={styles.category}>{match.category}</div>
+              <div className={styles.definition}>{match.definition}</div>
+            </>
+          ) : (
+            <div className={styles.notFound}>
+              No glossary entry found for this entity.
+            </div>
+          )}
+
+          {/* Durability bar for items */}
+          {hasDurability && (
+            <div className={styles.durabilitySection}>
+              <div className={styles.durabilityLabel}>Durability</div>
+              <div className={styles.durBarTrack}>
+                <div
+                  className={styles.durBarFill}
+                  style={{
+                    width: `${entity.maxDurability > 0 ? (entity.durability / entity.maxDurability) * 100 : 0}%`,
+                    background: getDurabilityColor(entity.durability, entity.maxDurability),
+                  }}
+                />
+              </div>
+              <span className={styles.durValue} style={{ color: getDurabilityColor(entity.durability, entity.maxDurability) }}>
+                {entity.durability} / {entity.maxDurability}
+              </span>
+            </div>
+          )}
+
+          {/* Mechanical Properties (for equipment items) */}
+          {entity.equipmentCategory && (() => {
+            const props = [];
+            const cat = entity.equipmentCategory.toLowerCase();
+            const qualityVal = entity.quality ?? entity.qualityBonus;
+
+            if (cat === 'weapon') {
+              if (entity.damageModifier != null) props.push({ label: 'Damage', value: entity.damageModifier, signed: true });
+              if (qualityVal != null) props.push({ label: 'Quality Bonus', value: qualityVal, signed: true });
+              if (Array.isArray(entity.tags) && entity.tags.length > 0) props.push({ label: 'Tags', text: entity.tags.join(', ') });
+              if (entity.elementTag) props.push({ label: 'Element', text: entity.elementTag, element: true });
+            } else if (cat === 'armor') {
+              if (entity.armorMitigation != null) props.push({ label: 'Mitigation', value: entity.armorMitigation });
+              if (entity.armorType) props.push({ label: 'Type', text: entity.armorType.charAt(0).toUpperCase() + entity.armorType.slice(1) });
+              if (qualityVal != null) props.push({ label: 'Quality Bonus', value: qualityVal, signed: true });
+            } else if (cat === 'implement') {
+              if (entity.channelModifier != null) props.push({ label: 'Channel', value: entity.channelModifier, signed: true });
+              if (qualityVal != null) props.push({ label: 'Quality Bonus', value: qualityVal, signed: true });
+              if (entity.elementTag) props.push({ label: 'Element', text: entity.elementTag, element: true });
+            } else if (cat === 'shield') {
+              props.push({ label: 'Defense', value: 1.0, signed: true });
+              if (qualityVal != null) props.push({ label: 'Quality Bonus', value: qualityVal, signed: true });
+            }
+
+            if (props.length === 0) return null;
+
+            return (
+              <div className={styles.propertiesSection}>
+                <div className={styles.propertiesLabel}>PROPERTIES</div>
+                {props.map((p, i) => (
+                  <div key={i} className={styles.propertyRow}>
+                    <span className={styles.propertyName}>{p.label}</span>
+                    {p.text != null ? (
+                      <span className={p.element ? styles.propertyElement : styles.propertyText}>{p.text}</span>
+                    ) : (
+                      <span className={styles.propertyValue} style={{ color: p.value < 0 ? 'var(--color-danger)' : 'var(--accent-gold)' }}>
+                        {p.signed ? (p.value >= 0 ? '+' : '') : ''}{typeof p.value === 'number' ? p.value.toFixed(1) : p.value}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
+          {/* Player Notes */}
+          <div className={styles.notesSection}>
+            <div className={styles.notesLabel}>Your Notes</div>
+
+            {notes.length > 0 && (
+              <div className={styles.notesList}>
+                {notes.map(n => (
+                  <div key={n.id} className={styles.existingNote}>{n.text}</div>
+                ))}
+              </div>
+            )}
+
+            <textarea
+              className={styles.noteInput}
+              placeholder="Add a note..."
+              value={noteText}
+              onChange={e => setNoteText(e.target.value)}
+              maxLength={500}
+            />
+            <button
+              className={styles.noteSaveButton}
+              onClick={handleSaveNote}
+              disabled={saving || !noteText.trim()}
+            >
+              {saving ? 'Saving...' : 'Save Note'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// FILE: app/play/components/GlossaryTab.js
+import { useState, useMemo } from 'react';
+import styles from './GlossaryTab.module.css';
+import sidebarStyles from './Sidebar.module.css';
+
+const TABS = [
+  { id: 'all', label: 'All', match: null },
+  { id: 'npc', label: 'People', match: 'npc' },
+  { id: 'location', label: 'Places', match: 'location' },
+  { id: 'faction', label: 'Factions', match: 'faction' },
+  { id: 'item', label: 'Items', match: 'item' },
+  { id: 'other', label: 'Other', match: null },
+];
+
+const KNOWN_CATEGORIES = new Set(['npc', 'location', 'faction', 'item']);
+
+export default function GlossaryTab({ data, characterData, onEntityClick }) {
+  const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState('all');
+
+  if (!data) {
+    return <div className={sidebarStyles.loadingState}>Loading glossary...</div>;
+  }
+
+  const entries = Array.isArray(data.entries) ? data.entries : [];
+
+  // Count per tab for badges
+  const counts = useMemo(() => {
+    const c = { all: entries.length, npc: 0, location: 0, faction: 0, item: 0, other: 0 };
+    entries.forEach(e => {
+      const cat = (e.category || '').toLowerCase();
+      if (KNOWN_CATEGORIES.has(cat)) c[cat]++;
+      else c.other++;
+    });
+    return c;
+  }, [entries]);
+
+  // Filter entries by active tab + search term
+  const filtered = useMemo(() => {
+    return entries.filter(e => {
+      const cat = (e.category || '').toLowerCase();
+      if (activeTab === 'all') { /* no category filter */ }
+      else if (activeTab === 'other') { if (KNOWN_CATEGORIES.has(cat)) return false; }
+      else if (cat !== activeTab) return false;
+
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return (e.term || '').toLowerCase().includes(q) ||
+             (e.definition || '').toLowerCase().includes(q);
+    });
+  }, [entries, search, activeTab]);
+
+  if (entries.length === 0) {
+    return <div className={sidebarStyles.emptyState}>No glossary entries yet.</div>;
+  }
+
+  return (
+    <div>
+      {/* Category tabs */}
+      <div className={styles.tabRow}>
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            className={activeTab === tab.id ? styles.tabActive : styles.tab}
+            onClick={() => setActiveTab(tab.id)}
+            aria-label={`Filter: ${tab.label}`}
+          >
+            {tab.label}
+            {counts[tab.id] > 0 && tab.id !== 'all' && (
+              <span className={styles.tabCount}>{counts[tab.id]}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Search */}
+      <input
+        type="text"
+        className={styles.searchInput}
+        placeholder="Search entries..."
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        aria-label="Search glossary"
+      />
+
+      <div className={styles.resultCount}>{filtered.length} entries</div>
+
+      {filtered.map(entry => (
+        <div key={entry.id || entry.term} className={styles.entryCard} onClick={() => {
+          const entity = { term: entry.term, type: entry.category, id: entry.id };
+          // For items, merge mechanical data from character inventory if available
+          if ((entry.category || '').toLowerCase() === 'item' && characterData) {
+            const allItems = [...(characterData.inventory?.equipped || []), ...(characterData.inventory?.carried || [])];
+            const match = allItems.find(i => i.name === entry.term);
+            if (match) Object.assign(entity, match, { term: entry.term, type: 'item' });
+          }
+          onEntityClick?.(entity);
+        }}>
+          <div className={styles.entryTerm}>{entry.term}</div>
+          <div className={styles.entryMeta}>
+            <span className={styles.entryCategory}>{entry.category}</span>
+            {entry.discoveredAt && (
+              <span className={styles.entryDiscovered}>{entry.discoveredAt}</span>
+            )}
+          </div>
+          <div className={styles.entryDef}>{entry.definition}</div>
+        </div>
+      ))}
+
+      {filtered.length === 0 && search.trim() && (
+        <div className={sidebarStyles.emptyState}>No entries match your search.</div>
+      )}
+    </div>
+  );
+}
+
 // FILE: app/play/components/InlineDicePanel.js
-// =============================================================================
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './InlineDicePanel.module.css';
 
@@ -1877,285 +2678,7 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
   );
 }
 
-
-// =============================================================================
-// FILE: app/play/components/ResolutionBlock.js
-// =============================================================================
-
-import { useState } from 'react';
-import styles from './ResolutionBlock.module.css';
-
-function fmt(n) {
-  if (n == null) return '?';
-  return typeof n === 'number' ? n.toFixed(1) : String(n);
-}
-
-export default function ResolutionBlock({ resolution }) {
-  const [expanded, setExpanded] = useState(false);
-
-  if (!resolution) return null;
-
-  const stat = (resolution.stat || '').toUpperCase();
-  const skill = resolution.skillUsed || null;
-  const modifier = resolution.skillModifier;
-  const isSuccess = resolution.margin >= 0;
-  const marginSign = resolution.margin > 0 ? '+' : '';
-  const balance = (resolution.fortunesBalance || 'matched');
-  const balanceDisplay = balance.charAt(0).toUpperCase() + balance.slice(1);
-
-  return (
-    <div className={styles.resolutionBlock}>
-      {/* Compressed summary — click to toggle */}
-      <div
-        className={styles.compressed}
-        onClick={() => setExpanded(prev => !prev)}
-        style={expanded ? { borderRadius: '6px 6px 0 0' } : undefined}
-      >
-        <div className={styles.summaryText}>
-          <span className={styles.summaryAction}>{resolution.action ? resolution.action.split(':').pop().trim() : 'Action'}</span>
-          <span className={styles.summaryDivider}>{' | '}</span>
-          <span className={styles.summaryStat}>{stat} {fmt(resolution.total != null ? resolution.total - (resolution.dieSelected || 0) - (modifier || 0) : null)}</span>
-          {skill && <span>{` + ${skill} ${fmt(modifier)}`}</span>}
-          <span className={styles.summaryDice}>{` + d20(${resolution.dieSelected})`}</span>
-          <span className={styles.summaryCalc}>{` = ${fmt(resolution.total)} vs DC ${fmt(resolution.dc)}`}</span>
-          <span className={styles.summaryDivider}>{' | '}</span>
-          <span className={isSuccess ? styles.summarySuccess : styles.summaryFailure}>
-            {marginSign}{fmt(resolution.margin)}: {resolution.tierName}
-          </span>
-        </div>
-        <button
-          className={styles.toggleButton}
-          onClick={(e) => { e.stopPropagation(); setExpanded(prev => !prev); }}
-          title="Roll breakdown"
-          aria-label={expanded ? 'Hide roll details' : 'Show roll details'}
-        >
-          ?
-        </button>
-      </div>
-
-      {/* Expanded detail */}
-      {expanded && (
-        <div className={styles.expanded}>
-          <div className={styles.detailGrid}>
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>Action:</span>
-              <span className={styles.detailValue}>{resolution.action || 'Unknown'}</span>
-            </div>
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>Stat:</span>
-              <span className={styles.detailValue}>{stat}</span>
-            </div>
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>Skill:</span>
-              <span className={styles.detailValue}>
-                {skill ? `${skill} (+${fmt(modifier)})` : 'None'}
-              </span>
-            </div>
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>Equipment:</span>
-              <span className={styles.detailValueNum}>
-                {resolution.equipmentQuality != null ? `${resolution.equipmentQuality > 0 ? '+' : ''}${fmt(resolution.equipmentQuality)}` : 'None'}
-              </span>
-            </div>
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>Fortune:</span>
-              <span className={styles.detailValue}>{balanceDisplay}</span>
-            </div>
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>Crucible Roll:</span>
-              <span className={styles.detailValueNum}>
-                {resolution.crucibleRoll != null
-                  ? `d20(${resolution.crucibleRoll})${resolution.crucibleExtreme ? ` \u2014 ${resolution.crucibleExtreme === 'nat20' ? 'Natural 20!' : 'Natural 1'}` : ''}`
-                  : 'N/A'
-                }
-              </span>
-            </div>
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>d20 Roll:</span>
-              <span className={styles.detailValueNum}>{resolution.dieSelected}</span>
-            </div>
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>DC:</span>
-              <span className={styles.detailValueNum}>{fmt(resolution.dc)}</span>
-            </div>
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>Total:</span>
-              <span className={styles.detailValueNum}>{fmt(resolution.total)}</span>
-            </div>
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>Result:</span>
-              <span className={isSuccess ? styles.summarySuccess : styles.summaryFailure}>
-                {marginSign}{fmt(resolution.margin)}: {resolution.tierName} ({resolution.tier})
-              </span>
-            </div>
-            {resolution.debtPenalty > 0 && (
-              <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>Debt:</span>
-                <span className={styles.detailDebt}>-{fmt(resolution.debtPenalty)}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-// =============================================================================
-// FILE: app/play/components/CharacterTab.js
-// =============================================================================
-
-import PanelSection from './PanelSection';
-import styles from './CharacterTab.module.css';
-import sidebarStyles from './Sidebar.module.css';
-
-const BASE_STAT_ORDER = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
-const STAT_LABELS = {
-  str: 'STR', dex: 'DEX', con: 'CON', int: 'INT', wis: 'WIS', cha: 'CHA', pot: 'POT',
-};
-const STAT_FULL = {
-  str: 'Strength', dex: 'Dexterity', con: 'Constitution',
-  int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma', pot: 'Potency',
-};
-
-function StatBar({ statKey, stat, onEntityClick }) {
-  const effective = stat.effective ?? stat.base ?? 0;
-  const base = stat.base ?? 0;
-  const hasPenalty = effective < base;
-  const pctEffective = Math.min((effective / 20) * 100, 100);
-  const pctBase = Math.min((base / 20) * 100, 100);
-
-  return (
-    <div className={styles.statRow} title={STAT_FULL[statKey]} onClick={() => onEntityClick?.({ term: STAT_LABELS[statKey], type: 'stat' })} style={{ cursor: 'pointer' }}>
-      <div className={styles.statHeader}>
-        <span className={styles.statName}>{STAT_LABELS[statKey]}</span>
-        <span className={`${styles.statValue} ${hasPenalty ? styles.statPenalized : styles.statNormal}`}>
-          {effective.toFixed(1)}
-          {hasPenalty && <span className={styles.statBase}> / {base.toFixed(1)}</span>}
-        </span>
-      </div>
-      <div className={styles.barTrack}>
-        {hasPenalty && (
-          <div className={styles.barBase} style={{ width: `${pctBase}%` }} />
-        )}
-        <div
-          className={`${styles.barFill} ${hasPenalty ? styles.barPenalized : styles.barNormal}`}
-          style={{ width: `${pctEffective}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-export default function CharacterTab({ data, onEntityClick }) {
-  if (!data) {
-    return <div className={sidebarStyles.loadingState}>Loading character...</div>;
-  }
-
-  const stats = data.stats || {};
-  const skills = Array.isArray(data.skills) ? data.skills : [];
-  const conditions = Array.isArray(data.conditions) ? data.conditions : [];
-  const companions = Array.isArray(data.companions) ? data.companions : [];
-
-  const activeSkills = skills.filter(s => s.type === 'active');
-  const foundationalSkills = skills.filter(s => s.type === 'foundational');
-
-  return (
-    <div>
-      {data.character?.name && (
-        <div style={{
-          fontFamily: 'var(--font-cinzel)', fontSize: '15px', fontWeight: 700,
-          color: 'var(--text-heading)', marginBottom: '12px'
-        }}>
-          {data.character.name}
-        </div>
-      )}
-
-      <PanelSection title="Stats">
-        {(() => {
-          const order = [...BASE_STAT_ORDER];
-          const potStat = stats.pot;
-          if (potStat && (potStat.base > 0 || potStat.effective > 0)) order.push('pot');
-          return order.map(key => {
-            const stat = stats[key];
-            if (!stat) return null;
-            return <StatBar key={key} statKey={key} stat={stat} onEntityClick={onEntityClick} />;
-          });
-        })()}
-      </PanelSection>
-
-      <PanelSection title="Skills">
-        {skills.length === 0 ? (
-          <div className={sidebarStyles.emptyState}>No skills yet</div>
-        ) : (
-          <>
-            {activeSkills.map((skill, i) => (
-              <div key={`a-${i}`} className={styles.skillRow}>
-                <span>
-                  <span className={styles.skillName}>{skill.name}</span>
-                  <span className={styles.skillType}>active</span>
-                </span>
-                <span className={styles.skillModifier}>+{skill.modifier?.toFixed(1)}</span>
-              </div>
-            ))}
-            {foundationalSkills.map((skill, i) => (
-              <div key={`f-${i}`} className={styles.skillRow}>
-                <span>
-                  <span className={styles.skillName}>{skill.name}</span>
-                  <span className={styles.skillType}>foundational</span>
-                </span>
-                <span className={styles.skillModifier}>+{skill.modifier?.toFixed(1)}</span>
-              </div>
-            ))}
-          </>
-        )}
-      </PanelSection>
-
-      <PanelSection title="Conditions" defaultOpen={conditions.length > 0}>
-        {conditions.length === 0 ? (
-          <div className={sidebarStyles.emptyState}>No active conditions</div>
-        ) : (
-          conditions.map((cond, i) => {
-            const isCon = (cond.stat || '').toLowerCase() === 'con';
-            const val = cond.penalty ?? 0;
-            const isBuff = cond.isBuff != null ? cond.isBuff === true : val < 0;
-            const absVal = Math.abs(val);
-            const signedVal = isBuff ? `+${absVal.toFixed(1)}` : `\u2212${absVal.toFixed(1)}`;
-            return (
-              <div key={cond.id || i} className={styles.conditionCard} onClick={() => onEntityClick?.({ term: cond.name, type: 'condition', id: cond.id })} style={{ cursor: 'pointer' }}>
-                <div className={`${styles.conditionHeader} ${isCon ? styles.conditionHeaderCon : ''}`}>
-                  {cond.name}: <span className={isBuff ? styles.conditionBuff : styles.conditionPenalty}>{signedVal}</span> {(cond.stat || '').toUpperCase()}
-                </div>
-                <div className={styles.conditionDetail}>
-                  {cond.durationType?.replace(/_/g, ' ')}
-                  {cond.escalation ? ` \u00b7 Escalates \u2192 ${cond.escalation}` : ''}
-                </div>
-              </div>
-            );
-          })
-        )}
-      </PanelSection>
-
-      {companions.length > 0 && (
-        <PanelSection title="Companions">
-          {companions.map((comp, i) => (
-            <div key={comp.id || i} className={styles.skillRow}>
-              <span className={styles.skillName}>{comp.name}</span>
-              <span className={styles.skillModifier}>{comp.specialty}</span>
-            </div>
-          ))}
-        </PanelSection>
-      )}
-    </div>
-  );
-}
-
-
-// =============================================================================
 // FILE: app/play/components/InventoryTab.js
-// =============================================================================
-
 import PanelSection from './PanelSection';
 import styles from './InventoryTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
@@ -2261,163 +2784,7 @@ export default function InventoryTab({ data, onEntityClick }) {
   );
 }
 
-
-// =============================================================================
-// FILE: app/play/components/NPCTab.js
-// =============================================================================
-
-import styles from './NPCTab.module.css';
-import sidebarStyles from './Sidebar.module.css';
-
-export default function NPCTab({ glossaryData, onEntityClick }) {
-  if (!glossaryData) {
-    return <div className={sidebarStyles.loadingState}>Loading...</div>;
-  }
-
-  const entries = Array.isArray(glossaryData.entries) ? glossaryData.entries : [];
-  // Filter glossary entries for NPC-category items (case-insensitive)
-  const npcs = entries.filter(e =>
-    (e.category || '').toLowerCase() === 'npc'
-  );
-
-  if (npcs.length === 0) {
-    return <div className={sidebarStyles.emptyState}>No NPCs encountered yet.</div>;
-  }
-
-  return (
-    <div>
-      {npcs.map(npc => (
-        <div key={npc.id || npc.term} className={styles.npcCard} onClick={() => onEntityClick?.({ term: npc.term, type: 'npc', id: npc.id })} style={{ cursor: 'pointer' }}>
-          <div className={styles.npcHeader}>
-            <span className={styles.npcName}>{npc.term}</span>
-            <span className={styles.npcCategory}>NPC</span>
-          </div>
-          <div className={styles.npcDefinition}>{npc.definition}</div>
-          {npc.discoveredAt && (
-            <div className={styles.npcDiscovered}>Discovered: {npc.discoveredAt}</div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-
-// =============================================================================
-// FILE: app/play/components/GlossaryTab.js
-// =============================================================================
-
-import { useState, useMemo } from 'react';
-import styles from './GlossaryTab.module.css';
-import sidebarStyles from './Sidebar.module.css';
-
-const TABS = [
-  { id: 'all', label: 'All', match: null },
-  { id: 'npc', label: 'People', match: 'npc' },
-  { id: 'location', label: 'Places', match: 'location' },
-  { id: 'faction', label: 'Factions', match: 'faction' },
-  { id: 'item', label: 'Items', match: 'item' },
-  { id: 'other', label: 'Other', match: null },
-];
-
-const KNOWN_CATEGORIES = new Set(['npc', 'location', 'faction', 'item']);
-
-export default function GlossaryTab({ data, onEntityClick }) {
-  const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState('all');
-
-  if (!data) {
-    return <div className={sidebarStyles.loadingState}>Loading glossary...</div>;
-  }
-
-  const entries = Array.isArray(data.entries) ? data.entries : [];
-
-  // Count per tab for badges
-  const counts = useMemo(() => {
-    const c = { all: entries.length, npc: 0, location: 0, faction: 0, item: 0, other: 0 };
-    entries.forEach(e => {
-      const cat = (e.category || '').toLowerCase();
-      if (KNOWN_CATEGORIES.has(cat)) c[cat]++;
-      else c.other++;
-    });
-    return c;
-  }, [entries]);
-
-  // Filter entries by active tab + search term
-  const filtered = useMemo(() => {
-    return entries.filter(e => {
-      const cat = (e.category || '').toLowerCase();
-      if (activeTab === 'all') { /* no category filter */ }
-      else if (activeTab === 'other') { if (KNOWN_CATEGORIES.has(cat)) return false; }
-      else if (cat !== activeTab) return false;
-
-      if (!search.trim()) return true;
-      const q = search.toLowerCase();
-      return (e.term || '').toLowerCase().includes(q) ||
-             (e.definition || '').toLowerCase().includes(q);
-    });
-  }, [entries, search, activeTab]);
-
-  if (entries.length === 0) {
-    return <div className={sidebarStyles.emptyState}>No glossary entries yet.</div>;
-  }
-
-  return (
-    <div>
-      {/* Category tabs */}
-      <div className={styles.tabRow}>
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            className={activeTab === tab.id ? styles.tabActive : styles.tab}
-            onClick={() => setActiveTab(tab.id)}
-            aria-label={`Filter: ${tab.label}`}
-          >
-            {tab.label}
-            {counts[tab.id] > 0 && tab.id !== 'all' && (
-              <span className={styles.tabCount}>{counts[tab.id]}</span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Search */}
-      <input
-        type="text"
-        className={styles.searchInput}
-        placeholder="Search entries..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        aria-label="Search glossary"
-      />
-
-      <div className={styles.resultCount}>{filtered.length} entries</div>
-
-      {filtered.map(entry => (
-        <div key={entry.id || entry.term} className={styles.entryCard} onClick={() => onEntityClick?.({ term: entry.term, type: entry.category, id: entry.id })}>
-          <div className={styles.entryTerm}>{entry.term}</div>
-          <div className={styles.entryMeta}>
-            <span className={styles.entryCategory}>{entry.category}</span>
-            {entry.discoveredAt && (
-              <span className={styles.entryDiscovered}>{entry.discoveredAt}</span>
-            )}
-          </div>
-          <div className={styles.entryDef}>{entry.definition}</div>
-        </div>
-      ))}
-
-      {filtered.length === 0 && search.trim() && (
-        <div className={sidebarStyles.emptyState}>No entries match your search.</div>
-      )}
-    </div>
-  );
-}
-
-
-// =============================================================================
 // FILE: app/play/components/MapTab.js
-// =============================================================================
-
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -3135,11 +3502,77 @@ export default function MapTab({ data: initialData, gameId, onEntityClick }) {
   );
 }
 
+// FILE: app/play/components/NarrativePanel.js
+import { useRef, useEffect, forwardRef } from 'react';
+import TurnBlock from './TurnBlock';
+import TalkToGM from './TalkToGM';
+import styles from './NarrativePanel.module.css';
 
-// =============================================================================
+const NarrativePanel = forwardRef(function NarrativePanel({ turns, sessionRecap, worldBriefing, gameId, onTurnResponse }, ref) {
+  const newTurnRef = useRef(null);
+  const bottomRef = useRef(null);
+
+  // Auto-scroll: new turns scroll to turn header at top; initial load scrolls to bottom
+  useEffect(() => {
+    if (turns.length === 0) return;
+    const lastTurn = turns[turns.length - 1];
+    if (lastTurn._isNew && newTurnRef.current) {
+      requestAnimationFrame(() => {
+        newTurnRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    } else {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [turns.length]);
+
+  return (
+    <div className={styles.narrativeWrapper}>
+      <div className={styles.narrativeScroll} ref={ref}>
+        <div className={styles.narrativeInner}>
+          {worldBriefing && (
+            <div className={styles.worldBriefing}>
+              <div className={styles.briefingLabel}>Prologue</div>
+              <div className={styles.briefingText}>{worldBriefing}</div>
+            </div>
+          )}
+
+          {turns.length === 0 && (
+            <div className={styles.emptyState}>Starting your adventure...</div>
+          )}
+
+          {turns.map((turn, i) => {
+            const isLast = i === turns.length - 1;
+            const isNew = !!turn._isNew;
+            return (
+              <div key={turn.number ?? i}>
+                {/* Show session recap just above the most recent turn */}
+                {isLast && sessionRecap && (
+                  <div className={styles.sessionRecap}>
+                    <div className={styles.recapHeader}>PREVIOUSLY...</div>
+                    <div className={styles.recapText}>{sessionRecap}</div>
+                  </div>
+                )}
+                <TurnBlock
+                  turn={turn}
+                  isNew={isNew}
+                  ref={isLast && isNew ? newTurnRef : undefined}
+                />
+              </div>
+            );
+          })}
+
+          <div ref={bottomRef} />
+        </div>
+      </div>
+
+      <TalkToGM gameId={gameId} onTurnResponse={onTurnResponse} />
+    </div>
+  );
+});
+
+export default NarrativePanel;
+
 // FILE: app/play/components/NotesTab.js
-// =============================================================================
-
 import { useState, useCallback } from 'react';
 import * as api from '@/lib/api';
 import styles from './NotesTab.module.css';
@@ -3272,11 +3705,44 @@ export default function NotesTab({ data, gameId, onNotesChange }) {
   );
 }
 
+// FILE: app/play/components/NPCTab.js
+import styles from './NPCTab.module.css';
+import sidebarStyles from './Sidebar.module.css';
 
-// =============================================================================
+export default function NPCTab({ glossaryData, onEntityClick }) {
+  if (!glossaryData) {
+    return <div className={sidebarStyles.loadingState}>Loading...</div>;
+  }
+
+  const entries = Array.isArray(glossaryData.entries) ? glossaryData.entries : [];
+  // Filter glossary entries for NPC-category items (case-insensitive)
+  const npcs = entries.filter(e =>
+    (e.category || '').toLowerCase() === 'npc'
+  );
+
+  if (npcs.length === 0) {
+    return <div className={sidebarStyles.emptyState}>No NPCs encountered yet.</div>;
+  }
+
+  return (
+    <div>
+      {npcs.map(npc => (
+        <div key={npc.id || npc.term} className={styles.npcCard} onClick={() => onEntityClick?.({ term: npc.term, type: 'npc', id: npc.id })} style={{ cursor: 'pointer' }}>
+          <div className={styles.npcHeader}>
+            <span className={styles.npcName}>{npc.term}</span>
+            <span className={styles.npcCategory}>NPC</span>
+          </div>
+          <div className={styles.npcDefinition}>{npc.definition}</div>
+          {npc.discoveredAt && (
+            <div className={styles.npcDiscovered}>Discovered: {npc.discoveredAt}</div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // FILE: app/play/components/PanelSection.js
-// =============================================================================
-
 import { useState } from 'react';
 import styles from './PanelSection.module.css';
 
@@ -3293,194 +3759,531 @@ export default function PanelSection({ title, children, defaultOpen = true }) {
   );
 }
 
+// FILE: app/play/components/ReportModal.js
+'use client';
 
-// =============================================================================
-// FILE: app/play/components/EntityPopup.js
-// =============================================================================
+import { useState } from 'react';
+import { post } from '@/lib/api';
 
-import { useState, useEffect, useCallback } from 'react';
-import * as api from '@/lib/api';
-import styles from './EntityPopup.module.css';
+const C = {
+  bg: '#0a0e1a', panelBg: '#0d1120', cardBg: '#111528', inputBg: '#0a0e1a',
+  resolutionBg: '#0e1420', text: '#c8c0b0', heading: '#d0c098', secondary: '#8a94a8',
+  muted: '#7082a4', dim: '#6b83a3', accent: '#c9a84c', accentBright: '#ddb84e',
+  danger: '#e8845a', success: '#8aba7a', border: '#1e2540', borderLight: '#161c34',
+  overlay: 'rgba(0,0,0,0.6)',
+};
 
-function getDurabilityColor(dur, max) {
-  if (!max) return '#8a94a8';
-  const pct = (dur / max) * 100;
-  if (pct === 0) return '#8a3a3a';
-  if (pct <= 25) return '#e85a5a';
-  if (pct <= 50) return '#e8845a';
-  if (pct <= 75) return '#e8c45a';
-  return '#8aba7a';
+const BUG_CATEGORIES = [
+  { id: 'dice', label: 'Dice / Resolution' },
+  { id: 'narrative', label: 'Story / Narrative' },
+  { id: 'ui', label: 'UI / Display' },
+  { id: 'inventory', label: 'Inventory / Items' },
+  { id: 'npc', label: 'NPCs / Factions' },
+  { id: 'other', label: 'Other' },
+];
+
+const SUGGEST_CATEGORIES = [
+  { id: 'feature', label: 'New Feature' },
+  { id: 'ui', label: 'UI Improvement' },
+  { id: 'balance', label: 'Game Balance' },
+  { id: 'story', label: 'Storytelling' },
+  { id: 'other', label: 'Other' },
+];
+
+const LABEL_MAP = {
+  gameId: 'Game ID',
+  turnNumber: 'Turn',
+  sessionTurn: 'Session Turn',
+  characterName: 'Character',
+  setting: 'Setting',
+  storyteller: 'Storyteller',
+  difficulty: 'Difficulty',
+  lastPlayerAction: 'Last Action',
+  lastNarrative: 'Last Narrative',
+  'lastResolution.stat': 'Roll Stat',
+  'lastResolution.effectiveValue': 'Effective Value',
+  'lastResolution.skillUsed': 'Skill Used',
+  'lastResolution.fortunesBalance': "Fortune's Balance",
+  'lastResolution.diceRolled': 'Dice',
+  'lastResolution.dc': 'DC',
+  'lastResolution.total': 'Roll Total',
+  'lastResolution.margin': 'Margin',
+  'lastResolution.tier': 'Outcome Tier',
+  'lastStateChanges.conditionsAdded': 'Conditions Added',
+  'lastStateChanges.conditionsRemoved': 'Conditions Removed',
+  'lastStateChanges.inventoryAdded': 'Items Gained',
+  'lastStateChanges.inventoryRemoved': 'Items Lost',
+  activeConditions: 'Active Conditions',
+  currentLocation: 'Location',
+  weather: 'Weather',
+  'inGameTime.day': 'Day',
+  'inGameTime.hour': 'Hour',
+  prevPlayerAction: 'Previous Action',
+  prevTurnNumber: 'Previous Turn',
+  aiModel: 'AI Model',
+  aiLatency: 'AI Latency',
+  browser: 'Browser',
+  windowSize: 'Window Size',
+};
+
+function flattenContext(ctx, prefix = '') {
+  const flat = [];
+  for (const [key, val] of Object.entries(ctx || {})) {
+    if (val == null) continue;
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    if (typeof val === 'object' && !Array.isArray(val)) {
+      flat.push(...flattenContext(val, fullKey));
+    } else if (Array.isArray(val) && val.length > 0) {
+      flat.push([fullKey, val.map(v => typeof v === 'object' ? (v.name || JSON.stringify(v)) : v).join(', ')]);
+    } else if (!Array.isArray(val)) {
+      flat.push([fullKey, val]);
+    }
+  }
+  return flat;
 }
 
-export default function EntityPopup({ entity, glossaryData, notesData, gameId, onClose, onNotesChange }) {
-  const [noteText, setNoteText] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  // Close on Escape
-  useEffect(() => {
-    const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [onClose]);
-
-  // Look up entity in glossary
-  const entries = glossaryData?.entries || [];
-  const match = entries.find(e =>
-    (e.term || '').toLowerCase() === (entity.term || '').toLowerCase()
-  );
-
-  // Find existing notes for this entity
-  const notes = (notesData?.notes || []).filter(n =>
-    (n.entityName || '').toLowerCase() === (entity.term || '').toLowerCase() ||
-    (n.entityType === entity.type && n.entityId === entity.id)
-  );
-
-  // Item durability from entity data (if passed directly)
-  const hasDurability = entity.durability != null && entity.maxDurability != null;
-
-  const handleSaveNote = useCallback(async () => {
-    const text = noteText.trim();
-    if (!text || !gameId || saving) return;
-
-    setSaving(true);
-    try {
-      const body = {
-        entityType: entity.type || 'general',
-        text,
-      };
-      if (entity.id != null) body.entityId = entity.id;
-      await api.post(`/api/game/${gameId}/notes`, body);
-      setNoteText('');
-      onNotesChange?.();
-    } catch (err) {
-      console.error('Failed to save note:', err);
-    } finally {
-      setSaving(false);
-    }
-  }, [noteText, gameId, saving, entity, onNotesChange]);
+function ContextPreview({ mode, context }) {
+  const [expanded, setExpanded] = useState(false);
+  const entries = flattenContext(context);
+  if (entries.length === 0) return null;
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
-        <div className={styles.header}>
-          <span className={styles.entityName}>{entity.term || entity.name || 'Unknown'}</span>
-          <button className={styles.closeButton} onClick={onClose} aria-label="Close">&times;</button>
+    <div style={{
+      background: C.resolutionBg, border: `1px solid ${C.borderLight}`, borderRadius: 6,
+      overflow: 'hidden', marginBottom: 16,
+    }}>
+      <button onClick={() => setExpanded(!expanded)} style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        width: '100%', padding: '10px 14px', cursor: 'pointer',
+        background: 'transparent', border: 'none',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.dim} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" />
+          </svg>
+          <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: C.dim }}>
+            {mode === 'bug' ? 'Debug snapshot auto-attached' : 'Game context auto-attached'}
+            <span style={{ color: C.muted, marginLeft: 6 }}>({entries.length} fields)</span>
+          </span>
         </div>
-
-        <div className={styles.body}>
-          {match ? (
-            <>
-              <div className={styles.category}>{match.category}</div>
-              <div className={styles.definition}>{match.definition}</div>
-            </>
-          ) : (
-            <div className={styles.notFound}>
-              No glossary entry found for this entity.
-            </div>
-          )}
-
-          {/* Durability bar for items */}
-          {hasDurability && (
-            <div className={styles.durabilitySection}>
-              <div className={styles.durabilityLabel}>Durability</div>
-              <div className={styles.durBarTrack}>
-                <div
-                  className={styles.durBarFill}
-                  style={{
-                    width: `${entity.maxDurability > 0 ? (entity.durability / entity.maxDurability) * 100 : 0}%`,
-                    background: getDurabilityColor(entity.durability, entity.maxDurability),
-                  }}
-                />
-              </div>
-              <span className={styles.durValue} style={{ color: getDurabilityColor(entity.durability, entity.maxDurability) }}>
-                {entity.durability} / {entity.maxDurability}
+        <span style={{ color: C.dim, fontSize: 10, transform: expanded ? 'rotate(0)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}>{'\u25BC'}</span>
+      </button>
+      {expanded && (
+        <div style={{ padding: '0 14px 12px', maxHeight: 300, overflowY: 'auto' }}>
+          {entries.map(([key, val], i) => (
+            <div key={key} style={{
+              display: 'flex', justifyContent: 'space-between', padding: '3px 0',
+              borderBottom: i < entries.length - 1 ? `1px solid ${C.borderLight}` : 'none',
+              gap: 12,
+            }}>
+              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: C.dim, flexShrink: 0 }}>
+                {LABEL_MAP[key] || key}
+              </span>
+              <span style={{
+                fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: C.secondary,
+                textAlign: 'right', maxWidth: '60%', overflow: 'hidden', textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}>
+                {String(val)}
               </span>
             </div>
+          ))}
+          {mode === 'bug' && (
+            <div style={{ fontFamily: "'Alegreya', serif", fontSize: 11, color: C.dim, fontStyle: 'italic', marginTop: 8 }}>
+              Full AI prompt/response and server JSON also included.
+            </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
 
-          {/* Mechanical Properties (for equipment items) */}
-          {entity.equipmentCategory && (() => {
-            const props = [];
-            const cat = entity.equipmentCategory.toLowerCase();
-            const qualityVal = entity.quality ?? entity.qualityBonus;
+export default function ReportModal({ mode, gameId, gameState, turns, characterData, debugLog, onClose }) {
+  const [category, setCategory] = useState(null);
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
 
-            if (cat === 'weapon') {
-              if (entity.damageModifier != null) props.push({ label: 'Damage', value: entity.damageModifier, signed: true });
-              if (qualityVal != null) props.push({ label: 'Quality Bonus', value: qualityVal, signed: true });
-              if (Array.isArray(entity.tags) && entity.tags.length > 0) props.push({ label: 'Tags', text: entity.tags.join(', ') });
-              if (entity.elementTag) props.push({ label: 'Element', text: entity.elementTag, element: true });
-            } else if (cat === 'armor') {
-              if (entity.armorMitigation != null) props.push({ label: 'Mitigation', value: entity.armorMitigation });
-              if (entity.armorType) props.push({ label: 'Type', text: entity.armorType.charAt(0).toUpperCase() + entity.armorType.slice(1) });
-              if (qualityVal != null) props.push({ label: 'Quality Bonus', value: qualityVal, signed: true });
-            } else if (cat === 'implement') {
-              if (entity.channelModifier != null) props.push({ label: 'Channel', value: entity.channelModifier, signed: true });
-              if (qualityVal != null) props.push({ label: 'Quality Bonus', value: qualityVal, signed: true });
-              if (entity.elementTag) props.push({ label: 'Element', text: entity.elementTag, element: true });
-            } else if (cat === 'shield') {
-              props.push({ label: 'Defense', value: 1.0, signed: true });
-              if (qualityVal != null) props.push({ label: 'Quality Bonus', value: qualityVal, signed: true });
-            }
+  const isBug = mode === 'bug';
+  const categories = isBug ? BUG_CATEGORIES : SUGGEST_CATEGORIES;
+  const title = isBug ? 'Bug Report' : 'Suggestion';
+  const placeholder = isBug
+    ? 'Describe what went wrong. What did you expect to happen?'
+    : 'What would make the game better? Describe your idea.';
+  const recipient = isBug ? 'bugs@crucibleRPG.com' : 'suggestions@crucibleRPG.com';
 
-            if (props.length === 0) return null;
+  // Get the last 1-2 turns for context
+  const lastTurn = turns?.length > 0 ? turns[turns.length - 1] : null;
+  const prevTurn = turns?.length > 1 ? turns[turns.length - 2] : null;
 
-            return (
-              <div className={styles.propertiesSection}>
-                <div className={styles.propertiesLabel}>PROPERTIES</div>
-                {props.map((p, i) => (
-                  <div key={i} className={styles.propertyRow}>
-                    <span className={styles.propertyName}>{p.label}</span>
-                    {p.text != null ? (
-                      <span className={p.element ? styles.propertyElement : styles.propertyText}>{p.text}</span>
-                    ) : (
-                      <span className={styles.propertyValue} style={{ color: p.value < 0 ? 'var(--color-danger)' : 'var(--accent-gold)' }}>
-                        {p.signed ? (p.value >= 0 ? '+' : '') : ''}{typeof p.value === 'number' ? p.value.toFixed(1) : p.value}
-                      </span>
-                    )}
-                  </div>
+  // Get the most recent debug entry (if debug mode was on)
+  const lastDebug = debugLog?.length > 0 ? debugLog[0] : null;
+
+  // Build rich context
+  const context = {
+    // Game metadata
+    gameId: gameId || null,
+    turnNumber: lastTurn?.number || gameState?.clock?.totalTurn || null,
+    sessionTurn: lastTurn?.sessionTurn || gameState?.clock?.sessionTurn || null,
+    characterName: gameState?.character?.name || characterData?.character?.name || null,
+    setting: gameState?.setting || null,
+    storyteller: gameState?.storyteller || null,
+    difficulty: gameState?.difficulty || gameState?.difficultyPreset || null,
+
+    // Last turn — what happened
+    lastPlayerAction: lastTurn?.playerAction || null,
+    lastNarrative: lastTurn?.narrative ? lastTurn.narrative.substring(0, 500) : null,
+
+    // Resolution data from last turn (the mechanical outcome)
+    lastResolution: lastTurn?.resolution ? {
+      stat: lastTurn.resolution.stat || null,
+      effectiveValue: lastTurn.resolution.effectiveValue || null,
+      skillUsed: lastTurn.resolution.skillUsed || null,
+      fortunesBalance: lastTurn.resolution.fortunesBalance || null,
+      diceRolled: lastTurn.resolution.diceRolled || null,
+      dc: lastTurn.resolution.dc || null,
+      total: lastTurn.resolution.total || null,
+      margin: lastTurn.resolution.margin || null,
+      tier: lastTurn.resolution.tier || lastTurn.resolution.tierName || null,
+    } : null,
+
+    // State changes from last turn
+    lastStateChanges: lastTurn?.stateChanges ? {
+      conditionsAdded: lastTurn.stateChanges.conditions?.added || [],
+      conditionsRemoved: lastTurn.stateChanges.conditions?.removed || [],
+      inventoryAdded: lastTurn.stateChanges.inventory?.added || [],
+      inventoryRemoved: lastTurn.stateChanges.inventory?.removed || [],
+    } : null,
+
+    // Current character state (from sidebar data if available)
+    currentStats: characterData?.stats ? Object.fromEntries(
+      Object.entries(characterData.stats).map(([stat, data]) => [
+        stat, { base: data.base, effective: data.effective }
+      ])
+    ) : null,
+    activeConditions: characterData?.conditions?.map(c => ({
+      name: c.name, stat: c.stat, penalty: c.penalty
+    })) || null,
+
+    // Location and time
+    currentLocation: lastTurn?.location || gameState?.world?.currentLocation || null,
+    weather: lastTurn?.weather || gameState?.clock?.weather || null,
+    inGameTime: lastTurn?.clock ? {
+      day: lastTurn.clock.currentDay,
+      hour: lastTurn.clock.hour,
+    } : null,
+
+    // Previous turn (for context on multi-turn issues)
+    prevPlayerAction: prevTurn?.playerAction || null,
+    prevTurnNumber: prevTurn?.number || null,
+
+    // Debug data if available
+    aiModel: lastDebug?.ai?.model || null,
+    aiLatency: lastDebug?.timing?.ai || null,
+
+    // Browser
+    browser: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+    windowSize: typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : null,
+  };
+
+  const canSend = message.trim().length > 0 && category;
+
+  async function handleSend() {
+    if (!canSend || sending) return;
+    setSending(true);
+    setError('');
+    try {
+      await post('/api/bug-report', {
+        type: mode,
+        category,
+        message: message.trim(),
+        gameId: gameId || null,
+        context,
+      });
+      setSent(true);
+    } catch (err) {
+      if (err.status === 429) {
+        setError("You've submitted too many reports recently. Please try again later.");
+      } else {
+        setError(err.message || 'Failed to send report.');
+      }
+    }
+    setSending(false);
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 300,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }} onClick={onClose}>
+      <div style={{ position: 'absolute', inset: 0, background: C.overlay }} />
+      <div onClick={e => e.stopPropagation()} style={{
+        background: C.panelBg, border: `1px solid ${C.border}`, borderRadius: 12,
+        width: 480, maxWidth: '95vw', maxHeight: '85vh', overflowY: 'auto',
+        position: 'relative', zIndex: 1, padding: '24px 28px',
+        boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+      }}>
+        {/* Close */}
+        <button onClick={onClose} style={{
+          position: 'absolute', top: 14, right: 16, background: 'none', border: 'none',
+          color: C.dim, fontSize: 18, cursor: 'pointer',
+        }}>{'\u2715'}</button>
+
+        {/* Sent state */}
+        {sent ? (
+          <div style={{ textAlign: 'center', padding: '32px 0' }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: '50%',
+              background: `${C.success}20`, border: `2px solid ${C.success}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}>
+              <span style={{ fontSize: 24, color: C.success }}>{'\u2713'}</span>
+            </div>
+            <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 18, fontWeight: 700, color: C.heading, marginBottom: 8 }}>
+              {isBug ? 'Report Sent' : 'Suggestion Sent'}
+            </div>
+            <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: C.muted, lineHeight: 1.6 }}>
+              {isBug ? "Thanks for helping us squash bugs. We'll look into it." : 'Thanks for the idea. We read every suggestion.'}
+            </div>
+            <button onClick={onClose} style={{
+              marginTop: 20, padding: '10px 28px', borderRadius: 6, cursor: 'pointer',
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
+              background: 'transparent', border: `1px solid ${C.border}`, color: C.muted,
+            }}>Close</button>
+          </div>
+        ) : (
+          <>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 6,
+                background: isBug ? `${C.danger}15` : `${C.accent}15`,
+                border: `1px solid ${isBug ? C.danger : C.accent}33`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {isBug ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.danger} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="8" y="6" width="8" height="14" rx="4" /><path d="M19 10h2" /><path d="M3 10h2" />
+                    <path d="M19 14h2" /><path d="M3 14h2" /><path d="M19 18h2" /><path d="M3 18h2" />
+                    <path d="M16 2l-2 4" /><path d="M8 2l2 4" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 18h6" /><path d="M10 22h4" />
+                    <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
+                  </svg>
+                )}
+              </div>
+              <div>
+                <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 18, fontWeight: 700, color: C.heading }}>{title}</div>
+                <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: C.dim }}>Sends to {recipient}</div>
+              </div>
+            </div>
+
+            {/* Category selector */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: C.muted, marginBottom: 8 }}>Category</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                {categories.map(cat => (
+                  <button key={cat.id} onClick={() => setCategory(cat.id)} style={{
+                    padding: '5px 12px', borderRadius: 5, cursor: 'pointer',
+                    fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
+                    background: category === cat.id ? (isBug ? `${C.danger}15` : `${C.accent}15`) : 'transparent',
+                    border: `1px solid ${category === cat.id ? (isBug ? C.danger : C.accent) : C.border}`,
+                    color: category === cat.id ? (isBug ? C.danger : C.accent) : C.muted,
+                    transition: 'all 0.2s',
+                  }}>{cat.label}</button>
                 ))}
               </div>
-            );
-          })()}
+            </div>
 
-          {/* Player Notes */}
-          <div className={styles.notesSection}>
-            <div className={styles.notesLabel}>Your Notes</div>
+            {/* Message */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: C.muted, marginBottom: 8 }}>
+                {isBug ? 'What happened?' : 'Your idea'}
+              </div>
+              <textarea
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                placeholder={placeholder}
+                rows={5}
+                style={{
+                  width: '100%', boxSizing: 'border-box', padding: '12px 14px',
+                  background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 6,
+                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
+                  color: C.text, outline: 'none', resize: 'vertical', lineHeight: 1.6,
+                }}
+                onFocus={e => { e.target.style.borderColor = isBug ? C.danger : C.accent; }}
+                onBlur={e => { e.target.style.borderColor = C.border; }}
+              />
+            </div>
 
-            {notes.length > 0 && (
-              <div className={styles.notesList}>
-                {notes.map(n => (
-                  <div key={n.id} className={styles.existingNote}>{n.text}</div>
-                ))}
+            {/* Context preview */}
+            <ContextPreview mode={mode} context={context} />
+
+            {/* Error */}
+            {error && (
+              <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#e85a5a', marginBottom: 10 }}>
+                {error}
               </div>
             )}
 
-            <textarea
-              className={styles.noteInput}
-              placeholder="Add a note..."
-              value={noteText}
-              onChange={e => setNoteText(e.target.value)}
-              maxLength={500}
-            />
-            <button
-              className={styles.noteSaveButton}
-              onClick={handleSaveNote}
-              disabled={saving || !noteText.trim()}
-            >
-              {saving ? 'Saving...' : 'Save Note'}
+            {/* Send button */}
+            <button onClick={handleSend} disabled={!canSend || sending} style={{
+              width: '100%', padding: '12px 0', borderRadius: 6, cursor: canSend && !sending ? 'pointer' : 'default',
+              fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700, letterSpacing: '0.06em',
+              background: canSend
+                ? (isBug ? `linear-gradient(135deg, ${C.danger}, #d06040)` : `linear-gradient(135deg, ${C.accent}, ${C.accentBright})`)
+                : C.cardBg,
+              border: 'none',
+              color: canSend ? C.bg : C.dim,
+              opacity: sending ? 0.6 : 1,
+              transition: 'all 0.2s',
+            }}>
+              {sending ? 'Sending...' : `Send ${title}`}
             </button>
-          </div>
-        </div>
+
+            {/* Privacy note */}
+            <div style={{
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: C.dim,
+              marginTop: 12, textAlign: 'center', lineHeight: 1.5,
+            }}>
+              {isBug
+                ? "Your game state and the last turn's debug data are attached automatically to help us diagnose the issue."
+                : 'Basic game context is attached to help us understand your perspective.'}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
+// FILE: app/play/components/ResolutionBlock.js
+import { useState } from 'react';
+import styles from './ResolutionBlock.module.css';
 
-// =============================================================================
+function fmt(n) {
+  if (n == null) return '?';
+  return typeof n === 'number' ? n.toFixed(1) : String(n);
+}
+
+export default function ResolutionBlock({ resolution }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!resolution) return null;
+
+  const stat = (resolution.stat || '').toUpperCase();
+  const skill = resolution.skillUsed || null;
+  const modifier = resolution.skillModifier;
+  const isSuccess = resolution.margin >= 0;
+  const marginSign = resolution.margin > 0 ? '+' : '';
+  const balance = (resolution.fortunesBalance || 'matched');
+  const balanceDisplay = balance.charAt(0).toUpperCase() + balance.slice(1);
+
+  return (
+    <div className={styles.resolutionBlock}>
+      {/* Compressed summary — click to toggle */}
+      <div
+        className={styles.compressed}
+        onClick={() => setExpanded(prev => !prev)}
+        style={expanded ? { borderRadius: '6px 6px 0 0' } : undefined}
+      >
+        <div className={styles.summaryText}>
+          <span className={styles.summaryAction}>{resolution.action ? resolution.action.split(':').pop().trim() : 'Action'}</span>
+          <span className={styles.summaryDivider}>{' | '}</span>
+          <span className={styles.summaryStat}>{stat} {fmt(resolution.total != null ? resolution.total - (resolution.dieSelected || 0) - (modifier || 0) : null)}</span>
+          {skill && <span>{` + ${skill} ${fmt(modifier)}`}</span>}
+          <span className={styles.summaryDice}>{` + d20(${resolution.dieSelected})`}</span>
+          <span className={styles.summaryCalc}>{` = ${fmt(resolution.total)} vs DC ${fmt(resolution.dc)}`}</span>
+          <span className={styles.summaryDivider}>{' | '}</span>
+          <span className={isSuccess ? styles.summarySuccess : styles.summaryFailure}>
+            {marginSign}{fmt(resolution.margin)}: {resolution.tierName}
+          </span>
+        </div>
+        <button
+          className={styles.toggleButton}
+          onClick={(e) => { e.stopPropagation(); setExpanded(prev => !prev); }}
+          title="Roll breakdown"
+          aria-label={expanded ? 'Hide roll details' : 'Show roll details'}
+        >
+          ?
+        </button>
+      </div>
+
+      {/* Expanded detail */}
+      {expanded && (
+        <div className={styles.expanded}>
+          <div className={styles.detailGrid}>
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Action:</span>
+              <span className={styles.detailValue}>{resolution.action || 'Unknown'}</span>
+            </div>
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Stat:</span>
+              <span className={styles.detailValue}>{stat}</span>
+            </div>
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Skill:</span>
+              <span className={styles.detailValue}>
+                {skill ? `${skill} (+${fmt(modifier)})` : 'None'}
+              </span>
+            </div>
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Equipment:</span>
+              <span className={styles.detailValueNum}>
+                {resolution.equipmentQuality != null ? `${resolution.equipmentQuality > 0 ? '+' : ''}${fmt(resolution.equipmentQuality)}` : 'None'}
+              </span>
+            </div>
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Fortune:</span>
+              <span className={styles.detailValue}>{balanceDisplay}</span>
+            </div>
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Crucible Roll:</span>
+              <span className={styles.detailValueNum}>
+                {resolution.crucibleRoll != null
+                  ? `d20(${resolution.crucibleRoll})${resolution.crucibleExtreme ? ` \u2014 ${resolution.crucibleExtreme === 'nat20' ? 'Natural 20!' : 'Natural 1'}` : ''}`
+                  : 'N/A'
+                }
+              </span>
+            </div>
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>d20 Roll:</span>
+              <span className={styles.detailValueNum}>{resolution.dieSelected}</span>
+            </div>
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>DC:</span>
+              <span className={styles.detailValueNum}>{fmt(resolution.dc)}</span>
+            </div>
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Total:</span>
+              <span className={styles.detailValueNum}>{fmt(resolution.total)}</span>
+            </div>
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Result:</span>
+              <span className={isSuccess ? styles.summarySuccess : styles.summaryFailure}>
+                {marginSign}{fmt(resolution.margin)}: {resolution.tierName} ({resolution.tier})
+              </span>
+            </div>
+            {resolution.debtPenalty > 0 && (
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Debt:</span>
+                <span className={styles.detailDebt}>-{fmt(resolution.debtPenalty)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // FILE: app/play/components/SettingsModal.js
-// =============================================================================
-
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -4609,11 +5412,189 @@ export default function SettingsModal({ settings, onSave, onClose, gameId, gameS
   );
 }
 
+// FILE: app/play/components/Sidebar.js
+import { useState, useCallback } from 'react';
+import CharacterTab from './CharacterTab';
+import InventoryTab from './InventoryTab';
+import NPCTab from './NPCTab';
+import GlossaryTab from './GlossaryTab';
+import MapTab from './MapTab';
+import NotesTab from './NotesTab';
+import styles from './Sidebar.module.css';
 
-// =============================================================================
+// ─── SVG Tab Icons (from mockup's TabIcons) ───
+
+const TabIcons = {
+  character: (color) => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+    </svg>
+  ),
+  inventory: (color) => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" />
+      <path d="M16 10a4 4 0 0 1-8 0" />
+    </svg>
+  ),
+  npcs: (color) => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
+  glossary: (color) => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+  ),
+  map: (color) => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+      <line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" />
+    </svg>
+  ),
+  notes: (color) => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
+      <line x1="8" y1="13" x2="16" y2="13" /><line x1="8" y1="17" x2="12" y2="17" />
+    </svg>
+  ),
+};
+
+const TABS = [
+  { id: 'character', label: 'Character' },
+  { id: 'inventory', label: 'Inventory' },
+  { id: 'npcs', label: 'NPCs' },
+  { id: 'glossary', label: 'Glossary' },
+  { id: 'map', label: 'Map' },
+  { id: 'notes', label: 'Notes' },
+];
+
+export default function Sidebar({
+  collapsed,
+  characterData,
+  glossaryData,
+  mapData,
+  notesData,
+  gameId,
+  notifications,
+  onClearNotification,
+  onNotesChange,
+  onEntityClick,
+  onOpenReport,
+  debugMode,
+  isDebugUser,
+  onToggleDebug,
+}) {
+  const [activeTab, setActiveTab] = useState('character');
+  const [width, setWidth] = useState(340);
+
+  const handleTabClick = useCallback((tabId) => {
+    setActiveTab(tabId);
+    if (notifications?.[tabId]) {
+      onClearNotification?.(tabId);
+    }
+  }, [notifications, onClearNotification]);
+
+  // ─── Resize Handle ───
+  const handleMouseDown = useCallback((e) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = width;
+
+    const onMove = (moveE) => {
+      const delta = startX - moveE.clientX;
+      setWidth(Math.max(280, Math.min(600, startWidth + delta)));
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [width]);
+
+  if (collapsed) return null;
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'character':
+        return <CharacterTab data={characterData} onEntityClick={onEntityClick} />;
+      case 'inventory':
+        return <InventoryTab data={characterData} onEntityClick={onEntityClick} />;
+      case 'npcs':
+        return <NPCTab glossaryData={glossaryData} onEntityClick={onEntityClick} />;
+      case 'glossary':
+        return <GlossaryTab data={glossaryData} characterData={characterData} onEntityClick={onEntityClick} />;
+      case 'map':
+        return <MapTab data={mapData} gameId={gameId} onEntityClick={onEntityClick} />;
+      case 'notes':
+        return <NotesTab data={notesData} gameId={gameId} onNotesChange={onNotesChange} />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className={styles.sidebar} style={{ width }}>
+      <div className={styles.resizeHandle} onMouseDown={handleMouseDown} />
+      <div className={styles.tabBar}>
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ''}`}
+            onClick={() => handleTabClick(tab.id)}
+            title={tab.label}
+            aria-label={tab.label}
+          >
+            {TabIcons[tab.id](activeTab === tab.id ? '#c9a84c' : '#7082a4')}
+            {notifications?.[tab.id] > 0 && (
+              <span className={styles.badge}>{notifications[tab.id]}</span>
+            )}
+          </button>
+        ))}
+      </div>
+      <div className={styles.tabContent}>
+        {renderContent()}
+      </div>
+      {(onOpenReport || isDebugUser) && (
+        <div className={styles.sidebarFooter}>
+          {onOpenReport && (
+            <>
+              <button className={styles.footerBtn} onClick={() => onOpenReport('bug')}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="8" y="6" width="8" height="14" rx="4" /><path d="M19 10h2" /><path d="M3 10h2" />
+                  <path d="M19 14h2" /><path d="M3 14h2" /><path d="M19 18h2" /><path d="M3 18h2" />
+                  <path d="M16 2l-2 4" /><path d="M8 2l2 4" />
+                </svg>
+                Bug
+              </button>
+              <button className={styles.footerBtn} onClick={() => onOpenReport('suggest')}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 18h6" /><path d="M10 22h4" />
+                  <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
+                </svg>
+                Suggest
+              </button>
+            </>
+          )}
+          {isDebugUser && onToggleDebug && (
+            <button className={styles.footerBtn} onClick={onToggleDebug}
+              style={{ color: debugMode ? '#c9a84c' : undefined, borderColor: debugMode ? '#c9a84c33' : undefined }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" />
+              </svg>
+              Debug {debugMode ? 'ON' : 'OFF'}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // FILE: app/play/components/TalkToGM.js
-// =============================================================================
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as api from '@/lib/api';
 import styles from './TalkToGM.module.css';
@@ -5143,1243 +6124,351 @@ export default function TalkToGM({ gameId, onTurnResponse }) {
   );
 }
 
+// FILE: app/play/components/TopBar.js
+import Link from 'next/link';
+import AuthAvatar from '@/components/AuthAvatar';
+import styles from './TopBar.module.css';
 
-// =============================================================================
-// FILE: app/play/components/DebugPanel.js
-// =============================================================================
-
-'use client';
-
-import React, { useState, useRef, useCallback } from 'react';
-import styles from './DebugPanel.module.css';
-
-// =============================================================================
-// Formatting Helpers
-// =============================================================================
-
-function fmtTime(date) {
-  const h = String(date.getHours()).padStart(2, '0');
-  const m = String(date.getMinutes()).padStart(2, '0');
-  const s = String(date.getSeconds()).padStart(2, '0');
-  return `${h}:${m}:${s}`;
-}
-
-function fmtDateTime(date) {
-  const y = date.getFullYear();
-  const mo = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  let h = date.getHours();
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  h = h % 12 || 12;
-  const min = String(date.getMinutes()).padStart(2, '0');
-  return `${y}-${mo}-${d} ${h}:${min} ${ampm}`;
-}
-
-function fmtCost(cost) {
-  if (cost == null) return null;
-  return `$${cost.toFixed(4)}`;
-}
-
-function shortPath(url) {
-  let p = url.replace(/\/api\/game\/\d+\//, '/');
-  p = p.replace(/\/api\/games\/\d+/, '/games/:id');
-  return p;
-}
-
-function fmtClockTime(c) {
-  if (!c) return '??:??';
-  return `${String(c.hour ?? 0).padStart(2, '0')}:${String(c.minute ?? 0).padStart(2, '0')}`;
-}
-
-function fmtChangeList(group) {
-  if (!group) return '(none)';
-  const parts = [];
-  if (Array.isArray(group.added)) {
-    group.added.forEach(c => parts.push(`+${typeof c === 'string' ? c : c.name || JSON.stringify(c)}`));
-  }
-  if (Array.isArray(group.removed)) {
-    group.removed.forEach(c => parts.push(`-${typeof c === 'string' ? c : c.name || JSON.stringify(c)}`));
-  }
-  if (Array.isArray(group.modified)) {
-    group.modified.forEach(c => parts.push(`~${typeof c === 'string' ? c : c.name || JSON.stringify(c)}`));
-  }
-  return parts.length ? parts.join(', ') : '(none)';
-}
-
-function parseActionLabel(label) {
-  if (!label) return { text: '?', type: '' };
-  if (label.startsWith('choice: ')) return { text: `Choice ${label.slice(8)}`, type: 'choice' };
-  if (label.startsWith('custom: ')) return { text: label.slice(8), type: 'custom' };
-  if (label.startsWith('command: ')) return { text: label.slice(9), type: 'command' };
-  return { text: label, type: '' };
-}
-
-function itemName(item) {
-  return typeof item === 'string' ? item : item.name || JSON.stringify(item);
-}
-
-// =============================================================================
-// Plain Text Export
-// =============================================================================
-
-const KNOWN_DEBUG_KEYS = ['timing', 'ai', 'resolution', 'stateChanges', 'narrative', 'context', 'rowCounts', 'turn', 'turnCost', 'turnCostBreakdown', 'gameTotalCost'];
-
-function entryToText(entry) {
-  const d = entry.debug || {};
-  const lines = [];
-  const isAdvancing = entry.method === 'POST' && (entry.url.includes('/action') || entry.url.includes('/talk-to-gm'));
-  const turnNum = entry.turnNumber || d.turn;
-
-  // Header
-  if (isAdvancing && turnNum) {
-    lines.push(`=== TURN ${turnNum} — ${fmtDateTime(entry.timestamp)} ===`);
-    const action = parseActionLabel(entry.actionLabel);
-    lines.push(`Action: "${action.text}"${action.type ? ` (${action.type})` : ''}`);
-    lines.push(`Endpoint: ${entry.method} ${entry.url}`);
-  } else {
-    lines.push(`=== ${entry.method} ${entry.url} — ${fmtDateTime(entry.timestamp)} ===`);
-  }
-
-  // Timing
-  const t = d.timing || {};
-  const totalMs = t.total || entry.durationMs;
-  const timingParts = [];
-  if (t.ai) timingParts.push(`AI: ${t.ai}ms`);
-  if (t.db) timingParts.push(`DB: ${t.db}ms`);
-  if (t.parse) timingParts.push(`Parse: ${t.parse}ms`);
-  const timingDetail = timingParts.length ? ` (${timingParts.join(', ')})` : '';
-  lines.push(`Status: ${entry.status} | Total: ${totalMs}ms${timingDetail}`);
-
-  // [ai-cost] line
-  if (d.turnCostBreakdown) {
-    const parts = Object.entries(d.turnCostBreakdown).map(([task, cost]) => `${task}: ${fmtCost(cost)}`);
-    if (d.turnCost != null) parts.push(`total: ${fmtCost(d.turnCost)}`);
-    lines.push(`[ai-cost] ${parts.join(' | ')}`);
-  } else if (d.ai) {
-    lines.push(`[ai-cost] ${d.ai.task || 'narrative'}: ${d.ai.model || '?'} ${fmtCost(d.ai.estimatedCost) || '?'}`);
-  }
-
-  // AI Call
-  if (d.ai) {
-    lines.push('');
-    lines.push('AI Call:');
-    lines.push(`  Provider: ${d.ai.provider || '?'} | Model: ${d.ai.model || '?'} | Task: ${d.ai.task || '?'}`);
-    const tok = d.ai.tokens || {};
-    lines.push(`  Tokens: ${tok.prompt || 0} in / ${tok.completion || 0} out / ${tok.total || 0} total${tok.cached ? ` (${tok.cached} cached)` : ''}`);
-    lines.push(`  Estimated Cost: ${fmtCost(d.ai.estimatedCost) || '?'} | Attempts: ${d.ai.attempts || 1}`);
-  }
-
-  // Resolution
-  if (d.resolution) {
-    const r = d.resolution;
-    lines.push('');
-    lines.push('Resolution:');
-    const stat = (r.stat || '???').toUpperCase();
-    const effVal = r.effectiveValue ?? r.effective ?? '?';
-    const skillStr = r.skillUsed ? ` + ${r.skillUsed}(${r.skillModifier ?? 0})` : '';
-    const equipStr = ` + Equip(${r.equipmentQuality ?? 0})`;
-    const dieStr = ` + d20(${r.dieSelected ?? '?'})`;
-    lines.push(`  ${stat} ${effVal}${skillStr}${equipStr}${dieStr} = ${r.total ?? '?'} vs DC ${r.dc ?? '?'}`);
-    lines.push(`  Fortune's Balance: ${r.fortunesBalance || '?'} | Debt: ${r.debtPenalty ?? 0} | Combat: ${r.isCombat ? 'Yes' : 'No'}`);
-    const margin = r.margin != null ? (r.margin >= 0 ? '+' : '') + r.margin : '?';
-    lines.push(`  Margin: ${margin} | Tier: ${r.tier || '?'} ${r.tierName || ''}`);
-  }
-
-  // State Changes
-  if (d.stateChanges) {
-    const sc = d.stateChanges;
-    lines.push('');
-    lines.push('State Changes:');
-    lines.push(`  DB Tables: ${Array.isArray(sc.tablesWritten) ? sc.tablesWritten.join(', ') : '(none)'}`);
-    lines.push(`  Conditions: ${fmtChangeList(sc.conditions)}`);
-    lines.push(`  Inventory: ${fmtChangeList(sc.inventory)}`);
-    lines.push(`  NPCs Created: ${Array.isArray(sc.npcsCreated) && sc.npcsCreated.length ? sc.npcsCreated.join(', ') : '(none)'}`);
-    lines.push(`  NPCs Updated: ${Array.isArray(sc.npcsUpdated) && sc.npcsUpdated.length ? sc.npcsUpdated.join(', ') : '(none)'}`);
-    lines.push(`  Locations Created: ${Array.isArray(sc.locationsCreated) && sc.locationsCreated.length ? sc.locationsCreated.join(', ') : '(none)'}`);
-    if (sc.clock) {
-      const b = sc.clock.before || {};
-      const a = sc.clock.after || {};
-      lines.push(`  Clock: Day ${b.day ?? '?'} ${fmtClockTime(b)} \u2192 Day ${a.day ?? '?'} ${fmtClockTime(a)}`);
-    } else {
-      lines.push('  Clock: (no change)');
-    }
-    lines.push(`  Skills: ${Array.isArray(sc.skillsChanged) && sc.skillsChanged.length ? sc.skillsChanged.join(', ') : '(none)'}`);
-  }
-
-  // Narrative
-  if (d.narrative) {
-    const n = d.narrative;
-    lines.push('');
-    lines.push('Narrative:');
-    lines.push(`  AI Response: ${n.aiResponseLength ?? '?'} chars | Narrative: ${n.narrativeLength ?? '?'} chars | Options: ${n.optionsGenerated ?? '?'}`);
-    const parseErrs = Array.isArray(n.parseErrors) && n.parseErrors.length ? n.parseErrors.join(', ') : 'none';
-    lines.push(`  Parse Errors: ${parseErrs} | JSON Repair: ${n.jsonRepair ? 'yes' : 'no'}`);
-  }
-
-  // Context
-  if (d.context) {
-    const ctx = d.context;
-    const layers = ctx.layers || {};
-    lines.push('');
-    lines.push('Context Budget:');
-    lines.push(`  L1: ${layers.L1 ?? 0} | L2: ${layers.L2 ?? 0} | L3: ${layers.L3 ?? 0} | L4: ${layers.L4 ?? 0} | Total: ${layers.total ?? 0} tokens`);
-    if (Array.isArray(ctx.npcs) && ctx.npcs.length) lines.push(`  NPCs: ${ctx.npcs.join(', ')}`);
-    if (Array.isArray(ctx.locations) && ctx.locations.length) lines.push(`  Locations: ${ctx.locations.join(', ')}`);
-    lines.push(`  Active Anchors: ${ctx.activeAnchors ?? 0}`);
-  }
-
-  // Row Counts (GET endpoints)
-  if (d.rowCounts) {
-    lines.push('');
-    lines.push(`Rows: ${Object.entries(d.rowCounts).map(([k, v]) => `${v} ${k}`).join(', ')}`);
-  }
-
-  return lines.join('\n');
-}
-
-function allEntriesToText(entries) {
-  return entries.map(entryToText).join('\n\n' + '\u2500'.repeat(60) + '\n\n');
-}
-
-// =============================================================================
-// Developer View — Detail Section Components
-// =============================================================================
-
-function TimingSection({ timing, clientMs }) {
-  const total = timing?.total || clientMs;
-  const ai = timing?.ai || 0;
-  const db = timing?.db || 0;
-  const parse = timing?.parse || 0;
-  const other = Math.max(0, total - ai - db - parse);
-
-  const segments = [
-    { label: 'AI', value: ai, color: '#6b8aff' },
-    { label: 'DB', value: db, color: '#8aba7a' },
-    { label: 'Parse', value: parse, color: '#e8c45a' },
-    { label: 'Other', value: other, color: '#7082a4' },
-  ].filter(s => s.value > 0);
-
+function SidebarIcon({ color }) {
   return (
-    <div className={styles.section}>
-      <div className={styles.sectionTitle}>Timing</div>
-      <div className={styles.timingBar}>
-        {segments.map(seg => (
-          <div
-            key={seg.label}
-            className={styles.timingSegment}
-            style={{ flex: seg.value, background: seg.color }}
-            title={`${seg.label}: ${seg.value}ms`}
-          />
-        ))}
-      </div>
-      <div className={styles.timingLabels}>
-        {segments.map(seg => (
-          <span key={seg.label} className={styles.timingLabel}>
-            <span className={styles.timingDot} style={{ background: seg.color }} />
-            {seg.label}: {(seg.value / 1000).toFixed(1)}s
-          </span>
-        ))}
-        <span className={styles.timingLabel} style={{ marginLeft: 'auto' }}>
-          Total: {(total / 1000).toFixed(1)}s
-        </span>
-      </div>
-    </div>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="15" y1="3" x2="15" y2="21" />
+    </svg>
   );
 }
 
-function AiSection({ ai }) {
-  const tok = ai.tokens || {};
+function BookIcon({ color }) {
   return (
-    <div className={styles.section}>
-      <div className={styles.sectionTitle}>AI Call</div>
-      <div className={styles.kvGrid}>
-        <span className={styles.kvLabel}>Provider</span>
-        <span className={styles.kvValue}>{ai.provider || '?'}</span>
-        <span className={styles.kvLabel}>Model</span>
-        <span className={styles.kvValue}>{ai.model || '?'}</span>
-        <span className={styles.kvLabel}>Task</span>
-        <span className={styles.kvValue}>{ai.task || '?'}</span>
-        <span className={styles.kvLabel}>Tokens</span>
-        <span className={styles.kvValue}>
-          {(tok.prompt || 0).toLocaleString()} in / {(tok.completion || 0).toLocaleString()} out / {(tok.total || 0).toLocaleString()} total
-          {tok.cached ? ` (${tok.cached.toLocaleString()} cached)` : ''}
-        </span>
-        <span className={styles.kvLabel}>Cost</span>
-        <span className={styles.kvValueAccent}>{fmtCost(ai.estimatedCost) || '?'}</span>
-        <span className={styles.kvLabel}>Attempts</span>
-        <span className={styles.kvValue}>{ai.attempts || 1}</span>
-      </div>
-    </div>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
   );
 }
 
-function ResolutionSection({ resolution }) {
-  const r = resolution;
-  const stat = (r.stat || '?').toUpperCase();
-  const margin = r.margin != null ? (r.margin >= 0 ? '+' : '') + Number(r.margin).toFixed(1) : '?';
-  const marginColor = r.margin >= 0 ? '#8aba7a' : '#e8845a';
-
+function SettingsIcon({ color }) {
   return (
-    <div className={styles.section}>
-      <div className={styles.sectionTitle}>Resolution</div>
-      <div className={styles.resolutionBlock}>
-        <div className={styles.kvGrid}>
-          <span className={styles.kvLabel}>Stat</span>
-          <span className={styles.kvValue}>{stat} {r.effectiveValue ?? r.effective ?? '?'}</span>
-          {r.skillUsed && (
-            <React.Fragment>
-              <span className={styles.kvLabel}>Skill</span>
-              <span className={styles.kvValue}>{r.skillUsed} (+{r.skillModifier ?? 0})</span>
-            </React.Fragment>
-          )}
-          <span className={styles.kvLabel}>Equipment</span>
-          <span className={styles.kvValue}>{r.equipmentQuality ?? 0}</span>
-          <span className={styles.kvLabel}>Fortune&apos;s Balance</span>
-          <span className={styles.kvValue}>{r.fortunesBalance || '?'}</span>
-          {r.crucibleRoll != null && (
-            <React.Fragment>
-              <span className={styles.kvLabel}>Crucible Roll</span>
-              <span className={styles.kvValue}>{r.crucibleRoll}{r.crucibleExtreme ? ' (EXTREME)' : ''}</span>
-            </React.Fragment>
-          )}
-          <span className={styles.kvLabel}>Dice</span>
-          <span className={styles.kvValue}>
-            [{Array.isArray(r.diceRolled) ? r.diceRolled.join(', ') : r.dieSelected || '?'}] &rarr; {r.dieSelected}
-          </span>
-          <span className={styles.kvLabel}>DC</span>
-          <span className={styles.kvValue}>{r.dc ?? '?'}</span>
-          <span className={styles.kvLabel}>Total</span>
-          <span className={styles.kvValue}>{r.total ?? '?'}</span>
-          <span className={styles.kvLabel}>Result</span>
-          <span className={styles.kvValue} style={{ color: marginColor }}>
-            {margin} &rarr; {r.tier} {r.tierName || ''}
-          </span>
-          {r.debtPenalty != null && r.debtPenalty !== 0 && (
-            <React.Fragment>
-              <span className={styles.kvLabel}>Debt</span>
-              <span className={styles.kvValueDanger}>{r.debtPenalty}</span>
-            </React.Fragment>
-          )}
-          <span className={styles.kvLabel}>Combat</span>
-          <span className={styles.kvValue}>{r.isCombat ? 'Yes' : 'No'}</span>
-        </div>
-      </div>
-    </div>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
   );
 }
 
-function StateChangesSection({ stateChanges }) {
-  const sc = stateChanges;
-  return (
-    <div className={styles.section}>
-      <div className={styles.sectionTitle}>State Changes</div>
-      <div className={styles.kvGrid}>
-        <span className={styles.kvLabel}>DB Tables</span>
-        <span className={styles.kvValue}>{Array.isArray(sc.tablesWritten) ? sc.tablesWritten.join(', ') : '(none)'}</span>
-        <span className={styles.kvLabel}>Conditions</span>
-        <span className={styles.kvValue}>{fmtChangeList(sc.conditions)}</span>
-        <span className={styles.kvLabel}>Inventory</span>
-        <span className={styles.kvValue}>{fmtChangeList(sc.inventory)}</span>
-        <span className={styles.kvLabel}>NPCs Created</span>
-        <span className={styles.kvValue}>{Array.isArray(sc.npcsCreated) && sc.npcsCreated.length ? sc.npcsCreated.join(', ') : '(none)'}</span>
-        <span className={styles.kvLabel}>NPCs Updated</span>
-        <span className={styles.kvValue}>{Array.isArray(sc.npcsUpdated) && sc.npcsUpdated.length ? sc.npcsUpdated.join(', ') : '(none)'}</span>
-        <span className={styles.kvLabel}>Locations</span>
-        <span className={styles.kvValue}>{Array.isArray(sc.locationsCreated) && sc.locationsCreated.length ? sc.locationsCreated.join(', ') : '(none)'}</span>
-        {sc.clock && (
-          <React.Fragment>
-            <span className={styles.kvLabel}>Clock</span>
-            <span className={styles.kvValue}>
-              Day {sc.clock.before?.day ?? '?'} {fmtClockTime(sc.clock.before)} &rarr; Day {sc.clock.after?.day ?? '?'} {fmtClockTime(sc.clock.after)}
-            </span>
-          </React.Fragment>
-        )}
-        <span className={styles.kvLabel}>Skills</span>
-        <span className={styles.kvValue}>{Array.isArray(sc.skillsChanged) && sc.skillsChanged.length ? sc.skillsChanged.join(', ') : '(none)'}</span>
-      </div>
-    </div>
-  );
+function formatTopBarClock(clock) {
+  if (!clock) return null;
+  const hour = clock.hour ?? Math.floor((clock.globalClock || 0) / 60);
+  const minute = clock.minute ?? ((clock.globalClock || 0) % 60);
+  const day = clock.day ?? clock.currentDay;
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour % 12 || 12;
+  const timeStr = `${displayHour}:${String(minute).padStart(2, '0')} ${period}`;
+  return { day, timeStr, weather: clock.weather || null };
 }
 
-function NarrativeSection({ narrative }) {
-  const n = narrative;
-  const hasErrors = Array.isArray(n.parseErrors) && n.parseErrors.length > 0;
-  return (
-    <div className={styles.section}>
-      <div className={styles.sectionTitle}>Narrative</div>
-      <div className={styles.kvGrid}>
-        <span className={styles.kvLabel}>AI Response</span>
-        <span className={styles.kvValue}>{n.aiResponseLength ?? '?'} chars</span>
-        <span className={styles.kvLabel}>Narrative</span>
-        <span className={styles.kvValue}>{n.narrativeLength ?? '?'} chars</span>
-        <span className={styles.kvLabel}>Options</span>
-        <span className={styles.kvValue}>{n.optionsGenerated ?? '?'}</span>
-        <span className={styles.kvLabel}>Parse Errors</span>
-        <span className={hasErrors ? styles.kvValueDanger : styles.kvValue}>
-          {hasErrors ? n.parseErrors.join(', ') : 'none'}
-        </span>
-        <span className={styles.kvLabel}>JSON Repair</span>
-        <span className={n.jsonRepair ? styles.kvValueWarning : styles.kvValue}>
-          {n.jsonRepair ? 'yes' : 'no'}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function ContextSection({ context }) {
-  const ctx = context;
-  const layers = ctx.layers || {};
-  return (
-    <div className={styles.section}>
-      <div className={styles.sectionTitle}>Context Budget</div>
-      <div className={styles.contextLayers}>
-        {['L1', 'L2', 'L3', 'L4'].map(key => (
-          <div key={key} className={styles.layerChip}>
-            <span className={styles.layerKey}>{key}</span>
-            <span className={styles.layerVal}>{(layers[key] || 0).toLocaleString()}</span>
-          </div>
-        ))}
-        <div className={styles.layerChipAccent}>
-          <span className={styles.layerKey}>Total</span>
-          <span className={styles.layerVal} style={{ color: '#c9a84c' }}>
-            {(layers.total || 0).toLocaleString()}
-          </span>
-        </div>
-      </div>
-      {Array.isArray(ctx.npcs) && ctx.npcs.length > 0 && (
-        <div className={styles.contextRow}>
-          <span className={styles.kvLabel}>NPCs</span>
-          <span className={styles.kvValue}>{ctx.npcs.join(', ')}</span>
-        </div>
-      )}
-      {Array.isArray(ctx.locations) && ctx.locations.length > 0 && (
-        <div className={styles.contextRow}>
-          <span className={styles.kvLabel}>Locations</span>
-          <span className={styles.kvValue}>{ctx.locations.join(', ')}</span>
-        </div>
-      )}
-      <div className={styles.contextRow}>
-        <span className={styles.kvLabel}>Active Anchors</span>
-        <span className={styles.kvValue}>{ctx.activeAnchors ?? 0}</span>
-      </div>
-    </div>
-  );
-}
-
-function RowCountsSection({ rowCounts }) {
-  return (
-    <div className={styles.section}>
-      <div className={styles.sectionTitle}>Row Counts</div>
-      <div className={styles.kvGrid}>
-        {Object.entries(rowCounts).map(([key, val]) => (
-          <React.Fragment key={key}>
-            <span className={styles.kvLabel}>{key}</span>
-            <span className={styles.kvValue}>{val}</span>
-          </React.Fragment>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function RawFallbackSection({ debug }) {
-  const unknownKeys = Object.keys(debug).filter(k => !KNOWN_DEBUG_KEYS.includes(k));
-  if (unknownKeys.length === 0) return null;
-  const unknownData = Object.fromEntries(unknownKeys.map(k => [k, debug[k]]));
-  return (
-    <div className={styles.section}>
-      <div className={styles.sectionTitle}>Other Debug Data</div>
-      <pre className={styles.rawJson}>{JSON.stringify(unknownData, null, 2)}</pre>
-    </div>
-  );
-}
-
-// =============================================================================
-// Developer View — Entry Row
-// =============================================================================
-
-function EntryRow({ entry, expanded, onToggle }) {
-  const d = entry.debug || {};
-  const statusColor = entry.status >= 500 ? '#e8845a' : entry.status >= 400 ? '#e8c45a' : '#8aba7a';
-  const duration = d.timing?.total || entry.durationMs;
-  const cost = d.turnCost ?? d.ai?.estimatedCost;
-  const path = shortPath(entry.url);
-  const turnNum = entry.turnNumber || d.turn;
-  const [copied, setCopied] = useState(false);
-
-  // Build action display for summary line
-  let actionDisplay = '';
-  const isAction = entry.url.includes('/action');
-  if (isAction && turnNum) {
-    actionDisplay = `Turn ${turnNum}: "${entry.actionLabel || '?'}"`;
-  } else if (entry.method === 'GET' && d.rowCounts) {
-    actionDisplay = Object.entries(d.rowCounts).map(([k, v]) => `${v} ${k}`).join(', ');
-  } else if (entry.actionLabel) {
-    actionDisplay = entry.actionLabel;
-  }
-
-  const handleCopy = (e) => {
-    e.stopPropagation();
-    try {
-      navigator.clipboard.writeText(entryToText(entry)).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      });
-    } catch { /* clipboard not available */ }
-  };
+export default function TopBar({ setting, clock, sseConnected, sidebarOpen, onToggleSidebar, onOpenSettings, debugMode }) {
+  const clockData = formatTopBarClock(clock);
 
   return (
-    <div className={styles.entryRow}>
-      <div className={styles.entrySummary} onClick={onToggle}>
-        <span className={styles.entryTime}>[{fmtTime(entry.timestamp)}]</span>
-        <span className={styles.entrySep}>&mdash;</span>
-        <span className={styles.entryMethod}>{entry.method} {path}</span>
-        <span className={styles.entrySep}>&mdash;</span>
-        <span className={styles.entryStatus} style={{ color: statusColor }}>{entry.status}</span>
-        <span className={styles.entrySep}>&mdash;</span>
-        <span className={styles.entryDuration}>{duration}ms</span>
-        {cost != null && (
+    <header className={styles.topBar}>
+      <div className={styles.left}>
+        <Link href="/menu" className={styles.wordmark}>
+          <span className={styles.crucible}>CRUCIBLE</span>
+          <span className={styles.rpg}>RPG</span>
+        </Link>
+        {setting && (
           <>
-            <span className={styles.entrySep}>&mdash;</span>
-            <span className={styles.entryCost}>{fmtCost(cost)}</span>
+            <div className={styles.separator} />
+            <span className={styles.settingName}>{setting}</span>
           </>
         )}
-        {actionDisplay && (
-          <>
-            <span className={styles.entrySep}>&mdash;</span>
-            <span className={styles.entryAction}>{actionDisplay}</span>
-          </>
-        )}
-        <span className={styles.entryChevron}>{expanded ? '\u25BC' : '\u25B6'}</span>
       </div>
-      {expanded && (
-        <div className={styles.entryDetail}>
-          <div className={styles.detailActions}>
-            <button
-              className={copied ? styles.copyEntryBtnSuccess : styles.copyEntryBtn}
-              onClick={handleCopy}
-            >
-              {copied ? '\u2713 Copied' : 'Copy Entry'}
-            </button>
+      <div className={styles.right}>
+        {clockData && (
+          <div className={styles.clockDisplay}>
+            {clockData.day && <span className={styles.clockSegment}>Day {clockData.day}</span>}
+            <span className={styles.clockDot}>{'\u00b7'}</span>
+            <span className={styles.clockSegment}>{clockData.timeStr}</span>
+            {clockData.weather && (
+              <>
+                <span className={styles.clockDot}>{'\u00b7'}</span>
+                <span className={styles.clockWeather}>{clockData.weather}</span>
+              </>
+            )}
           </div>
-          <TimingSection timing={d.timing} clientMs={entry.durationMs} />
-          {d.ai && <AiSection ai={d.ai} />}
-          {d.turnCostBreakdown && (
-            <div className={styles.section}>
-              <div className={styles.sectionTitle}>Cost Breakdown</div>
-              <div className={styles.kvGrid}>
-                {Object.entries(d.turnCostBreakdown).map(([task, taskCost]) => (
-                  <React.Fragment key={task}>
-                    <span className={styles.kvLabel}>{task}</span>
-                    <span className={styles.kvValueAccent}>{fmtCost(taskCost)}</span>
-                  </React.Fragment>
-                ))}
-                {d.turnCost != null && (
-                  <React.Fragment>
-                    <span className={styles.kvLabel}>Turn Total</span>
-                    <span className={styles.kvValueAccent}>{fmtCost(d.turnCost)}</span>
-                  </React.Fragment>
-                )}
-              </div>
-            </div>
-          )}
-          {d.resolution && <ResolutionSection resolution={d.resolution} />}
-          {d.stateChanges && <StateChangesSection stateChanges={d.stateChanges} />}
-          {d.narrative && <NarrativeSection narrative={d.narrative} />}
-          {d.context && <ContextSection context={d.context} />}
-          {d.rowCounts && <RowCountsSection rowCounts={d.rowCounts} />}
-          <RawFallbackSection debug={d} />
-        </div>
-      )}
-    </div>
+        )}
+        {debugMode && (
+          <div className={styles.debugBadge} title="Debug mode active (Ctrl+Shift+D to toggle)">
+            DEBUG
+          </div>
+        )}
+        <Link
+          href="/rulebook"
+          target="_blank"
+          className={styles.iconButton}
+          title="Rulebook"
+          aria-label="Rulebook"
+        >
+          <BookIcon color="#7082a4" />
+        </Link>
+        <button
+          className={styles.iconButton}
+          onClick={onOpenSettings}
+          title="Display settings"
+          aria-label="Display settings"
+        >
+          <SettingsIcon color="#7082a4" />
+        </button>
+        <button
+          className={styles.iconButton}
+          onClick={onToggleSidebar}
+          title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+          aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+        >
+          <SidebarIcon color={sidebarOpen ? '#c9a84c' : '#7082a4'} />
+        </button>
+        <AuthAvatar size={28} />
+        <div
+          className={styles.connectionDot}
+          style={{ background: sseConnected ? '#8aba7a' : '#e8845a' }}
+          title={sseConnected ? 'Connected' : 'Disconnected'}
+          aria-label={sseConnected ? 'Server connected' : 'Server disconnected'}
+        />
+      </div>
+    </header>
   );
 }
 
-// =============================================================================
-// Designer View — Section Components
-// =============================================================================
+// FILE: app/play/components/TurnBlock.js
+import React, { useState, forwardRef } from 'react';
+import InlineDicePanel from './InlineDicePanel';
+import ResolutionBlock from './ResolutionBlock';
+import styles from './TurnBlock.module.css';
 
-function DesignerResolution({ resolution }) {
-  const r = resolution;
-  const stat = (r.stat || '?').toUpperCase();
-  const effVal = r.effectiveValue ?? r.effective ?? '?';
-  const parts = [`${stat} ${effVal}`];
-  if (r.skillUsed) parts.push(`${r.skillUsed} ${r.skillModifier ?? 0}`);
-  if (r.equipmentQuality) parts.push(`Equip ${r.equipmentQuality}`);
-  parts.push(`d20(${r.dieSelected ?? '?'})`);
-  const mathLine = `${parts.join(' + ')} = ${r.total ?? '?'} vs DC ${r.dc ?? '?'}`;
-
-  const margin = r.margin != null ? (r.margin >= 0 ? '+' : '') + Number(r.margin).toFixed(1) : '?';
-  const fb = r.fortunesBalance || '?';
-  const tierStr = [r.tierName, r.tier ? `(${r.tier})` : null].filter(Boolean).join(' ');
-  const detailLine = `Fortune\u2019s Balance: ${fb} | Margin: ${margin} | Tier: ${tierStr || '?'}`;
-  const marginColor = r.margin >= 0 ? '#8aba7a' : '#e8845a';
-
-  return (
-    <div className={styles.dSection}>
-      <div className={styles.dSectionTitle}>Resolution</div>
-      <div className={styles.dResLine}>{mathLine}</div>
-      <div className={styles.dResLine} style={{ color: marginColor }}>{detailLine}</div>
-    </div>
-  );
+// Format clock fields for display
+function formatTime(clock) {
+  if (!clock) return null;
+  const hour = clock.hour ?? Math.floor((clock.globalClock || 0) / 60);
+  const minute = clock.minute ?? ((clock.globalClock || 0) % 60);
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${String(minute).padStart(2, '0')} ${period}`;
 }
 
-function DesignerStateChanges({ stateChanges }) {
-  const sc = stateChanges;
-  const lines = [];
+function getTimeEmoji(clock) {
+  if (!clock) return null;
+  const hour = clock.hour ?? Math.floor((clock.globalClock || 0) / 60);
+  if (hour >= 5 && hour < 8) return '\u{1F305}';   // sunrise
+  if (hour >= 8 && hour < 18) return '\u2600\uFE0F'; // sun
+  if (hour >= 18 && hour < 21) return '\u{1F307}';  // sunset
+  return '\u{1F319}';                                 // night
+}
+
+function getWeatherEmoji(weather) {
+  if (!weather) return null;
+  const w = weather.toLowerCase();
+  if (w.includes('clear') || w.includes('sunny')) return '\u2600\uFE0F';
+  if (w.includes('cloud') || w.includes('overcast')) return '\u2601\uFE0F';
+  if (w.includes('storm') || w.includes('thunder')) return '\u26C8\uFE0F';
+  if (w.includes('rain') || w.includes('drizzle')) return '\u{1F327}\uFE0F';
+  if (w.includes('snow') || w.includes('blizzard')) return '\u2744\uFE0F';
+  if (w.includes('fog') || w.includes('mist')) return '\u{1F32B}\uFE0F';
+  if (w.includes('wind')) return '\u{1F32C}\uFE0F';
+  return null;
+}
+
+// Render narrative text: \n\n = paragraph break, \n = <br>
+function renderNarrative(text) {
+  if (!text) return null;
+  return text.split('\n\n').map((paragraph, i) => {
+    const lines = paragraph.split('\n');
+    return (
+      <p key={i}>
+        {lines.map((line, j) => (
+          <React.Fragment key={j}>
+            {j > 0 && <br />}
+            {line}
+          </React.Fragment>
+        ))}
+      </p>
+    );
+  });
+}
+
+// ─── Status Change Badges ───
+// Conditions: added=warning(orange), removed=cleared(green), modified=escalated(orange)
+// Inventory: added=gained(gold), removed=lost(orange), modified=modified(blue)
+// CON conditions get red instead of orange
+
+function StatusBadges({ stateChanges }) {
+  if (!stateChanges) return null;
+
+  const badges = [];
 
   // Conditions
-  if (sc.conditions) {
-    (sc.conditions.added || []).forEach(c => {
-      const name = itemName(c);
-      const detail = typeof c === 'object' && c.penalty != null
-        ? ` (${c.penalty} ${(c.stat || '').toUpperCase()}, ${(c.durationType || '').replace(/_/g, ' ')})`
-        : typeof c === 'object' && c.durationType ? ` (${c.durationType.replace(/_/g, ' ')})` : '';
-      lines.push({ emoji: '\u26A0\uFE0F', text: `Condition Added: ${name}${detail}`, cls: 'warning' });
-    });
-    (sc.conditions.removed || []).forEach(c => {
-      lines.push({ emoji: '\u2705', text: `Condition Removed: ${itemName(c)}`, cls: 'success' });
-    });
-    (sc.conditions.modified || []).forEach(c => {
-      lines.push({ emoji: '\u26A0\uFE0F', text: `Condition Changed: ${itemName(c)}`, cls: 'warning' });
-    });
+  const conds = stateChanges.conditions;
+  if (conds) {
+    if (Array.isArray(conds.added)) {
+      conds.added.forEach(item => {
+        const name = typeof item === 'string' ? item : (item.name || 'Unknown condition');
+        const isCon = (typeof item === 'object' && item !== null) ? (item.stat || '').toLowerCase() === 'con' : false;
+        badges.push({
+          type: isCon ? 'condConDanger' : 'condAdded',
+          text: `\u26A0 ${name}${(typeof item === 'object' && item?.penalty) ? `: ${item.penalty} ${(item.stat || '').toUpperCase()}` : ''}`,
+          key: `cond-add-${name}`,
+        });
+      });
+    }
+    if (Array.isArray(conds.removed)) {
+      conds.removed.forEach(item => {
+        const name = typeof item === 'string' ? item : (item.name || 'Unknown condition');
+        badges.push({
+          type: 'condRemoved',
+          text: `\u2713 ${name} cleared`,
+          key: `cond-rm-${name}`,
+        });
+      });
+    }
+    if (Array.isArray(conds.modified)) {
+      conds.modified.forEach(item => {
+        const name = typeof item === 'string' ? item : (item.name || 'Unknown condition');
+        const isCon = (typeof item === 'object' && item !== null) ? (item.stat || '').toLowerCase() === 'con' : false;
+        badges.push({
+          type: isCon ? 'condConDanger' : 'condModified',
+          text: `\u26A0 ${name}${(typeof item === 'object' && item?.previousName) ? ` \u2192 ${item.name}` : ' escalated'}`,
+          key: `cond-mod-${name}`,
+        });
+      });
+    }
   }
 
   // Inventory
-  if (sc.inventory) {
-    (sc.inventory.added || []).forEach(item => {
-      lines.push({ emoji: '\uD83D\uDCE6', text: `Gained: ${itemName(item)}`, cls: '' });
-    });
-    (sc.inventory.removed || []).forEach(item => {
-      lines.push({ emoji: '\uD83D\uDCE6', text: `Lost: ${itemName(item)}`, cls: 'warning' });
-    });
+  const inv = stateChanges.inventory;
+  if (inv) {
+    if (Array.isArray(inv.added)) {
+      inv.added.forEach(item => {
+        const name = typeof item === 'string' ? item : (item.name || 'Unknown item');
+        badges.push({
+          type: 'invAdded',
+          text: `+ ${name}`,
+          key: `inv-add-${name}`,
+        });
+      });
+    }
+    if (Array.isArray(inv.removed)) {
+      inv.removed.forEach(item => {
+        const name = typeof item === 'string' ? item : (item.name || 'Unknown item');
+        badges.push({
+          type: 'invRemoved',
+          text: `\u2013 ${name}`,
+          key: `inv-rm-${name}`,
+        });
+      });
+    }
+    if (Array.isArray(inv.modified)) {
+      inv.modified.forEach(item => {
+        const name = typeof item === 'string' ? item : (item.name || 'Unknown item');
+        badges.push({
+          type: 'invModified',
+          text: `~ ${name}`,
+          key: `inv-mod-${name}`,
+        });
+      });
+    }
   }
 
-  // Clock
-  if (sc.clock) {
-    const b = sc.clock.before || {};
-    const a = sc.clock.after || {};
-    lines.push({ emoji: '\uD83D\uDD50', text: `Clock: Day ${b.day ?? '?'} ${fmtClockTime(b)} \u2192 Day ${a.day ?? '?'} ${fmtClockTime(a)}`, cls: '' });
-  }
+  if (badges.length === 0) return null;
 
-  // NPCs
-  if (Array.isArray(sc.npcsCreated) && sc.npcsCreated.length) {
-    sc.npcsCreated.forEach(n => lines.push({ emoji: '\uD83D\uDC64', text: `NPC Met: ${n}`, cls: '' }));
-  }
-  if (Array.isArray(sc.npcsUpdated) && sc.npcsUpdated.length) {
-    sc.npcsUpdated.forEach(n => lines.push({ emoji: '\uD83D\uDC64', text: `NPC Updated: ${n}`, cls: '' }));
-  }
-
-  // Locations
-  if (Array.isArray(sc.locationsCreated) && sc.locationsCreated.length) {
-    sc.locationsCreated.forEach(l => lines.push({ emoji: '\uD83D\uDCCD', text: `Location Discovered: ${l}`, cls: '' }));
-  }
-
-  // Skills
-  if (Array.isArray(sc.skillsChanged) && sc.skillsChanged.length) {
-    sc.skillsChanged.forEach(s => lines.push({ emoji: '\u2694\uFE0F', text: `Skill Changed: ${s}`, cls: '' }));
-  }
-
-  if (lines.length === 0) return null;
+  const badgeClass = (type) => {
+    switch (type) {
+      case 'condAdded':    return styles.badgeCondWarning;
+      case 'condModified': return styles.badgeCondWarning;
+      case 'condConDanger':return styles.badgeCondCon;
+      case 'condRemoved':  return styles.badgeCondCleared;
+      case 'invAdded':     return styles.badgeInvGained;
+      case 'invRemoved':   return styles.badgeInvLost;
+      case 'invModified':  return styles.badgeInvModified;
+      default:             return styles.badgeCondWarning;
+    }
+  };
 
   return (
-    <div className={styles.dSection}>
-      <div className={styles.dSectionTitle}>State Changes</div>
-      {lines.map((line, i) => (
-        <div key={i} className={`${styles.dChangeLine} ${line.cls === 'warning' ? styles.dChangeWarning : line.cls === 'success' ? styles.dChangeSuccess : ''}`}>
-          <span className={styles.dChangeEmoji}>{line.emoji}</span>
-          <span>{line.text}</span>
-        </div>
+    <div className={styles.badges}>
+      {badges.map(b => (
+        <span key={b.key} className={`${styles.badge} ${badgeClass(b.type)}`}>
+          {b.text}
+        </span>
       ))}
     </div>
   );
 }
 
-function DesignerNpcs({ context }) {
-  if (!context?.npcs?.length) return null;
-  const npcParts = context.npcs.map(npc => {
-    if (typeof npc === 'string') return npc;
-    if (npc.name) return `${npc.name}${npc.disposition != null ? `: ${npc.disposition}${npc.attitude ? ` (${npc.attitude})` : ''}` : ''}`;
-    return JSON.stringify(npc);
-  });
+const TurnBlock = forwardRef(function TurnBlock({ turn, isNew }, ref) {
+  const hasResolution = !!turn.resolution;
+  const shouldAnimate = isNew && hasResolution;
+  const [showContent, setShowContent] = useState(!shouldAnimate);
+
+  const timeStr = formatTime(turn.clock);
+  const timeEmoji = getTimeEmoji(turn.clock);
+  const day = turn.clock?.day ?? turn.clock?.currentDay;
+  const weatherEmoji = getWeatherEmoji(turn.weather);
 
   return (
-    <div className={styles.dSection}>
-      <div className={styles.dSectionTitle}>NPCs Active</div>
-      <div className={styles.dNpcLine}>{npcParts.join(' | ')}</div>
-    </div>
-  );
-}
-
-function DesignerContextBudget({ context }) {
-  if (!context?.layers) return null;
-  const layers = context.layers;
-  const parts = ['L1', 'L2', 'L3', 'L4']
-    .map(k => `${k}: ${layers[k] ? layers[k].toLocaleString() + ' tok' : '\u2014'}`)
-  if (layers.total) parts.push(`Total: ${layers.total.toLocaleString()} tok`);
-  const complexity = context.sceneComplexity;
-
-  return (
-    <div className={styles.dSection}>
-      <div className={styles.dSectionTitle}>Context Budget</div>
-      <div className={styles.dContextLine}>
-        {parts.join(' | ')}
-        {complexity ? ` | Complexity: ${complexity}` : ''}
-      </div>
-    </div>
-  );
-}
-
-function DesignerAiCalls({ debug }) {
-  const d = debug;
-  const breakdown = d.turnCostBreakdown;
-
-  if (breakdown) {
-    return (
-      <div className={styles.dSection}>
-        <div className={styles.dSectionTitle}>AI Calls</div>
-        {Object.entries(breakdown).map(([task, cost]) => (
-          <div key={task} className={styles.dAiLine}>
-            <span className={styles.dAiTask}>{task}</span>: <span className={styles.dAiCost}>{fmtCost(cost)}</span>
-          </div>
-        ))}
-        {d.turnCost != null && (
-          <div className={styles.dAiLine} style={{ borderTop: '1px solid #2a2a44', paddingTop: 3, marginTop: 3 }}>
-            <span className={styles.dAiTask}>total</span>: <span className={styles.dAiCost}>{fmtCost(d.turnCost)}</span>
-          </div>
+    <div className={styles.turnBlock} ref={ref}>
+      <div className={styles.turnHeader}>
+        {turn.location && (
+          <span className={styles.headerChip}>
+            <span className={styles.headerEmoji}>{'\u{1F4CD}'}</span>
+            <span className={styles.headerValue}>{turn.location}</span>
+          </span>
         )}
-      </div>
-    );
-  }
-
-  // Fallback: single AI call info
-  if (d.ai) {
-    const tok = d.ai.tokens || {};
-    return (
-      <div className={styles.dSection}>
-        <div className={styles.dSectionTitle}>AI Calls</div>
-        <div className={styles.dAiLine}>
-          <span className={styles.dAiTask}>{d.ai.task || 'narrative'}</span>: {d.ai.model || '?'} &mdash; <span className={styles.dAiCost}>{fmtCost(d.ai.estimatedCost) || '?'}</span>
-          {' '}({(tok.completion || 0).toLocaleString()} tok out{tok.cached ? `, ${tok.cached.toLocaleString()} cached` : ''})
-        </div>
-      </div>
-    );
-  }
-
-  return null;
-}
-
-// =============================================================================
-// Designer View — Turn Card
-// =============================================================================
-
-function DesignerTurnCard({ entry, expanded, onToggle }) {
-  const d = entry.debug || {};
-  const r = d.resolution;
-  const turnNum = entry.turnNumber || d.turn;
-  const action = parseActionLabel(entry.actionLabel);
-  const stat = r ? (r.stat || '?').toUpperCase() : null;
-  const tierStr = r ? [r.tierName, r.tier ? `(${r.tier})` : null].filter(Boolean).join(' ') : null;
-  const cost = d.turnCost ?? d.ai?.estimatedCost;
-  const duration = d.timing?.total || entry.durationMs;
-  const durationSec = (duration / 1000).toFixed(1);
-
-  return (
-    <div className={styles.turnCard}>
-      <div className={styles.turnCardSummary} onClick={onToggle}>
-        <span className={styles.turnNum}>Turn {turnNum || '?'}:</span>
-        <span className={styles.turnAction}>&ldquo;{action.text}&rdquo;</span>
-        {tierStr && <><span className={styles.turnSep}>&mdash;</span><span className={styles.turnOutcome}>{tierStr}</span></>}
-        {stat && <><span className={styles.turnSep}>&mdash;</span><span className={styles.turnStat}>{stat}</span></>}
-        {cost != null && <><span className={styles.turnSep}>&mdash;</span><span className={styles.turnCost}>{fmtCost(cost)}</span></>}
-        <span className={styles.turnSep}>&mdash;</span>
-        <span className={styles.turnDuration}>{durationSec}s</span>
-        <span className={styles.turnChevron}>{expanded ? '\u25BC' : '\u25B6'}</span>
-      </div>
-      {expanded && (
-        <div className={styles.turnCardDetail}>
-          {r && <DesignerResolution resolution={r} />}
-          {d.stateChanges && <DesignerStateChanges stateChanges={d.stateChanges} />}
-          <DesignerNpcs context={d.context} />
-          <DesignerContextBudget context={d.context} />
-          <DesignerAiCalls debug={d} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// =============================================================================
-// Shared — Cost Bar
-// =============================================================================
-
-function CostBar({ entries }) {
-  // Most recent entry with gameTotalCost
-  const gameTotalEntry = entries.find(e => e.debug?.gameTotalCost != null);
-  const gameTotalCost = gameTotalEntry?.debug?.gameTotalCost;
-
-  // Most recent POST /action entry for turn cost
-  const lastTurnEntry = entries.find(e =>
-    e.method === 'POST' && e.url.includes('/action') && e.debug
-  );
-  const turnCost = lastTurnEntry?.debug?.turnCost ?? lastTurnEntry?.debug?.ai?.estimatedCost;
-  const breakdown = lastTurnEntry?.debug?.turnCostBreakdown;
-
-  return (
-    <div className={styles.costBar}>
-      <div className={styles.costBarLine}>
-        <span className={styles.costLabel}>Game Total:</span>
-        <span className={styles.costValue}>{gameTotalCost != null ? fmtCost(gameTotalCost) : '\u2014'}</span>
-        <span className={styles.costSep}>|</span>
-        <span className={styles.costLabel}>Last Turn:</span>
-        <span className={styles.costValue}>{turnCost != null ? fmtCost(turnCost) : '\u2014'}</span>
-      </div>
-      {breakdown && (
-        <div className={styles.costBreakdown}>
-          ({Object.entries(breakdown).map(([task, taskCost], i) => (
-            <span key={task}>{i > 0 && ' \u00B7 '}{task}: {fmtCost(taskCost)}</span>
-          ))})
-        </div>
-      )}
-    </div>
-  );
-}
-
-// =============================================================================
-// Main Debug Panel
-// =============================================================================
-
-export default function DebugPanel({ entries, onClear }) {
-  const [collapsed, setCollapsed] = useState(false);
-  const [height, setHeight] = useState(300);
-  const [expandedId, setExpandedId] = useState(null);
-  const [copyFeedback, setCopyFeedback] = useState(false);
-  const [view, setView] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('crucible_debug_view') || 'designer';
-    }
-    return 'designer';
-  });
-  const panelRef = useRef(null);
-
-  const handleViewChange = (v) => {
-    setView(v);
-    setExpandedId(null);
-    if (typeof window !== 'undefined') localStorage.setItem('crucible_debug_view', v);
-  };
-
-  // Drag to resize
-  const handleDragStart = useCallback((e) => {
-    e.preventDefault();
-    const startY = e.clientY;
-    const startHeight = height;
-
-    const handleDrag = (moveEvent) => {
-      const delta = startY - moveEvent.clientY;
-      setHeight(Math.max(100, Math.min(window.innerHeight - 100, startHeight + delta)));
-    };
-
-    const handleDragEnd = () => {
-      document.removeEventListener('mousemove', handleDrag);
-      document.removeEventListener('mouseup', handleDragEnd);
-    };
-
-    document.addEventListener('mousemove', handleDrag);
-    document.addEventListener('mouseup', handleDragEnd);
-  }, [height]);
-
-  const handleCopyAll = useCallback(() => {
-    try {
-      navigator.clipboard.writeText(allEntriesToText(entries)).then(() => {
-        setCopyFeedback(true);
-        setTimeout(() => setCopyFeedback(false), 1500);
-      });
-    } catch { /* clipboard not available */ }
-  }, [entries]);
-
-  // Filter turn entries for designer view
-  const turnEntries = entries.filter(e =>
-    e.method === 'POST' && (e.url.includes('/action') || e.url.includes('/talk-to-gm'))
-  );
-
-  return (
-    <div
-      ref={panelRef}
-      className={styles.panel}
-      style={{ height: collapsed ? 36 : height }}
-    >
-      {/* Drag handle (only when expanded) */}
-      {!collapsed && (
-        <div className={styles.dragHandle} onMouseDown={handleDragStart}>
-          <div className={styles.dragGrip} />
-        </div>
-      )}
-
-      {/* Header bar */}
-      <div className={styles.headerBar} onClick={() => setCollapsed(prev => !prev)}>
-        <div className={styles.headerLeft}>
-          <span className={styles.headerLabel}>
-            {collapsed ? '\u25B2' : '\u25BC'} DEBUG
+        {day && (
+          <span className={styles.headerChip}>
+            <span className={styles.headerEmoji}>{'\u{1F4C5}'}</span>
+            <span className={styles.headerValue}>Day {day}</span>
           </span>
-          <span className={styles.headerCount}>
-            {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
+        )}
+        {timeStr && (
+          <span className={styles.headerChip}>
+            <span className={styles.headerEmoji}>{timeEmoji}</span>
+            <span className={styles.headerValue}>{timeStr}</span>
           </span>
-        </div>
-        <div className={styles.headerRight}>
-          <button
-            className={copyFeedback ? styles.headerBtnSuccess : styles.headerBtn}
-            onClick={(e) => { e.stopPropagation(); handleCopyAll(); }}
-          >
-            {copyFeedback ? '\u2713 Copied' : 'Copy All'}
-          </button>
-          <button
-            className={styles.headerBtn}
-            onClick={(e) => { e.stopPropagation(); onClear(); }}
-          >
-            Clear
-          </button>
-        </div>
+        )}
+        {turn.weather && (
+          <span className={styles.headerChip}>
+            {weatherEmoji && <span className={styles.headerEmoji}>{weatherEmoji}</span>}
+            <span className={styles.headerValue}>{turn.weather}</span>
+          </span>
+        )}
+        <span className={styles.headerChip}>
+          <span className={styles.headerEmoji}>{'\u{1F504}'}</span>
+          <span className={styles.headerValue}>Turn {turn.number}</span>
+        </span>
       </div>
 
-      {/* Panels below header (only when expanded) */}
-      {!collapsed && (
+      {turn.playerAction && (
+        <div className={styles.playerAction}>{turn.playerAction}</div>
+      )}
+
+      {/* Dice display — shows Fortune's Balance, animated d20s */}
+      <InlineDicePanel
+        resolution={turn.resolution}
+        animate={shouldAnimate}
+        onComplete={() => setShowContent(true)}
+      />
+
+      {/* Resolution + narrative appear after dice animation completes */}
+      {showContent && (
         <>
-          {/* Sticky cost bar */}
-          <CostBar entries={entries} />
+          <ResolutionBlock resolution={turn.resolution} />
 
-          {/* View toggle */}
-          <div className={styles.viewToggle}>
-            <button
-              className={view === 'designer' ? styles.viewTabActive : styles.viewTab}
-              onClick={() => handleViewChange('designer')}
-            >Designer</button>
-            <button
-              className={view === 'developer' ? styles.viewTabActive : styles.viewTab}
-              onClick={() => handleViewChange('developer')}
-            >Developer</button>
+          <div className={styles.narrativeText}>
+            {renderNarrative(turn.narrative)}
           </div>
 
-          {/* Scrollable content */}
-          <div className={styles.contentArea}>
-            {view === 'designer' ? (
-              turnEntries.length === 0 ? (
-                <div className={styles.emptyState}>No turns yet. Take an action to see turn data here.</div>
-              ) : (
-                turnEntries.map(entry => (
-                  <DesignerTurnCard
-                    key={entry.id}
-                    entry={entry}
-                    expanded={expandedId === entry.id}
-                    onToggle={() => setExpandedId(prev => prev === entry.id ? null : entry.id)}
-                  />
-                ))
-              )
-            ) : (
-              entries.length === 0 ? (
-                <div className={styles.emptyState}>No debug entries yet. API responses with _debug data will appear here.</div>
-              ) : (
-                entries.map(entry => (
-                  <EntryRow
-                    key={entry.id}
-                    entry={entry}
-                    expanded={expandedId === entry.id}
-                    onToggle={() => setExpandedId(prev => prev === entry.id ? null : entry.id)}
-                  />
-                ))
-              )
-            )}
-          </div>
+          <StatusBadges stateChanges={turn.stateChanges} />
         </>
       )}
     </div>
   );
-}
+});
 
-
-// =============================================================================
-// FILE: app/play/components/ReportModal.js
-// =============================================================================
-
-'use client';
-
-import { useState } from 'react';
-import { post } from '@/lib/api';
-
-const C = {
-  bg: '#0a0e1a', panelBg: '#0d1120', cardBg: '#111528', inputBg: '#0a0e1a',
-  resolutionBg: '#0e1420', text: '#c8c0b0', heading: '#d0c098', secondary: '#8a94a8',
-  muted: '#7082a4', dim: '#6b83a3', accent: '#c9a84c', accentBright: '#ddb84e',
-  danger: '#e8845a', success: '#8aba7a', border: '#1e2540', borderLight: '#161c34',
-  overlay: 'rgba(0,0,0,0.6)',
-};
-
-const BUG_CATEGORIES = [
-  { id: 'dice', label: 'Dice / Resolution' },
-  { id: 'narrative', label: 'Story / Narrative' },
-  { id: 'ui', label: 'UI / Display' },
-  { id: 'inventory', label: 'Inventory / Items' },
-  { id: 'npc', label: 'NPCs / Factions' },
-  { id: 'other', label: 'Other' },
-];
-
-const SUGGEST_CATEGORIES = [
-  { id: 'feature', label: 'New Feature' },
-  { id: 'ui', label: 'UI Improvement' },
-  { id: 'balance', label: 'Game Balance' },
-  { id: 'story', label: 'Storytelling' },
-  { id: 'other', label: 'Other' },
-];
-
-function ContextPreview({ mode, context }) {
-  const [expanded, setExpanded] = useState(false);
-  const entries = Object.entries(context || {}).filter(([, v]) => v != null);
-  if (entries.length === 0) return null;
-
-  return (
-    <div style={{
-      background: C.resolutionBg, border: `1px solid ${C.borderLight}`, borderRadius: 6,
-      overflow: 'hidden', marginBottom: 16,
-    }}>
-      <button onClick={() => setExpanded(!expanded)} style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        width: '100%', padding: '10px 14px', cursor: 'pointer',
-        background: 'transparent', border: 'none',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.dim} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-            <line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" />
-          </svg>
-          <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: C.dim }}>
-            {mode === 'bug' ? 'Debug snapshot auto-attached' : 'Game context auto-attached'}
-            <span style={{ color: C.muted, marginLeft: 6 }}>({entries.length} fields)</span>
-          </span>
-        </div>
-        <span style={{ color: C.dim, fontSize: 10, transform: expanded ? 'rotate(0)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}>{'\u25BC'}</span>
-      </button>
-      {expanded && (
-        <div style={{ padding: '0 14px 12px' }}>
-          {entries.map(([key, val], i) => (
-            <div key={key} style={{
-              display: 'flex', justifyContent: 'space-between', padding: '3px 0',
-              borderBottom: i < entries.length - 1 ? `1px solid ${C.borderLight}` : 'none',
-            }}>
-              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: C.dim }}>{key}</span>
-              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: C.secondary, textAlign: 'right', maxWidth: '60%' }}>
-                {String(val)}
-              </span>
-            </div>
-          ))}
-          {mode === 'bug' && (
-            <div style={{ fontFamily: "'Alegreya', serif", fontSize: 11, color: C.dim, fontStyle: 'italic', marginTop: 8 }}>
-              Full AI prompt/response and server JSON also included.
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default function ReportModal({ mode, gameId, gameState, turns, onClose }) {
-  const [category, setCategory] = useState(null);
-  const [message, setMessage] = useState('');
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState('');
-
-  const isBug = mode === 'bug';
-  const categories = isBug ? BUG_CATEGORIES : SUGGEST_CATEGORIES;
-  const title = isBug ? 'Bug Report' : 'Suggestion';
-  const placeholder = isBug
-    ? 'Describe what went wrong. What did you expect to happen?'
-    : 'What would make the game better? Describe your idea.';
-  const recipient = isBug ? 'bugs@crucibleRPG.com' : 'suggestions@crucibleRPG.com';
-
-  // Build context from game state
-  const lastTurn = turns?.length > 0 ? turns[turns.length - 1] : null;
-  const context = {
-    turnNumber: gameState?.clock?.totalTurn || lastTurn?.turnNumber || null,
-    characterName: gameState?.character?.name || null,
-    setting: gameState?.setting || null,
-    storyteller: gameState?.storyteller || null,
-    difficulty: gameState?.difficulty || null,
-    lastAction: lastTurn?.playerAction || null,
-    browser: typeof navigator !== 'undefined' ? navigator.userAgent : null,
-  };
-
-  const canSend = message.trim().length > 0 && category;
-
-  async function handleSend() {
-    if (!canSend || sending) return;
-    setSending(true);
-    setError('');
-    try {
-      await post('/api/bug-report', {
-        type: mode,
-        category,
-        message: message.trim(),
-        gameId: gameId || null,
-        context,
-      });
-      setSent(true);
-    } catch (err) {
-      if (err.status === 429) {
-        setError("You've submitted too many reports recently. Please try again later.");
-      } else {
-        setError(err.message || 'Failed to send report.');
-      }
-    }
-    setSending(false);
-  }
-
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 300,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }} onClick={onClose}>
-      <div style={{ position: 'absolute', inset: 0, background: C.overlay }} />
-      <div onClick={e => e.stopPropagation()} style={{
-        background: C.panelBg, border: `1px solid ${C.border}`, borderRadius: 12,
-        width: 480, maxWidth: '95vw', maxHeight: '85vh', overflowY: 'auto',
-        position: 'relative', zIndex: 1, padding: '24px 28px',
-        boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
-      }}>
-        {/* Close */}
-        <button onClick={onClose} style={{
-          position: 'absolute', top: 14, right: 16, background: 'none', border: 'none',
-          color: C.dim, fontSize: 18, cursor: 'pointer',
-        }}>{'\u2715'}</button>
-
-        {/* Sent state */}
-        {sent ? (
-          <div style={{ textAlign: 'center', padding: '32px 0' }}>
-            <div style={{
-              width: 48, height: 48, borderRadius: '50%',
-              background: `${C.success}20`, border: `2px solid ${C.success}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 16px',
-            }}>
-              <span style={{ fontSize: 24, color: C.success }}>{'\u2713'}</span>
-            </div>
-            <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 18, fontWeight: 700, color: C.heading, marginBottom: 8 }}>
-              {isBug ? 'Report Sent' : 'Suggestion Sent'}
-            </div>
-            <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: C.muted, lineHeight: 1.6 }}>
-              {isBug ? "Thanks for helping us squash bugs. We'll look into it." : 'Thanks for the idea. We read every suggestion.'}
-            </div>
-            <button onClick={onClose} style={{
-              marginTop: 20, padding: '10px 28px', borderRadius: 6, cursor: 'pointer',
-              fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
-              background: 'transparent', border: `1px solid ${C.border}`, color: C.muted,
-            }}>Close</button>
-          </div>
-        ) : (
-          <>
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-              <div style={{
-                width: 32, height: 32, borderRadius: 6,
-                background: isBug ? `${C.danger}15` : `${C.accent}15`,
-                border: `1px solid ${isBug ? C.danger : C.accent}33`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                {isBug ? (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.danger} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="8" y="6" width="8" height="14" rx="4" /><path d="M19 10h2" /><path d="M3 10h2" />
-                    <path d="M19 14h2" /><path d="M3 14h2" /><path d="M19 18h2" /><path d="M3 18h2" />
-                    <path d="M16 2l-2 4" /><path d="M8 2l2 4" />
-                  </svg>
-                ) : (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 18h6" /><path d="M10 22h4" />
-                    <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
-                  </svg>
-                )}
-              </div>
-              <div>
-                <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 18, fontWeight: 700, color: C.heading }}>{title}</div>
-                <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: C.dim }}>Sends to {recipient}</div>
-              </div>
-            </div>
-
-            {/* Category selector */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: C.muted, marginBottom: 8 }}>Category</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                {categories.map(cat => (
-                  <button key={cat.id} onClick={() => setCategory(cat.id)} style={{
-                    padding: '5px 12px', borderRadius: 5, cursor: 'pointer',
-                    fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
-                    background: category === cat.id ? (isBug ? `${C.danger}15` : `${C.accent}15`) : 'transparent',
-                    border: `1px solid ${category === cat.id ? (isBug ? C.danger : C.accent) : C.border}`,
-                    color: category === cat.id ? (isBug ? C.danger : C.accent) : C.muted,
-                    transition: 'all 0.2s',
-                  }}>{cat.label}</button>
-                ))}
-              </div>
-            </div>
-
-            {/* Message */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: C.muted, marginBottom: 8 }}>
-                {isBug ? 'What happened?' : 'Your idea'}
-              </div>
-              <textarea
-                value={message}
-                onChange={e => setMessage(e.target.value)}
-                placeholder={placeholder}
-                rows={5}
-                style={{
-                  width: '100%', boxSizing: 'border-box', padding: '12px 14px',
-                  background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 6,
-                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
-                  color: C.text, outline: 'none', resize: 'vertical', lineHeight: 1.6,
-                }}
-                onFocus={e => { e.target.style.borderColor = isBug ? C.danger : C.accent; }}
-                onBlur={e => { e.target.style.borderColor = C.border; }}
-              />
-            </div>
-
-            {/* Context preview */}
-            <ContextPreview mode={mode} context={context} />
-
-            {/* Error */}
-            {error && (
-              <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#e85a5a', marginBottom: 10 }}>
-                {error}
-              </div>
-            )}
-
-            {/* Send button */}
-            <button onClick={handleSend} disabled={!canSend || sending} style={{
-              width: '100%', padding: '12px 0', borderRadius: 6, cursor: canSend && !sending ? 'pointer' : 'default',
-              fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700, letterSpacing: '0.06em',
-              background: canSend
-                ? (isBug ? `linear-gradient(135deg, ${C.danger}, #d06040)` : `linear-gradient(135deg, ${C.accent}, ${C.accentBright})`)
-                : C.cardBg,
-              border: 'none',
-              color: canSend ? C.bg : C.dim,
-              opacity: sending ? 0.6 : 1,
-              transition: 'all 0.2s',
-            }}>
-              {sending ? 'Sending...' : `Send ${title}`}
-            </button>
-
-            {/* Privacy note */}
-            <div style={{
-              fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: C.dim,
-              marginTop: 12, textAlign: 'center', lineHeight: 1.5,
-            }}>
-              {isBug
-                ? "Your game state and the last turn's debug data are attached automatically to help us diagnose the issue."
-                : 'Basic game context is attached to help us understand your perspective.'}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
+export default TurnBlock;

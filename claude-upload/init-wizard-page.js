@@ -1991,6 +1991,7 @@ function InitWizardInner() {
   const [error, setError] = useState(null);
   const [transitionPhase, setTransitionPhase] = useState(null);
   const [transitionFading, setTransitionFading] = useState(false);
+  const [contentFading, setContentFading] = useState(false);
   const [loreIndex, setLoreIndex] = useState(0);
   const [loreFade, setLoreFade] = useState(true);
   const [worldGenStatus, setWorldGenStatus] = useState(null); // null, 'generating', 'complete', 'error'
@@ -2403,10 +2404,18 @@ function InitWizardInner() {
       return;
     }
 
+    // Phase 2 uses full ember overlay (AI generation). All others use light crossfade.
+    const useOverlay = phase === 2;
+
     setSaving(true);
     setError(null);
-    setTransitionPhase(phase);
-    setTransitionFading(false);
+
+    if (useOverlay) {
+      setTransitionPhase(phase);
+      setTransitionFading(false);
+    } else {
+      setContentFading(true);
+    }
 
     const transitionStart = Date.now();
 
@@ -2434,36 +2443,51 @@ function InitWizardInner() {
             const settingName = SETTINGS.find(s => s.id === setting)?.name || setting || null;
             const difficultyName = DIFFICULTIES.find(d => d.id === difficulty)?.name || difficulty || null;
             const stName = storyteller ? storyteller.charAt(0).toUpperCase() + storyteller.slice(1) : null;
+            const prebuiltWorld = selectedWorld ? PREBUILT_WORLDS.find(w => w.id === selectedWorld) : null;
             sessionStorage.setItem('crucible_loading_summary', JSON.stringify({
               characterName: character?.name || null,
-              worldName: settingName,
+              worldName: prebuiltWorld ? prebuiltWorld.name : settingName,
+              settingArchetype: settingName,
+              isPrebuilt: !!prebuiltWorld,
               storyteller: stName,
               difficulty: difficultyName,
             }));
           } catch { /* sessionStorage may be unavailable */ }
+          // Fade out init content, then navigate directly to /play
+          await new Promise(r => setTimeout(r, 300));
           router.push(`/play?gameId=${gameId}`);
-          return; // Don't clear overlay — we're navigating away
+          return;
       }
 
-      // Ensure overlay shows for at least 600ms so it doesn't just flash
-      const elapsed = Date.now() - transitionStart;
-      const minDisplay = 2000;
-      if (elapsed < minDisplay) {
-        await new Promise(r => setTimeout(r, minDisplay - elapsed));
+      if (useOverlay) {
+        // Ensure overlay shows for at least 2s for generation transitions
+        const elapsed = Date.now() - transitionStart;
+        const minDisplay = 2000;
+        if (elapsed < minDisplay) {
+          await new Promise(r => setTimeout(r, minDisplay - elapsed));
+        }
+        if (phase < 5) setPhase(phase + 1);
+        setTransitionFading(true);
+        setTimeout(() => {
+          setTransitionPhase(null);
+          setTransitionFading(false);
+          setSaving(false);
+        }, 500);
+      } else {
+        // Crossfade: wait for fade-out, advance phase, then fade in
+        await new Promise(r => setTimeout(r, 300));
+        if (phase < 5) setPhase(phase + 1);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setContentFading(false);
+            setSaving(false);
+          });
+        });
       }
-
-      // Advance phase, then fade out overlay
-      if (phase < 5) setPhase(phase + 1);
-      setTransitionFading(true);
-      setTimeout(() => {
-        setTransitionPhase(null);
-        setTransitionFading(false);
-        setSaving(false);
-      }, 500);
     } catch (err) {
-      // On error, snap overlay closed immediately
       setTransitionPhase(null);
       setTransitionFading(false);
+      setContentFading(false);
       setSaving(false);
       setError(err.message || 'Something went wrong. Please try again.');
     }
@@ -2515,6 +2539,9 @@ function InitWizardInner() {
       {/* Content */}
       <div style={{
         width: '100%', maxWidth: 740, padding: '44px 28px 100px', flex: 1, boxSizing: 'border-box',
+        opacity: contentFading ? 0 : 1,
+        transform: contentFading ? 'translateY(-15px)' : 'translateY(0)',
+        transition: 'opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
       }}>
         <StepIndicator steps={STEP_NAMES} current={phase} />
 
