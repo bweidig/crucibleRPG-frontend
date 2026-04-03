@@ -19,7 +19,7 @@ function ScrollChevron({ heroStage }) {
   return (
     <button
       className={styles.scrollChevron}
-      onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+      onClick={() => document.getElementById('showcase')?.scrollIntoView({ behavior: 'smooth' })}
       aria-label="Scroll to features"
       style={{
         opacity: isVisible ? 0.4 : 0,
