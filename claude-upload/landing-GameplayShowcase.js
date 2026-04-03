@@ -79,14 +79,14 @@ const SCENARIOS = [
 
 // ─── Typewriter Hook ───
 
-function useTypewriter(text, speed, active, reducedMotion) {
+function useTypewriter(text, speed, active, skipAnimation) {
   const [wordCount, setWordCount] = useState(0);
   const words = text ? text.split(' ') : [];
   const done = wordCount >= words.length;
 
   useEffect(() => {
     if (!active || !text) { setWordCount(0); return; }
-    if (reducedMotion) { setWordCount(words.length); return; }
+    if (skipAnimation) { setWordCount(words.length); return; }
     setWordCount(0);
     let i = 0;
     const interval = setInterval(() => {
@@ -95,7 +95,7 @@ function useTypewriter(text, speed, active, reducedMotion) {
       if (i >= words.length) clearInterval(interval);
     }, speed);
     return () => clearInterval(interval);
-  }, [active, text, speed, reducedMotion]);
+  }, [active, text, speed, skipAnimation]);
 
   const visible = words.slice(0, wordCount).join(' ');
   return { visible, done, wordCount };
@@ -105,8 +105,9 @@ function useTypewriter(text, speed, active, reducedMotion) {
 
 export default function GameplayShowcase() {
   const [scenarioIndex, setScenarioIndex] = useState(0);
-  const [phase, setPhase] = useState(0);
-  const [hasPlayed, setHasPlayed] = useState(false);
+  const [phase, setPhase] = useState(11); // Start at 11 (fully rendered) for first view
+  const [firstView, setFirstView] = useState(true);
+  const [revealed, setRevealed] = useState(false); // IO fade-in trigger
   const [allPlayed, setAllPlayed] = useState(false);
   const containerRef = useRef(null);
   const triggeredRef = useRef(false);
@@ -123,6 +124,9 @@ export default function GameplayShowcase() {
   }, []);
 
   const scenario = SCENARIOS[scenarioIndex];
+
+  // Skip animations: first view shows everything instantly, reduced motion also skips typewriter
+  const skipTypewriter = firstView || reducedMotion;
 
   // Clear all pending timers
   const clearTimers = useCallback(() => {
@@ -141,7 +145,7 @@ export default function GameplayShowcase() {
     scenario.narrative,
     50,
     phase >= 2,
-    reducedMotion
+    skipTypewriter
   );
 
   // Typewriter for result (phase 9)
@@ -149,68 +153,66 @@ export default function GameplayShowcase() {
     scenario.result,
     40,
     phase >= 9,
-    reducedMotion
+    skipTypewriter
   );
 
-  // Drive the animation sequence forward based on phase transitions
+  // Drive the animation sequence forward (only when NOT in firstView)
   useEffect(() => {
-    // Phase 1 → 2: after genre fades in (0.6s)
+    if (firstView) return;
     if (phase === 1) {
       addTimer(() => setPhase(2), 600);
     }
-  }, [phase === 1]);
+  }, [phase === 1, firstView]);
 
-  // Narrative done → pause → choices
   useEffect(() => {
+    if (firstView) return;
     if (phase === 2 && narrative.done) {
-      addTimer(() => setPhase(3), 100); // brief settle
+      addTimer(() => setPhase(3), 100);
       addTimer(() => setPhase(4), 800);
     }
-  }, [phase === 2, narrative.done]);
+  }, [phase === 2, narrative.done, firstView]);
 
-  // Choices visible → pause → selection
   useEffect(() => {
+    if (firstView) return;
     if (phase === 4) {
-      // Choices take ~0.5s + 3*120ms stagger + D row = roughly 1s total
       addTimer(() => setPhase(5), 1000);
       addTimer(() => setPhase(6), 1500);
     }
-  }, [phase === 4]);
+  }, [phase === 4, firstView]);
 
-  // Selection → dice
   useEffect(() => {
+    if (firstView) return;
     if (phase === 6) {
       addTimer(() => setPhase(7), 600);
     }
-  }, [phase === 6]);
+  }, [phase === 6, firstView]);
 
-  // Dice → result
   useEffect(() => {
+    if (firstView) return;
     if (phase === 7) {
       addTimer(() => setPhase(8), 400);
       addTimer(() => setPhase(9), 400);
     }
-  }, [phase === 7]);
+  }, [phase === 7, firstView]);
 
-  // Result done → controls
   useEffect(() => {
+    if (firstView) return;
     if (phase === 9 && result.done) {
       addTimer(() => setPhase(10), 200);
       addTimer(() => setPhase(11), 1200);
     }
-  }, [phase === 9, result.done]);
+  }, [phase === 9, result.done, firstView]);
 
-  // Start the sequence
+  // Start the animated sequence (used for scenarios after the first)
   const startSequence = useCallback(() => {
     clearTimers();
     setPhase(0);
-    // Kick off after a micro-delay so state resets propagate
     requestAnimationFrame(() => {
       setPhase(1);
     });
   }, [clearTimers]);
 
-  // IntersectionObserver — trigger first play
+  // IntersectionObserver — gentle fade-in for first view
   useEffect(() => {
     if (triggeredRef.current) return;
     const el = containerRef.current;
@@ -220,8 +222,7 @@ export default function GameplayShowcase() {
       ([entry]) => {
         if (entry.isIntersecting && !triggeredRef.current) {
           triggeredRef.current = true;
-          setHasPlayed(true);
-          startSequence();
+          setRevealed(true);
           observer.disconnect();
         }
       },
@@ -229,7 +230,7 @@ export default function GameplayShowcase() {
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [startSequence]);
+  }, []);
 
   // Cleanup timers on unmount
   useEffect(() => () => clearTimers(), [clearTimers]);
@@ -241,15 +242,16 @@ export default function GameplayShowcase() {
     if (scenarioIndex === SCENARIOS.length - 1) {
       setAllPlayed(true);
     }
+    setFirstView(false);
     setScenarioIndex(nextIndex);
-    // Reset and restart after state update
     clearTimers();
     setPhase(0);
     setTimeout(() => setPhase(1), 50);
   }, [scenarioIndex, clearTimers]);
 
   const handleDotClick = useCallback((index) => {
-    if (index === scenarioIndex && phase >= 1) return; // already playing this one
+    if (index === scenarioIndex && phase >= 1) return;
+    setFirstView(false);
     setScenarioIndex(index);
     clearTimers();
     setPhase(0);
@@ -267,8 +269,14 @@ export default function GameplayShowcase() {
   const buttonText = allPlayed || (scenarioIndex === SCENARIOS.length - 1 && showControls)
     ? 'REPLAY' : 'NEXT SCENARIO';
 
+  // For first view, skip slide-in animations on choices
+  const choiceAnimStyle = firstView ? { animation: 'none', opacity: 1, transform: 'none' } : {};
+
   return (
-    <section className={styles.showcase} ref={containerRef}>
+    <section
+      className={`${styles.showcase} ${revealed ? styles.showcaseRevealed : ''}`}
+      ref={containerRef}
+    >
       <div className={styles.inner}>
         {/* Genre + Storyteller */}
         <div className={`${styles.genreRow} ${phase >= 1 ? styles.visible : ''}`}>
@@ -298,7 +306,8 @@ export default function GameplayShowcase() {
                   key={choice.id}
                   className={`${styles.choiceCard} ${isSelected ? styles.choiceSelected : ''} ${isDimmed ? styles.choiceDimmed : ''}`}
                   style={{
-                    animationDelay: `${i * 120}ms`,
+                    ...choiceAnimStyle,
+                    ...(firstView ? {} : { animationDelay: `${i * 120}ms` }),
                   }}
                 >
                   <span className={`${styles.choiceLetter} ${isSelected ? styles.choiceLetterSelected : ''}`}>
@@ -311,7 +320,10 @@ export default function GameplayShowcase() {
             {/* Custom action row (D) */}
             <div
               className={`${styles.customRow} ${selectionMade ? styles.choiceDimmed : ''}`}
-              style={{ animationDelay: `${scenario.choices.length * 120}ms` }}
+              style={{
+                ...choiceAnimStyle,
+                ...(firstView ? {} : { animationDelay: `${scenario.choices.length * 120}ms` }),
+              }}
             >
               <div className={styles.customInput}>Or describe your own action...</div>
               <div className={styles.customGo}>GO</div>
@@ -321,7 +333,7 @@ export default function GameplayShowcase() {
 
         {/* Dice Result */}
         {showDice && (
-          <div className={styles.diceBar}>
+          <div className={styles.diceBar} style={firstView ? { animation: 'none', opacity: 1, transform: 'none' } : {}}>
             {scenario.dice.segments.map((seg, i) => (
               <span key={i} className={styles.diceSegment}>
                 {i > 0 && <span className={styles.diceDot}>&middot;</span>}
@@ -351,7 +363,7 @@ export default function GameplayShowcase() {
 
         {/* Replay Controls */}
         {showControls && (
-          <div className={styles.controlsBlock}>
+          <div className={styles.controlsBlock} style={firstView ? { animation: 'none', opacity: 1, transform: 'none' } : {}}>
             <button className={styles.replayButton} onClick={handleNext}>
               {buttonText}
             </button>
