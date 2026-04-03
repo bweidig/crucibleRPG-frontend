@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-02
+**Last Updated:** 2026-04-03
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -32,7 +32,71 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-02)
+## Recent Work (This Session: 2026-04-03)
+
+### Gameplay Showcase Component (Landing Page)
+New `GameplayShowcase` component inserted between Hero and Features sections on `/landing`. Auto-plays a scripted gameplay turn when scrolled into view to demonstrate the "Any World. Any Genre." value prop.
+
+**Three genre scenarios cycle automatically:**
+1. **Dark Fantasy** (Bard narrator) — DEX escape through a window, Tier 2 Success
+2. **Industrial Sci-Fi** (Noir narrator) — CHA + Forgery bluff, Tier 3 Costly Success
+3. **Noir Mystery** (Whisper narrator) — WIS observation, Tier 2 Success
+
+**Animation sequence per scenario:**
+- Genre label + storyteller fade in → narrative word-by-word typewriter (50ms/word) → 800ms pause → choices A/B/C slide in with 120ms stagger → custom action row (D) slides in last → 1.5s pause → selected choice highlights (gold), others dim to 35% → dice result bar fades up → result text typewriter (40ms/word) → replay controls fade in
+
+**Visual details:**
+- Narrative: Alegreya italic 18px, color #b8ad94, pipe cursor during typing
+- Choice cards: flex letter+text, slide-in from left, selected gets gold border/warm bg
+- Custom row (D): input-style div + GO button, dims with unselected choices
+- Dice bar: centered flex row with dot separators, green for Success, amber for Costly Success
+- Controls: "NEXT SCENARIO" button + 3 clickable scenario dots, changes to "REPLAY" after all three play
+- `prefers-reduced-motion`: skips typewriter (shows all text immediately), removes translateX/Y transforms
+
+**Trigger:** IntersectionObserver at threshold 0.3, fires only once. Replay button handles subsequent plays.
+
+**Files created:** `app/landing/GameplayShowcase.js`, `app/landing/GameplayShowcase.module.css`.
+**Files modified:** `app/landing/page.js`.
+
+### Compass Hint Button, Talk to GM Overhaul, GM Aside Rendering
+Three interconnected features added to the /play game layout:
+
+**1. Compass Button + Direction Popover (ActionPanel)**
+- Ghost-styled compass button added to the right of the GO button in the custom action row
+- Clicking toggles a floating popover anchored above the action panel (no overlay/backdrop)
+- Popover shows: current location (from `gameState.world.currentLocation`), active quests (server ◆ and player ○ markers, capped at 5 with overflow note), and empty state guidance
+- "Ask the GM for guidance" escalation button at bottom (costs 1 turn) — calls `POST /talk-to-gm/escalate` directly
+- Closes on click-outside or Escape key
+
+**2. Talk to GM — Two-Tab Restructure**
+- Panel now has "Rules" and "My Story" tabs with independent state
+- **Rules tab:** Existing free-lookup behavior plus 4 quick-question chips:
+  - 3 static: "Where can I go?", "Remind me of my goals", "What do I know about this place?"
+  - 1 contextual (sparkle icon): adapts based on `lastResolution` — priority: combat → social encounters → Fortune's Balance → skill checks → conditions → fallback "How do rolls work?"
+  - Chips behave as if the player typed the text and hit Enter. Hidden while loading/showing a response
+- **My Story tab:** Out-of-character narrative steering (does not advance turn)
+  - Rotating placeholder cycles through 6 example prompts every 4 seconds
+  - Subtle "The GM will respond without advancing your turn" hint below input
+  - Response displayed inline as GM aside (Alegreya italic, gold left border)
+  - Response also injected into narrative panel as `gm_aside` entry
+  - **TODO:** Currently uses `POST /talk-to-gm` (Phase 1) as fallback — switch to `/talk-to-gm/meta` when backend implements non-advancing meta endpoint
+
+**3. GM Aside Rendering (NarrativePanel)**
+- Entries with `type: 'gm_aside'` render as compact aside blocks (not TurnBlocks)
+- Visual: card background, gold left accent border, compass icon + "GM" label header, Alegreya italic body
+- Visually lighter than turn blocks — feels like a whispered backstage note
+
+**Data flow:**
+- `lastResolution` and `lastStateChanges` computed in page.js from last turn with a resolution, threaded to TalkToGM via NarrativePanel
+- `objectives` (world data: activeQuests + objectives) and `currentLocation` threaded from gameState to ActionPanel
+- `handleMetaResponse` callback adds gm_aside entries to the turns array
+- `handleCompassEscalate` calls escalation endpoint directly with canned guidance question
+
+**Files modified:** `app/play/page.js`, `app/play/components/ActionPanel.js`, `app/play/components/ActionPanel.module.css`, `app/play/components/TalkToGM.js`, `app/play/components/TalkToGM.module.css`, `app/play/components/NarrativePanel.js`, `app/play/components/NarrativePanel.module.css`.
+
+---
+
+## Previous Work (2026-04-02)
 
 ### Auth Polish + Landing Quick Fixes Batch
 12-item design audit batch across auth and landing pages:

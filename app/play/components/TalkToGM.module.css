@@ -1,5 +1,5 @@
 /* ==============================================
-   TalkToGM — Floating button + two-phase interaction
+   TalkToGM — Floating button + tabbed panel
    ============================================== */
 
 .gmButton {
@@ -81,6 +81,80 @@
   color: var(--text-primary);
 }
 
+/* ─── Tabs ─── */
+
+.tabRow {
+  display: flex;
+  gap: 0;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.tab {
+  flex: 1;
+  padding: 8px 0;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-cinzel);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  text-align: center;
+}
+
+.tab:hover {
+  color: var(--accent-gold);
+}
+
+.tabActive {
+  color: var(--accent-gold);
+  border-bottom-color: var(--accent-gold);
+}
+
+/* ─── Quick-Question Chips ─── */
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-family: var(--font-alegreya-sans);
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.chip:hover:not(:disabled) {
+  border-color: var(--border-card-hover);
+  color: var(--accent-gold);
+}
+
+.chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sparkleIcon {
+  color: var(--accent-gold);
+  opacity: 0.3;
+  flex-shrink: 0;
+}
+
 /* ─── Result Area ─── */
 
 .resultArea {
@@ -160,6 +234,41 @@
   font-size: 11px;
   color: var(--color-danger);
   margin-top: 6px;
+}
+
+/* ─── My Story Tab — Meta Response ─── */
+
+.metaResponse {
+  border-left: 2px solid rgba(201, 168, 76, 0.3);
+  padding-left: 12px;
+}
+
+.metaLabel {
+  font-family: var(--font-cinzel);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-gold);
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+
+.metaText {
+  font-family: var(--font-alegreya);
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.storyInputArea {
+  flex-shrink: 0;
+}
+
+.storyHint {
+  padding: 0 14px 8px;
+  font-family: var(--font-alegreya-sans);
+  font-size: 11px;
+  color: var(--text-dim);
 }
 
 /* ─── Command Response Formatting ─── */

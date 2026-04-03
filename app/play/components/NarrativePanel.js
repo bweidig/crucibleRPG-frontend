@@ -3,7 +3,21 @@ import TurnBlock from './TurnBlock';
 import TalkToGM from './TalkToGM';
 import styles from './NarrativePanel.module.css';
 
-const NarrativePanel = forwardRef(function NarrativePanel({ turns, sessionRecap, worldBriefing, gameId, onTurnResponse }, ref) {
+// Small compass icon for GM aside header
+function AsideCompassIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 18 18" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <circle cx="9" cy="9" r="7.5" stroke="currentColor" strokeWidth="1.2" />
+      <polygon points="9,3 10.5,8 9,7 7.5,8" fill="currentColor" />
+      <polygon points="9,15 10.5,10 9,11 7.5,10" fill="currentColor" opacity="0.4" />
+    </svg>
+  );
+}
+
+const NarrativePanel = forwardRef(function NarrativePanel({
+  turns, sessionRecap, worldBriefing, gameId, onTurnResponse,
+  lastResolution, lastStateChanges, onMetaResponse,
+}, ref) {
   const newTurnRef = useRef(null);
   const bottomRef = useRef(null);
 
@@ -38,6 +52,20 @@ const NarrativePanel = forwardRef(function NarrativePanel({ turns, sessionRecap,
           {turns.map((turn, i) => {
             const isLast = i === turns.length - 1;
             const isNew = !!turn._isNew;
+
+            // GM aside entries (non-turn)
+            if (turn.type === 'gm_aside') {
+              return (
+                <div key={`aside-${turn.timestamp ?? i}`} className={styles.gmAside}>
+                  <div className={styles.gmAsideHeader}>
+                    <AsideCompassIcon />
+                    <span className={styles.gmAsideLabel}>GM</span>
+                  </div>
+                  <div className={styles.gmAsideBody}>{turn.content}</div>
+                </div>
+              );
+            }
+
             return (
               <div key={turn.number ?? i}>
                 {/* Show session recap just above the most recent turn */}
@@ -60,7 +88,13 @@ const NarrativePanel = forwardRef(function NarrativePanel({ turns, sessionRecap,
         </div>
       </div>
 
-      <TalkToGM gameId={gameId} onTurnResponse={onTurnResponse} />
+      <TalkToGM
+        gameId={gameId}
+        onTurnResponse={onTurnResponse}
+        lastResolution={lastResolution}
+        lastStateChanges={lastStateChanges}
+        onMetaResponse={onMetaResponse}
+      />
     </div>
   );
 });

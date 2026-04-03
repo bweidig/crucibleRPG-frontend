@@ -83,6 +83,10 @@ function PlayPage() {
   // ─── Report Modal ───
   const [reportMode, setReportMode] = useState(null); // null | 'bug' | 'suggest'
 
+  // ─── Compass ───
+  const [compassOpen, setCompassOpen] = useState(false);
+  const [hintLoading, setHintLoading] = useState(false);
+
   // ─── Loading Overlay ───
   const [overlayDismissed, setOverlayDismissed] = useState(false);
   const [enterReady, setEnterReady] = useState(false);
@@ -232,6 +236,43 @@ function PlayPage() {
       });
     }
   }, [addNotifications, refetchCharacter, gameState]);
+
+  // ─── Compass Escalation Handler ───
+  const handleCompassEscalate = useCallback(async () => {
+    if (!gameId || hintLoading) return;
+    setHintLoading(true);
+    setCompassOpen(false);
+    setSubmitting(true);
+
+    try {
+      const res = await api.post(`/api/game/${gameId}/talk-to-gm/escalate`, {
+        question: 'What should I do next? What are my options right now?',
+      });
+      if (res.turnAdvanced) {
+        handleTurnResponse(res, '[GM Guidance]');
+      }
+    } catch (err) {
+      console.error('Compass escalation failed:', err);
+      setError(err.message || 'Failed to get guidance from the GM.');
+    } finally {
+      setHintLoading(false);
+      setSubmitting(false);
+    }
+  }, [gameId, hintLoading, handleTurnResponse]);
+
+  // ─── Meta Response Handler (My Story tab → GM aside in narrative) ───
+  const handleMetaResponse = useCallback((content) => {
+    setTurns(prev => [...prev, {
+      type: 'gm_aside',
+      content,
+      timestamp: Date.now(),
+    }]);
+  }, []);
+
+  // ─── Compute lastResolution and lastStateChanges for TalkToGM contextual chip ───
+  const lastResolutionTurn = turns.slice().reverse().find(t => t.resolution);
+  const lastResolution = lastResolutionTurn?.resolution || null;
+  const lastStateChanges = lastResolutionTurn?.stateChanges || null;
 
   // ─── Submit Action (Step 5 handler) ───
   const submitAction = useCallback(async (actionBody) => {
@@ -561,12 +602,21 @@ function PlayPage() {
             worldBriefing={gameState?.worldBriefing}
             gameId={gameId}
             onTurnResponse={handleTurnResponse}
+            lastResolution={lastResolution}
+            lastStateChanges={lastStateChanges}
+            onMetaResponse={handleMetaResponse}
           />
           <ActionPanel
             actions={actions}
             submitting={submitting}
             error={error}
             onSubmit={submitAction}
+            compassOpen={compassOpen}
+            onToggleCompass={() => setCompassOpen(prev => !prev)}
+            objectives={gameState?.world}
+            currentLocation={gameState?.world?.currentLocation}
+            onEscalate={handleCompassEscalate}
+            hintLoading={hintLoading}
           />
         </div>
         <Sidebar

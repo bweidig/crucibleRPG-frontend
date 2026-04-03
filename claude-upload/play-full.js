@@ -84,6 +84,10 @@ function PlayPage() {
   // ─── Report Modal ───
   const [reportMode, setReportMode] = useState(null); // null | 'bug' | 'suggest'
 
+  // ─── Compass ───
+  const [compassOpen, setCompassOpen] = useState(false);
+  const [hintLoading, setHintLoading] = useState(false);
+
   // ─── Loading Overlay ───
   const [overlayDismissed, setOverlayDismissed] = useState(false);
   const [enterReady, setEnterReady] = useState(false);
@@ -233,6 +237,43 @@ function PlayPage() {
       });
     }
   }, [addNotifications, refetchCharacter, gameState]);
+
+  // ─── Compass Escalation Handler ───
+  const handleCompassEscalate = useCallback(async () => {
+    if (!gameId || hintLoading) return;
+    setHintLoading(true);
+    setCompassOpen(false);
+    setSubmitting(true);
+
+    try {
+      const res = await api.post(`/api/game/${gameId}/talk-to-gm/escalate`, {
+        question: 'What should I do next? What are my options right now?',
+      });
+      if (res.turnAdvanced) {
+        handleTurnResponse(res, '[GM Guidance]');
+      }
+    } catch (err) {
+      console.error('Compass escalation failed:', err);
+      setError(err.message || 'Failed to get guidance from the GM.');
+    } finally {
+      setHintLoading(false);
+      setSubmitting(false);
+    }
+  }, [gameId, hintLoading, handleTurnResponse]);
+
+  // ─── Meta Response Handler (My Story tab → GM aside in narrative) ───
+  const handleMetaResponse = useCallback((content) => {
+    setTurns(prev => [...prev, {
+      type: 'gm_aside',
+      content,
+      timestamp: Date.now(),
+    }]);
+  }, []);
+
+  // ─── Compute lastResolution and lastStateChanges for TalkToGM contextual chip ───
+  const lastResolutionTurn = turns.slice().reverse().find(t => t.resolution);
+  const lastResolution = lastResolutionTurn?.resolution || null;
+  const lastStateChanges = lastResolutionTurn?.stateChanges || null;
 
   // ─── Submit Action (Step 5 handler) ───
   const submitAction = useCallback(async (actionBody) => {
@@ -562,12 +603,21 @@ function PlayPage() {
             worldBriefing={gameState?.worldBriefing}
             gameId={gameId}
             onTurnResponse={handleTurnResponse}
+            lastResolution={lastResolution}
+            lastStateChanges={lastStateChanges}
+            onMetaResponse={handleMetaResponse}
           />
           <ActionPanel
             actions={actions}
             submitting={submitting}
             error={error}
             onSubmit={submitAction}
+            compassOpen={compassOpen}
+            onToggleCompass={() => setCompassOpen(prev => !prev)}
+            objectives={gameState?.world}
+            currentLocation={gameState?.world?.currentLocation}
+            onEscalate={handleCompassEscalate}
+            hintLoading={hintLoading}
           />
         </div>
         <Sidebar
@@ -826,10 +876,119 @@ export default function Page() {
 }
 
 // FILE: app/play/components/ActionPanel.js
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import styles from './ActionPanel.module.css';
 
-export default function ActionPanel({ actions, submitting, error, onSubmit }) {
+// ─── Compass SVG Icon ───
+function CompassIcon({ size = 18, className }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" className={className} aria-hidden="true">
+      <circle cx="9" cy="9" r="7.5" stroke="currentColor" strokeWidth="1.2" />
+      <polygon points="9,3 10.5,8 9,7 7.5,8" fill="currentColor" />
+      <polygon points="9,15 10.5,10 9,11 7.5,10" fill="currentColor" opacity="0.4" />
+    </svg>
+  );
+}
+
+// ─── Pin SVG Icon ───
+function PinIcon({ size = 13 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 13 13" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <path d="M6.5 1C4.57 1 3 2.57 3 4.5C3 7.25 6.5 12 6.5 12S10 7.25 10 4.5C10 2.57 8.43 1 6.5 1Z" stroke="currentColor" strokeWidth="1.1" fill="none" />
+      <circle cx="6.5" cy="4.5" r="1.3" fill="currentColor" />
+    </svg>
+  );
+}
+
+// ─── Direction Popover ───
+function CompassPopover({ objectives, currentLocation, onEscalate, onClose }) {
+  const popoverRef = useRef(null);
+
+  // Close on click outside
+  useEffect(() => {
+    function handleClick(e) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target)) {
+        onClose();
+      }
+    }
+    function handleKey(e) {
+      if (e.key === 'Escape') onClose();
+    }
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [onClose]);
+
+  const quests = objectives?.quests || objectives?.activeQuests || [];
+  const playerObjectives = objectives?.objectives || objectives?.playerObjectives || [];
+  const hasObjectives = quests.length > 0 || playerObjectives.length > 0;
+
+  // Cap combined items at 5
+  const allItems = [];
+  for (const q of quests) {
+    if (allItems.length >= 5) break;
+    const desc = q.stage != null ? (q.stageDescription || q.title) : q.title;
+    allItems.push({ marker: '\u25C6', text: desc || String(q) });
+  }
+  for (const o of playerObjectives) {
+    if (allItems.length >= 5) break;
+    const text = typeof o === 'string' ? o : o.text || o.title || String(o);
+    allItems.push({ marker: '\u25CB', text });
+  }
+  const overflow = (quests.length + playerObjectives.length) - allItems.length;
+
+  return (
+    <div className={styles.compassPopover} ref={popoverRef}>
+      <div className={styles.compassHeader}>
+        <div className={styles.compassHeaderLeft}>
+          <CompassIcon size={14} />
+          <span className={styles.compassHeaderLabel}>YOUR BEARINGS</span>
+        </div>
+        <button className={styles.compassClose} onClick={onClose} aria-label="Close">&times;</button>
+      </div>
+
+      {currentLocation && (
+        <div className={styles.compassLocation}>
+          <PinIcon />
+          <span>{currentLocation}</span>
+        </div>
+      )}
+
+      {hasObjectives ? (
+        <div className={styles.compassObjectives}>
+          {allItems.map((item, i) => (
+            <div key={i} className={styles.compassObjectiveItem}>
+              <span className={styles.compassMarker}>{item.marker}</span>
+              <span>{item.text}</span>
+            </div>
+          ))}
+          {overflow > 0 && (
+            <div className={styles.compassOverflow}>and {overflow} more in your journal.</div>
+          )}
+        </div>
+      ) : !currentLocation ? (
+        <div className={styles.compassEmpty}>
+          Your story is open. Try exploring, talking to someone nearby, or writing your own objective in the Notes tab.
+        </div>
+      ) : null}
+
+      <div className={styles.compassEscalateRow}>
+        <button className={styles.compassEscalateButton} onClick={() => { onClose(); onEscalate(); }}>
+          Ask the GM for guidance
+        </button>
+        <span className={styles.compassTurnCost}>Costs 1 turn</span>
+      </div>
+    </div>
+  );
+}
+
+export default function ActionPanel({
+  actions, submitting, error, onSubmit,
+  compassOpen, onToggleCompass, objectives, currentLocation, onEscalate, hintLoading,
+}) {
   const [customText, setCustomText] = useState('');
 
   const handleChoice = useCallback((id) => {
@@ -861,8 +1020,19 @@ export default function ActionPanel({ actions, submitting, error, onSubmit }) {
       <div className={styles.actionInner}>
         {error && <div className={styles.errorText}>{error}</div>}
 
+        {compassOpen && (
+          <CompassPopover
+            objectives={objectives}
+            currentLocation={currentLocation}
+            onEscalate={onEscalate}
+            onClose={onToggleCompass}
+          />
+        )}
+
         {submitting ? (
-          <div className={styles.submittingText}>Processing your action...</div>
+          <div className={styles.submittingText}>
+            {hintLoading ? 'Consulting the GM...' : 'Processing your action...'}
+          </div>
         ) : (
           <>
             {options.length > 0 && (
@@ -901,6 +1071,15 @@ export default function ActionPanel({ actions, submitting, error, onSubmit }) {
                   aria-label="Submit custom action"
                 >
                   GO
+                </button>
+                <button
+                  className={styles.compassButton}
+                  onClick={onToggleCompass}
+                  disabled={submitting}
+                  aria-label="Get your bearings"
+                  title="Get your bearings"
+                >
+                  <CompassIcon size={18} />
                 </button>
               </div>
             )}
@@ -3508,7 +3687,21 @@ import TurnBlock from './TurnBlock';
 import TalkToGM from './TalkToGM';
 import styles from './NarrativePanel.module.css';
 
-const NarrativePanel = forwardRef(function NarrativePanel({ turns, sessionRecap, worldBriefing, gameId, onTurnResponse }, ref) {
+// Small compass icon for GM aside header
+function AsideCompassIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 18 18" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <circle cx="9" cy="9" r="7.5" stroke="currentColor" strokeWidth="1.2" />
+      <polygon points="9,3 10.5,8 9,7 7.5,8" fill="currentColor" />
+      <polygon points="9,15 10.5,10 9,11 7.5,10" fill="currentColor" opacity="0.4" />
+    </svg>
+  );
+}
+
+const NarrativePanel = forwardRef(function NarrativePanel({
+  turns, sessionRecap, worldBriefing, gameId, onTurnResponse,
+  lastResolution, lastStateChanges, onMetaResponse,
+}, ref) {
   const newTurnRef = useRef(null);
   const bottomRef = useRef(null);
 
@@ -3543,6 +3736,20 @@ const NarrativePanel = forwardRef(function NarrativePanel({ turns, sessionRecap,
           {turns.map((turn, i) => {
             const isLast = i === turns.length - 1;
             const isNew = !!turn._isNew;
+
+            // GM aside entries (non-turn)
+            if (turn.type === 'gm_aside') {
+              return (
+                <div key={`aside-${turn.timestamp ?? i}`} className={styles.gmAside}>
+                  <div className={styles.gmAsideHeader}>
+                    <AsideCompassIcon />
+                    <span className={styles.gmAsideLabel}>GM</span>
+                  </div>
+                  <div className={styles.gmAsideBody}>{turn.content}</div>
+                </div>
+              );
+            }
+
             return (
               <div key={turn.number ?? i}>
                 {/* Show session recap just above the most recent turn */}
@@ -3565,7 +3772,13 @@ const NarrativePanel = forwardRef(function NarrativePanel({ turns, sessionRecap,
         </div>
       </div>
 
-      <TalkToGM gameId={gameId} onTurnResponse={onTurnResponse} />
+      <TalkToGM
+        gameId={gameId}
+        onTurnResponse={onTurnResponse}
+        lastResolution={lastResolution}
+        lastStateChanges={lastStateChanges}
+        onMetaResponse={onMetaResponse}
+      />
     </div>
   );
 });
@@ -5599,22 +5812,94 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import * as api from '@/lib/api';
 import styles from './TalkToGM.module.css';
 
-export default function TalkToGM({ gameId, onTurnResponse }) {
-  const [open, setOpen] = useState(false);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [lastQuestion, setLastQuestion] = useState('');
-  const inputRef = useRef(null);
+// ─── Contextual Chip Logic ───
 
-  // Auto-focus input when panel opens
+const SOCIAL_SKILLS = ['persuasion', 'intimidation', 'deception', 'charm', 'diplomacy', 'empathy'];
+
+function getContextualChipLabel(resolution, lastStateChanges) {
+  if (!resolution) return 'How do rolls work?';
+  if (resolution.isCombat === true) return 'How does combat work?';
+  if (
+    resolution.stat === 'cha' &&
+    resolution.skillUsed &&
+    SOCIAL_SKILLS.includes(resolution.skillUsed.toLowerCase())
+  ) return 'How do social encounters work?';
+  if (resolution.fortunesBalance === 'outmatched' || resolution.fortunesBalance === 'dominant') {
+    return "How does Fortune's Balance work?";
+  }
+  if (resolution.skillUsed) return 'How do skill checks work?';
+  if (
+    lastStateChanges?.conditions?.added?.length > 0 ||
+    lastStateChanges?.conditions?.modified?.length > 0
+  ) return 'How do conditions work?';
+  return 'How do rolls work?';
+}
+
+// ─── Sparkle Icon ───
+function SparkleIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true" className={styles.sparkleIcon}>
+      <path d="M6 0L7.2 4.8L12 6L7.2 7.2L6 12L4.8 7.2L0 6L4.8 4.8L6 0Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+// ─── Rotating Placeholder ───
+const META_PLACEHOLDERS = [
+  "I want to work my way into the king's service...",
+  "How do I become a ship's pilot?",
+  "Who poisoned the merchant in Thornwall?",
+  "I'd prefer a bow over this sword...",
+  "More combat, less shopping",
+  "What steps should I take to join the thieves' guild?",
+];
+
+function useRotatingPlaceholder() {
+  const [index, setIndex] = useState(0);
   useEffect(() => {
-    if (open) {
-      // Small delay to ensure the DOM has rendered
-      const t = setTimeout(() => inputRef.current?.focus(), 50);
-      return () => clearTimeout(t);
-    }
-  }, [open]);
+    const interval = setInterval(() => {
+      setIndex(prev => (prev + 1) % META_PLACEHOLDERS.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+  return META_PLACEHOLDERS[index];
+}
+
+// ─── Static Chips ───
+const STATIC_CHIPS = [
+  'Where can I go?',
+  'Remind me of my goals',
+  'What do I know about this place?',
+];
+
+export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastStateChanges, onMetaResponse }) {
+  const [open, setOpen] = useState(false);
+  const [tabMode, setTabMode] = useState('rules'); // 'rules' | 'story'
+
+  // ─── Rules Tab State ───
+  const [rulesInput, setRulesInput] = useState('');
+  const [rulesLoading, setRulesLoading] = useState(false);
+  const [rulesResult, setRulesResult] = useState(null);
+  const [lastQuestion, setLastQuestion] = useState('');
+  const rulesInputRef = useRef(null);
+
+  // ─── My Story Tab State ───
+  const [storyInput, setStoryInput] = useState('');
+  const [storyLoading, setStoryLoading] = useState(false);
+  const [storyResult, setStoryResult] = useState(null);
+  const storyInputRef = useRef(null);
+
+  const rotatingPlaceholder = useRotatingPlaceholder();
+
+  // Auto-focus input when panel opens or tab changes
+  useEffect(() => {
+    if (!open) return;
+    const t = setTimeout(() => {
+      if (tabMode === 'rules') rulesInputRef.current?.focus();
+      else storyInputRef.current?.focus();
+    }, 50);
+    return () => clearTimeout(t);
+  }, [open, tabMode]);
 
   // Close on Escape
   useEffect(() => {
@@ -5626,55 +5911,82 @@ export default function TalkToGM({ gameId, onTurnResponse }) {
 
   const handleClose = () => {
     setOpen(false);
-    setInput('');
-    setResult(null);
-    setLastQuestion('');
   };
 
-  // Phase 1: Free lookup
-  const handleAsk = useCallback(async () => {
-    const question = input.trim();
-    if (!question || !gameId || loading) return;
+  // ─── Rules Tab: Phase 1 (free lookup) ───
+  const handleAskRules = useCallback(async (questionText) => {
+    const question = (questionText || rulesInput).trim();
+    if (!question || !gameId || rulesLoading) return;
 
-    setLoading(true);
-    setResult(null);
+    setRulesLoading(true);
+    setRulesResult(null);
     setLastQuestion(question);
-    setInput('');
+    setRulesInput('');
 
     try {
       const res = await api.post(`/api/game/${gameId}/talk-to-gm`, { question });
-      setResult(res);
+      setRulesResult(res);
     } catch (err) {
       console.error('Talk to GM failed:', err);
-      setResult({ error: err.message || 'Failed to reach the GM.' });
+      setRulesResult({ error: err.message || 'Failed to reach the GM.' });
     } finally {
-      setLoading(false);
+      setRulesLoading(false);
     }
-  }, [input, gameId, loading]);
+  }, [rulesInput, gameId, rulesLoading]);
 
-  // Phase 2: Escalation (costs a turn)
+  // ─── Rules Tab: Phase 2 (escalation, costs a turn) ───
   const handleEscalate = useCallback(async () => {
-    if (!lastQuestion || !gameId || loading) return;
+    if (!lastQuestion || !gameId || rulesLoading) return;
 
-    setLoading(true);
+    setRulesLoading(true);
     try {
       const res = await api.post(`/api/game/${gameId}/talk-to-gm/escalate`, {
         question: lastQuestion,
       });
-
-      // Process as a turn response
       if (res.turnAdvanced && onTurnResponse) {
         onTurnResponse(res, '[GM Escalation]');
       }
-
       handleClose();
     } catch (err) {
       console.error('GM escalation failed:', err);
-      setResult({ error: err.message || 'Escalation failed.' });
+      setRulesResult({ error: err.message || 'Escalation failed.' });
     } finally {
-      setLoading(false);
+      setRulesLoading(false);
     }
-  }, [lastQuestion, gameId, loading, onTurnResponse]);
+  }, [lastQuestion, gameId, rulesLoading, onTurnResponse]);
+
+  // ─── My Story Tab: Meta question ───
+  const handleAskStory = useCallback(async () => {
+    const question = storyInput.trim();
+    if (!question || !gameId || storyLoading) return;
+
+    setStoryLoading(true);
+    setStoryResult(null);
+    setStoryInput('');
+
+    try {
+      // TODO: Switch to /talk-to-gm/meta when backend implements non-advancing meta endpoint
+      const res = await api.post(`/api/game/${gameId}/talk-to-gm`, { question });
+
+      // Extract response text
+      const responseText = res.content || res.suggestion || res.data?.briefing ||
+        (res.source === 'rulebook' ? res.content : null) ||
+        (typeof res.data === 'string' ? res.data : null) ||
+        'The GM considered your question but had no specific response.';
+
+      setStoryResult(responseText);
+
+      // Inject as GM aside into narrative
+      if (onMetaResponse) {
+        onMetaResponse(responseText);
+      }
+    } catch (err) {
+      console.error('Meta question failed:', err);
+      setStoryResult('Failed to reach the GM. Try again.');
+    } finally {
+      setStoryLoading(false);
+    }
+  }, [storyInput, gameId, storyLoading, onMetaResponse]);
 
   // ─── Formatting Helpers ───
 
@@ -5734,7 +6046,6 @@ export default function TalkToGM({ gameId, onTurnResponse }) {
     if (typeof data.briefing === 'string' && data.briefing.trim()) {
       return renderProse(data.briefing);
     }
-    // Briefing null/empty — check other fields
     const parts = [];
     if (data.currentScene) parts.push(renderProse(data.currentScene));
     if (data.clock) {
@@ -5754,7 +6065,6 @@ export default function TalkToGM({ gameId, onTurnResponse }) {
   const renderStatusReport = (data) => {
     const sections = [];
 
-    // Stats
     if (data.stats || data.character?.stats) {
       const stats = data.stats || data.character?.stats || {};
       sections.push(
@@ -5765,7 +6075,6 @@ export default function TalkToGM({ gameId, onTurnResponse }) {
       );
     }
 
-    // Conditions
     const conditions = data.conditions || data.character?.conditions;
     if (Array.isArray(conditions) && conditions.length > 0) {
       sections.push(
@@ -5781,7 +6090,6 @@ export default function TalkToGM({ gameId, onTurnResponse }) {
       );
     }
 
-    // Skills
     const skills = data.skills || data.character?.skills;
     if (Array.isArray(skills) && skills.length > 0) {
       sections.push(
@@ -5800,7 +6108,6 @@ export default function TalkToGM({ gameId, onTurnResponse }) {
       );
     }
 
-    // Inventory
     const inventory = data.inventory || data.character?.inventory;
     if (inventory) {
       sections.push(
@@ -5828,7 +6135,6 @@ export default function TalkToGM({ gameId, onTurnResponse }) {
       );
     }
 
-    // Location + clock
     if (data.location || data.world?.currentLocation) {
       sections.push(
         <div key="location" className={styles.commandRow}>
@@ -5919,7 +6225,6 @@ export default function TalkToGM({ gameId, onTurnResponse }) {
     );
   };
 
-  // Generic fallback: key-value breakdown, never raw JSON
   const renderGenericData = (data) => {
     if (data == null) return <div className={styles.commandEmptyMessage}>No data returned.</div>;
     if (typeof data === 'string') return renderProse(data);
@@ -5935,17 +6240,14 @@ export default function TalkToGM({ gameId, onTurnResponse }) {
       );
     }
 
-    // Object: render each key as a labeled row
     const entries = Object.entries(data).filter(([, v]) => v != null && v !== '' && v !== false);
     if (entries.length === 0) return <div className={styles.commandEmptyMessage}>The GM had nothing to report.</div>;
 
     return (
       <div className={styles.commandSection}>
         {entries.map(([key, value]) => {
-          // Skip internal fields
           if (key.startsWith('_') || key === 'fallback') return null;
 
-          // Nested object: render as sub-section
           if (typeof value === 'object' && !Array.isArray(value)) {
             return (
               <div key={key} className={styles.commandSection}>
@@ -5955,7 +6257,6 @@ export default function TalkToGM({ gameId, onTurnResponse }) {
             );
           }
 
-          // Array: render as list
           if (Array.isArray(value)) {
             if (value.length === 0) return null;
             return (
@@ -5970,7 +6271,6 @@ export default function TalkToGM({ gameId, onTurnResponse }) {
             );
           }
 
-          // Primitive
           return (
             <div key={key} className={styles.commandRow}>
               <span className={styles.commandRowLabel}>{formatLabel(key)}</span>
@@ -5984,7 +6284,6 @@ export default function TalkToGM({ gameId, onTurnResponse }) {
     );
   };
 
-  // ─── Route to the right renderer based on command type ───
   const renderCommandResponse = (command, data) => {
     if (data == null) {
       return <div className={styles.commandEmptyMessage}>The GM had nothing to report for that command.</div>;
@@ -6002,7 +6301,6 @@ export default function TalkToGM({ gameId, onTurnResponse }) {
       case 'help':
         return renderHelp(data);
       default:
-        // set_objective confirmation, or any future command
         if (data.message && typeof data.message === 'string') {
           return renderProse(data.message);
         }
@@ -6010,54 +6308,51 @@ export default function TalkToGM({ gameId, onTurnResponse }) {
     }
   };
 
-  // ─── Render Result ───
-  const renderResult = () => {
-    if (!result) return null;
+  // ─── Render Rules Result ───
+  const renderRulesResult = () => {
+    if (!rulesResult) return null;
 
-    if (result.error) {
-      return <div className={styles.resultContent} style={{ color: 'var(--color-danger)' }}>{result.error}</div>;
+    if (rulesResult.error) {
+      return <div className={styles.resultContent} style={{ color: 'var(--color-danger)' }}>{rulesResult.error}</div>;
     }
 
-    // Command match
-    if (result.source === 'command') {
+    if (rulesResult.source === 'command') {
       return (
         <div className={styles.resultCommand}>
-          <div className={styles.resultLabel}>{formatLabel(result.command || 'command')}</div>
-          {renderCommandResponse(result.command, result.data)}
+          <div className={styles.resultLabel}>{formatLabel(rulesResult.command || 'command')}</div>
+          {renderCommandResponse(rulesResult.command, rulesResult.data)}
         </div>
       );
     }
 
-    // Rulebook match
-    if (result.source === 'rulebook') {
+    if (rulesResult.source === 'rulebook') {
       return (
         <div>
           <div className={styles.resultLabel}>Rulebook</div>
-          <div className={styles.resultTitle}>{result.title}</div>
-          {result.section && (
+          <div className={styles.resultTitle}>{rulesResult.title}</div>
+          {rulesResult.section && (
             <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: '11px', color: 'var(--text-dim)', marginBottom: '6px' }}>
-              {result.section}
+              {rulesResult.section}
             </div>
           )}
-          <div className={styles.commandProse}>{result.content}</div>
+          <div className={styles.commandProse}>{rulesResult.content}</div>
         </div>
       );
     }
 
-    // No match — offer escalation
     return (
       <div>
         <div className={styles.resultSuggestion}>
-          {result.suggestion || 'The GM couldn\'t find an answer in the rulebook. Want to ask directly?'}
+          {rulesResult.suggestion || 'The GM couldn\'t find an answer in the rulebook. Want to ask directly?'}
         </div>
-        {result.canEscalate && (
+        {rulesResult.canEscalate && (
           <>
             <button
               className={styles.escalateButton}
               onClick={handleEscalate}
-              disabled={loading}
+              disabled={rulesLoading}
             >
-              {loading ? 'Thinking...' : 'Ask the GM (costs a turn)'}
+              {rulesLoading ? 'Thinking...' : 'Ask the GM (costs a turn)'}
             </button>
             <div className={styles.turnCostWarning}>This will use one turn.</div>
           </>
@@ -6080,6 +6375,9 @@ export default function TalkToGM({ gameId, onTurnResponse }) {
     );
   }
 
+  const contextualChip = getContextualChipLabel(lastResolution, lastStateChanges);
+  const showChips = !rulesLoading && !rulesResult;
+
   // ─── Expanded panel ───
   return (
     <div className={styles.panel}>
@@ -6088,38 +6386,128 @@ export default function TalkToGM({ gameId, onTurnResponse }) {
         <button className={styles.closeButton} onClick={handleClose} aria-label="Close">&times;</button>
       </div>
 
-      <div className={styles.resultArea}>
-        {loading && !result && <div className={styles.loadingText}>Asking the GM...</div>}
-        {renderResult()}
-      </div>
-
-      <div className={styles.inputRow}>
-        <input
-          ref={inputRef}
-          type="text"
-          className={styles.input}
-          placeholder="Ask a question..."
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => {
-            e.stopPropagation();
-            if (e.key === 'Enter' && input.trim()) {
-              e.preventDefault();
-              handleAsk();
-            }
-          }}
-          disabled={loading}
-          maxLength={500}
-          aria-label="Question for the GM"
-        />
+      {/* Tabs */}
+      <div className={styles.tabRow}>
         <button
-          className={styles.sendButton}
-          onClick={handleAsk}
-          disabled={loading || !input.trim()}
+          className={`${styles.tab} ${tabMode === 'rules' ? styles.tabActive : ''}`}
+          onClick={() => setTabMode('rules')}
         >
-          Ask
+          Rules
+        </button>
+        <button
+          className={`${styles.tab} ${tabMode === 'story' ? styles.tabActive : ''}`}
+          onClick={() => setTabMode('story')}
+        >
+          My Story
         </button>
       </div>
+
+      {/* ─── Rules Tab ─── */}
+      {tabMode === 'rules' && (
+        <>
+          <div className={styles.resultArea}>
+            {showChips && (
+              <div className={styles.chipRow}>
+                {STATIC_CHIPS.map((chip) => (
+                  <button
+                    key={chip}
+                    className={styles.chip}
+                    onClick={() => handleAskRules(chip)}
+                    disabled={rulesLoading}
+                  >
+                    {chip}
+                  </button>
+                ))}
+                <button
+                  className={styles.chip}
+                  onClick={() => handleAskRules(contextualChip)}
+                  disabled={rulesLoading}
+                >
+                  <SparkleIcon />
+                  {contextualChip}
+                </button>
+              </div>
+            )}
+
+            {rulesLoading && !rulesResult && <div className={styles.loadingText}>Asking the GM...</div>}
+            {renderRulesResult()}
+          </div>
+
+          <div className={styles.inputRow}>
+            <input
+              ref={rulesInputRef}
+              type="text"
+              className={styles.input}
+              placeholder="Ask a question..."
+              value={rulesInput}
+              onChange={e => setRulesInput(e.target.value)}
+              onKeyDown={e => {
+                e.stopPropagation();
+                if (e.key === 'Enter' && rulesInput.trim()) {
+                  e.preventDefault();
+                  handleAskRules();
+                }
+              }}
+              disabled={rulesLoading}
+              maxLength={500}
+              aria-label="Question for the GM"
+            />
+            <button
+              className={styles.sendButton}
+              onClick={() => handleAskRules()}
+              disabled={rulesLoading || !rulesInput.trim()}
+            >
+              Ask
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ─── My Story Tab ─── */}
+      {tabMode === 'story' && (
+        <>
+          <div className={styles.resultArea}>
+            {storyLoading && <div className={styles.loadingText}>The GM is considering...</div>}
+            {storyResult && (
+              <div className={styles.metaResponse}>
+                <div className={styles.metaLabel}>GM</div>
+                <div className={styles.metaText}>{storyResult}</div>
+              </div>
+            )}
+          </div>
+
+          <div className={styles.storyInputArea}>
+            <div className={styles.inputRow}>
+              <input
+                ref={storyInputRef}
+                type="text"
+                className={styles.input}
+                placeholder={rotatingPlaceholder}
+                value={storyInput}
+                onChange={e => setStoryInput(e.target.value)}
+                onKeyDown={e => {
+                  e.stopPropagation();
+                  if (e.key === 'Enter' && storyInput.trim()) {
+                    e.preventDefault();
+                    handleAskStory();
+                  }
+                }}
+                disabled={storyLoading}
+                maxLength={500}
+                aria-label="Story question for the GM"
+              />
+              <button
+                className={styles.sendButton}
+                onClick={handleAskStory}
+                disabled={storyLoading || !storyInput.trim()}
+              >
+                Ask
+              </button>
+            </div>
+            <div className={styles.storyHint}>The GM will respond without advancing your turn.</div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
