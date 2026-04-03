@@ -34,6 +34,16 @@
 
 ## Recent Work (This Session: 2026-04-03)
 
+### Showcase Transition Jank Fix
+Showcase transition jank fixed — container height preserved during scenario changes, crossfade added between scenarios.
+
+- Before resetting phase, innerRef captures current offsetHeight and locks it as minHeight on .inner, preventing layout collapse
+- Crossfade: transitioning state applies opacity:0 via CSS class, 200ms fade-out completes before scenario swap and phase reset, then fades back in
+- minHeight cleared when phase reaches 4 (choices visible — enough content to fill the space), with 0.3s ease transition for smooth height adjustment
+- firstView behavior unchanged — still renders scenario 0 instantly
+
+**Files modified:** `app/landing/GameplayShowcase.js`, `app/landing/GameplayShowcase.module.css`.
+
 ### Showcase Pacing Overhaul
 Showcase pacing overhaul — section label added, first scenario renders immediately without typewriter delay (subsequent scenarios still animate), section padding reduced, container treatment added, hero-to-showcase gap tightened.
 

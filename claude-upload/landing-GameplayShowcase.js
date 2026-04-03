@@ -109,7 +109,10 @@ export default function GameplayShowcase() {
   const [firstView, setFirstView] = useState(true);
   const [revealed, setRevealed] = useState(false); // IO fade-in trigger
   const [allPlayed, setAllPlayed] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
+  const [lockedHeight, setLockedHeight] = useState(undefined);
   const containerRef = useRef(null);
+  const innerRef = useRef(null);
   const triggeredRef = useRef(false);
   const timersRef = useRef([]);
 
@@ -203,6 +206,13 @@ export default function GameplayShowcase() {
     }
   }, [phase === 9, result.done, firstView]);
 
+  // Clear locked height once enough content has rendered
+  useEffect(() => {
+    if (phase >= 4 && lockedHeight !== undefined) {
+      setLockedHeight(undefined);
+    }
+  }, [phase >= 4]);
+
   // Start the animated sequence (used for scenarios after the first)
   const startSequence = useCallback(() => {
     clearTimers();
@@ -237,26 +247,38 @@ export default function GameplayShowcase() {
 
   // ─── Handlers ───
 
+  // Shared transition logic: fade out → swap scenario → fade in + animate
+  const transitionTo = useCallback((nextIndex) => {
+    // Lock height and fade out
+    if (innerRef.current) {
+      setLockedHeight(innerRef.current.offsetHeight);
+    }
+    setTransitioning(true);
+    clearTimers();
+
+    // After fade-out completes, swap content and start new sequence
+    addTimer(() => {
+      setFirstView(false);
+      setScenarioIndex(nextIndex);
+      setPhase(0);
+      setTransitioning(false);
+      // Small delay for state to propagate, then kick off animation
+      setTimeout(() => setPhase(1), 50);
+    }, 200);
+  }, [clearTimers, addTimer]);
+
   const handleNext = useCallback(() => {
     const nextIndex = (scenarioIndex + 1) % SCENARIOS.length;
     if (scenarioIndex === SCENARIOS.length - 1) {
       setAllPlayed(true);
     }
-    setFirstView(false);
-    setScenarioIndex(nextIndex);
-    clearTimers();
-    setPhase(0);
-    setTimeout(() => setPhase(1), 50);
-  }, [scenarioIndex, clearTimers]);
+    transitionTo(nextIndex);
+  }, [scenarioIndex, transitionTo]);
 
   const handleDotClick = useCallback((index) => {
     if (index === scenarioIndex && phase >= 1) return;
-    setFirstView(false);
-    setScenarioIndex(index);
-    clearTimers();
-    setPhase(0);
-    setTimeout(() => setPhase(1), 50);
-  }, [scenarioIndex, phase, clearTimers]);
+    transitionTo(index);
+  }, [scenarioIndex, phase, transitionTo]);
 
   // ─── Render ───
 
@@ -277,7 +299,11 @@ export default function GameplayShowcase() {
       className={`${styles.showcase} ${revealed ? styles.showcaseRevealed : ''}`}
       ref={containerRef}
     >
-      <div className={styles.inner}>
+      <div
+        className={`${styles.inner} ${transitioning ? styles.innerTransitioning : ''}`}
+        ref={innerRef}
+        style={lockedHeight !== undefined ? { minHeight: lockedHeight } : undefined}
+      >
         {/* Genre + Storyteller */}
         <div className={`${styles.genreRow} ${phase >= 1 ? styles.visible : ''}`}>
           <span className={styles.genreLabel}>{scenario.genre}</span>
