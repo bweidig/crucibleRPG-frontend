@@ -3704,6 +3704,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
 }, ref) {
   const newTurnRef = useRef(null);
   const bottomRef = useRef(null);
+  const recapShownRef = useRef(false);
 
   // Auto-scroll: new turns scroll to turn header at top; initial load scrolls to bottom
   useEffect(() => {
@@ -3750,10 +3751,13 @@ const NarrativePanel = forwardRef(function NarrativePanel({
               );
             }
 
+            // Show recap card only once per session — above the first turn rendered on load
+            const showRecap = isLast && sessionRecap && !recapShownRef.current && !isNew;
+            if (showRecap) recapShownRef.current = true;
+
             return (
               <div key={turn.number ?? i}>
-                {/* Show session recap just above the most recent turn */}
-                {isLast && sessionRecap && (
+                {showRecap && (
                   <div className={styles.sessionRecap}>
                     <div className={styles.recapHeader}>PREVIOUSLY...</div>
                     <div className={styles.recapText}>{sessionRecap}</div>

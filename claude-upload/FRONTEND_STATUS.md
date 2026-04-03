@@ -34,6 +34,11 @@
 
 ## Recent Work (This Session: 2026-04-03)
 
+### Fix: Session Recap Card Rendering Every Turn
+The "Previously..." recap card was appearing above every new turn instead of only once on session load. Root cause: the render condition `isLast && sessionRecap` re-triggered whenever a new turn became the last entry. Fixed with a `recapShownRef` that flips after the first render, gated to only show on loaded (non-`_isNew`) turns.
+
+**Files modified:** `app/play/components/NarrativePanel.js`.
+
 ### Gameplay Showcase Component (Landing Page)
 New `GameplayShowcase` component inserted between Hero and Features sections on `/landing`. Auto-plays a scripted gameplay turn when scrolled into view to demonstrate the "Any World. Any Genre." value prop.
 
