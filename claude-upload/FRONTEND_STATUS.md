@@ -34,6 +34,28 @@
 
 ## Recent Work (This Session: 2026-04-03)
 
+### Showcase Pacing Overhaul
+Showcase pacing overhaul — section label added, first scenario renders immediately without typewriter delay (subsequent scenarios still animate), section padding reduced, container treatment added, hero-to-showcase gap tightened.
+
+- "SEE IT IN ACTION" label added above showcase in page.js (matches FEATURES/HOW IT WORKS pattern), wrapped in section#showcase with scrollMarginTop
+- First scenario renders fully at phase 11 on mount — no typewriter, no staggered animations, just the complete scene. IntersectionObserver triggers a gentle 0.8s opacity fade-in. Clicking NEXT SCENARIO or a dot sets `firstView=false` and runs the full animated sequence for subsequent scenarios
+- Showcase padding reduced 80→48px top/bottom; .inner gets subtle container treatment (border, background, border-radius, padding)
+- Hero bottom padding reduced 80→48px to tighten the dark gap between hero and showcase
+
+**Files modified:** `app/landing/GameplayShowcase.js`, `app/landing/GameplayShowcase.module.css`, `app/landing/page.js`, `app/landing/HeroSection.js`.
+
+### Landing Page Polish Pass (6 fixes)
+Landing page polish pass — tagline contrast fix, feature body text readability fix, feature card hover softened (no longer reads as clickable), storyteller label contrast fix, focus-visible states added, type scale tightened from 13 sizes to 10.
+
+1. Hero tagline color #9a9480 → #b0a480 (warmer parchment gold, better contrast)
+2. Feature + step body text: color var(--text-muted) → var(--text-secondary) (5.9:1 vs 3.3:1), weight 300 → 400, size 17 → 16px
+3. Feature card hover: removed translateY(-2px) and box-shadow (false button affordance), kept border-color and background shift
+4. Storyteller label in showcase: #564b2e → #9a8545 (matches --gold-muted token)
+5. Added focus-visible outlines to .ctaPrimary and .ctaSecondary; confirmed existing focus-visible on FAQ questions, replay button, and scenario dots
+6. Type scale: hero sub-tagline clamp max 19→18px, feature/step body 17→16px, showcase result 17→18px (matching narrative)
+
+**Files modified:** `app/landing/HeroSection.js`, `app/landing/page.js`, `app/landing/page.module.css`, `app/landing/GameplayShowcase.module.css`.
+
 ### Fix: Session Recap Card Rendering Every Turn
 The "Previously..." recap card was appearing above every new turn instead of only once on session load. Root cause: the render condition `isLast && sessionRecap` re-triggered whenever a new turn became the last entry. Fixed with a `recapShownRef` that flips after the first render, gated to only show on loaded (non-`_isNew`) turns.
 

@@ -75,7 +75,7 @@ export default function HeroSection() {
     <section className={styles.heroSection} style={{
       position: 'relative', minHeight: '100vh',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      padding: '120px 24px 80px',
+      padding: '120px 24px 48px',
     }}>
       <div style={{
         position: 'absolute', width: 600, height: 600, borderRadius: '50%',
@@ -98,14 +98,14 @@ export default function HeroSection() {
       {/* Tagline */}
       <h1 style={{
         fontFamily: 'var(--font-alegreya)', fontSize: 'clamp(24px, 3.5vw, 36px)',
-        fontStyle: 'italic', fontWeight: 500, color: '#9a9480',
+        fontStyle: 'italic', fontWeight: 500, color: '#b0a480',
         textAlign: 'center', maxWidth: 600, lineHeight: 1.7, marginBottom: 16,
         ...heroStyle(2),
       }}>Your story. Your choices. No table required.</h1>
 
       {/* Sub-tagline */}
       <p style={{
-        fontFamily: 'var(--font-alegreya-sans)', fontSize: 'clamp(16px, 2vw, 19px)',
+        fontFamily: 'var(--font-alegreya-sans)', fontSize: 'clamp(16px, 2vw, 18px)',
         fontWeight: 300, color: 'var(--text-dim)', textAlign: 'center', maxWidth: 560,
         lineHeight: 1.7, marginBottom: 52,
         ...heroStyle(3),

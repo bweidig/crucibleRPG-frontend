@@ -3,15 +3,25 @@
    ============================================== */
 
 .showcase {
-  padding: 80px clamp(24px, 5vw, 60px);
+  padding: 48px clamp(24px, 5vw, 60px);
   max-width: 680px;
   margin: 0 auto;
   scroll-margin-top: 96px;
+  opacity: 0;
+  transition: opacity 0.8s ease-out;
+}
+
+.showcaseRevealed {
+  opacity: 1;
 }
 
 .inner {
   display: flex;
   flex-direction: column;
+  border: 1px solid rgba(201, 168, 76, 0.06);
+  background: rgba(21, 26, 44, 0.3);
+  border-radius: 8px;
+  padding: 36px 32px;
 }
 
 /* ─── Genre + Storyteller Row ─── */
@@ -40,7 +50,7 @@
 .storytellerLabel {
   font-family: var(--font-alegreya-sans);
   font-size: 12px;
-  color: #564b2e;
+  color: #9a8545;
   letter-spacing: 0.5px;
 }
 
@@ -238,7 +248,7 @@
 
 .resultText {
   font-family: var(--font-alegreya);
-  font-size: 17px;
+  font-size: 18px;
   font-style: italic;
   line-height: 1.75;
   color: #b8ad94;
@@ -347,7 +357,11 @@
 
 @media (max-width: 767px) {
   .showcase {
-    padding: 60px 20px;
+    padding: 36px 20px;
+  }
+
+  .inner {
+    padding: 28px 20px;
   }
 
   .narrativeText {

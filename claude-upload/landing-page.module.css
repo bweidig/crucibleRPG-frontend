@@ -25,6 +25,14 @@
   color: var(--accent-gold);
 }
 
+/* CTA focus-visible */
+.ctaPrimary:focus-visible,
+.ctaSecondary:focus-visible {
+  outline: 2px solid rgba(201, 168, 76, 0.6);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
 /* Scroll chevron */
 .scrollChevron {
   position: absolute;
@@ -110,14 +118,12 @@
 
 /* Feature card hover */
 .featureCard {
-  transition: border-color 0.4s ease, background 0.4s ease, box-shadow 0.5s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: border-color 0.4s ease, background 0.4s ease;
 }
 
 .featureCard:hover {
   border-color: rgba(201, 168, 76, 0.25);
   background: #1a2038;
-  box-shadow: 0 4px 32px rgba(201, 168, 76, 0.12);
-  transform: translateY(-2px);
 }
 
 .featureCard h3 {

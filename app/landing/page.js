@@ -48,8 +48,8 @@ function FeaturesSection() {
                 marginBottom: 14, lineHeight: 1.4,
               }}>{f.title}</h3>
               <p style={{
-                fontFamily: 'var(--font-alegreya-sans)', fontSize: 17, fontWeight: 300,
-                color: 'var(--text-muted)', lineHeight: 1.75,
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 16, fontWeight: 400,
+                color: 'var(--text-secondary)', lineHeight: 1.75,
               }}>{f.desc}</p>
             </div>
           </ScrollReveal>
@@ -92,8 +92,8 @@ function HowItWorksSection() {
                   marginBottom: 10,
                 }}>{step.title}</h3>
                 <p style={{
-                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 17, fontWeight: 300,
-                  color: 'var(--text-muted)', lineHeight: 1.75,
+                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 16, fontWeight: 400,
+                  color: 'var(--text-secondary)', lineHeight: 1.75,
                 }}>{step.desc}</p>
               </div>
             </div>
@@ -111,7 +111,14 @@ export default function LandingPage() {
       <NavBar variant="landing" />
       <ScrollFade />
       <HeroSection />
-      <GameplayShowcase />
+      <section id="showcase" style={{ scrollMarginTop: 96 }}>
+        <ScrollReveal>
+          <div style={{ textAlign: 'center', marginBottom: 0 }}>
+            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, color: 'var(--accent-gold)', letterSpacing: '0.25em' }}>SEE IT IN ACTION</span>
+          </div>
+        </ScrollReveal>
+        <GameplayShowcase />
+      </section>
       <FeaturesSection />
       <HowItWorksSection />
       <FAQSection />
