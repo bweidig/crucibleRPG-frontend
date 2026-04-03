@@ -3,6 +3,7 @@ import Footer from '@/components/Footer';
 import ParticleField from '@/components/ParticleField';
 import ScrollReveal from '@/components/ScrollReveal';
 import HeroSection from './HeroSection';
+import GameplayShowcase from './GameplayShowcase';
 import FAQSection from './FAQSection';
 import CTASection from './CTASection';
 import ScrollFade from './ScrollFade';
@@ -110,6 +111,7 @@ export default function LandingPage() {
       <NavBar variant="landing" />
       <ScrollFade />
       <HeroSection />
+      <GameplayShowcase />
       <FeaturesSection />
       <HowItWorksSection />
       <FAQSection />
