@@ -34,6 +34,15 @@
 
 ## Recent Work (This Session: 2026-04-04)
 
+### Loading Overlay: ENTER text, lore flash fix, more tips
+Three fixes to the play page loading overlay: ENTER button now prefers currentLocation from game state over sessionStorage worldName. Lore fragment cycling stops when data is ready (fixes "Your story begins..." blinking). Added 8 new tips (total 18).
+
+- ENTER button: `gameState?.world?.currentLocation || loadingSummary?.worldName || 'THE WORLD'`
+- Lore cycling useEffect now returns early when `dataReady` is true
+- 8 new tips: crucible tagline, magic/potency, rest requirements, difficulty dials, escape option, skill check math, bug reports, condition stacking
+
+**Files modified:** `app/play/page.js`.
+
 ### Init Wizard: ParticleField + Design System Color Alignment
 Added ParticleField background to init wizard (matches landing/menu pages). Replaced ~20 hardcoded hex values with CSS variables throughout Phase 3/4 proposal review components.
 

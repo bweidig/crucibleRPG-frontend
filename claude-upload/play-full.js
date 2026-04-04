@@ -526,16 +526,16 @@ function PlayPage() {
     }
   }, [dataReady, enterReady]);
 
-  // Lore fragment cycling
+  // Lore fragment cycling — stops when data is ready so "Your story begins..." doesn't blink
   const LORE_FRAGMENTS = ['The world takes shape...', 'Setting the stage...', 'Preparing your first scene...', 'Populating the streets...', 'Seeding rumors and secrets...', 'Lighting the lanterns...'];
   useEffect(() => {
-    if (overlayDismissed) return;
+    if (overlayDismissed || dataReady) return;
     const interval = setInterval(() => {
       setLoreFade(false);
       setTimeout(() => { setLoreIndex(prev => (prev + 1) % LORE_FRAGMENTS.length); setLoreFade(true); }, 300);
     }, 3000);
     return () => clearInterval(interval);
-  }, [overlayDismissed]);
+  }, [overlayDismissed, dataReady]);
 
   // Tip cycling
   const OVERLAY_TIPS = [
@@ -549,6 +549,14 @@ function PlayPage() {
     'Every NPC has their own goals. Not all of them align with yours.',
     'You can talk your way out of most fights. Whether you should is another question.',
     'Weapons wear down with use. Take care of your gear or it won\'t take care of you.',
+    'Every hero needs a crucible. The hardest moments reveal the most.',
+    'Magic costs something. Every spell draws from your Potency and your endurance.',
+    'Rest isn\'t free. You need a safe place and enough time.',
+    'The difficulty dials are yours. You can adjust them mid-game in Settings.',
+    'Not every fight needs a winner. Escape is always an option.',
+    'Skill checks use real math. Your stats, your skills, and one d20.',
+    'You can file bug reports and suggestions from the sidebar during play.',
+    'Conditions stack. Two injuries to the same limb are worse than one.',
   ];
   useEffect(() => {
     if (overlayDismissed) return;
@@ -829,7 +837,7 @@ function PlayPage() {
                 onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 36px rgba(201,168,76,0.5)'; }}
                 onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 0 24px rgba(201,168,76,0.3)'; }}
               >
-                ENTER {(loadingSummary?.worldName || 'THE WORLD').toUpperCase()}
+                ENTER {(gameState?.world?.currentLocation || loadingSummary?.worldName || 'THE WORLD').toUpperCase()}
               </button>
             </div>
 
