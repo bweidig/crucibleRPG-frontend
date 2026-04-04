@@ -226,8 +226,8 @@ export default function AuthPage() {
       }}>
         {/* Radial glow */}
         <div style={{
-          position: 'absolute', width: 1000, height: 1000, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(201,168,76,0.12) 0%, transparent 65%)',
+          position: 'absolute', width: 1400, height: 1400, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(201,168,76,0.05) 0%, transparent 55%)',
           top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none',
         }} />
 
