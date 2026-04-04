@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import * as api from '@/lib/api';
 import { useAuth } from '@/lib/useAuth';
 import { getToken } from '@/lib/api';
@@ -517,6 +518,10 @@ function PlayPage() {
   // ─── Loading Overlay Lifecycle ───
   const showOverlay = !overlayDismissed && (!authReady || loading || !enterReady || !overlayFading);
   const dataReady = authReady && !loading;
+  const isReturningGame = dataReady && gameState && (
+    (gameState.recentNarrative?.length > 0) ||
+    (gameState.clock?.totalTurn > 0)
+  );
 
   // When data finishes loading, hold 1.5s then show ENTER button
   useEffect(() => {
@@ -745,10 +750,10 @@ function PlayPage() {
           }} />
 
           {/* Wordmark */}
-          <div style={{ position: 'absolute', top: 22, left: 24, display: 'flex', alignItems: 'baseline', gap: 8, zIndex: 2 }}>
+          <Link href="/menu" style={{ position: 'absolute', top: 22, left: 24, display: 'flex', alignItems: 'baseline', gap: 8, zIndex: 2, textDecoration: 'none' }}>
             <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 900, color: '#c9a84c', letterSpacing: '0.06em' }}>CRUCIBLE</span>
             <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.18em' }}>RPG</span>
-          </div>
+          </Link>
 
           {/* Center content */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1 }}>
@@ -780,7 +785,7 @@ function PlayPage() {
               fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
               color: '#c9a84c', letterSpacing: '0.18em', textTransform: 'uppercase',
               marginBottom: 32,
-            }}>PROLOGUE</div>
+            }}>{isReturningGame ? 'WELCOME BACK' : 'PROLOGUE'}</div>
 
             {/* Firefly embers */}
             <div style={{ width: 160, height: 160, position: 'relative' }}>
@@ -812,7 +817,7 @@ function PlayPage() {
                 fontWeight: dataReady ? 700 : 400,
                 opacity: loreFade ? 1 : 0, transition: 'opacity 0.3s, color 0.5s',
               }}>
-                {dataReady ? 'Your story begins...' : LORE_FRAGMENTS[loreIndex]}
+                {dataReady ? (isReturningGame ? 'Your story continues...' : 'Your story begins...') : LORE_FRAGMENTS[loreIndex]}
               </span>
             </div>
 

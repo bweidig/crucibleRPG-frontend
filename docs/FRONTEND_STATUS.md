@@ -34,6 +34,27 @@
 
 ## Recent Work (This Session: 2026-04-04)
 
+### Play Overlay: Returning game awareness + wordmark link
+Loading overlay now distinguishes new vs returning games. Phase label shows "WELCOME BACK" for returning games, "PROLOGUE" for new. Lore ready text shows "Your story continues..." vs "Your story begins...". Wordmark is now a Link to /menu as an escape hatch.
+
+- `isReturningGame` derived from `gameState.recentNarrative` or `clock.totalTurn`
+- Phase label: WELCOME BACK / PROLOGUE
+- Ready text: "Your story continues..." / "Your story begins..."
+- Wordmark wrapped in `<Link href="/menu">` with `textDecoration: 'none'`
+
+**Files modified:** `app/play/page.js`.
+
+### Init Wizard: World Gen Overlay for Phase 1→2 Transition
+Phase 1 (Setting) now uses the full ember overlay during world generation instead of a blank crossfade. Overlay stays up until worldGenStatus resolves (complete/error/timeout), then fades to reveal Character form. Inline "Generating your world..." message removed from Phase 2 (error/timeout messages preserved).
+
+- `useOverlay` now includes `phase === 1` alongside `phase === 2`
+- Added `worldGenStatusRef` (ref mirroring state) so polling promise can read current status
+- case 1 in handleNext awaits world gen completion via 500ms interval checking the ref
+- On error/timeout: overlay dismisses normally, user lands on Phase 2 with error/timeout UI
+- Removed inline "Generating your world..." text from Phase 2 (redundant after full overlay)
+
+**Files modified:** `app/init/page.js`.
+
 ### Loading Overlay: ENTER text, lore flash fix, more tips
 Three fixes to the play page loading overlay: ENTER button now prefers currentLocation from game state over sessionStorage worldName. Lore fragment cycling stops when data is ready (fixes "Your story begins..." blinking). Added 8 new tips (total 18).
 

@@ -2010,9 +2010,13 @@ function InitWizardInner() {
   const [scenariosFailed, setScenariosFailed] = useState(false);
   const worldPollCount = useRef(0);
   const worldPollRef = useRef(null);
+  const worldGenStatusRef = useRef(null);
   const bottomNavRef = useRef(null);
   const [scrollFadeVisible, setScrollFadeVisible] = useState(false);
   const [bottomNavHeight, setBottomNavHeight] = useState(0);
+
+  // Keep worldGenStatusRef in sync with state so polling promises can read it
+  useEffect(() => { worldGenStatusRef.current = worldGenStatus; }, [worldGenStatus]);
 
   // --- Scroll fade indicator ---
   useEffect(() => {
@@ -2407,8 +2411,8 @@ function InitWizardInner() {
       return;
     }
 
-    // Phase 2 uses full ember overlay (AI generation). All others use light crossfade.
-    const useOverlay = phase === 2;
+    // Phase 1 (world gen) and Phase 2 (character save + proposal) use full ember overlay.
+    const useOverlay = phase === 1 || phase === 2;
 
     setSaving(true);
     setError(null);
@@ -2429,6 +2433,16 @@ function InitWizardInner() {
           break;
         case 1:
           await saveSetting();
+          // Wait for world gen to finish (polling is already running via saveSetting)
+          await new Promise((resolve) => {
+            const check = setInterval(() => {
+              const status = worldGenStatusRef.current;
+              if (status === 'complete' || status === 'error' || status === 'timeout') {
+                clearInterval(check);
+                resolve();
+              }
+            }, 500);
+          });
           break;
         case 2:
           await saveCharacter();
@@ -2588,11 +2602,6 @@ function InitWizardInner() {
           const hasArchetypes = availableArchetypes.length > 0;
           return (
             <>
-              {worldGenStatus === 'generating' && (
-                <div style={{ marginBottom: 20, fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--accent-gold)' }}>
-                  Generating your world...
-                </div>
-              )}
               {worldGenStatus === 'error' && (
                 <div style={{ marginBottom: 20, fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#c84a4a' }}>
                   World generation failed. Please go back and try again.
