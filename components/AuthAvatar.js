@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { getToken, getUser } from '@/lib/api';
 
 /**
@@ -14,15 +14,14 @@ import { getToken, getUser } from '@/lib/api';
  *   style     — extra styles on the outer wrapper
  */
 export default function AuthAvatar({ size = 32, active = false, style }) {
-  const router = useRouter();
   const token = typeof window !== 'undefined' ? getToken() : null;
 
   if (!token) {
     return (
-      <button
-        onClick={() => router.push('/auth')}
+      <Link
+        href="/auth"
         style={{
-          background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+          textDecoration: 'none', padding: 0,
           fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
           color: '#8a94a8', transition: 'color 0.2s ease',
           ...style,
@@ -31,7 +30,7 @@ export default function AuthAvatar({ size = 32, active = false, style }) {
         onMouseLeave={e => { e.currentTarget.style.color = '#8a94a8'; }}
       >
         Sign In
-      </button>
+      </Link>
     );
   }
 
@@ -40,8 +39,8 @@ export default function AuthAvatar({ size = 32, active = false, style }) {
   const initial = name ? name.charAt(0).toUpperCase() : '?';
 
   return (
-    <button
-      onClick={() => router.push('/settings')}
+    <Link
+      href="/settings"
       aria-label="Settings"
       style={{
         width: size, height: size, borderRadius: '50%',
@@ -50,6 +49,7 @@ export default function AuthAvatar({ size = 32, active = false, style }) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontFamily: 'var(--font-cinzel)', fontSize: Math.round(size * 0.41), fontWeight: 600,
         color: '#c9a84c', cursor: 'pointer', padding: 0,
+        textDecoration: 'none',
         transition: 'border-color 0.2s ease',
         ...style,
       }}
@@ -57,6 +57,6 @@ export default function AuthAvatar({ size = 32, active = false, style }) {
       onMouseLeave={e => { if (!active) e.currentTarget.style.borderColor = '#3a3328'; }}
     >
       {initial}
-    </button>
+    </Link>
   );
 }
