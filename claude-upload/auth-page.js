@@ -231,34 +231,12 @@ export default function AuthPage() {
         position: 'relative', zIndex: 1,
         padding: '24px clamp(16px, 5vw, 32px)',
       }}>
-        {/* Ambient glow — four small circles around card edges to avoid gradient banding */}
-        <div style={{
-          position: 'absolute', width: 500, height: 500, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(201,168,76,0.06) 0%, transparent 60%)',
-          top: '20%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none',
-        }} />
-        <div style={{
-          position: 'absolute', width: 500, height: 500, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(201,168,76,0.06) 0%, transparent 60%)',
-          bottom: '20%', left: '50%', transform: 'translate(-50%, 50%)', pointerEvents: 'none',
-        }} />
-        <div style={{
-          position: 'absolute', width: 400, height: 400, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(201,168,76,0.04) 0%, transparent 60%)',
-          top: '50%', left: '35%', transform: 'translate(-50%, -50%)', pointerEvents: 'none',
-        }} />
-        <div style={{
-          position: 'absolute', width: 400, height: 400, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(201,168,76,0.04) 0%, transparent 60%)',
-          top: '50%', left: '65%', transform: 'translate(-50%, -50%)', pointerEvents: 'none',
-        }} />
-
         {/* Card */}
         <form onSubmit={handleSubmit} className={styles.authCard} style={{
         width: '100%', maxWidth: 440, padding: '32px 28px', position: 'relative', zIndex: 1,
         background: 'var(--bg-card)', border: '1px solid rgba(201,168,76,0.08)', borderRadius: 12,
         backdropFilter: 'blur(20px)',
-        boxShadow: '0 0 80px rgba(201,168,76,0.04), 0 4px 24px rgba(0,0,0,0.3)',
+        boxShadow: '0 0 80px rgba(201,168,76,0.06), 0 0 160px rgba(201,168,76,0.03), 0 4px 24px rgba(0,0,0,0.3)',
       }}>
         {/* Signup complete confirmation */}
         {signupComplete ? (
