@@ -20,14 +20,19 @@ function ScrollChevron({ heroStage }) {
     <button
       className={styles.scrollChevron}
       onClick={() => document.getElementById('showcase')?.scrollIntoView({ behavior: 'smooth' })}
-      aria-label="Scroll to features"
+      aria-label="Scroll to showcase"
       style={{
         opacity: isVisible ? 0.6 : 0,
         pointerEvents: isVisible ? 'auto' : 'none',
         transition: 'opacity 0.5s ease',
       }}
     >
-      <svg viewBox="0 0 24 12" width={32} height={16} style={{ display: 'block' }}>
+      <span style={{
+        fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600,
+        letterSpacing: '0.2em', color: 'var(--accent-gold)',
+        display: 'block', marginBottom: 6,
+      }}>SEE IT IN ACTION</span>
+      <svg viewBox="0 0 24 12" width={32} height={16} style={{ display: 'block', margin: '0 auto' }}>
         <path d="M2 2 L12 10 L22 2" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
       </svg>
     </button>
@@ -122,12 +127,12 @@ export default function HeroSection() {
           border: 'none', borderRadius: 6, padding: '16px 40px',
           cursor: 'pointer', letterSpacing: '0.1em',
         }}>START YOUR ADVENTURE</button>
-        <a href="#showcase" style={{ textDecoration: 'none' }}>
+        <a href="#how-it-works" style={{ textDecoration: 'none' }}>
           <button className={styles.ctaSecondary} style={{
             fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 600, color: 'var(--accent-gold)',
             background: 'transparent', border: '1px solid var(--border-card)',
             borderRadius: 6, padding: '16px 40px', cursor: 'pointer', letterSpacing: '0.1em',
-          }}>SEE IT IN ACTION</button>
+          }}>HOW IT WORKS</button>
         </a>
       </div>
 

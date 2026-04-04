@@ -112,11 +112,6 @@ export default function LandingPage() {
       <ScrollFade />
       <HeroSection />
       <section id="showcase" style={{ scrollMarginTop: 96 }}>
-        <ScrollReveal>
-          <div style={{ textAlign: 'center', marginBottom: 0 }}>
-            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, color: 'var(--accent-gold)', letterSpacing: '0.25em' }}>SEE IT IN ACTION</span>
-          </div>
-        </ScrollReveal>
         <GameplayShowcase />
       </section>
       <FeaturesSection />
