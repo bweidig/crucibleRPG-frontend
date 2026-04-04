@@ -205,6 +205,7 @@ export default function GameplayShowcase() {
   const [lockedHeight, setLockedHeight] = useState(undefined);
   const containerRef = useRef(null);
   const innerRef = useRef(null);
+  const diceRef = useRef(null);
   const triggeredRef = useRef(false);
   const timersRef = useRef([]);
 
@@ -344,8 +345,16 @@ export default function GameplayShowcase() {
       addTimer(() => setPhase(7), 600);
       addTimer(() => setPhase(9), 1000);
       // Phase 11 handled by useEffect when result.done
+      // Scroll to dice bar once it renders (700ms = 600ms phase delay + 100ms render)
+      addTimer(() => {
+        diceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 700);
     } else {
       setPhase(6);
+      // Scroll to dice bar once it renders (phase 6→7 is 600ms + 100ms render buffer)
+      addTimer(() => {
+        diceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 700);
     }
   }, [selectedChoice, firstView, addTimer]);
 
@@ -494,7 +503,7 @@ export default function GameplayShowcase() {
 
         {/* Dice Result */}
         {showDice && (
-          <div className={`${styles.diceBar} ${fadingOut ? styles.fadingOut : ''}`}>
+          <div ref={diceRef} className={`${styles.diceBar} ${fadingOut ? styles.fadingOut : ''}`}>
             {selectedResult.dice.segments.map((seg, i) => (
               <span key={i} className={styles.diceSegment}>
                 {i > 0 && <span className={styles.diceDot}>&middot;</span>}
