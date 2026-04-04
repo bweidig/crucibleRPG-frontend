@@ -1,6 +1,7 @@
 import React, { useState, forwardRef } from 'react';
 import InlineDicePanel from './InlineDicePanel';
 import ResolutionBlock from './ResolutionBlock';
+import ReflectionBlock from './ReflectionBlock';
 import styles from './TurnBlock.module.css';
 
 // Format clock fields for display
@@ -219,6 +220,8 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew }, ref) {
       {showContent && (
         <>
           <ResolutionBlock resolution={turn.resolution} />
+
+          <ReflectionBlock reflection={turn.reflection} />
 
           <div className={styles.narrativeText}>
             {renderNarrative(turn.narrative)}

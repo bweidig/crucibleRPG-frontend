@@ -198,12 +198,16 @@ function PlayPage() {
       ? { ...gameState?.clock, ...response.stateChanges.clock }
       : gameState?.clock || null;
 
+    // Extract reflection from mechanicalResults (Long Rest end-of-day reflection)
+    const reflection = response.mechanicalResults?.reflection || response.stateChanges?.reflection || null;
+
     setTurns(prev => [...prev, {
       number: response.turn.number,
       sessionTurn: response.turn.sessionTurn,
       narrative: response.narrative,
       resolution: response.resolution || null,
       stateChanges: response.stateChanges || null,
+      reflection,
       playerAction: playerActionText,
       clock: turnClock,
       weather: turnClock?.weather || null,

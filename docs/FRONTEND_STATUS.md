@@ -34,6 +34,33 @@
 
 ## Recent Work (This Session: 2026-04-04)
 
+### Spell Patterns Section + Skill Glossary Clicks in CharacterTab
+CharacterTab now renders Spell Patterns section (after skills, before conditions) when `spellPatterns` array is non-empty. All skill names (foundational, active, passive masteries, spell patterns) are clickable — opens existing EntityPopup with glossary definition. Skills grouped under labeled sub-headers (Foundational, Active, Passive Masteries). Hover highlights skill name in gold.
+
+- Spell Patterns section: renders pattern name + modifier, only when array is non-empty, clickable for glossary popup
+- Passive Masteries: new skill type filter (`s.type === 'passive'`), renders in its own labeled group
+- Skill sub-group labels: Cinzel 10px uppercase headers for each skill category
+- Click handler: `onEntityClick({ term: name, type: 'skill' | 'spell' })` — reuses existing EntityPopup + glossary lookup
+- New CSS: `.skillGroup`, `.skillGroupLabel`, `.skillNameClickable` with hover color transition
+
+**Files modified:** `app/play/components/CharacterTab.js`, `app/play/components/CharacterTab.module.css`.
+
+### End-of-Day Reflection Display at Long Rest
+New ReflectionBlock component renders inline in turn output when `reflection` is present in the API response. Shows AI narrative, gains table, overflow line, quest bonuses, and blocked state. Positioned after ResolutionBlock, before narrative text.
+
+- ReflectionBlock: gold left-border card with header, italic narrative, gains table (skill/stat/spell icons), overflow line, quest bonus callout
+- Blocked state: shows thematic starvation message, no table
+- Absent reflection: renders nothing
+- Turn response handler updated to extract `reflection` from `mechanicalResults` or `stateChanges`
+
+**Files created:** `app/play/components/ReflectionBlock.js`, `app/play/components/ReflectionBlock.module.css`.
+**Files modified:** `app/play/components/TurnBlock.js`, `app/play/page.js`.
+
+### Init Wizard: Replace The Long Empire with The Worn Cobble
+Removed "The Long Empire" world template from Sword & Soil era. Added "The Worn Cobble" — a sprawling medieval city with noble courts, criminal syndicates, and layered social structure. Sword & Soil now has three templates: The Fraying Throne, The Green Tribunal, The Worn Cobble.
+
+**Files modified:** `app/init/page.js`.
+
 ### Audit Cleanup: Five Fixes from 7.45 Audit
 Audit cleanup — FAQ answer text updated to match body text system (16px/400/#8a94a8), hero sub-tagline contrast and weight fixed, showcase container border/bg opacity increased for visibility, typewriter speed increased 1.6x on repeat scenarios, showcase entrance fade-in added.
 

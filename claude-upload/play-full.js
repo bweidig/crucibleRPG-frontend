@@ -199,12 +199,16 @@ function PlayPage() {
       ? { ...gameState?.clock, ...response.stateChanges.clock }
       : gameState?.clock || null;
 
+    // Extract reflection from mechanicalResults (Long Rest end-of-day reflection)
+    const reflection = response.mechanicalResults?.reflection || response.stateChanges?.reflection || null;
+
     setTurns(prev => [...prev, {
       number: response.turn.number,
       sessionTurn: response.turn.sessionTurn,
       narrative: response.narrative,
       resolution: response.resolution || null,
       stateChanges: response.stateChanges || null,
+      reflection,
       playerAction: playerActionText,
       clock: turnClock,
       weather: turnClock?.weather || null,
@@ -1160,6 +1164,12 @@ export default function CharacterTab({ data, onEntityClick }) {
 
   const activeSkills = skills.filter(s => s.type === 'active');
   const foundationalSkills = skills.filter(s => s.type === 'foundational');
+  const passiveSkills = skills.filter(s => s.type === 'passive');
+  const spellPatterns = Array.isArray(data.spellPatterns) ? data.spellPatterns : [];
+
+  const handleSkillClick = (name, type) => {
+    onEntityClick?.({ term: name, type: type || 'skill' });
+  };
 
   return (
     <div>
@@ -1190,27 +1200,53 @@ export default function CharacterTab({ data, onEntityClick }) {
           <div className={sidebarStyles.emptyState}>No skills yet</div>
         ) : (
           <>
-            {activeSkills.map((skill, i) => (
-              <div key={`a-${i}`} className={styles.skillRow}>
-                <span>
-                  <span className={styles.skillName}>{skill.name}</span>
-                  <span className={styles.skillType}>active</span>
-                </span>
-                <span className={styles.skillModifier}>+{skill.modifier?.toFixed(1)}</span>
+            {foundationalSkills.length > 0 && (
+              <div className={styles.skillGroup}>
+                <div className={styles.skillGroupLabel}>Foundational</div>
+                {foundationalSkills.map((skill, i) => (
+                  <div key={`f-${i}`} className={styles.skillRow} onClick={() => handleSkillClick(skill.name, 'skill')} style={{ cursor: 'pointer' }}>
+                    <span className={styles.skillNameClickable}>{skill.name}</span>
+                    <span className={styles.skillModifier}>+{skill.modifier?.toFixed(1)}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-            {foundationalSkills.map((skill, i) => (
-              <div key={`f-${i}`} className={styles.skillRow}>
-                <span>
-                  <span className={styles.skillName}>{skill.name}</span>
-                  <span className={styles.skillType}>foundational</span>
-                </span>
-                <span className={styles.skillModifier}>+{skill.modifier?.toFixed(1)}</span>
+            )}
+            {activeSkills.length > 0 && (
+              <div className={styles.skillGroup}>
+                <div className={styles.skillGroupLabel}>Active</div>
+                {activeSkills.map((skill, i) => (
+                  <div key={`a-${i}`} className={styles.skillRow} onClick={() => handleSkillClick(skill.name, 'skill')} style={{ cursor: 'pointer' }}>
+                    <span className={styles.skillNameClickable}>{skill.name}</span>
+                    <span className={styles.skillModifier}>+{skill.modifier?.toFixed(1)}</span>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
+            {passiveSkills.length > 0 && (
+              <div className={styles.skillGroup}>
+                <div className={styles.skillGroupLabel}>Passive Masteries</div>
+                {passiveSkills.map((skill, i) => (
+                  <div key={`p-${i}`} className={styles.skillRow} onClick={() => handleSkillClick(skill.name, 'skill')} style={{ cursor: 'pointer' }}>
+                    <span className={styles.skillNameClickable}>{skill.name}</span>
+                    <span className={styles.skillModifier}>+{skill.modifier?.toFixed(1)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
       </PanelSection>
+
+      {spellPatterns.length > 0 && (
+        <PanelSection title="Spell Patterns">
+          {spellPatterns.map((pattern, i) => (
+            <div key={pattern.patternId || i} className={styles.skillRow} onClick={() => handleSkillClick(pattern.name, 'spell')} style={{ cursor: 'pointer' }}>
+              <span className={styles.skillNameClickable}>{pattern.name}</span>
+              <span className={styles.skillModifier}>+{pattern.modifier?.toFixed(1)}</span>
+            </div>
+          ))}
+        </PanelSection>
+      )}
 
       <PanelSection title="Conditions" defaultOpen={conditions.length > 0}>
         {conditions.length === 0 ? (
@@ -3992,6 +4028,112 @@ export default function PanelSection({ title, children, defaultOpen = true }) {
   );
 }
 
+// FILE: app/play/components/ReflectionBlock.js
+import React from 'react';
+import styles from './ReflectionBlock.module.css';
+
+// Render narrative text: \n\n = paragraph break, \n = <br>
+function renderText(text) {
+  if (!text) return null;
+  return text.split('\n\n').map((paragraph, i) => {
+    const lines = paragraph.split('\n');
+    return (
+      <p key={i}>
+        {lines.map((line, j) => (
+          <React.Fragment key={j}>
+            {j > 0 && <br />}
+            {line}
+          </React.Fragment>
+        ))}
+      </p>
+    );
+  });
+}
+
+function gainTypeIcon(type) {
+  if (type === 'stat') return '\u25B2';       // ▲
+  if (type === 'spell_pattern') return '\u2726'; // ✦
+  return '\u25CF';                               // ● (skill default)
+}
+
+function gainTypeClass(type) {
+  if (type === 'stat') return styles.gainStat;
+  if (type === 'spell_pattern') return styles.gainSpell;
+  return styles.gainSkill;
+}
+
+export default function ReflectionBlock({ reflection }) {
+  if (!reflection) return null;
+
+  // Blocked state — starvation prevents reflection
+  if (reflection.blocked) {
+    return (
+      <div className={styles.reflectionBlock}>
+        <div className={styles.header}>
+          <span className={styles.headerIcon}>{'\u2726'}</span>
+          <span className={styles.headerLabel}>Reflection</span>
+        </div>
+        <p className={styles.blockedText}>
+          Your body aches for rest, but hunger gnaws too deeply for real recovery.
+        </p>
+      </div>
+    );
+  }
+
+  // No narrative — nothing to show
+  if (!reflection.narrative) return null;
+
+  const gains = Array.isArray(reflection.gains) ? reflection.gains : [];
+  const overflow = Array.isArray(reflection.overflow) ? reflection.overflow : [];
+  const questBonuses = Array.isArray(reflection.questBonuses) ? reflection.questBonuses : [];
+  const hasGains = gains.length > 0;
+
+  return (
+    <div className={styles.reflectionBlock}>
+      <div className={styles.header}>
+        <span className={styles.headerIcon}>{'\u2726'}</span>
+        <span className={styles.headerLabel}>Reflection</span>
+      </div>
+
+      <div className={styles.narrative}>
+        {renderText(reflection.narrative)}
+      </div>
+
+      {questBonuses.length > 0 && (
+        <div className={styles.questBonuses}>
+          {questBonuses.map((qb, i) => (
+            <div key={i} className={styles.questLine}>
+              {qb.questTitle} completed
+              {qb.skillTarget && ` \u2014 ${qb.skillTarget} ${qb.skillBonus}`}
+              {qb.statTarget && `, ${qb.statTarget} ${qb.statBonus}`}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {hasGains && (
+        <div className={styles.gainsTable}>
+          {gains.map((g, i) => (
+            <div key={i} className={styles.gainRow}>
+              <span className={styles.gainName}>
+                <span className={`${styles.gainIcon} ${gainTypeClass(g.type)}`}>{gainTypeIcon(g.type)}</span>
+                {g.name}
+              </span>
+              <span className={styles.gainAmount}>{g.displayAmount}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {overflow.length > 0 && (
+        <div className={styles.overflowLine}>
+          Overflow: {overflow.map(o => `${o.name} ${o.displayAmount}`).join(', ')} — carried to next Reflection
+        </div>
+      )}
+    </div>
+  );
+}
+
 // FILE: app/play/components/ReportModal.js
 'use client';
 
@@ -6649,6 +6791,7 @@ export default function TopBar({ setting, clock, sseConnected, sidebarOpen, onTo
 import React, { useState, forwardRef } from 'react';
 import InlineDicePanel from './InlineDicePanel';
 import ResolutionBlock from './ResolutionBlock';
+import ReflectionBlock from './ReflectionBlock';
 import styles from './TurnBlock.module.css';
 
 // Format clock fields for display
@@ -6867,6 +7010,8 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew }, ref) {
       {showContent && (
         <>
           <ResolutionBlock resolution={turn.resolution} />
+
+          <ReflectionBlock reflection={turn.reflection} />
 
           <div className={styles.narrativeText}>
             {renderNarrative(turn.narrative)}

@@ -1,0 +1,140 @@
+/* ==============================================
+   ReflectionBlock — End-of-day reflection display
+   ============================================== */
+
+.reflectionBlock {
+  background: var(--bg-resolution, rgba(21, 26, 44, 0.4));
+  border: 1px solid var(--border-light);
+  border-left: 2px solid var(--accent-gold);
+  border-radius: 4px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+
+/* ─── Header ─── */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.headerIcon {
+  color: var(--accent-gold);
+  font-size: 12px;
+}
+
+.headerLabel {
+  font-family: var(--font-cinzel);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-gold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ─── Narrative ─── */
+
+.narrative {
+  line-height: 1.72;
+  color: var(--text-narrative);
+  font-size: var(--narrative-size, 15px);
+  font-style: italic;
+  margin-bottom: 10px;
+}
+
+.narrative p {
+  margin-bottom: 8px;
+}
+
+.narrative p:last-child {
+  margin-bottom: 0;
+}
+
+/* ─── Blocked State ─── */
+
+.blockedText {
+  font-family: var(--font-alegreya-sans);
+  font-size: var(--narrative-size, 15px);
+  font-style: italic;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* ─── Quest Bonuses ─── */
+
+.questBonuses {
+  margin-bottom: 8px;
+}
+
+.questLine {
+  font-family: var(--font-alegreya-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-gold);
+  line-height: 1.5;
+}
+
+/* ─── Gains Table ─── */
+
+.gainsTable {
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+}
+
+.gainRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+}
+
+.gainRow + .gainRow {
+  border-top: 1px solid var(--border-light);
+}
+
+.gainName {
+  font-family: var(--font-alegreya-sans);
+  font-size: 13px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gainIcon {
+  font-size: 8px;
+}
+
+.gainSkill {
+  color: var(--brown-gold);
+}
+
+.gainStat {
+  color: var(--text-heading);
+}
+
+.gainSpell {
+  color: var(--accent-gold);
+}
+
+.gainAmount {
+  font-family: var(--font-jetbrains);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-success, #8aba7a);
+}
+
+/* ─── Overflow ─── */
+
+.overflowLine {
+  font-family: var(--font-alegreya-sans);
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+  margin-top: 4px;
+}

@@ -69,6 +69,25 @@
 }
 
 /* Skills */
+.skillGroup {
+  margin-bottom: 6px;
+}
+
+.skillGroupLabel {
+  font-family: var(--font-cinzel);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+  margin-top: 6px;
+}
+
+.skillGroup:first-child .skillGroupLabel {
+  margin-top: 0;
+}
+
 .skillRow {
   display: flex;
   justify-content: space-between;
@@ -81,6 +100,17 @@
   font-family: var(--font-alegreya-sans);
   font-size: var(--ui-size, 13px);
   color: var(--text-primary);
+}
+
+.skillNameClickable {
+  font-family: var(--font-alegreya-sans);
+  font-size: var(--ui-size, 13px);
+  color: var(--text-primary);
+  transition: color 0.15s ease;
+}
+
+.skillRow:hover .skillNameClickable {
+  color: var(--accent-gold);
 }
 
 .skillType {

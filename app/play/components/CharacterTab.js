@@ -63,6 +63,12 @@ export default function CharacterTab({ data, onEntityClick }) {
 
   const activeSkills = skills.filter(s => s.type === 'active');
   const foundationalSkills = skills.filter(s => s.type === 'foundational');
+  const passiveSkills = skills.filter(s => s.type === 'passive');
+  const spellPatterns = Array.isArray(data.spellPatterns) ? data.spellPatterns : [];
+
+  const handleSkillClick = (name, type) => {
+    onEntityClick?.({ term: name, type: type || 'skill' });
+  };
 
   return (
     <div>
@@ -93,27 +99,53 @@ export default function CharacterTab({ data, onEntityClick }) {
           <div className={sidebarStyles.emptyState}>No skills yet</div>
         ) : (
           <>
-            {activeSkills.map((skill, i) => (
-              <div key={`a-${i}`} className={styles.skillRow}>
-                <span>
-                  <span className={styles.skillName}>{skill.name}</span>
-                  <span className={styles.skillType}>active</span>
-                </span>
-                <span className={styles.skillModifier}>+{skill.modifier?.toFixed(1)}</span>
+            {foundationalSkills.length > 0 && (
+              <div className={styles.skillGroup}>
+                <div className={styles.skillGroupLabel}>Foundational</div>
+                {foundationalSkills.map((skill, i) => (
+                  <div key={`f-${i}`} className={styles.skillRow} onClick={() => handleSkillClick(skill.name, 'skill')} style={{ cursor: 'pointer' }}>
+                    <span className={styles.skillNameClickable}>{skill.name}</span>
+                    <span className={styles.skillModifier}>+{skill.modifier?.toFixed(1)}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-            {foundationalSkills.map((skill, i) => (
-              <div key={`f-${i}`} className={styles.skillRow}>
-                <span>
-                  <span className={styles.skillName}>{skill.name}</span>
-                  <span className={styles.skillType}>foundational</span>
-                </span>
-                <span className={styles.skillModifier}>+{skill.modifier?.toFixed(1)}</span>
+            )}
+            {activeSkills.length > 0 && (
+              <div className={styles.skillGroup}>
+                <div className={styles.skillGroupLabel}>Active</div>
+                {activeSkills.map((skill, i) => (
+                  <div key={`a-${i}`} className={styles.skillRow} onClick={() => handleSkillClick(skill.name, 'skill')} style={{ cursor: 'pointer' }}>
+                    <span className={styles.skillNameClickable}>{skill.name}</span>
+                    <span className={styles.skillModifier}>+{skill.modifier?.toFixed(1)}</span>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
+            {passiveSkills.length > 0 && (
+              <div className={styles.skillGroup}>
+                <div className={styles.skillGroupLabel}>Passive Masteries</div>
+                {passiveSkills.map((skill, i) => (
+                  <div key={`p-${i}`} className={styles.skillRow} onClick={() => handleSkillClick(skill.name, 'skill')} style={{ cursor: 'pointer' }}>
+                    <span className={styles.skillNameClickable}>{skill.name}</span>
+                    <span className={styles.skillModifier}>+{skill.modifier?.toFixed(1)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
       </PanelSection>
+
+      {spellPatterns.length > 0 && (
+        <PanelSection title="Spell Patterns">
+          {spellPatterns.map((pattern, i) => (
+            <div key={pattern.patternId || i} className={styles.skillRow} onClick={() => handleSkillClick(pattern.name, 'spell')} style={{ cursor: 'pointer' }}>
+              <span className={styles.skillNameClickable}>{pattern.name}</span>
+              <span className={styles.skillModifier}>+{pattern.modifier?.toFixed(1)}</span>
+            </div>
+          ))}
+        </PanelSection>
+      )}
 
       <PanelSection title="Conditions" defaultOpen={conditions.length > 0}>
         {conditions.length === 0 ? (
