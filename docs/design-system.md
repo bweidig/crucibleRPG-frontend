@@ -167,7 +167,7 @@ Appears on ALL pages: Landing, Coming Soon, Main Menu, Auth, Init Wizard, Loadin
 ### Primary CTA (gold gradient)
 - Background: `linear-gradient(135deg, #c9a84c, #ddb84e)`
 - Text: `#0a0e1a` (dark on gold)
-- Font: Cinzel, 13px, 700 weight, letter-spacing 0.1em
+- Font: Cinzel, 15px, 700 weight, letter-spacing 0.1em
 - Padding: `14px 28px`
 - Border: none
 - Border-radius: `6px`
@@ -176,7 +176,7 @@ Appears on ALL pages: Landing, Coming Soon, Main Menu, Auth, Init Wizard, Loadin
 - Background: transparent
 - Border: `1px solid #3a3328`
 - Text: `#c9a84c`
-- Font: Cinzel, 12px, 600 weight
+- Font: Cinzel, 13px, 600 weight
 - Padding: `12px 24px`
 - Border-radius: `6px`
 
