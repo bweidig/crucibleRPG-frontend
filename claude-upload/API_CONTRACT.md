@@ -2,7 +2,7 @@
 
 > **This contract is verified against backend code as of 2026-03-17. The frontend uses this as its single source of truth. Do not change response shapes without updating this document.**
 
-**Last Updated:** 2026-04-01
+**Last Updated:** 2026-04-04
 
 Base URL: `https://<host>` (Railway production or `http://localhost:3000` local)
 
@@ -44,7 +44,7 @@ Mount: `/api/auth`
 
 ### POST /api/auth/signup
 
-Create a new account.
+Create a new account. Invite code is no longer required (AD-520).
 
 **Request Body:**
 | Field | Type | Required | Validation |
@@ -52,7 +52,10 @@ Create a new account.
 | `email` | string | yes | Must contain `@` and `.` |
 | `password` | string | yes | Min 8 chars (NIST 2025 — no complexity rules) |
 | `displayName` | string | yes | Non-empty after trim, max 50 chars |
-| `inviteCode` | string | no | Must match `INVITE_CODE` env var if set |
+| `inviteCode` | string | no | **Ignored** — accepted for backward compat but not validated |
+| `playtestRequest` | boolean | no | If true, stores `playtestAbout` and `playtestSource` |
+| `playtestAbout` | string | no | Free text (max 1000 chars, truncated). Only stored if `playtestRequest` is true |
+| `playtestSource` | string | no | How user found the game (max 500 chars, truncated). Only stored if `playtestRequest` is true |
 
 **Response (201):**
 ```json
@@ -74,7 +77,6 @@ Create a new account.
 |------|---------|
 | 201 | Account created |
 | 400 | Missing/invalid field (email format, password < 8, displayName empty/too long) |
-| 403 | Invite code required but missing or wrong |
 | 409 | Email already registered |
 | 500 | Internal server error |
 
@@ -117,13 +119,12 @@ Authenticate with email/password.
 
 ### POST /api/auth/google
 
-Google OAuth sign-in. Creates account if new, logs in if existing.
+Google OAuth sign-in. Creates account if new, logs in if existing. Invite code is no longer required (AD-520).
 
 **Request Body:**
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
 | `credential` | string | yes | Google ID token from Google Identity Services |
-| `inviteCode` | string | no | Required for new users if `INVITE_CODE` env var is set |
 
 **Response (200 existing / 201 new):**
 ```json
@@ -147,7 +148,6 @@ Google OAuth sign-in. Creates account if new, logs in if existing.
 | 201 | New account created |
 | 400 | Missing credential |
 | 401 | Google token verification failed |
-| 403 | New user, invite code required but missing/wrong |
 | 409 | Email conflict (different account) |
 | 500 | GOOGLE_CLIENT_ID not configured, or internal error |
 
@@ -691,8 +691,26 @@ Save setting and trigger world generation. **Idempotent** — re-submission upda
 | `selection` | string | no | One of the 7 valid settings |
 | `customText` | string | no | Custom setting description |
 | `answers` | object | no | `{ questionId: { selected, custom }, ... }` |
+| `playerSeeds` | object | no | AD-517: Player-defined factions + NPCs for world gen |
 
 At least one of `selection` or `customText` required.
+
+**playerSeeds format (AD-517):**
+```json
+{
+  "factions": [
+    { "name": "The Hollow Hand", "description": "A thieves' guild that controls the docks", "disposition": "friendly" }
+  ],
+  "npcs": [
+    { "name": "Mara", "description": "Runs the Hollow Hand. My oldest friend.", "relationship": "companion", "faction": "The Hollow Hand" }
+  ]
+}
+```
+- Max 3 factions, max 5 NPCs. Each must have a `name`.
+- Player seeds count toward world gen targets (4 factions / 7 NPCs). AI fills the remainder.
+- NPCs with `relationship: "companion"` are initialized as companions during scenario selection.
+- Disposition values: `friendly` / `neutral` / `hostile` / `unknown`
+- Relationship values: `companion` / `ally` / `contact` / `neutral` / `rival` / `enemy`
 
 **Response (200):**
 ```json
@@ -1032,17 +1050,17 @@ At least one required. Valid dials: `dc_offset`, `fate_dc`, `survival_enabled`, 
 
 ### Phase 5: Scenario Selection
 
-#### GET /api/init/:gameId/intensity-options
+#### GET /api/init/:gameId/pacing-options
 
-List scenario intensity options.
+List scenario pacing options (AD-516). Also available at `/intensity-options` for backward compatibility.
 
 **Response (200):**
 ```json
 {
   "options": [
-    { "id": "Calm", "name": "Calm", "description": "Low immediate threat..." },
-    { "id": "Standard", "name": "Standard", "description": "Moderate tension..." },
-    { "id": "Dire", "name": "Dire", "description": "High pressure from turn one..." }
+    { "id": "slow_burn", "name": "Slow Burn", "description": "Low urgency. Explore and discover at your own pace." },
+    { "id": "turning_point", "name": "Turning Point", "description": "Something is already underway. Time to assess, but not indefinitely." },
+    { "id": "into_the_fire", "name": "Into the Fire", "description": "Immediate crisis. Action required now." }
   ]
 }
 ```
@@ -1051,36 +1069,36 @@ List scenario intensity options.
 
 #### POST /api/init/:gameId/generate-scenarios
 
-Generate 3 opening scenarios via AI, tailored to the character and world. **Idempotent** — regenerates fresh each time. Falls back to stub scenarios on AI failure. Results are cached for `select-scenario`.
+Generate 3 opening scenarios via AI (one per pacing type), tailored to the character and world. **Idempotent** — regenerates fresh each time. Also supports single-scenario refresh. Falls back to stub scenarios on AI failure. Results are cached for `select-scenario`.
 
 **Prerequisites:** Game status `initializing`, world gen complete, character finalized (has stats), world meets minimums.
 
 **Request Body:**
-| Field | Type | Required | Allowed Values |
-|-------|------|----------|----------------|
-| `intensity` | string | yes | `Calm`, `Standard`, `Dire` |
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `pacingType` | string | no | `slow_burn`, `turning_point`, or `into_the_fire` — single-scenario refresh |
+| `intensity` | string | no | **DEPRECATED** — accepted for backward compat, value ignored |
+
+- Empty body `{}` = generate all 3 scenarios (one per pacing type).
+- `{ pacingType: "slow_burn" }` = refresh only that pacing slot. Max 1 refresh per type.
+- `{ intensity: "Standard" }` = backward compat, treated as generate-all.
 
 **Response (200):**
 ```json
 {
-  "intensity": "Standard",
   "scenarios": [
-    { "title": "The Ambush", "type": "Flashpoint/Action", "description": "Smoke rises..." },
-    { "title": "The Letter", "type": "Subtle Hook/Intrigue", "description": "A sealed letter..." },
-    { "title": "The Long Road", "type": "Long Road/Survival", "description": "Three days from..." }
+    { "title": "The Letter", "description": "A sealed letter...", "pacingType": "slow_burn", "refreshAvailable": true },
+    { "title": "The Deal", "description": "The merchant slides...", "pacingType": "turning_point", "refreshAvailable": true },
+    { "title": "The Ambush", "description": "Smoke rises...", "pacingType": "into_the_fire", "refreshAvailable": true }
   ],
   "startingGold": 15,
-  "startingTimeOfDay": 14,
-  "inventory": [
-    { "name": "Waterskin", "slotCost": 0.5, "materialQuality": "common", "equipmentCategory": "general" },
-    { "name": "Trail Rations (3 days)", "slotCost": 1.0, "materialQuality": "common", "equipmentCategory": "general" },
-    { "name": "Bedroll", "slotCost": 1.0, "materialQuality": "common", "equipmentCategory": "general" }
-  ],
+  "startingTimeOfDay": 8,
+  "inventory": [],
   "customStartAvailable": true
 }
 ```
 
-Gold/time by intensity: Calm=25/8, Standard=15/14, Dire=5/22.
+Gold/time: AI-determined based on character backstory economic circumstances (not fixed per pacing type).
 
 **Status Codes:**
 | Code | Meaning |
@@ -1100,9 +1118,11 @@ Commit scenario selection and start the game. **Idempotent** — re-selection re
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
 | `scenarioIndex` | number or `"custom"` | conditional | 0, 1, or 2 — picks a generated scenario |
-| `customStart` | object | conditional | `{ locationId?: number, startingTimeOfDay?: number (0-23) }` |
+| `customStart` | object | conditional | `{ locationId?: number, locationName?: string, startingTimeOfDay?: number (0-23) }` |
 
 Either `scenarioIndex` (0–2) or `customStart` required.
+
+**customStart.locationName (AD-518):** If provided and no matching location exists, a new location is created as a district under the first settlement. Case-insensitive name matching prevents duplicates. Max 100 characters.
 
 **Response (200):**
 ```json
@@ -1820,7 +1840,12 @@ Unauthenticated requests return 401. Authenticated non-admin requests return 403
 
 ### GET /api/admin/users
 
-List all users with game counts.
+List all users with game counts. Supports `?filter=pending` to return only users who requested playtest access but haven't been approved yet (AD-520).
+
+**Query Parameters:**
+| Param | Type | Notes |
+|-------|------|-------|
+| `filter` | string | Optional. `"pending"` = only users where `is_playtester = false` AND (`playtest_about IS NOT NULL` OR `playtest_source IS NOT NULL`) |
 
 **Response (200):**
 ```json
@@ -1832,6 +1857,8 @@ List all users with game counts.
       "displayName": "Player One",
       "isPlaytester": true,
       "isDebug": false,
+      "playtestAbout": "I'm a TTRPG veteran",
+      "playtestSource": "Found on Reddit",
       "createdAt": "2026-03-16T...",
       "gameCount": 5,
       "lastActive": "2026-03-29T..."
@@ -1841,7 +1868,7 @@ List all users with game counts.
 }
 ```
 
-`lastActive` is the most recent `game_worlds.created_at` for the user's games, or null if no games.
+`lastActive` is the most recent `game_worlds.created_at` for the user's games, or null if no games. `playtestAbout` and `playtestSource` are null if the user did not submit a playtest request.
 
 ---
 
@@ -1858,6 +1885,8 @@ Detailed view of a single user including all their games.
     "displayName": "Player One",
     "isPlaytester": true,
     "isDebug": false,
+    "playtestAbout": "I'm a TTRPG veteran",
+    "playtestSource": "Found on Reddit",
     "createdAt": "2026-03-16T..."
   },
   "games": [
