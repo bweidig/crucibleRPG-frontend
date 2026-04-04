@@ -162,18 +162,14 @@ const DIFFICULTIES = [
   { id: 'brutal', name: 'Brutal', color: '#c84a4a', desc: 'Near-lethal. Every fight is a risk. Death is a real and constant possibility.' },
 ];
 
-const INTENSITIES = [
-  { id: 'calm', name: 'Calm', desc: 'Low immediate threat. Time to orient and explore.' },
-  { id: 'standard', name: 'Standard', desc: 'Moderate tension. Clear hook with proportional stakes.' },
-  { id: 'dire', name: 'Dire', desc: 'High pressure from turn one. Immediate danger, scarce resources, ticking clock.' },
+const SCENARIOS = [
+  { key: 'A', name: 'Slow Burn', icon: 'long_road', desc: 'You arrive somewhere. Nothing is trying to kill you yet. There\'s a place to explore, people to talk to, and a thread to find when you\'re ready.' },
+  { key: 'B', name: 'Turning Point', icon: 'subtle_hook', desc: 'Something is already in motion. A deal gone wrong, a stranger with a warning, a door that shouldn\'t be open. You\'re not in danger yet, but the window is closing.' },
+  { key: 'C', name: 'Into the Fire', icon: 'flashpoint', desc: 'You\'re already in it. A fight, a chase, a collapsing building, a ticking clock. The world isn\'t waiting for you to get comfortable.' },
+  { key: 'D', name: 'Custom Start', icon: 'custom_start', desc: 'Describe how your story begins. You set the direction, the engine sets the stage.' },
 ];
 
-const SCENARIOS = [
-  { key: 'A', name: 'Flashpoint', type: 'Action', icon: 'flashpoint', desc: 'You\'re already in the thick of it. A crisis demands immediate action — fight, flee, or improvise.' },
-  { key: 'B', name: 'Subtle Hook', type: 'Intrigue', icon: 'subtle_hook', desc: 'Something isn\'t right. A whisper, a letter, a wrong face in a familiar crowd. The thread is there if you pull it.' },
-  { key: 'C', name: 'Long Road', type: 'Survival', icon: 'long_road', desc: 'You\'re on a journey. The destination matters, but the road between here and there is where the story lives.' },
-  { key: 'D', name: 'Custom Start', type: 'Your Choice', icon: 'custom_start', desc: 'Describe how your story begins. You set the direction — the engine sets the stage.' },
-];
+const PACING_MAP = { A: 'slow_burn', B: 'turning_point', C: 'into_the_fire', D: 'custom' };
 
 // --- PHASE TRANSITION MESSAGES ---
 const PHASE_TRANSITION_MESSAGES = {
@@ -1077,7 +1073,191 @@ function WorldSnapshotList({ snapshots, selectedSnapshot, setSelectedSnapshot, a
   );
 }
 
-function Phase2({ selected, onSelect, settingAnswers, setSettingAnswers, selectedWorld, setSelectedWorld, expandedWorld, setExpandedWorld, worldSnapshots, selectedSnapshot, setSelectedSnapshot, customWorldText, setCustomWorldText, anythingElseText, setAnythingElseText }) {
+// ─── World Seed Components ───
+
+const FACTION_DISPOSITIONS = ['Unknown', 'Friendly', 'Neutral', 'Hostile'];
+const NPC_RELATIONSHIPS = ['Neutral', 'Companion', 'Ally', 'Contact', 'Rival', 'Enemy'];
+
+function dispositionColor(d) {
+  switch (d) {
+    case 'Friendly': return 'var(--color-success)';
+    case 'Hostile': return 'var(--color-danger)';
+    case 'Neutral': return 'var(--text-secondary)';
+    default: return 'var(--text-dim)';
+  }
+}
+
+function relationshipColor(r) {
+  switch (r) {
+    case 'Companion': return 'var(--accent-gold)';
+    case 'Ally': return 'var(--color-success)';
+    case 'Rival': case 'Enemy': return 'var(--color-danger)';
+    case 'Contact': return 'var(--text-secondary)';
+    default: return 'var(--text-dim)';
+  }
+}
+
+function SeedCard({ name, badge, badgeColor, description, subtitle, onRemove }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = description && description.length > 120;
+  return (
+    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-card)', borderRadius: 8, padding: '14px 18px', position: 'relative', marginBottom: 10 }}>
+      <button onClick={onRemove} aria-label="Remove" style={{
+        position: 'absolute', top: 8, right: 8, background: 'none', border: 'none',
+        color: 'var(--text-dim)', cursor: 'pointer', fontSize: 16, padding: 8, lineHeight: 1,
+      }}>&times;</button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingRight: 32 }}>
+        <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 700, color: 'var(--text-heading)' }}>{name}</span>
+        <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, fontWeight: 600, color: badgeColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{badge}</span>
+      </div>
+      {subtitle && <div style={{ fontFamily: 'var(--font-alegreya)', fontSize: 13, fontStyle: 'italic', color: 'var(--text-dim)', marginTop: 2 }}>{subtitle}</div>}
+      {description && (
+        <div style={{ fontFamily: 'var(--font-alegreya)', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5, marginTop: 8 }}>
+          {isLong && !expanded ? description.slice(0, 120) + '...' : description}
+          {isLong && (
+            <button onClick={() => setExpanded(!expanded)} style={{ background: 'none', border: 'none', color: 'var(--accent-gold)', cursor: 'pointer', fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, marginLeft: 4 }}>
+              {expanded ? 'show less' : 'show more'}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SeedForm({ fields, pillField, pillOptions, onSave, onCancel, selectField, selectOptions }) {
+  const [values, setValues] = useState(() => {
+    const init = {};
+    fields.forEach(f => { init[f.key] = ''; });
+    if (pillField) init[pillField.key] = pillField.defaultValue;
+    if (selectField) init[selectField.key] = selectField.defaultValue;
+    return init;
+  });
+  const set = (key, val) => setValues(prev => ({ ...prev, [key]: val }));
+  const nameField = fields.find(f => f.required);
+  const canSave = nameField ? values[nameField.key]?.trim() : true;
+
+  return (
+    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-card)', borderRadius: 8, padding: '16px 18px', marginBottom: 10 }}>
+      {fields.map(f => f.type === 'textarea' ? (
+        <textarea key={f.key} value={values[f.key]} onChange={e => set(f.key, e.target.value)} placeholder={f.placeholder} maxLength={f.maxLength || 1000} style={{
+          width: '100%', minHeight: 70, background: 'var(--bg-main)', border: '1px solid var(--border-gold-faint)',
+          borderRadius: 8, padding: 12, fontFamily: 'var(--font-alegreya)', fontSize: 16,
+          color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box', marginBottom: 10,
+        }} />
+      ) : (
+        <input key={f.key} type="text" value={values[f.key]} onChange={e => set(f.key, e.target.value)} placeholder={f.placeholder} style={{
+          width: '100%', background: 'var(--bg-main)', border: '1px solid var(--border-gold-faint)',
+          borderRadius: 8, padding: '10px 14px', fontFamily: 'var(--font-alegreya)', fontSize: 16,
+          color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box', marginBottom: 10,
+        }} />
+      ))}
+      {pillField && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+          {pillOptions.map(opt => (
+            <button key={opt} onClick={() => set(pillField.key, opt)} style={{
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, fontWeight: 600,
+              color: values[pillField.key] === opt ? 'var(--accent-gold)' : 'var(--text-muted)',
+              background: values[pillField.key] === opt ? 'var(--bg-gold-light)' : 'transparent',
+              border: `1px solid ${values[pillField.key] === opt ? 'var(--border-card)' : 'var(--border-gold-faint)'}`,
+              borderRadius: 20, padding: '6px 14px', cursor: 'pointer', transition: 'all 0.15s',
+            }}>{opt}</button>
+          ))}
+        </div>
+      )}
+      {selectField && selectOptions.length > 1 && (
+        <div style={{ marginBottom: 10 }}>
+          <select value={values[selectField.key]} onChange={e => set(selectField.key, e.target.value)} style={{
+            width: '100%', background: 'var(--bg-main)', border: '1px solid var(--border-gold-faint)',
+            borderRadius: 8, padding: '10px 14px', fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
+            color: 'var(--text-primary)', outline: 'none',
+          }}>
+            {selectOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+          </select>
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+        <button onClick={onCancel} style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>Cancel</button>
+        <button onClick={() => { if (canSave) onSave(values); }} disabled={!canSave} style={{
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, fontWeight: 600,
+          color: canSave ? 'var(--accent-gold)' : 'var(--text-dim)',
+          background: 'none', border: 'none', cursor: canSave ? 'pointer' : 'default',
+        }}>Save</button>
+      </div>
+    </div>
+  );
+}
+
+function AdvancedSeedTab({ seedFactions, setSeedFactions, seedNpcs, setSeedNpcs }) {
+  const [factionFormOpen, setFactionFormOpen] = useState(false);
+  const [npcFormOpen, setNpcFormOpen] = useState(false);
+
+  return (
+    <div style={{ marginTop: 24 }}>
+      <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 16, fontStyle: 'italic', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 32 }}>
+        Your world will be fully populated whether you add anything here or not. This is for players who have specific characters, factions, or organizations they want baked in from the start.
+      </p>
+
+      {/* Factions */}
+      <label style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block', marginBottom: 12 }}>Factions</label>
+      {seedFactions.map(f => (
+        <SeedCard key={f.id} name={f.name} badge={f.disposition} badgeColor={dispositionColor(f.disposition)} description={f.description} onRemove={() => setSeedFactions(prev => prev.filter(x => x.id !== f.id))} />
+      ))}
+      {factionFormOpen ? (
+        <SeedForm
+          fields={[
+            { key: 'name', placeholder: 'Faction name', required: true },
+            { key: 'description', placeholder: "Who are they? What do they want? A name alone is enough.", type: 'textarea', maxLength: 1000 },
+          ]}
+          pillField={{ key: 'disposition', defaultValue: 'Unknown' }}
+          pillOptions={FACTION_DISPOSITIONS}
+          onSave={(vals) => {
+            setSeedFactions(prev => [...prev, { id: crypto.randomUUID(), name: vals.name.trim(), description: vals.description?.trim() || '', disposition: vals.disposition }]);
+            setFactionFormOpen(false);
+          }}
+          onCancel={() => setFactionFormOpen(false)}
+        />
+      ) : seedFactions.length < 3 && (
+        <button onClick={() => setFactionFormOpen(true)} style={{
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-muted)',
+          background: 'transparent', border: '1px solid var(--border-gold-faint)', borderRadius: 8,
+          padding: '10px 18px', cursor: 'pointer', width: '100%', textAlign: 'center',
+        }}>+ Add Faction ({seedFactions.length} of 3)</button>
+      )}
+
+      {/* NPCs */}
+      <label style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block', marginBottom: 12, marginTop: 32 }}>Characters</label>
+      {seedNpcs.map(n => (
+        <SeedCard key={n.id} name={n.name} badge={n.relationship} badgeColor={relationshipColor(n.relationship)} description={n.description} subtitle={n.faction && n.faction !== 'Unaffiliated' ? n.faction : null} onRemove={() => setSeedNpcs(prev => prev.filter(x => x.id !== n.id))} />
+      ))}
+      {npcFormOpen ? (
+        <SeedForm
+          fields={[
+            { key: 'name', placeholder: 'Character name', required: true },
+            { key: 'description', placeholder: "Who are they? What's their story? A name alone is enough.", type: 'textarea', maxLength: 1000 },
+          ]}
+          pillField={{ key: 'relationship', defaultValue: 'Neutral' }}
+          pillOptions={NPC_RELATIONSHIPS}
+          selectField={{ key: 'faction', defaultValue: 'Unaffiliated' }}
+          selectOptions={['Unaffiliated', ...seedFactions.map(f => f.name)]}
+          onSave={(vals) => {
+            setSeedNpcs(prev => [...prev, { id: crypto.randomUUID(), name: vals.name.trim(), description: vals.description?.trim() || '', relationship: vals.relationship, faction: vals.faction || null }]);
+            setNpcFormOpen(false);
+          }}
+          onCancel={() => setNpcFormOpen(false)}
+        />
+      ) : seedNpcs.length < 5 && (
+        <button onClick={() => setNpcFormOpen(true)} style={{
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-muted)',
+          background: 'transparent', border: '1px solid var(--border-gold-faint)', borderRadius: 8,
+          padding: '10px 18px', cursor: 'pointer', width: '100%', textAlign: 'center',
+        }}>+ Add Character ({seedNpcs.length} of 5)</button>
+      )}
+    </div>
+  );
+}
+
+function Phase2({ selected, onSelect, settingAnswers, setSettingAnswers, selectedWorld, setSelectedWorld, expandedWorld, setExpandedWorld, worldSnapshots, selectedSnapshot, setSelectedSnapshot, customWorldText, setCustomWorldText, anythingElseText, setAnythingElseText, settingTab, setSettingTab, seedFactions, setSeedFactions, seedNpcs, setSeedNpcs }) {
   const mainSettings = SETTINGS.filter(s => s.id !== 'custom');
   const customSetting = SETTINGS.find(s => s.id === 'custom');
   const yourWorldsItem = { id: 'your-worlds', name: 'Your Worlds' };
@@ -1209,6 +1389,28 @@ function Phase2({ selected, onSelect, settingAnswers, setSettingAnswers, selecte
             setFreeformText={setAnythingElseText}
           />
         </div>
+      )}
+
+      {/* Tab bar: World / Advanced — only show when a setting is selected */}
+      {selected && (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 28, marginBottom: 4 }}>
+            {[{ id: 'world', label: 'World' }, { id: 'advanced', label: 'Advanced' }].map(tab => (
+              <button key={tab.id} onClick={() => setSettingTab(tab.id)} style={{
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 600,
+                color: settingTab === tab.id ? 'var(--accent-gold)' : 'var(--text-muted)',
+                background: settingTab === tab.id ? 'var(--bg-gold-light)' : 'transparent',
+                border: `1px solid ${settingTab === tab.id ? 'var(--border-card)' : 'var(--border-primary)'}`,
+                borderRadius: 20, padding: '8px 20px', cursor: 'pointer',
+                letterSpacing: '0.08em', textTransform: 'uppercase', transition: 'all 0.2s',
+              }}>{tab.label}</button>
+            ))}
+          </div>
+
+          {settingTab === 'advanced' && (
+            <AdvancedSeedTab seedFactions={seedFactions} setSeedFactions={setSeedFactions} seedNpcs={seedNpcs} setSeedNpcs={setSeedNpcs} />
+          )}
+        </>
       )}
     </div>
   );
@@ -1886,31 +2088,15 @@ function Phase5({ selected, onSelect }) {
   );
 }
 
-function Phase6({ intensity, setIntensity, scenario, setScenario, customStartText, setCustomStartText, scenariosLoading, displayScenarios }) {
+function Phase6({ scenario, setScenario, customStartText, setCustomStartText, scenariosLoading, displayScenarios, scenarioAlts, scenarioView, setScenarioView, refreshingScenario, onRefreshScenario }) {
+  const getActiveScenario = (s) => {
+    if (scenarioView[s.key] === 'alt' && scenarioAlts[s.key]) return scenarioAlts[s.key];
+    return s;
+  };
+
   return (
     <div>
       <PhaseTitle title="Your Opening Scene" subtitle="How does your story begin?" />
-
-      <div style={{ marginBottom: 32 }}>
-        <label style={{
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 600,
-          color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase',
-          display: 'block', marginBottom: 14,
-        }}>Scenario Intensity</label>
-        <div style={{ display: 'flex', gap: 10 }}>
-          {INTENSITIES.map(int => (
-            <button key={int.id} onClick={() => setIntensity(int.id)} className={styles.optionToggle} style={{
-              flex: 1, padding: '16px 14px', textAlign: 'center',
-              background: intensity === int.id ? 'var(--bg-gold-subtle)' : 'var(--bg-main)',
-              border: `1px solid ${intensity === int.id ? 'var(--border-card-hover)' : 'var(--border-gold-faint)'}`,
-              borderRadius: 8,
-            }}>
-              <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 700, color: intensity === int.id ? 'var(--accent-gold)' : 'var(--text-muted)' }}>{int.name}</div>
-              <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>{int.desc}</div>
-            </button>
-          ))}
-        </div>
-      </div>
 
       <label style={{
         fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 600,
@@ -1929,21 +2115,57 @@ function Phase6({ intensity, setIntensity, scenario, setScenario, customStartTex
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {displayScenarios.map(s => (
-            <SelectionCard key={s.key} item={s} selected={scenario} onSelect={setScenario}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-                <IconBox name={s.icon} color={scenario === s.key ? 'var(--accent-gold)' : 'var(--text-muted)'} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
-                    <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 700, color: 'var(--accent-gold)' }}>Option {s.key}</span>
-                    <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 17, fontWeight: 600, color: 'var(--text-heading)' }}>{s.name}</span>
-                    <span style={{ fontFamily: 'var(--font-alegreya)', fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>{s.type}</span>
+          {displayScenarios.map(s => {
+            const active = getActiveScenario(s);
+            const hasAlt = !!scenarioAlts[s.key];
+            const isRefreshing = refreshingScenario === s.key;
+            const showRefresh = s.key !== 'D' && !hasAlt && !isRefreshing;
+
+            return (
+              <SelectionCard key={s.key} item={s} selected={scenario} onSelect={setScenario}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                  <IconBox name={active.icon || s.icon} color={scenario === s.key ? 'var(--accent-gold)' : 'var(--text-muted)'} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
+                      <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 700, color: 'var(--accent-gold)' }}>{SCENARIOS.find(x => x.key === s.key)?.name || s.name}</span>
+                      <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 17, fontWeight: 600, color: 'var(--text-heading)' }}>{active.name}</span>
+                    </div>
+                    <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>{active.desc}</p>
+
+                    {/* Try another / Generating */}
+                    {showRefresh && (
+                      <div style={{ textAlign: 'right', marginTop: 8 }}>
+                        <button onClick={(e) => { e.stopPropagation(); onRefreshScenario(s.key); }} style={{
+                          fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--text-dim)',
+                          background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s',
+                        }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-muted)'; }} onMouseLeave={e => { e.currentTarget.style.color = ''; }}>
+                          {'\u21BB'} try another
+                        </button>
+                      </div>
+                    )}
+                    {isRefreshing && (
+                      <div style={{ textAlign: 'right', marginTop: 8, fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--text-dim)' }}>
+                        Generating...
+                      </div>
+                    )}
+
+                    {/* Dot indicators for original/alt */}
+                    {hasAlt && (
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 12 }}>
+                        {['original', 'alt'].map(view => (
+                          <button key={view} onClick={(e) => { e.stopPropagation(); setScenarioView(prev => ({ ...prev, [s.key]: view })); }} style={{
+                            width: 8, height: 8, borderRadius: '50%', padding: 0, border: 'none', cursor: 'pointer',
+                            background: (scenarioView[s.key] || 'original') === view ? 'var(--accent-gold)' : 'var(--border-card)',
+                            transition: 'background 0.2s',
+                          }} aria-label={`View ${view} scenario`} />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>{s.desc}</p>
                 </div>
-              </div>
-            </SelectionCard>
-          ))}
+              </SelectionCard>
+            );
+          })}
         </div>
       )}
 
@@ -1979,13 +2201,18 @@ function InitWizardInner() {
   const [selectedSnapshot, setSelectedSnapshot] = useState(null);
   const [customWorldText, setCustomWorldText] = useState('');
   const [anythingElseText, setAnythingElseText] = useState('');
+  const [settingTab, setSettingTab] = useState('world');
+  const [seedFactions, setSeedFactions] = useState([]);
+  const [seedNpcs, setSeedNpcs] = useState([]);
   const [character, setCharacter] = useState({ name: '', backstory: '', personality: '', personalityCustom: '', appearance: '', pronouns: '', customPronouns: '', genderIdentity: '' });
   const [selectedArchetype, setSelectedArchetype] = useState(null);
   const [characterMode, setCharacterMode] = useState('archetype');
   const [difficulty, setDifficulty] = useState(null);
-  const [intensity, setIntensity] = useState('standard');
   const [scenario, setScenario] = useState(null);
   const [customStartText, setCustomStartText] = useState('');
+  const [scenarioAlts, setScenarioAlts] = useState({});
+  const [scenarioView, setScenarioView] = useState({});
+  const [refreshingScenario, setRefreshingScenario] = useState(null);
 
   // --- API interaction state ---
   const [saving, setSaving] = useState(false);
@@ -2105,17 +2332,17 @@ function InitWizardInner() {
     }
   }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // --- Fetch scenarios when entering Phase 6 or when intensity changes ---
+  // --- Fetch scenarios when entering Phase 6 ---
   useEffect(() => {
-    if (phase === 5 && gameId && !scenarioCache[intensity]) {
-      fetchScenarios(intensity);
+    if (phase === 5 && gameId && !scenarioCache['default']) {
+      fetchScenarios('standard');
     }
-  }, [phase, intensity]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Clear error on phase change or input ---
   useEffect(() => {
     setError(null);
-  }, [phase, storyteller, setting, settingAnswers, selectedWorld, selectedSnapshot, character, difficulty, scenario, intensity]);
+  }, [phase, storyteller, setting, settingAnswers, selectedWorld, selectedSnapshot, character, difficulty, scenario]);
 
   // --- Cleanup world gen polling on unmount ---
   useEffect(() => {
@@ -2174,6 +2401,12 @@ function InitWizardInner() {
         selection: displayName,
         answers: settingAnswers,
         customText: anythingElseText || null,
+      };
+    }
+    if (seedFactions.length > 0 || seedNpcs.length > 0) {
+      body.playerSeeds = {
+        factions: seedFactions.map(f => ({ name: f.name, description: f.description, disposition: f.disposition })),
+        npcs: seedNpcs.map(n => ({ name: n.name, description: n.description, relationship: n.relationship, faction: n.faction || null })),
       };
     }
     await api.post(`/api/init/${gameId}/setting`, body);
@@ -2331,7 +2564,6 @@ function InitWizardInner() {
       const mapped = scenarios.map((s, i) => ({
         key: s.key || String.fromCharCode(65 + i),
         name: s.name || s.title || `Scenario ${String.fromCharCode(65 + i)}`,
-        type: s.type || s.category || '',
         icon: s.icon || SCENARIOS[i]?.icon || 'custom_start',
         desc: s.desc || s.description || '',
       }));
@@ -2344,13 +2576,13 @@ function InitWizardInner() {
       const res = await api.post(`/api/init/${gameId}/generate-scenarios`, body);
       const mapped = mapScenarios(res);
       if (mapped) {
-        setScenarioCache(prev => ({ ...prev, [intensityId]: mapped }));
+        setScenarioCache(prev => ({ ...prev, default: mapped }));
       } else if (!isRetry) {
         await new Promise(r => setTimeout(r, 3000));
         const res2 = await api.post(`/api/init/${gameId}/generate-scenarios`, body);
         const mapped2 = mapScenarios(res2);
         if (mapped2) {
-          setScenarioCache(prev => ({ ...prev, [intensityId]: mapped2 }));
+          setScenarioCache(prev => ({ ...prev, default: mapped2 }));
         } else {
           setScenariosFailed(true);
         }
@@ -2368,11 +2600,26 @@ function InitWizardInner() {
     }
   };
 
+  const handleRefreshScenario = async (key) => {
+    setRefreshingScenario(key);
+    // TODO: wire to real single-scenario refresh endpoint
+    await new Promise(r => setTimeout(r, 2000));
+    const fallback = SCENARIOS.find(s => s.key === key);
+    setScenarioAlts(prev => ({ ...prev, [key]: { ...fallback, name: fallback.name + ' (alt)', desc: 'An alternative opening for this pacing type. The real version will come from the backend.', altIndex: 0 } }));
+    setScenarioView(prev => ({ ...prev, [key]: 'alt' }));
+    setRefreshingScenario(null);
+  };
+
   const saveScenario = async () => {
     const indexMap = { A: 0, B: 1, C: 2 };
+    // TODO: backend needs to accept pacingType
     const body = scenario === 'D'
-      ? { scenarioIndex: 'custom', customStart: { description: customStartText } }
-      : { scenarioIndex: indexMap[scenario] };
+      ? { scenarioIndex: 'custom', pacingType: 'custom', customStart: { description: customStartText } }
+      : { scenarioIndex: indexMap[scenario], pacingType: PACING_MAP[scenario] };
+    // If viewing an alt version, send the alt's index
+    if (scenarioView[scenario] === 'alt' && scenarioAlts[scenario]) {
+      body.scenarioIndex = scenarioAlts[scenario].altIndex ?? indexMap[scenario];
+    }
     await api.post(`/api/init/${gameId}/select-scenario`, body);
   };
 
@@ -2592,6 +2839,12 @@ function InitWizardInner() {
             setCustomWorldText={setCustomWorldText}
             anythingElseText={anythingElseText}
             setAnythingElseText={setAnythingElseText}
+            settingTab={settingTab}
+            setSettingTab={setSettingTab}
+            seedFactions={seedFactions}
+            setSeedFactions={setSeedFactions}
+            seedNpcs={seedNpcs}
+            setSeedNpcs={setSeedNpcs}
           />
         )}
         {phase === 2 && (() => {
@@ -2690,7 +2943,7 @@ function InitWizardInner() {
               <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 400, margin: '0 auto 24px' }}>
                 Scenario generation failed. Your world is ready. Tap below to try again.
               </div>
-              <button onClick={() => fetchScenarios(intensity)} disabled={scenariosLoading} style={{
+              <button onClick={() => fetchScenarios('standard')} disabled={scenariosLoading} style={{
                 fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
                 color: scenariosLoading ? 'var(--text-dim)' : 'var(--bg-main)',
                 background: scenariosLoading ? 'var(--bg-gold-subtle)' : 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
@@ -2699,7 +2952,7 @@ function InitWizardInner() {
               }}>{scenariosLoading ? 'Trying...' : 'Try Again'}</button>
             </div>
           ) : (
-            <Phase6 intensity={intensity} setIntensity={setIntensity} scenario={scenario} setScenario={setScenario} customStartText={customStartText} setCustomStartText={setCustomStartText} scenariosLoading={scenariosLoading} displayScenarios={scenarioCache[intensity] || (gameId ? [] : SCENARIOS)} />
+            <Phase6 scenario={scenario} setScenario={setScenario} customStartText={customStartText} setCustomStartText={setCustomStartText} scenariosLoading={scenariosLoading} displayScenarios={scenarioCache['default'] || (gameId ? [] : SCENARIOS)} scenarioAlts={scenarioAlts} scenarioView={scenarioView} setScenarioView={setScenarioView} refreshingScenario={refreshingScenario} onRefreshScenario={handleRefreshScenario} />
           )
         )}
       </div>

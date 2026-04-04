@@ -34,6 +34,24 @@
 
 ## Recent Work (This Session: 2026-04-04)
 
+### World Seeds (Phase 2) + Scenario Rework (Phase 5)
+**Part 1: World Seeds — Advanced tab on Phase 2 (Setting)**
+- Tab bar (World / Advanced pills) below setting selection, visible when a setting is chosen
+- Advanced tab: faction seeding (up to 3) and NPC seeding (up to 5) with inline forms
+- Faction form: name, description, disposition (Unknown/Friendly/Neutral/Hostile)
+- NPC form: name, description, relationship (Neutral/Companion/Ally/Contact/Rival/Enemy), faction dropdown
+- Saved items render as compact cards with colored badges, expandable descriptions, remove buttons
+- `playerSeeds` added to saveSetting payload (backend will silently ignore until wired)
+
+**Part 2: Scenario Rework — Phase 5**
+- INTENSITIES array and all references removed (intensity toggle, intensity state, intensity-keyed cache)
+- SCENARIOS replaced with pacing types: Slow Burn, Turning Point, Into the Fire, Custom Start
+- Per-card "try another" refresh: stores alt in scenarioAlts, dot indicators toggle between original/alt
+- `pacingType` field added to saveScenario payload (TODO: backend acceptance)
+- Scenario type italic text removed from cards (pacing label is sufficient)
+
+**Files modified:** `app/init/page.js`.
+
 ### Playtest Findings: Glossary Linking, Talk to GM Flow, Glossary Refetch
 Three features from 2026-04-04 playtest findings:
 
