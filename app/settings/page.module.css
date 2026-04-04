@@ -82,7 +82,7 @@
 .sizeBtn {
   width: 40px;
   height: 36px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-jetbrains);
   font-size: 12px;
   background: transparent;
   border: 1px solid #2a2622;

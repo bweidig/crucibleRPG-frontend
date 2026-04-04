@@ -21,7 +21,7 @@ import styles from './play.module.css';
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const SETTINGS_KEY = 'crucible_display_settings';
-const DEFAULT_SETTINGS = { theme: 'dark', font: 'lexie', textSize: 'medium' };
+const DEFAULT_SETTINGS = { theme: 'dark', font: 'alegreya', textSize: 'medium' };
 
 function loadSettings() {
   if (typeof window === 'undefined') return DEFAULT_SETTINGS;
@@ -41,11 +41,17 @@ function buildThemeStyle(settings) {
   const themeVars = THEMES[settings.theme] || THEMES.dark;
   const font = FONTS.find(f => f.id === settings.font) || FONTS[0];
   const size = SIZES.find(s => s.id === settings.textSize) || SIZES[1];
+  const isLexie = settings.font === 'lexie';
   return {
     ...themeVars,
     '--body-font': font.family,
     '--narrative-size': size.narrative,
     '--ui-size': size.ui,
+    ...(isLexie ? {
+      '--font-alegreya': "'Lexie Readable', sans-serif",
+      '--font-alegreya-sans': "'Lexie Readable', sans-serif",
+      '--font-jetbrains': "'Lexie Readable', sans-serif",
+    } : {}),
   };
 }
 
@@ -909,7 +915,7 @@ export default function Page() {
             RPG
           </span>
         </div>
-        <p style={{ color: '#8a94a8', fontFamily: "'Alegreya Sans', sans-serif" }}>
+        <p style={{ color: '#8a94a8', fontFamily: "var(--font-alegreya-sans)" }}>
           Loading...
         </p>
       </div>
@@ -919,8 +925,7 @@ export default function Page() {
   );
 }
 
-
-// ──── FILE: app/play/components/ActionPanel.js ────
+// ─��── FILE: app/play/components/ActionPanel.js ────
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './ActionPanel.module.css';
@@ -1139,8 +1144,7 @@ export default function ActionPanel({
   );
 }
 
-
-// ──── FILE: app/play/components/CharacterTab.js ────
+// ─��── FILE: app/play/components/CharacterTab.js ────
 import PanelSection from './PanelSection';
 import styles from './CharacterTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
@@ -1330,8 +1334,7 @@ export default function CharacterTab({ data, onEntityClick }) {
   );
 }
 
-
-// ──── FILE: app/play/components/DebugPanel.js ────
+// ─��── FILE: app/play/components/DebugPanel.js ────
 'use client';
 
 import React, { useState, useRef, useCallback } from 'react';
@@ -2280,8 +2283,7 @@ export default function DebugPanel({ entries, onClear }) {
   );
 }
 
-
-// ──── FILE: app/play/components/EntityPopup.js ────
+// ─��── FILE: app/play/components/EntityPopup.js ────
 import { useState, useEffect, useCallback } from 'react';
 import * as api from '@/lib/api';
 import { renderLinkedText } from '@/lib/renderLinkedText';
@@ -2461,8 +2463,7 @@ export default function EntityPopup({ entity, glossaryData, glossaryTerms, notes
   );
 }
 
-
-// ──── FILE: app/play/components/GlossaryTab.js ────
+// ─��── FILE: app/play/components/GlossaryTab.js ────
 import { useState, useMemo } from 'react';
 import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './GlossaryTab.module.css';
@@ -2579,8 +2580,7 @@ export default function GlossaryTab({ data, characterData, glossaryTerms, onEnti
   );
 }
 
-
-// ──── FILE: app/play/components/InlineDicePanel.js ────
+// ─��── FILE: app/play/components/InlineDicePanel.js ────
 import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './InlineDicePanel.module.css';
 
@@ -2616,7 +2616,7 @@ function MiniD20({ value, size = 42, glow = 'none', spinning = false, ghostFaces
         <line x1="95" y1="35" x2="18" y2="90" stroke="#2a252033" strokeWidth="1" />
         <text
           x="50" y="58" textAnchor="middle" dominantBaseline="middle"
-          fontFamily="'JetBrains Mono', monospace"
+          style={{ fontFamily: "var(--font-jetbrains)" }}
           fontSize={size > 50 ? '28' : size > 35 ? '24' : '18'}
           fontWeight="600"
           fill={
@@ -2631,8 +2631,8 @@ function MiniD20({ value, size = 42, glow = 'none', spinning = false, ghostFaces
         </text>
         {ghostFaces && !spinning && (
           <>
-            <text x="22" y="32" textAnchor="middle" fontFamily="'JetBrains Mono'" fontSize="9" fill="#3a3328" style={{ textDecoration: 'line-through' }}>1</text>
-            <text x="78" y="32" textAnchor="middle" fontFamily="'JetBrains Mono'" fontSize="9" fill="#3a3328" style={{ textDecoration: 'line-through' }}>20</text>
+            <text x="22" y="32" textAnchor="middle" fontSize="9" fill="#3a3328" style={{ fontFamily: "var(--font-jetbrains)", textDecoration: 'line-through' }}>1</text>
+            <text x="78" y="32" textAnchor="middle" fontSize="9" fill="#3a3328" style={{ fontFamily: "var(--font-jetbrains)", textDecoration: 'line-through' }}>20</text>
           </>
         )}
       </svg>
@@ -2957,8 +2957,7 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
   );
 }
 
-
-// ──── FILE: app/play/components/InventoryTab.js ────
+// ─��── FILE: app/play/components/InventoryTab.js ────
 import PanelSection from './PanelSection';
 import styles from './InventoryTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
@@ -3085,8 +3084,7 @@ export default function InventoryTab({ data, onEntityClick }) {
   );
 }
 
-
-// ──── FILE: app/play/components/MapTab.js ────
+// ─��── FILE: app/play/components/MapTab.js ────
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -3234,13 +3232,13 @@ function MapRoute({ route, positions, isHovered }) {
       />
       {!route.known && (
         <text x={mx} y={my - 9} textAnchor="middle" fill={dangerColor} fontSize="8"
-          fontFamily="'JetBrains Mono', monospace" opacity="0.4">?</text>
+          style={{ fontFamily: "var(--font-jetbrains)" }} opacity="0.4">?</text>
       )}
       <text
         x={mx + nx * 9} y={my + ny * 9}
         textAnchor="middle" dominantBaseline="central"
         fill={dangerColor} fontSize="8"
-        fontFamily="'JetBrains Mono', monospace" fontWeight="500"
+        style={{ fontFamily: "var(--font-jetbrains)" }} fontWeight="500"
         opacity={isHovered ? 0.9 : 0.45}
         style={{ transition: 'opacity 0.2s', pointerEvents: 'none' }}
       >
@@ -3289,12 +3287,12 @@ function MapNode({ loc, x, y, isHovered, onHover, onLeave, onClick }) {
           <circle cx="0" cy="0" r="5" fill="#111528" stroke={isHovered ? '#c9a84c' : '#1e2540'} strokeWidth="0.8" />
           <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central"
             fill={isHovered ? '#c9a84c' : '#6b83a3'}
-            fontSize="7" fontFamily="'JetBrains Mono', monospace" fontWeight="700">+</text>
+            fontSize="7" style={{ fontFamily: "var(--font-jetbrains)" }} fontWeight="700">+</text>
         </g>
       )}
       <text x={x} y={y + nodeSize / 2 + 13} textAnchor="middle"
         fill={isHovered ? '#c9a84c' : labelColor} fontSize="9.5"
-        fontFamily="'Alegreya Sans', sans-serif"
+        style={{ fontFamily: "var(--font-alegreya-sans)" }}
         fontWeight={isCurrent ? 700 : isVisited ? 500 : 400}
         style={{ transition: 'fill 0.15s', pointerEvents: 'none' }}
       >
@@ -3324,7 +3322,7 @@ function Tooltip({ data, type, mousePos }) {
       <div className={styles.tooltip} style={{ left: tx, top: ty, borderColor: `${dc}33` }}>
         <div className={styles.tooltipMeta}>
           <span style={{
-            fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
+            fontFamily: "var(--font-jetbrains)", fontSize: 11,
             color: '#d0c098',
           }}>
             {data.travelDays} day{data.travelDays > 1 ? 's' : ''}
@@ -3335,7 +3333,7 @@ function Tooltip({ data, type, mousePos }) {
           <span className={styles.tooltipType}>{data.terrain}</span>
         </div>
         {!data.known && (
-          <div style={{ fontFamily: "'Alegreya', serif", fontSize: 9, color: '#e8c45a', fontStyle: 'italic' }}>
+          <div style={{ fontFamily: "var(--font-alegreya)", fontSize: 9, color: '#e8c45a', fontStyle: 'italic' }}>
             Unconfirmed route
           </div>
         )}
@@ -3358,7 +3356,7 @@ function Tooltip({ data, type, mousePos }) {
         <span className={styles.tooltipType}>{loc.type}</span>
       </div>
       {loc.controllingFaction && (
-        <div style={{ fontSize: 10, fontFamily: "'Alegreya Sans', sans-serif", color: '#7082a4' }}>
+        <div style={{ fontSize: 10, fontFamily: "var(--font-alegreya-sans)", color: '#7082a4' }}>
           Controlled by {loc.controllingFaction}
         </div>
       )}
@@ -3775,7 +3773,7 @@ export default function MapTab({ data: initialData, gameId, onEntityClick }) {
         <div className={styles.levelLabel}>
           {mapData.label}
           {zoom !== 1.0 && (
-            <span style={{ marginLeft: 8, fontFamily: "'JetBrains Mono', monospace" }}>
+            <span style={{ marginLeft: 8, fontFamily: "var(--font-jetbrains)" }}>
               {zoom.toFixed(1)}x
             </span>
           )}
@@ -3804,8 +3802,7 @@ export default function MapTab({ data: initialData, gameId, onEntityClick }) {
   );
 }
 
-
-// ──── FILE: app/play/components/NarrativePanel.js ────
+// ─��── FILE: app/play/components/NarrativePanel.js ────
 import { useRef, useEffect, forwardRef } from 'react';
 import TurnBlock from './TurnBlock';
 import TalkToGM from './TalkToGM';
@@ -3923,8 +3920,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
 
 export default NarrativePanel;
 
-
-// ──── FILE: app/play/components/NotesTab.js ────
+// ─��── FILE: app/play/components/NotesTab.js ────
 import { useState, useCallback } from 'react';
 import * as api from '@/lib/api';
 import styles from './NotesTab.module.css';
@@ -4057,8 +4053,7 @@ export default function NotesTab({ data, gameId, onNotesChange }) {
   );
 }
 
-
-// ──── FILE: app/play/components/NPCTab.js ────
+// ─��── FILE: app/play/components/NPCTab.js ────
 import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './NPCTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
@@ -4096,8 +4091,7 @@ export default function NPCTab({ glossaryData, glossaryTerms, onEntityClick }) {
   );
 }
 
-
-// ──── FILE: app/play/components/PanelSection.js ────
+// ─��── FILE: app/play/components/PanelSection.js ────
 import { useState } from 'react';
 import styles from './PanelSection.module.css';
 
@@ -4114,8 +4108,7 @@ export default function PanelSection({ title, children, defaultOpen = true }) {
   );
 }
 
-
-// ──── FILE: app/play/components/ReflectionBlock.js ────
+// ─��── FILE: app/play/components/ReflectionBlock.js ────
 import styles from './ReflectionBlock.module.css';
 import { renderNarrative } from '@/lib/renderLinkedText';
 
@@ -4203,8 +4196,7 @@ export default function ReflectionBlock({ reflection, glossaryTerms, onEntityCli
   );
 }
 
-
-// ──── FILE: app/play/components/ReportModal.js ────
+// ─��── FILE: app/play/components/ReportModal.js ────
 'use client';
 
 import { useState } from 'react';
@@ -4326,7 +4318,7 @@ function ContextPreview({ mode, context }) {
                 {LABEL_MAP[key] || key}
               </span>
               <span style={{
-                fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: C.secondary,
+                fontFamily: "var(--font-jetbrains)", fontSize: 11, color: C.secondary,
                 textAlign: 'right', maxWidth: '60%', overflow: 'hidden', textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
               }}>
@@ -4335,7 +4327,7 @@ function ContextPreview({ mode, context }) {
             </div>
           ))}
           {mode === 'bug' && (
-            <div style={{ fontFamily: "'Alegreya', serif", fontSize: 11, color: C.dim, fontStyle: 'italic', marginTop: 8 }}>
+            <div style={{ fontFamily: "var(--font-alegreya)", fontSize: 11, color: C.dim, fontStyle: 'italic', marginTop: 8 }}>
               Full AI prompt/response and server JSON also included.
             </div>
           )}
@@ -4608,8 +4600,7 @@ export default function ReportModal({ mode, gameId, gameState, turns, characterD
   );
 }
 
-
-// ──── FILE: app/play/components/ResolutionBlock.js ────
+// ─��── FILE: app/play/components/ResolutionBlock.js ────
 import { useState } from 'react';
 import styles from './ResolutionBlock.module.css';
 
@@ -4729,8 +4720,7 @@ export default function ResolutionBlock({ resolution }) {
   );
 }
 
-
-// ──── FILE: app/play/components/SettingsModal.js ────
+// ─��── FILE: app/play/components/SettingsModal.js ────
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -4787,11 +4777,8 @@ export const THEMES = {
 };
 
 export const FONTS = [
+  { id: 'alegreya', label: 'Alegreya', family: "'Alegreya Sans', sans-serif" },
   { id: 'lexie', label: 'Lexie Readable', family: "'Lexie Readable', sans-serif" },
-  { id: 'system', label: 'System Default', family: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
-  { id: 'alegreya', label: 'Alegreya', family: "'Alegreya', serif" },
-  { id: 'georgia', label: 'Georgia', family: "Georgia, 'Times New Roman', serif" },
-  { id: 'mono', label: 'Monospace', family: "'JetBrains Mono', 'Courier New', monospace" },
 ];
 
 export const SIZES = [
@@ -4847,9 +4834,9 @@ function Toggle({ label, value, onChange, description, disabled }) {
       opacity: disabled ? 0.5 : 1,
     }}>
       <div>
-        <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 14, color: '#c8c0b0' }}>{label}</div>
+        <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: '#c8c0b0' }}>{label}</div>
         {description && (
-          <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12, color: '#6b83a3', marginTop: 2 }}>{description}</div>
+          <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 12, color: '#6b83a3', marginTop: 2 }}>{description}</div>
         )}
       </div>
       <button onClick={() => !disabled && onChange(!value)} style={{
@@ -4876,12 +4863,12 @@ function SliderControl({ label, value, min, max, step, format, onChange, descrip
     <div style={{ padding: '10px 0', borderBottom: '1px solid #161c34' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
         <div>
-          <span style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 14, color: '#c8c0b0' }}>{label}</span>
+          <span style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: '#c8c0b0' }}>{label}</span>
           {description && (
-            <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12, color: '#6b83a3', marginTop: 2 }}>{description}</div>
+            <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 12, color: '#6b83a3', marginTop: 2 }}>{description}</div>
           )}
         </div>
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 14, fontWeight: 500, color: '#c9a84c', flexShrink: 0 }}>
+        <span style={{ fontFamily: "var(--font-jetbrains)", fontSize: 14, fontWeight: 500, color: '#c9a84c', flexShrink: 0 }}>
           {format ? format(value) : value}
         </span>
       </div>
@@ -4899,7 +4886,7 @@ function SliderControl({ label, value, min, max, step, format, onChange, descrip
           onChange={e => onChange(parseFloat(e.target.value))} />
       </div>
       {warning && (
-        <div style={{ fontFamily: "'Alegreya', serif", fontSize: 11, color: '#e8845a', marginTop: 4, fontStyle: 'italic' }}>
+        <div style={{ fontFamily: "var(--font-alegreya)", fontSize: 11, color: '#e8845a', marginTop: 4, fontStyle: 'italic' }}>
           {warning}
         </div>
       )}
@@ -4910,15 +4897,15 @@ function SliderControl({ label, value, min, max, step, format, onChange, descrip
 function SelectorRow({ label, options, value, onChange, description }) {
   return (
     <div style={{ padding: '10px 0', borderBottom: '1px solid #161c34' }}>
-      <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 14, color: '#c8c0b0', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: '#c8c0b0', marginBottom: 6 }}>{label}</div>
       {description && (
-        <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12, color: '#6b83a3', marginBottom: 8 }}>{description}</div>
+        <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 12, color: '#6b83a3', marginBottom: 8 }}>{description}</div>
       )}
       <div style={{ display: 'flex', gap: 4 }}>
         {options.map(opt => (
           <button key={opt.id} onClick={() => onChange(opt.id)} style={{
             flex: 1, padding: '6px 0', cursor: 'pointer', borderRadius: 5,
-            fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13,
+            fontFamily: "var(--font-alegreya-sans)", fontSize: 13,
             border: `1px solid ${value === opt.id ? '#c9a84c' : '#1e2540'}`,
             background: value === opt.id ? '#1a1810' : 'transparent',
             color: value === opt.id ? '#c9a84c' : '#7082a4',
@@ -5109,11 +5096,11 @@ function AiModelSection({ gameId }) {
           onChange={v => updateOverride('all', v)}
         />
         {hasPerTaskOverrides && !advancedMode && (
-          <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12, color: '#e8c45a', marginTop: 6 }}>
+          <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 12, color: '#e8c45a', marginTop: 6 }}>
             Some tasks have individual overrides.{' '}
             <button onClick={() => setAdvancedMode(true)} style={{
               background: 'none', border: 'none', color: '#c9a84c', cursor: 'pointer',
-              fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12, textDecoration: 'underline', padding: 0,
+              fontFamily: "var(--font-alegreya-sans)", fontSize: 12, textDecoration: 'underline', padding: 0,
             }}>
               Show details
             </button>
@@ -5125,7 +5112,7 @@ function AiModelSection({ gameId }) {
       <div style={{ padding: '8px 0', borderBottom: '1px solid #161c34' }}>
         <button onClick={() => setAdvancedMode(!advancedMode)} style={{
           background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-          fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13,
+          fontFamily: "var(--font-alegreya-sans)", fontSize: 13,
           color: advancedMode ? '#c9a84c' : '#7082a4',
           transition: 'color 0.15s',
         }}>
@@ -5297,7 +5284,7 @@ function GameSettingsTab({ gameId, gameState }) {
       </div>
       {storyteller !== 'Custom' && selectedST && (
         <div style={{
-          fontFamily: "'Alegreya', serif", fontSize: 14, fontStyle: 'italic',
+          fontFamily: "var(--font-alegreya)", fontSize: 14, fontStyle: 'italic',
           color: '#8a9ab8', padding: '6px 0 4px',
         }}>
           &ldquo;{selectedST.oneLiner}&rdquo;
@@ -5314,12 +5301,12 @@ function GameSettingsTab({ gameId, gameState }) {
             style={{
               width: '100%', boxSizing: 'border-box', minHeight: 80, padding: '10px 12px',
               background: '#0a0e1a', border: '1px solid #1e2540', borderRadius: 6,
-              fontFamily: "'Alegreya Sans', sans-serif", fontSize: 14, color: '#c8c0b0',
+              fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: '#c8c0b0',
               outline: 'none', resize: 'vertical', lineHeight: 1.5,
             }}
           />
           <div style={{
-            fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
+            fontFamily: "var(--font-jetbrains)", fontSize: 11,
             color: customDirective.length >= 450 ? '#e8845a' : '#6b83a3',
             textAlign: 'right', marginTop: 4,
           }}>
@@ -5348,7 +5335,7 @@ function GameSettingsTab({ gameId, gameState }) {
         ))}
       </div>
       {preset === 'custom' && (
-        <div style={{ fontFamily: "'Alegreya', serif", fontSize: 12, color: '#6b83a3', fontStyle: 'italic', marginBottom: 4 }}>
+        <div style={{ fontFamily: "var(--font-alegreya)", fontSize: 12, color: '#6b83a3', fontStyle: 'italic', marginBottom: 4 }}>
           Custom; one or more dials adjusted from preset
         </div>
       )}
@@ -5391,7 +5378,7 @@ function GameSettingsTab({ gameId, gameState }) {
       <AiModelSection gameId={gameId} />
 
       <div style={{
-        fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12, color: '#6b83a3',
+        fontFamily: "var(--font-alegreya-sans)", fontSize: 12, color: '#6b83a3',
         marginTop: 16, fontStyle: 'italic',
       }}>
         Changes take effect on the next relevant game event. No retroactive recalculation.
@@ -5406,39 +5393,38 @@ function GameSettingsTab({ gameId, gameState }) {
 
 function DisplayTab({ settings, onSave }) {
   const update = (key, value) => onSave({ ...settings, [key]: value });
+  const isLexie = settings.font === 'lexie';
 
   return (
     <div>
-      <SectionLabel>Theme</SectionLabel>
-      <div style={{ display: 'flex', gap: 6 }}>
-        {['dark', 'light', 'sepia'].map(t => (
-          <button key={t} onClick={() => update('theme', t)} style={{
-            flex: 1, padding: '10px 0', cursor: 'pointer', borderRadius: 6,
-            fontFamily: "'Alegreya Sans', sans-serif", fontSize: 14,
-            border: `1px solid ${settings.theme === t ? '#c9a84c' : '#1e2540'}`,
-            background: settings.theme === t ? '#1a1810' : 'transparent',
-            color: settings.theme === t ? '#c9a84c' : '#7082a4',
-            transition: 'all 0.2s',
-          }}>
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-          </button>
-        ))}
-      </div>
-
-      <SectionLabel>Body Font</SectionLabel>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {FONTS.map(f => (
-          <button key={f.id} onClick={() => update('font', f.id)} style={{
-            padding: '10px 12px', cursor: 'pointer', borderRadius: 6, textAlign: 'left',
-            border: `1px solid ${settings.font === f.id ? '#c9a84c' : '#1e2540'}`,
-            background: settings.font === f.id ? '#1a1810' : 'transparent',
-            fontFamily: f.family, fontSize: 14,
-            color: settings.font === f.id ? '#c9a84c' : '#c8c0b0',
-            transition: 'all 0.2s',
-          }}>
-            {f.label}
-          </button>
-        ))}
+      {/* Lexie Readable Toggle */}
+      <SectionLabel>Reading Font</SectionLabel>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 0', borderBottom: '1px solid #161c34',
+      }}>
+        <div>
+          <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: '#c8c0b0' }}>
+            Lexie Readable
+          </div>
+          <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 12, color: '#6b83a3', marginTop: 2 }}>
+            Dyslexia-friendly font
+          </div>
+        </div>
+        <button onClick={() => update('font', isLexie ? 'alegreya' : 'lexie')} style={{
+          width: 44, height: 24, borderRadius: 12, cursor: 'pointer',
+          background: isLexie ? '#c9a84c' : '#111528',
+          border: `1px solid ${isLexie ? '#c9a84c' : '#1e2540'}`,
+          position: 'relative', transition: 'all 0.2s', flexShrink: 0, marginLeft: 12,
+        }}>
+          <div style={{
+            width: 18, height: 18, borderRadius: '50%',
+            background: isLexie ? '#0a0e1a' : '#8a94a8',
+            position: 'absolute', top: 2,
+            left: isLexie ? 22 : 2,
+            transition: 'left 0.2s, background 0.2s',
+          }} />
+        </button>
       </div>
 
       <SectionLabel>Text Size</SectionLabel>
@@ -5446,7 +5432,7 @@ function DisplayTab({ settings, onSave }) {
         {SIZES.map(s => (
           <button key={s.id} onClick={() => update('textSize', s.id)} style={{
             flex: 1, padding: '8px 0', cursor: 'pointer', borderRadius: 6,
-            fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13,
+            fontFamily: "var(--font-alegreya-sans)", fontSize: 13,
             border: `1px solid ${settings.textSize === s.id ? '#c9a84c' : '#1e2540'}`,
             background: settings.textSize === s.id ? '#1a1810' : 'transparent',
             color: settings.textSize === s.id ? '#c9a84c' : '#7082a4',
@@ -5458,7 +5444,7 @@ function DisplayTab({ settings, onSave }) {
       </div>
 
       <div style={{
-        fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12, color: '#6b83a3',
+        fontFamily: "var(--font-alegreya-sans)", fontSize: 12, color: '#6b83a3',
         marginTop: 16, fontStyle: 'italic',
       }}>
         Settings are saved automatically and persist across sessions.
@@ -5597,10 +5583,10 @@ function WorldTab({ gameId, gameState, onGameStateReload, onClose }) {
           background: '#111528', border: '1px solid #1e2540', borderRadius: 8, padding: 20,
           textAlign: 'center',
         }}>
-          <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 14, color: '#c8c0b0', marginBottom: 6 }}>
+          <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: '#c8c0b0', marginBottom: 6 }}>
             {cp.name}
           </div>
-          <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#7082a4', marginBottom: 16 }}>
+          <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 13, color: '#7082a4', marginBottom: 16 }}>
             {action === 'load'
               ? `Load this checkpoint? Your progress since turn ${cp.turnNumber} will be lost.`
               : 'Delete this checkpoint? This cannot be undone.'}
@@ -5608,7 +5594,7 @@ function WorldTab({ gameId, gameState, onGameStateReload, onClose }) {
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
             <button onClick={() => setCpConfirm(null)} disabled={cpBusy != null} style={{
               padding: '8px 20px', borderRadius: 5, cursor: 'pointer',
-              fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13,
+              fontFamily: "var(--font-alegreya-sans)", fontSize: 13,
               background: 'transparent', border: '1px solid #1e2540', color: '#7082a4',
             }}>Cancel</button>
             <button
@@ -5642,14 +5628,14 @@ function WorldTab({ gameId, gameState, onGameStateReload, onClose }) {
       {/* ── Checkpoints ── */}
       <SectionLabel>Checkpoints</SectionLabel>
       <div style={{ background: '#111528', border: '1px solid #1e2540', borderRadius: 8, padding: 16 }}>
-        <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#7082a4', marginBottom: 12 }}>
+        <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 13, color: '#7082a4', marginBottom: 12 }}>
           Quick-save up to 3 slots. Save, load, or delete at any time.
         </div>
         {checkpoints === null && (
-          <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#6b83a3', padding: 8 }}>Loading checkpoints...</div>
+          <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 13, color: '#6b83a3', padding: 8 }}>Loading checkpoints...</div>
         )}
         {checkpoints === false && (
-          <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#e8845a' }}>
+          <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 13, color: '#e8845a' }}>
             Couldn't load checkpoints. <button onClick={fetchCheckpoints} style={{ background: 'none', border: 'none', color: '#c9a84c', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', textDecoration: 'underline', padding: 0 }}>Retry</button>
           </div>
         )}
@@ -5661,24 +5647,24 @@ function WorldTab({ gameId, gameState, onGameStateReload, onClose }) {
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
             <span style={{
-              fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13,
+              fontFamily: "var(--font-alegreya-sans)", fontSize: 13,
               color: cp ? '#d0c098' : '#6b83a3', fontWeight: cp ? 500 : 400, flex: 1,
             }}>
               {cp ? cp.name : `Slot ${slotNum} \u2014 Empty`}
-              {cp && <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: '#6b83a3', marginLeft: 8 }}>T{cp.turnNumber}</span>}
+              {cp && <span style={{ fontFamily: "var(--font-jetbrains)", fontSize: 10, color: '#6b83a3', marginLeft: 8 }}>T{cp.turnNumber}</span>}
             </span>
             <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
               {cp ? (
                 <>
                   <button onClick={() => setCpConfirm({ action: 'load', cp })} disabled={cpBusy != null} style={{
                     padding: '4px 10px', borderRadius: 4, cursor: 'pointer',
-                    fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12,
+                    fontFamily: "var(--font-alegreya-sans)", fontSize: 12,
                     background: 'transparent', border: '1px solid #1e2540', color: '#7082a4',
                     transition: 'all 0.2s', opacity: cpBusy ? 0.5 : 1,
                   }}>Load</button>
                   <button onClick={() => setCpConfirm({ action: 'delete', cp })} disabled={cpBusy != null} style={{
                     padding: '4px 10px', borderRadius: 4, cursor: 'pointer',
-                    fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12,
+                    fontFamily: "var(--font-alegreya-sans)", fontSize: 12,
                     background: 'transparent', border: '1px solid #161c34', color: '#6b83a3',
                     transition: 'all 0.2s', opacity: cpBusy ? 0.5 : 1,
                   }}>Delete</button>
@@ -5686,7 +5672,7 @@ function WorldTab({ gameId, gameState, onGameStateReload, onClose }) {
               ) : (
                 <button onClick={() => handleSaveCheckpoint(slotNum)} disabled={cpBusy != null} style={{
                   padding: '4px 14px', borderRadius: 4, cursor: cpBusy ? 'not-allowed' : 'pointer',
-                  fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12, fontWeight: 600,
+                  fontFamily: "var(--font-alegreya-sans)", fontSize: 12, fontWeight: 600,
                   background: '#1a1810', border: '1px solid #c9a84c',
                   color: '#c9a84c', transition: 'all 0.2s', opacity: cpBusy ? 0.5 : 1,
                 }}>{cpBusy === slotNum ? 'Saving...' : 'Save'}</button>
@@ -5702,7 +5688,7 @@ function WorldTab({ gameId, gameState, onGameStateReload, onClose }) {
         Save World Snapshot
       </SectionLabel>
       <div style={{ background: '#111528', border: '1px solid #1e2540', borderRadius: 8, padding: 16 }}>
-        <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#7082a4', marginBottom: 10 }}>
+        <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 13, color: '#7082a4', marginBottom: 10 }}>
           Save the current world state to Your Worlds for reuse in future games.
         </div>
         <input
@@ -5711,13 +5697,13 @@ function WorldTab({ gameId, gameState, onGameStateReload, onClose }) {
           style={{
             width: '100%', boxSizing: 'border-box', padding: '8px 12px',
             background: '#0a0e1a', border: '1px solid #1e2540', borderRadius: 6,
-            fontFamily: "'Alegreya Sans', sans-serif", fontSize: 14, color: '#c8c0b0',
+            fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: '#c8c0b0',
             outline: 'none', marginBottom: 10,
           }}
         />
         <button onClick={handleSaveSnapshot} disabled={snapSaving || !snapName.trim()} style={{
           width: '100%', padding: '8px 0', borderRadius: 6, cursor: snapSaving ? 'not-allowed' : 'pointer',
-          fontFamily: "'Alegreya Sans', sans-serif", fontSize: 14, fontWeight: 600,
+          fontFamily: "var(--font-alegreya-sans)", fontSize: 14, fontWeight: 600,
           background: snapSuccess ? '#10201420' : '#1a1810',
           border: `1px solid ${snapSuccess ? '#8aba7a' : '#c9a84c'}`,
           color: snapSuccess ? '#8aba7a' : '#c9a84c',
@@ -5735,14 +5721,14 @@ function WorldTab({ gameId, gameState, onGameStateReload, onClose }) {
       <div style={{ background: '#111528', border: '1px solid #1e2540', borderRadius: 8, padding: 16 }}>
         {shareMode !== 'sharing' ? (
           <div>
-            <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#7082a4', marginBottom: 12 }}>
+            <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 13, color: '#7082a4', marginBottom: 12 }}>
               Generate an unlisted link so others can start a game in your world.
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => handleShare('began')} disabled={shareBusy} style={{
                 flex: 1, padding: '10px 8px', borderRadius: 6, cursor: shareBusy ? 'not-allowed' : 'pointer',
                 background: 'transparent', border: '1px solid #1e2540',
-                fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#c8c0b0',
+                fontFamily: "var(--font-alegreya-sans)", fontSize: 13, color: '#c8c0b0',
                 transition: 'all 0.2s', opacity: shareBusy ? 0.5 : 1,
               }}>
                 <div style={{ fontWeight: 600, marginBottom: 2 }}>As it began</div>
@@ -5751,7 +5737,7 @@ function WorldTab({ gameId, gameState, onGameStateReload, onClose }) {
               <button onClick={() => handleShare('current')} disabled={shareBusy} style={{
                 flex: 1, padding: '10px 8px', borderRadius: 6, cursor: shareBusy ? 'not-allowed' : 'pointer',
                 background: 'transparent', border: '1px solid #1e2540',
-                fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#c8c0b0',
+                fontFamily: "var(--font-alegreya-sans)", fontSize: 13, color: '#c8c0b0',
                 transition: 'all 0.2s', opacity: shareBusy ? 0.5 : 1,
               }}>
                 <div style={{ fontWeight: 600, marginBottom: 2 }}>As it is now</div>
@@ -5765,9 +5751,9 @@ function WorldTab({ gameId, gameState, onGameStateReload, onClose }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               <button onClick={() => { setShareMode(null); setShareToken(null); setCopied(false); }} style={{
                 background: 'none', border: 'none', color: '#6b83a3', cursor: 'pointer',
-                fontFamily: "'Alegreya Sans', sans-serif", fontSize: 12,
+                fontFamily: "var(--font-alegreya-sans)", fontSize: 12,
               }}>{'\u2190'} Back</button>
-              <span style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#d0c098', fontWeight: 600 }}>
+              <span style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 13, color: '#d0c098', fontWeight: 600 }}>
                 Share: {shareType === 'began' ? 'As it began' : 'As it is now'}
               </span>
             </div>
@@ -5775,14 +5761,14 @@ function WorldTab({ gameId, gameState, onGameStateReload, onClose }) {
               <>
                 <div style={{
                   background: '#0a0e1a', border: '1px solid #1e2540', borderRadius: 6,
-                  padding: '8px 12px', fontFamily: "'JetBrains Mono', monospace", fontSize: 12,
+                  padding: '8px 12px', fontFamily: "var(--font-jetbrains)", fontSize: 12,
                   color: '#8a94a8', marginBottom: 10, wordBreak: 'break-all',
                 }}>
                   {window.location.origin}/snapshot/{shareToken}
                 </div>
                 <button onClick={handleCopyLink} style={{
                   width: '100%', padding: '8px 0', borderRadius: 6, cursor: 'pointer',
-                  fontFamily: "'Alegreya Sans', sans-serif", fontSize: 14, fontWeight: 600,
+                  fontFamily: "var(--font-alegreya-sans)", fontSize: 14, fontWeight: 600,
                   background: copied ? '#10201420' : '#1a1810',
                   border: `1px solid ${copied ? '#8aba7a' : '#c9a84c'}`,
                   color: copied ? '#8aba7a' : '#c9a84c', transition: 'all 0.2s',
@@ -5791,7 +5777,7 @@ function WorldTab({ gameId, gameState, onGameStateReload, onClose }) {
                 </button>
               </>
             ) : (
-              <div style={{ fontFamily: "'Alegreya Sans', sans-serif", fontSize: 13, color: '#e8845a' }}>
+              <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 13, color: '#e8845a' }}>
                 Snapshot was created but no share link was returned. Check Your Worlds in the main menu.
               </div>
             )}
@@ -5859,8 +5845,7 @@ export default function SettingsModal({ settings, onSave, onClose, gameId, gameS
   );
 }
 
-
-// ──── FILE: app/play/components/Sidebar.js ────
+// ─��── FILE: app/play/components/Sidebar.js ────
 import { useState, useCallback } from 'react';
 import CharacterTab from './CharacterTab';
 import InventoryTab from './InventoryTab';
@@ -6041,8 +6026,7 @@ export default function Sidebar({
   );
 }
 
-
-// ──── FILE: app/play/components/TalkToGM.js ────
+// ─��── FILE: app/play/components/TalkToGM.js ────
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as api from '@/lib/api';
 import { renderLinkedText } from '@/lib/renderLinkedText';
@@ -6805,8 +6789,7 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
   );
 }
 
-
-// ──── FILE: app/play/components/TopBar.js ────
+// ─��── FILE: app/play/components/TopBar.js ────
 import Link from 'next/link';
 import AuthAvatar from '@/components/AuthAvatar';
 import styles from './TopBar.module.css';
@@ -6919,8 +6902,7 @@ export default function TopBar({ setting, clock, sseConnected, sidebarOpen, onTo
   );
 }
 
-
-// ──── FILE: app/play/components/TurnBlock.js ────
+// ─��── FILE: app/play/components/TurnBlock.js ────
 import React, { useState, forwardRef } from 'react';
 import InlineDicePanel from './InlineDicePanel';
 import ResolutionBlock from './ResolutionBlock';
@@ -7141,4 +7123,3 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
 });
 
 export default TurnBlock;
-

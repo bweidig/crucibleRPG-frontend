@@ -10,7 +10,7 @@ import ParticleField from '@/components/ParticleField';
 import styles from './page.module.css';
 
 const SETTINGS_KEY = 'crucible_display_settings';
-const DEFAULT_SETTINGS = { theme: 'dark', font: 'lexie', textSize: 'medium' };
+const DEFAULT_SETTINGS = { theme: 'dark', font: 'alegreya', textSize: 'medium' };
 
 function loadDisplaySettings() {
   if (typeof window === 'undefined') return DEFAULT_SETTINGS;
@@ -27,11 +27,8 @@ function saveDisplaySettings(settings) {
 // ─── FONT / SIZE MAPS ───
 
 const FONTS = [
+  { id: 'alegreya', label: 'Alegreya', family: "'Alegreya Sans', sans-serif" },
   { id: 'lexie', label: 'Lexie Readable', family: "'Lexie Readable', sans-serif" },
-  { id: 'system', label: 'System Default', family: 'system-ui, sans-serif' },
-  { id: 'alegreya', label: 'Alegreya Sans', family: "'Alegreya Sans', sans-serif" },
-  { id: 'georgia', label: 'Georgia', family: 'Georgia, serif' },
-  { id: 'mono', label: 'Monospace', family: "'JetBrains Mono', monospace" },
 ];
 
 const SIZES = [
@@ -43,17 +40,7 @@ const SIZES = [
 
 const SIZE_PX = { small: 14, medium: 16, large: 18, xlarge: 20 };
 
-// ─── THEME ICONS ───
-
-function MoonIcon() {
-  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>;
-}
-function SunIcon() {
-  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>;
-}
-function HalfIcon() {
-  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18" /><path d="M12 3a9 9 0 0 1 0 18" fill="currentColor" opacity="0.3"/></svg>;
-}
+// ─── FONT / SIZE HELPERS ───
 
 // =============================================================================
 // MAIN SETTINGS PAGE
@@ -165,8 +152,6 @@ export default function SettingsPage() {
     }
   }
 
-  const selectedFont = FONTS.find(f => f.id === display.font) || FONTS[0];
-
   return (
     <div className={styles.pageContainer} style={{
       minHeight: '100vh', background: '#0a0e1a', color: '#c8c0b0', position: 'relative', paddingTop: 72,
@@ -220,7 +205,7 @@ export default function SettingsPage() {
               </div>
             )}
             {editError && <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#e85a5a', marginBottom: 4 }}>{editError}</p>}
-            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#6b83a3', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <div style={{ fontFamily: "var(--font-jetbrains)", fontSize: 12, color: '#6b83a3', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               <span>{user?.email}</span>
               <span>&middot;</span>
               <span>Since {joinDate}</span>
@@ -244,56 +229,48 @@ export default function SettingsPage() {
             DISPLAY
           </div>
 
-          {/* Theme toggle */}
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4', marginBottom: 8 }}>Theme</div>
-            <div style={{ display: 'inline-flex', background: '#111528', borderRadius: 4, border: '1px solid #2a2622', overflow: 'hidden' }}>
-              {[
-                { id: 'dark', label: 'Dark', Icon: MoonIcon },
-                { id: 'light', label: 'Light', Icon: SunIcon },
-                { id: 'auto', label: 'Auto', Icon: HalfIcon },
-              ].map(t => (
-                <button
-                  key={t.id}
-                  className={display.theme === t.id ? styles.segBtnActive : styles.segBtn}
-                  onClick={() => updateDisplay({ theme: t.id })}
-                >
-                  <t.Icon />{t.label}
-                </button>
-              ))}
+          {/* Lexie Readable toggle */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '10px 0', marginBottom: 20, borderBottom: '1px solid #2a2622',
+          }}>
+            <div>
+              <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0' }}>
+                Lexie Readable
+              </div>
+              <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#6b83a3', marginTop: 2 }}>
+                Dyslexia-friendly font
+              </div>
             </div>
+            <button onClick={() => updateDisplay({ font: display.font === 'lexie' ? 'alegreya' : 'lexie' })} style={{
+              width: 44, height: 24, borderRadius: 12, cursor: 'pointer',
+              background: display.font === 'lexie' ? '#c9a84c' : '#111528',
+              border: `1px solid ${display.font === 'lexie' ? '#c9a84c' : '#2a2622'}`,
+              position: 'relative', transition: 'all 0.2s', flexShrink: 0, marginLeft: 12,
+            }}>
+              <div style={{
+                width: 18, height: 18, borderRadius: '50%',
+                background: display.font === 'lexie' ? '#0a0e1a' : '#8a94a8',
+                position: 'absolute', top: 2,
+                left: display.font === 'lexie' ? 22 : 2,
+                transition: 'left 0.2s, background 0.2s',
+              }} />
+            </button>
           </div>
 
-          {/* Font + Size row */}
-          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', marginBottom: 20 }}>
-            <div style={{ flex: 1, minWidth: 240 }}>
-              <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4', marginBottom: 8 }}>Reading Font</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {FONTS.map(f => (
-                  <button
-                    key={f.id}
-                    className={display.font === f.id ? styles.fontBtnActive : styles.fontBtn}
-                    style={{ fontFamily: f.family }}
-                    onClick={() => updateDisplay({ font: f.id })}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4', marginBottom: 8 }}>Size</div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                {SIZES.map(s => (
-                  <button
-                    key={s.id}
-                    className={display.textSize === s.id ? styles.sizeBtnActive : styles.sizeBtn}
-                    onClick={() => updateDisplay({ textSize: s.id })}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
+          {/* Size */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4', marginBottom: 8 }}>Size</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {SIZES.map(s => (
+                <button
+                  key={s.id}
+                  className={display.textSize === s.id ? styles.sizeBtnActive : styles.sizeBtn}
+                  onClick={() => updateDisplay({ textSize: s.id })}
+                >
+                  {s.label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -302,7 +279,7 @@ export default function SettingsPage() {
             background: '#111528', border: '1px solid #2a2622', borderRadius: 6, padding: 16,
           }}>
             <p style={{
-              fontFamily: selectedFont.family,
+              fontFamily: display.font === 'lexie' ? "'Lexie Readable', sans-serif" : "'Alegreya Sans', sans-serif",
               fontSize: SIZE_PX[display.textSize] || 16,
               color: '#d4c4a0', lineHeight: 1.7, fontStyle: 'italic', margin: 0,
             }}>
@@ -337,7 +314,7 @@ export default function SettingsPage() {
               <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 700, color: planState === 'free' ? '#8a94a8' : '#c9a84c', marginBottom: 4 }}>
                 {planState === 'free' ? 'Free Trial' : 'Adventurer'}
               </div>
-              <div style={{ fontFamily: planState === 'free' ? 'var(--font-alegreya-sans)' : "'JetBrains Mono', monospace", fontSize: 13, color: '#6b83a3' }}>
+              <div style={{ fontFamily: planState === 'free' ? 'var(--font-alegreya-sans)' : "var(--font-jetbrains)", fontSize: 13, color: '#6b83a3' }}>
                 {planState === 'free' ? 'No credit card required' : '$X.XX/month - Renews Apr 15, 2026'}
               </div>
             </div>
@@ -352,7 +329,7 @@ export default function SettingsPage() {
               <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>
                 {planState === 'free' ? 'Trial Turns' : 'Turns This Month'}
               </span>
-              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: '#c8c0b0' }}>
+              <span style={{ fontFamily: "var(--font-jetbrains)", fontSize: 13, color: '#c8c0b0' }}>
                 {planState === 'free' ? 'XX / XX' : 'XX / XXX'}
               </span>
             </div>
@@ -375,7 +352,7 @@ export default function SettingsPage() {
                 ].map((pack, i) => (
                   <button key={i} className={styles.topupBtn}>
                     <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, marginBottom: 2 }}>{pack.turns} turns</div>
-                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: '#c9a84c' }}>${pack.price}</div>
+                    <div style={{ fontFamily: "var(--font-jetbrains)", fontSize: 12, color: '#c9a84c' }}>${pack.price}</div>
                   </button>
                 ))}
               </div>

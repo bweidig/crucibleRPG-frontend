@@ -20,7 +20,7 @@ import styles from './play.module.css';
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const SETTINGS_KEY = 'crucible_display_settings';
-const DEFAULT_SETTINGS = { theme: 'dark', font: 'lexie', textSize: 'medium' };
+const DEFAULT_SETTINGS = { theme: 'dark', font: 'alegreya', textSize: 'medium' };
 
 function loadSettings() {
   if (typeof window === 'undefined') return DEFAULT_SETTINGS;
@@ -40,11 +40,17 @@ function buildThemeStyle(settings) {
   const themeVars = THEMES[settings.theme] || THEMES.dark;
   const font = FONTS.find(f => f.id === settings.font) || FONTS[0];
   const size = SIZES.find(s => s.id === settings.textSize) || SIZES[1];
+  const isLexie = settings.font === 'lexie';
   return {
     ...themeVars,
     '--body-font': font.family,
     '--narrative-size': size.narrative,
     '--ui-size': size.ui,
+    ...(isLexie ? {
+      '--font-alegreya': "'Lexie Readable', sans-serif",
+      '--font-alegreya-sans': "'Lexie Readable', sans-serif",
+      '--font-jetbrains': "'Lexie Readable', sans-serif",
+    } : {}),
   };
 }
 
@@ -908,7 +914,7 @@ export default function Page() {
             RPG
           </span>
         </div>
-        <p style={{ color: '#8a94a8', fontFamily: "'Alegreya Sans', sans-serif" }}>
+        <p style={{ color: '#8a94a8', fontFamily: "var(--font-alegreya-sans)" }}>
           Loading...
         </p>
       </div>

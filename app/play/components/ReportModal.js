@@ -119,7 +119,7 @@ function ContextPreview({ mode, context }) {
                 {LABEL_MAP[key] || key}
               </span>
               <span style={{
-                fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: C.secondary,
+                fontFamily: "var(--font-jetbrains)", fontSize: 11, color: C.secondary,
                 textAlign: 'right', maxWidth: '60%', overflow: 'hidden', textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
               }}>
@@ -128,7 +128,7 @@ function ContextPreview({ mode, context }) {
             </div>
           ))}
           {mode === 'bug' && (
-            <div style={{ fontFamily: "'Alegreya', serif", fontSize: 11, color: C.dim, fontStyle: 'italic', marginTop: 8 }}>
+            <div style={{ fontFamily: "var(--font-alegreya)", fontSize: 11, color: C.dim, fontStyle: 'italic', marginTop: 8 }}>
               Full AI prompt/response and server JSON also included.
             </div>
           )}

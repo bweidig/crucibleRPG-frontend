@@ -34,6 +34,18 @@
 
 ## Recent Work (This Session: 2026-04-04)
 
+### Display Settings: Lexie Readable Toggle + Font Variable Cleanup
+Replaced the 5-option font picker and theme toggle in both the /play SettingsModal Display tab and the /settings page with a single Lexie Readable on/off toggle. When enabled, the font setting value is 'lexie' and the buildThemeStyle function overrides --font-alegreya, --font-alegreya-sans, and --font-jetbrains CSS variables to 'Lexie Readable', making every element using those variables switch automatically. Cinzel remains fixed for headers.
+
+- Removed theme toggle UI from SettingsModal Display tab and /settings page (dark-only for now; THEMES export kept)
+- FONTS array reduced to 2 entries: alegreya (default) and lexie
+- Converted all hardcoded font-family strings across /play components and CSS modules to CSS variables (var(--font-alegreya-sans), var(--font-alegreya), var(--font-jetbrains))
+- SVG font attributes in MapTab.js and InlineDicePanel.js converted from fontFamily="..." to style={{ fontFamily: "var(...)" }}
+- Default font changed from 'lexie' to 'alegreya' in both play and settings DEFAULT_SETTINGS
+- /settings page preview paragraph responds to toggle (renders in Lexie Readable or Alegreya Sans)
+
+**Files modified:** `app/play/page.js`, `app/play/components/SettingsModal.js`, `app/play/components/SettingsModal.module.css`, `app/play/components/MapTab.js`, `app/play/components/InlineDicePanel.js`, `app/play/components/ReportModal.js`, `app/play/components/DebugPanel.module.css`, `app/play/components/TopBar.module.css`, `app/settings/page.js`, `app/settings/page.module.css`.
+
 ### AuthAvatar: Links Instead of Buttons
 Replaced `<button onClick={router.push()}>` with `<Link href>` in both the signed-in (avatar circle → /settings) and signed-out ("Sign In" → /auth) states. Enables middle-click/right-click "open in new tab". Removed `useRouter` import. Added `textDecoration: 'none'` and `display: 'flex'` to preserve visual parity with the old button rendering.
 

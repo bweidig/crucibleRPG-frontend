@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import * as api from '@/lib/api';
 import { useAuth } from '@/lib/useAuth';
 import { getToken } from '@/lib/api';
@@ -13,12 +14,13 @@ import SettingsModal, { THEMES, FONTS, SIZES } from './components/SettingsModal'
 import EntityPopup from './components/EntityPopup';
 import DebugPanel from './components/DebugPanel';
 import ReportModal from './components/ReportModal';
+import { buildGlossaryTermSet } from '@/lib/renderLinkedText';
 import styles from './play.module.css';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const SETTINGS_KEY = 'crucible_display_settings';
-const DEFAULT_SETTINGS = { theme: 'dark', font: 'lexie', textSize: 'medium' };
+const DEFAULT_SETTINGS = { theme: 'dark', font: 'alegreya', textSize: 'medium' };
 
 function loadSettings() {
   if (typeof window === 'undefined') return DEFAULT_SETTINGS;
@@ -38,11 +40,17 @@ function buildThemeStyle(settings) {
   const themeVars = THEMES[settings.theme] || THEMES.dark;
   const font = FONTS.find(f => f.id === settings.font) || FONTS[0];
   const size = SIZES.find(s => s.id === settings.textSize) || SIZES[1];
+  const isLexie = settings.font === 'lexie';
   return {
     ...themeVars,
     '--body-font': font.family,
     '--narrative-size': size.narrative,
     '--ui-size': size.ui,
+    ...(isLexie ? {
+      '--font-alegreya': "'Lexie Readable', sans-serif",
+      '--font-alegreya-sans': "'Lexie Readable', sans-serif",
+      '--font-jetbrains': "'Lexie Readable', sans-serif",
+    } : {}),
   };
 }
 
@@ -160,6 +168,13 @@ function PlayPage() {
     }).catch(err => console.error('Failed to refresh character:', err));
   }, [gameId]);
 
+  const refetchGlossary = useCallback(() => {
+    if (!gameId) return;
+    api.get(`/api/game/${gameId}/glossary`).then(data => {
+      setGlossaryData(data);
+    }).catch(err => console.error('Failed to refresh glossary:', err));
+  }, [gameId]);
+
   const refetchNotes = useCallback(() => {
     if (!gameId) return;
     api.get(`/api/game/${gameId}/notes`).then(data => {
@@ -198,12 +213,16 @@ function PlayPage() {
       ? { ...gameState?.clock, ...response.stateChanges.clock }
       : gameState?.clock || null;
 
+    // Extract reflection from mechanicalResults (Long Rest end-of-day reflection)
+    const reflection = response.mechanicalResults?.reflection || response.stateChanges?.reflection || null;
+
     setTurns(prev => [...prev, {
       number: response.turn.number,
       sessionTurn: response.turn.sessionTurn,
       narrative: response.narrative,
       resolution: response.resolution || null,
       stateChanges: response.stateChanges || null,
+      reflection,
       playerAction: playerActionText,
       clock: turnClock,
       weather: turnClock?.weather || null,
@@ -215,16 +234,21 @@ function PlayPage() {
       setActions(response.nextActions);
     }
 
-    if (response.stateChanges?.clock) {
-      setGameState(prev => prev ? {
-        ...prev,
-        clock: { ...prev.clock, ...response.stateChanges.clock }
-      } : prev);
-    }
+    // Clear session recap after the first action so it never re-appears
+    // (handles component remount edge cases where the ref would reset)
+    setGameState(prev => {
+      if (!prev) return prev;
+      const updates = { sessionRecap: null };
+      if (response.stateChanges?.clock) {
+        updates.clock = { ...prev.clock, ...response.stateChanges.clock };
+      }
+      return { ...prev, ...updates };
+    });
 
     if (response.stateChanges) {
       addNotifications(response.stateChanges);
       refetchCharacter();
+      refetchGlossary();
     }
 
     // Enrich latest debug entry with turn number
@@ -235,7 +259,7 @@ function PlayPage() {
         return [{ ...latest, turnNumber: response.turn.number }, ...rest];
       });
     }
-  }, [addNotifications, refetchCharacter, gameState]);
+  }, [addNotifications, refetchCharacter, refetchGlossary, gameState]);
 
   // ─── Compass Escalation Handler ───
   const handleCompassEscalate = useCallback(async () => {
@@ -273,6 +297,9 @@ function PlayPage() {
   const lastResolutionTurn = turns.slice().reverse().find(t => t.resolution);
   const lastResolution = lastResolutionTurn?.resolution || null;
   const lastStateChanges = lastResolutionTurn?.stateChanges || null;
+
+  // Build glossary term set for bracket-notation linking in narrative
+  const glossaryTerms = useMemo(() => buildGlossaryTermSet(glossaryData), [glossaryData]);
 
   // ─── Submit Action (Step 5 handler) ───
   const submitAction = useCallback(async (actionBody) => {
@@ -498,16 +525,24 @@ function PlayPage() {
     };
   }, [authReady, gameId, router]);
 
-  // ─── Redirect if no gameId ───
+  // ─── Redirect if no gameId or not playtester ───
   useEffect(() => {
     if (authReady && !gameId) {
       router.replace('/menu');
+    }
+    if (authReady && gameId) {
+      const user = api.getUser();
+      if (user && !user.isPlaytester) router.replace('/');
     }
   }, [authReady, gameId, router]);
 
   // ─── Loading Overlay Lifecycle ───
   const showOverlay = !overlayDismissed && (!authReady || loading || !enterReady || !overlayFading);
   const dataReady = authReady && !loading;
+  const isReturningGame = dataReady && gameState && (
+    (gameState.recentNarrative?.length > 0) ||
+    (gameState.clock?.totalTurn > 0)
+  );
 
   // When data finishes loading, hold 1.5s then show ENTER button
   useEffect(() => {
@@ -517,16 +552,16 @@ function PlayPage() {
     }
   }, [dataReady, enterReady]);
 
-  // Lore fragment cycling
+  // Lore fragment cycling — stops when data is ready so "Your story begins..." doesn't blink
   const LORE_FRAGMENTS = ['The world takes shape...', 'Setting the stage...', 'Preparing your first scene...', 'Populating the streets...', 'Seeding rumors and secrets...', 'Lighting the lanterns...'];
   useEffect(() => {
-    if (overlayDismissed) return;
+    if (overlayDismissed || dataReady) return;
     const interval = setInterval(() => {
       setLoreFade(false);
       setTimeout(() => { setLoreIndex(prev => (prev + 1) % LORE_FRAGMENTS.length); setLoreFade(true); }, 300);
     }, 3000);
     return () => clearInterval(interval);
-  }, [overlayDismissed]);
+  }, [overlayDismissed, dataReady]);
 
   // Tip cycling
   const OVERLAY_TIPS = [
@@ -540,6 +575,14 @@ function PlayPage() {
     'Every NPC has their own goals. Not all of them align with yours.',
     'You can talk your way out of most fights. Whether you should is another question.',
     'Weapons wear down with use. Take care of your gear or it won\'t take care of you.',
+    'Every hero needs a crucible. The hardest moments reveal the most.',
+    'Magic costs something. Every spell draws from your Potency and your endurance.',
+    'Rest isn\'t free. You need a safe place and enough time.',
+    'The difficulty dials are yours. You can adjust them mid-game in Settings.',
+    'Not every fight needs a winner. Escape is always an option.',
+    'Skill checks use real math. Your stats, your skills, and one d20.',
+    'You can file bug reports and suggestions from the sidebar during play.',
+    'Conditions stack. Two injuries to the same limb are worse than one.',
   ];
   useEffect(() => {
     if (overlayDismissed) return;
@@ -594,7 +637,7 @@ function PlayPage() {
         debugMode={debugMode}
       />
       <div className={styles.mainContent}>
-        <div className={styles.narrativeColumn}>
+        <div className={`${styles.narrativeColumn} ${!sidebarOpen ? styles.narrativeExpanded : ''}`}>
           <NarrativePanel
             ref={narrativeRef}
             turns={turns}
@@ -605,6 +648,8 @@ function PlayPage() {
             lastResolution={lastResolution}
             lastStateChanges={lastStateChanges}
             onMetaResponse={handleMetaResponse}
+            glossaryTerms={glossaryTerms}
+            onEntityClick={setEntityPopup}
           />
           <ActionPanel
             actions={actions}
@@ -617,12 +662,15 @@ function PlayPage() {
             currentLocation={gameState?.world?.currentLocation}
             onEscalate={handleCompassEscalate}
             hintLoading={hintLoading}
+            glossaryTerms={glossaryTerms}
+            onEntityClick={setEntityPopup}
           />
         </div>
         <Sidebar
           collapsed={!sidebarOpen}
           characterData={characterData}
           glossaryData={glossaryData}
+          glossaryTerms={glossaryTerms}
           mapData={mapData}
           notesData={notesData}
           gameId={gameId}
@@ -669,10 +717,12 @@ function PlayPage() {
         <EntityPopup
           entity={entityPopup}
           glossaryData={glossaryData}
+          glossaryTerms={glossaryTerms}
           notesData={notesData}
           gameId={gameId}
           onClose={() => setEntityPopup(null)}
           onNotesChange={refetchNotes}
+          onEntityClick={setEntityPopup}
         />
       )}
 
@@ -728,10 +778,10 @@ function PlayPage() {
           }} />
 
           {/* Wordmark */}
-          <div style={{ position: 'absolute', top: 22, left: 24, display: 'flex', alignItems: 'baseline', gap: 8, zIndex: 2 }}>
+          <Link href="/menu" style={{ position: 'absolute', top: 22, left: 24, display: 'flex', alignItems: 'baseline', gap: 8, zIndex: 2, textDecoration: 'none' }}>
             <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 900, color: '#c9a84c', letterSpacing: '0.06em' }}>CRUCIBLE</span>
             <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.18em' }}>RPG</span>
-          </div>
+          </Link>
 
           {/* Center content */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1 }}>
@@ -763,7 +813,7 @@ function PlayPage() {
               fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
               color: '#c9a84c', letterSpacing: '0.18em', textTransform: 'uppercase',
               marginBottom: 32,
-            }}>PROLOGUE</div>
+            }}>{isReturningGame ? 'WELCOME BACK' : 'PROLOGUE'}</div>
 
             {/* Firefly embers */}
             <div style={{ width: 160, height: 160, position: 'relative' }}>
@@ -795,7 +845,7 @@ function PlayPage() {
                 fontWeight: dataReady ? 700 : 400,
                 opacity: loreFade ? 1 : 0, transition: 'opacity 0.3s, color 0.5s',
               }}>
-                {dataReady ? 'Your story begins...' : LORE_FRAGMENTS[loreIndex]}
+                {dataReady ? (isReturningGame ? 'Your story continues...' : 'Your story begins...') : LORE_FRAGMENTS[loreIndex]}
               </span>
             </div>
 
@@ -820,7 +870,7 @@ function PlayPage() {
                 onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 36px rgba(201,168,76,0.5)'; }}
                 onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 0 24px rgba(201,168,76,0.3)'; }}
               >
-                ENTER {(loadingSummary?.worldName || 'THE WORLD').toUpperCase()}
+                ENTER {(gameState?.world?.currentLocation || loadingSummary?.worldName || 'THE WORLD').toUpperCase()}
               </button>
             </div>
 
@@ -864,7 +914,7 @@ export default function Page() {
             RPG
           </span>
         </div>
-        <p style={{ color: '#8a94a8', fontFamily: "'Alegreya Sans', sans-serif" }}>
+        <p style={{ color: '#8a94a8', fontFamily: "var(--font-alegreya-sans)" }}>
           Loading...
         </p>
       </div>

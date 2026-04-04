@@ -145,13 +145,13 @@ function MapRoute({ route, positions, isHovered }) {
       />
       {!route.known && (
         <text x={mx} y={my - 9} textAnchor="middle" fill={dangerColor} fontSize="8"
-          fontFamily="'JetBrains Mono', monospace" opacity="0.4">?</text>
+          style={{ fontFamily: "var(--font-jetbrains)" }} opacity="0.4">?</text>
       )}
       <text
         x={mx + nx * 9} y={my + ny * 9}
         textAnchor="middle" dominantBaseline="central"
         fill={dangerColor} fontSize="8"
-        fontFamily="'JetBrains Mono', monospace" fontWeight="500"
+        style={{ fontFamily: "var(--font-jetbrains)" }} fontWeight="500"
         opacity={isHovered ? 0.9 : 0.45}
         style={{ transition: 'opacity 0.2s', pointerEvents: 'none' }}
       >
@@ -200,12 +200,12 @@ function MapNode({ loc, x, y, isHovered, onHover, onLeave, onClick }) {
           <circle cx="0" cy="0" r="5" fill="#111528" stroke={isHovered ? '#c9a84c' : '#1e2540'} strokeWidth="0.8" />
           <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central"
             fill={isHovered ? '#c9a84c' : '#6b83a3'}
-            fontSize="7" fontFamily="'JetBrains Mono', monospace" fontWeight="700">+</text>
+            fontSize="7" style={{ fontFamily: "var(--font-jetbrains)" }} fontWeight="700">+</text>
         </g>
       )}
       <text x={x} y={y + nodeSize / 2 + 13} textAnchor="middle"
         fill={isHovered ? '#c9a84c' : labelColor} fontSize="9.5"
-        fontFamily="'Alegreya Sans', sans-serif"
+        style={{ fontFamily: "var(--font-alegreya-sans)" }}
         fontWeight={isCurrent ? 700 : isVisited ? 500 : 400}
         style={{ transition: 'fill 0.15s', pointerEvents: 'none' }}
       >
@@ -235,7 +235,7 @@ function Tooltip({ data, type, mousePos }) {
       <div className={styles.tooltip} style={{ left: tx, top: ty, borderColor: `${dc}33` }}>
         <div className={styles.tooltipMeta}>
           <span style={{
-            fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
+            fontFamily: "var(--font-jetbrains)", fontSize: 11,
             color: '#d0c098',
           }}>
             {data.travelDays} day{data.travelDays > 1 ? 's' : ''}
@@ -246,7 +246,7 @@ function Tooltip({ data, type, mousePos }) {
           <span className={styles.tooltipType}>{data.terrain}</span>
         </div>
         {!data.known && (
-          <div style={{ fontFamily: "'Alegreya', serif", fontSize: 9, color: '#e8c45a', fontStyle: 'italic' }}>
+          <div style={{ fontFamily: "var(--font-alegreya)", fontSize: 9, color: '#e8c45a', fontStyle: 'italic' }}>
             Unconfirmed route
           </div>
         )}
@@ -269,7 +269,7 @@ function Tooltip({ data, type, mousePos }) {
         <span className={styles.tooltipType}>{loc.type}</span>
       </div>
       {loc.controllingFaction && (
-        <div style={{ fontSize: 10, fontFamily: "'Alegreya Sans', sans-serif", color: '#7082a4' }}>
+        <div style={{ fontSize: 10, fontFamily: "var(--font-alegreya-sans)", color: '#7082a4' }}>
           Controlled by {loc.controllingFaction}
         </div>
       )}
@@ -686,7 +686,7 @@ export default function MapTab({ data: initialData, gameId, onEntityClick }) {
         <div className={styles.levelLabel}>
           {mapData.label}
           {zoom !== 1.0 && (
-            <span style={{ marginLeft: 8, fontFamily: "'JetBrains Mono', monospace" }}>
+            <span style={{ marginLeft: 8, fontFamily: "var(--font-jetbrains)" }}>
               {zoom.toFixed(1)}x
             </span>
           )}

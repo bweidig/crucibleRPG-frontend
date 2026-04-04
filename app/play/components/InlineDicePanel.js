@@ -33,7 +33,7 @@ function MiniD20({ value, size = 42, glow = 'none', spinning = false, ghostFaces
         <line x1="95" y1="35" x2="18" y2="90" stroke="#2a252033" strokeWidth="1" />
         <text
           x="50" y="58" textAnchor="middle" dominantBaseline="middle"
-          fontFamily="'JetBrains Mono', monospace"
+          style={{ fontFamily: "var(--font-jetbrains)" }}
           fontSize={size > 50 ? '28' : size > 35 ? '24' : '18'}
           fontWeight="600"
           fill={
@@ -48,8 +48,8 @@ function MiniD20({ value, size = 42, glow = 'none', spinning = false, ghostFaces
         </text>
         {ghostFaces && !spinning && (
           <>
-            <text x="22" y="32" textAnchor="middle" fontFamily="'JetBrains Mono'" fontSize="9" fill="#3a3328" style={{ textDecoration: 'line-through' }}>1</text>
-            <text x="78" y="32" textAnchor="middle" fontFamily="'JetBrains Mono'" fontSize="9" fill="#3a3328" style={{ textDecoration: 'line-through' }}>20</text>
+            <text x="22" y="32" textAnchor="middle" fontSize="9" fill="#3a3328" style={{ fontFamily: "var(--font-jetbrains)", textDecoration: 'line-through' }}>1</text>
+            <text x="78" y="32" textAnchor="middle" fontSize="9" fill="#3a3328" style={{ fontFamily: "var(--font-jetbrains)", textDecoration: 'line-through' }}>20</text>
           </>
         )}
       </svg>

@@ -184,7 +184,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-jetbrains);
   font-size: 9px;
   font-weight: 600;
   color: #7082a4;
@@ -203,7 +203,7 @@
   background: #0a0e1a;
   border: 1px solid #1e2540;
   border-radius: 6px;
-  font-family: 'Alegreya Sans', sans-serif;
+  font-family: var(--font-alegreya-sans);
   font-size: 14px;
   color: #c8c0b0;
   outline: none;
@@ -242,13 +242,13 @@
 }
 
 .modelRowName {
-  font-family: 'Alegreya Sans', sans-serif;
+  font-family: var(--font-alegreya-sans);
   font-size: 14px;
   color: #c8c0b0;
 }
 
 .modelRowInherited {
-  font-family: 'Alegreya Sans', sans-serif;
+  font-family: var(--font-alegreya-sans);
   font-size: 11px;
   color: #6b83a3;
   font-style: italic;
@@ -272,7 +272,7 @@
   padding: 6px 14px;
   border-radius: 5px;
   cursor: pointer;
-  font-family: 'Alegreya Sans', sans-serif;
+  font-family: var(--font-alegreya-sans);
   font-size: 12px;
   background: transparent;
   border: 1px solid #1e2540;
