@@ -69,7 +69,6 @@
 .narrativeText {
   font-family: var(--font-alegreya);
   font-size: 18px;
-  font-style: italic;
   line-height: 1.75;
   color: #b8ad94;
 }
@@ -304,7 +303,6 @@
 .resultText {
   font-family: var(--font-alegreya);
   font-size: 18px;
-  font-style: italic;
   line-height: 1.75;
   color: #b8ad94;
 }

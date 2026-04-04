@@ -34,6 +34,11 @@
 
 ## Recent Work (This Session: 2026-04-04)
 
+### Showcase Narrative Font: Italic to Upright
+Showcase narrative and result text changed from Alegreya italic to Alegreya regular to match /play default font. Hero tagline and feature card epigraphs remain italic (marketing narrator voice).
+
+**Files modified:** `app/landing/GameplayShowcase.module.css`, `docs/design-system.md`.
+
 ### Display Settings: Lexie Readable Toggle + Font Variable Cleanup
 Replaced the 5-option font picker and theme toggle in both the /play SettingsModal Display tab and the /settings page with a single Lexie Readable on/off toggle. When enabled, the font setting value is 'lexie' and the buildThemeStyle function overrides --font-alegreya, --font-alegreya-sans, and --font-jetbrains CSS variables to 'Lexie Readable', making every element using those variables switch automatically. Cinzel remains fixed for headers.
 

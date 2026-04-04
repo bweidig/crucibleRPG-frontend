@@ -345,10 +345,10 @@ DC X.X · Stat X.X [+ Skill +X.X] · Matched/Outmatched · Roll: X · Total: X.X
 ### Typography
 - Genre label: Cinzel 11px/600, letter-spacing 3px, `--accent-gold`
 - Storyteller label: Alegreya Sans 12px, `--gold-muted` (#9a8545)
-- Narrative text: Alegreya italic 18px, line-height 1.75, `#b8ad94`
+- Narrative text: Alegreya 18px, line-height 1.75, `#b8ad94`
 - Choice letter: Cinzel 14px/600, `#564b2e` default / `--accent-gold` selected
 - Choice text: Alegreya Sans 15px, line-height 1.55, `--text-muted` default / `--text-heading` selected
-- Result text: Alegreya italic 18px, line-height 1.75, `#b8ad94`
+- Result text: Alegreya 18px, line-height 1.75, `#b8ad94`
 - Dice bar: Alegreya Sans 14px, `--gold-muted`, letter-spacing 0.3px
 - Buttons: Cinzel 12px/600, letter-spacing 2px, `--gold-muted`
 
