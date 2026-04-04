@@ -1214,7 +1214,7 @@ function Phase2({ selected, onSelect, settingAnswers, setSettingAnswers, selecte
 }
 
 function CharacterForm({ character, onChange }) {
-  const personalityTraits = ['Cautious', 'Bold', 'Calculating', 'Impulsive', 'Charming', 'Blunt', 'Curious', 'Stoic', 'Idealistic', 'Cynical'];
+  const personalityTraits = ['Bold', 'Cautious', 'Calculating', 'Impulsive', 'Charming', 'Blunt', 'Curious', 'Stoic', 'Idealistic', 'Cynical', 'Loyal', 'Ambitious', 'Compassionate', 'Stubborn', 'Patient', 'Hot-Headed', 'Quiet', 'Witty'];
   const pronounOptions = ['He / Him', 'She / Her', 'They / Them', 'Custom'];
 
   const inputStyle = {
