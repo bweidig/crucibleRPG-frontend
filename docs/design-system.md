@@ -39,6 +39,21 @@ Use this document when implementing or updating any CrucibleRPG frontend page. A
 | Danger | `#e8845a` | 6.8:1 | Condition penalties, warnings |
 | Success | `#8aba7a` | 8.1:1 | Resolution success, positive states |
 
+### Marketing Page Text Rules
+
+Body text on marketing pages (landing, pricing, FAQ, rulebook) must use:
+- **`--text-secondary` (#8a94a8)** at **weight 400** for all body/description text
+- **`--text-primary` (#c8c0b0)** for primary content the user must read
+- **`--text-muted` (#7082a4)** only for labels, metadata, and truly de-emphasized elements at 14px minimum
+
+Do NOT use `--text-dim` (#6b83a3) or weight 300 for body text on marketing pages. These fail readability at paragraph length.
+
+On the game layout (`/play`), `--text-muted` and `--text-dim` remain valid for sidebar metadata and tertiary info where the context is dense and the user is already engaged.
+
+### Consolidation Note (April 2026)
+
+The landing page uses only two grey-blue text values: `--text-secondary` (#8a94a8) for body text and `--text-muted` (#7082a4) for de-emphasized metadata. `--text-secondary-bright` (#8a9ab8) and `--text-dim` (#6b83a3) are retained in the system for game layout use but should NOT appear on marketing pages. When building new marketing pages, use `--text-secondary` as the default body text color.
+
 **Gold Label Colors:**
 | Role | Hex | CSS Variable | Usage |
 |------|-----|-------------|-------|
@@ -120,6 +135,14 @@ All text in the game layout must respect the user's font setting via `var(--body
 
 Everything else inherits from the user's font choice.
 
+### Weight Rules
+- **Weight 300** (light): Do not use for body text on marketing pages. Reserved for game layout UI where text is short and high-contrast.
+- **Weight 400** (regular): Default for all body text.
+- **Weight 500** (medium): Alegreya italic taglines and subtitles.
+- **Weight 600** (semibold): Cinzel labels, section headers, secondary buttons.
+- **Weight 700** (bold): Cinzel headings, primary buttons.
+- **Weight 900** (black): Cinzel hero wordmark only.
+
 ---
 
 ## Wordmark
@@ -159,6 +182,26 @@ Appears on ALL pages: Landing, Coming Soon, Main Menu, Auth, Init Wizard, Loadin
 
 ---
 
+## Hover & Interaction Patterns
+
+### Interactive Elements (buttons, links, clickable cards)
+- Primary CTA: `translateY(-2px)` + `box-shadow: 0 4px 30px rgba(201,168,76,0.45)`
+- Secondary/Ghost CTA: background fills to `--bg-gold-subtle`, border warms to `--border-card-hover`, text shifts to `--accent-gold`
+- Nav links: color shifts to `--accent-gold` (0.2s), underline scales via ::after (0.3s)
+- Clickable cards (e.g. showcase choice cards): border warms to `rgba(201,168,76,0.2)`, background tints to `rgba(201,168,76,0.04)`, cursor: pointer
+
+### Non-Interactive Cards (feature cards, info cards)
+- Border warms to `rgba(201,168,76,0.25)`, background shifts to `--bg-card-elevated` (#1a2038)
+- Heading text shifts to `--accent-gold`
+- Do NOT add `translateY`, `box-shadow`, or `cursor: pointer` — these signal clickability
+
+### Universal
+- All hover transitions: 0.3s–0.4s ease
+- Spring-out easing for card transitions: `cubic-bezier(0.16, 1, 0.3, 1)`
+- All interactive elements must have `:focus-visible` styles: `outline: 2px solid rgba(201,168,76,0.6); outline-offset: 3px`
+
+---
+
 ## Inputs
 
 - Background: `#0a0e1a`
@@ -189,6 +232,12 @@ Appears on ALL pages: Landing, Coming Soon, Main Menu, Auth, Init Wizard, Loadin
 - Modals, popups: `8px`
 - Circular elements (avatars, badges): `50%`
 
+### Showcase / Demo Containers
+- Border: `1px solid rgba(201,168,76,0.12)` (subtle gold-tinted)
+- Background: `rgba(21,26,44,0.5)`
+- Border-radius: `8px`
+- Padding: `36px 32px` (desktop), `28px 20px` (mobile)
+
 ---
 
 ## Sizing — Minimum Readable Sizes
@@ -198,6 +247,27 @@ Appears on ALL pages: Landing, Coming Soon, Main Menu, Auth, Init Wizard, Loadin
 - **Difficulty badges**: minimum `12px` Cinzel 700 weight with `4px 12px` padding
 - **Italic subtitle text**: use `#8a9ab8` (`--text-secondary-bright`, 6.6:1) — italic reduces perceived contrast
 - **Muted/dim text** (`--text-muted`, `--text-dim`): minimum `14px` — these colors sit at the 4.7:1 AA threshold and fail below that size
+
+---
+
+## Type Scale — Marketing Pages
+
+Marketing pages use a constrained type scale. Avoid introducing sizes between these steps.
+
+| Size | Usage |
+|------|-------|
+| 80px | Hero wordmark (Cinzel 900, clamp down on mobile) |
+| 36px | Hero tagline (Alegreya italic 500) |
+| 27px | Feature card headings (Cinzel 700) |
+| 24px | Step headings, section subheadings (Cinzel 700) |
+| 18px | Featured body text, narrative showcase text (Alegreya italic / Alegreya Sans 400) |
+| 16px | Standard body text, descriptions, FAQ answers (Alegreya Sans 400) |
+| 15px | CTA button text (Cinzel 700) |
+| 14px | Section labels, metadata (Cinzel 600) |
+| 12px | Nav links (Cinzel 600) |
+| 11px | Category labels, chevron labels (Cinzel 600, requires 7:1+ contrast color) |
+
+The 16/17/18/19px cluster was consolidated to 16px (standard) and 18px (featured). Do not add 17px or 19px body text sizes.
 
 ---
 
