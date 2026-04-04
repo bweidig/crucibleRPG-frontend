@@ -1,6 +1,6 @@
 # Crucible RPG — To Do
 
-**Last Updated:** 2026-03-30
+**Last Updated:** 2026-04-04
 
 > **For Claude Code:** Read this file at the start of every session. The user manages this list with plain-language commands:
 > **Work initiation:** Items on this list are for tracking only. Do NOT start work on any item unprompted. The user will initiate each task via a prompt from Claude Chat.
@@ -23,6 +23,11 @@
 
 ## 🟡 Soon — Next Up After Current Work
 
+- [ ] Frontend: Foundational skill display — show subcategory labels. Broad format: "Custom Name (Domain/Subcat + Domain/Subcat)". Character endpoint returns new fields.
+- [ ] Frontend: Magic skill axis display — show domain-axis vs discipline-axis. E.g. "Pyromancy +3.0 (Thermal Domain)" vs "Healing Arts +2.0 (Restoration Discipline)"
+- [ ] Frontend: Element name update — fire→Thermal, ice→Cryo, lightning→Voltaic. Update UI references, icons, color schemes. 11 new elements need visual treatment.
+- [ ] Frontend: Fortune condition display — show remaining charges not turns. "Hexed — 2 checks remaining" not "Hexed — 2 turns remaining"
+
 - [ ] Too many items added during character proposal — tighten item count guidance
 - [ ] Missing glossary entries for proposal-generated items
 - [x] Frontend: Entity popup — show mechanical item stats (damage, armor, etc.) (2026-03-25)
@@ -38,16 +43,18 @@
 - [x] Frontend: FAQ page (2026-03-30)
 - [x] Frontend: Legal pages (ToS, Privacy Policy starters) (2026-03-29)
 - [ ] Frontend: Copy audit on init wizard and game layout
+- [ ] Frontend: Universal glossary linking beyond bracket notation — match entity names in sidebar, compass, status report text against glossary database
 - [ ] Frontend: Saved games page API wiring (real data)
 - [ ] Frontend: Game creation flow from /menu
 - [ ] Frontend: Journal tab (mockup exists)
 - [ ] Frontend: Paperdoll equipment view (mockup exists)
 - [ ] Scene continuity / combat getting skipped
-- [ ] Ask the GM never advances time
+- [x] Ask the GM never advances time (2026-04-04 — meta endpoint routes free questions, escalation explicit)
 - [ ] Classifier DC calibration
 - [ ] NPC glossary descriptions too omniscient at seeding
 - [ ] Item description inconsistency (safety net items get boilerplate)
 - [ ] Equipment auto-equip logic (cloak should be worn)
+- [ ] Frontend: Skill Relevance Challenge UI — after a check resolves, player taps a skill to argue it should have applied. POST to challenge endpoint. (v4.10)
 
 ## ✅ Done (Recent)
 

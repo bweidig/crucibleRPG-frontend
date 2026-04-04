@@ -1,6 +1,6 @@
 # Crucible RPG — To Do
 
-**Last Updated:** 2026-04-03
+**Last Updated:** 2026-04-04
 
 > **For Claude Code:** Read this file at the start of every session. The user manages this list with plain-language commands:
 > **Work initiation:** Items on this list are for tracking only. Do NOT start work on any item unprompted. The user will initiate each task via a prompt from Claude Chat.
@@ -43,12 +43,13 @@
 - [x] Frontend: FAQ page (2026-03-30)
 - [x] Frontend: Legal pages (ToS, Privacy Policy starters) (2026-03-29)
 - [ ] Frontend: Copy audit on init wizard and game layout
+- [ ] Frontend: Universal glossary linking beyond bracket notation — match entity names in sidebar, compass, status report text against glossary database
 - [ ] Frontend: Saved games page API wiring (real data)
 - [ ] Frontend: Game creation flow from /menu
 - [ ] Frontend: Journal tab (mockup exists)
 - [ ] Frontend: Paperdoll equipment view (mockup exists)
 - [ ] Scene continuity / combat getting skipped
-- [ ] Ask the GM never advances time
+- [x] Ask the GM never advances time (2026-04-04 — meta endpoint routes free questions, escalation explicit)
 - [ ] Classifier DC calibration
 - [ ] NPC glossary descriptions too omniscient at seeding
 - [ ] Item description inconsistency (safety net items get boilerplate)
