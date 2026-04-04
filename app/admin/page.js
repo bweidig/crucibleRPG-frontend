@@ -259,10 +259,13 @@ function DeleteGameModal({ game, onConfirm, onCancel }) {
 
 function DetailPanel({ children, onClose }) {
   return (
-    <div className={styles.pushPanel}>
-      <button className={styles.panelClose} onClick={onClose}>&times;</button>
-      <div style={{ padding: '24px 28px' }}>{children}</div>
-    </div>
+    <>
+      <div className={styles.panelBackdrop} onClick={onClose} />
+      <div className={styles.pushPanel}>
+        <button className={styles.panelClose} onClick={onClose}>&times;</button>
+        <div style={{ padding: '24px 28px' }}>{children}</div>
+      </div>
+    </>
   );
 }
 

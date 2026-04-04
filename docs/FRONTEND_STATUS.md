@@ -34,6 +34,17 @@
 
 ## Recent Work (This Session: 2026-04-04)
 
+### Admin Page: Sidebar Overlay Layout Fix
+Admin detail panel changed from flex push layout to fixed overlay. Table always uses full width regardless of sidebar state. Backdrop click closes panel.
+
+- `.pushPanel` changed from `position: sticky` flex child to `position: fixed` overlay with `z-index: 10`
+- Added `.panelBackdrop` (fixed inset, z-index 9) — clicking it closes the panel
+- Box shadow added for depth (`4px 0 20px rgba(0,0,0,0.3)`)
+- Slide-in animation preserved (0.25s ease-out)
+- DetailPanel component now renders backdrop + panel as siblings via fragment
+
+**Files modified:** `app/admin/page.js`, `app/admin/page.module.css`.
+
 ### Wire Talk to GM Meta Endpoint + Directive Awareness
 My Story tab now wired to `POST /talk-to-gm/meta` (replacing Phase 1 fallback). Response parsing simplified to `res.response`. Directive feedback shown when GM stores a goal or preference. Rate limit (429) handled with warning text.
 
