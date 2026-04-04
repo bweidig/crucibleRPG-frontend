@@ -328,12 +328,14 @@ export default function GameplayShowcase() {
     if (selectedChoice) return; // Already selected
     setSelectedChoice(choiceId);
     if (firstView) {
-      // Skip timer progression — jump to fully rendered, CSS animations handle fade-in
-      setPhase(11);
+      // Stagger dice → result → controls so each fadeUpIn animation is visible
+      setPhase(7);
+      addTimer(() => setPhase(9), 150);
+      addTimer(() => setPhase(11), 500);
     } else {
       setPhase(6);
     }
-  }, [selectedChoice, firstView]);
+  }, [selectedChoice, firstView, addTimer]);
 
   const handleChoiceKeyDown = useCallback((e, choiceId) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -360,6 +362,21 @@ export default function GameplayShowcase() {
       setTransitioning(false);
       // Small delay for state to propagate, then kick off animation
       setTimeout(() => setPhase(1), 50);
+    }, 200);
+  }, [clearTimers, addTimer]);
+
+  const handleTryAnother = useCallback(() => {
+    if (innerRef.current) {
+      setLockedHeight(innerRef.current.offsetHeight);
+    }
+    setTransitioning(true);
+    clearTimers();
+
+    addTimer(() => {
+      setSelectedChoice(null);
+      setPhase(4);
+      setTransitioning(false);
+      addTimer(() => setLockedHeight(undefined), 300);
     }, 200);
   }, [clearTimers, addTimer]);
 
@@ -491,9 +508,14 @@ export default function GameplayShowcase() {
         {/* Replay Controls */}
         {showControls && (
           <div className={styles.controlsBlock}>
-            <button className={styles.replayButton} onClick={handleNext}>
-              {buttonText}
-            </button>
+            <div className={styles.buttonRow}>
+              <button className={styles.replayButton} onClick={handleTryAnother}>
+                TRY ANOTHER
+              </button>
+              <button className={styles.replayButton} onClick={handleNext}>
+                {buttonText}
+              </button>
+            </div>
             <div className={styles.dotsRow}>
               {SCENARIOS.map((_, i) => (
                 <button

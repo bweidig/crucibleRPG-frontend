@@ -319,6 +319,12 @@
   animation: fadeUpIn 0.6s ease-out both;
 }
 
+.buttonRow {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
 .replayButton {
   font-family: var(--font-cinzel);
   font-size: 12px;
@@ -450,5 +456,15 @@
   .customGo {
     padding: 8px 14px;
     font-size: 11px;
+  }
+
+  .buttonRow {
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .buttonRow .replayButton {
+    width: 100%;
   }
 }

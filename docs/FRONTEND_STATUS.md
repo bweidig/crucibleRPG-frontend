@@ -34,6 +34,16 @@
 
 ## Recent Work (This Session: 2026-04-03)
 
+### Showcase: TRY ANOTHER Button + FirstView Transition Fix
+Showcase: TRY ANOTHER button added for replaying choices within same scenario. FirstView result transition fixed — dice and result now fade in instead of popping.
+
+- TRY ANOTHER button in controls block (left of NEXT SCENARIO), uses crossfade transition to reset to phase 4 with height lock
+- Two-button row layout with gap 16px; stacks vertically on mobile with full-width buttons
+- FirstView click now staggers phase progression (7→9→11 with short delays) so each element's fadeUpIn animation is visible
+- Narrative text preserved during TRY ANOTHER transition (no re-typing)
+
+**Files modified:** `app/landing/GameplayShowcase.js`, `app/landing/GameplayShowcase.module.css`.
+
 ### Interactive Gameplay Showcase
 Gameplay showcase now interactive — visitors click choice cards to see different outcomes per scenario. Nine prefab results (3 per scenario) covering Tier 2/3/4/5 outcomes across Bard, Noir, and Whisper voices. Auto-selection removed, hover states added to choice cards.
 

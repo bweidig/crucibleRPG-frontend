@@ -22,13 +22,13 @@ function ScrollChevron({ heroStage }) {
       onClick={() => document.getElementById('showcase')?.scrollIntoView({ behavior: 'smooth' })}
       aria-label="Scroll to features"
       style={{
-        opacity: isVisible ? 0.4 : 0,
+        opacity: isVisible ? 0.6 : 0,
         pointerEvents: isVisible ? 'auto' : 'none',
         transition: 'opacity 0.5s ease',
       }}
     >
-      <svg viewBox="0 0 24 12" width={28} height={14} style={{ display: 'block' }}>
-        <path d="M2 2 L12 10 L22 2" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      <svg viewBox="0 0 24 12" width={32} height={16} style={{ display: 'block' }}>
+        <path d="M2 2 L12 10 L22 2" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
       </svg>
     </button>
   );

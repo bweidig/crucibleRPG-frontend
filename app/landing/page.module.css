@@ -45,8 +45,13 @@
   color: var(--accent-gold);
   opacity: 0;
   transition: opacity 0.5s ease;
-  filter: drop-shadow(0 0 6px rgba(201, 168, 76, 0.25));
+  filter: drop-shadow(0 0 6px rgba(201, 168, 76, 0.4));
   animation: chevronFloat 3s ease-in-out infinite;
+}
+
+.scrollChevron:hover {
+  opacity: 0.9 !important;
+  filter: drop-shadow(0 0 8px rgba(201, 168, 76, 0.5));
 }
 
 @keyframes chevronFloat {
