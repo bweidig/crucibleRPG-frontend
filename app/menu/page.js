@@ -153,7 +153,7 @@ function CharacterSnapshot({ detail }) {
                   border: `1px solid ${isBuff ? '#8aba7a33' : '#e8845a33'}`,
                 }}>
                   {name}
-                  {penalty != null && <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, marginLeft: 4 }}>{penalty > 0 ? `-${penalty}` : `+${Math.abs(penalty)}`}</span>}
+                  {penalty != null && <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, marginLeft: 4 }}>{isBuff ? `+${Math.abs(penalty)}` : `\u2212${Math.abs(penalty)}`}</span>}
                   {stat && <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, marginLeft: 2, opacity: 0.7 }}>{stat}</span>}
                 </span>
               );

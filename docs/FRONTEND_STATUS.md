@@ -34,6 +34,19 @@
 
 ## Recent Work (This Session: 2026-04-03)
 
+### Interactive Gameplay Showcase
+Gameplay showcase now interactive — visitors click choice cards to see different outcomes per scenario. Nine prefab results (3 per scenario) covering Tier 2/3/4/5 outcomes across Bard, Noir, and Whisper voices. Auto-selection removed, hover states added to choice cards.
+
+- Choice cards are clickable with hover states (gold border/background tint) and keyboard accessible (tabIndex, Enter/Space, focus-visible)
+- Auto-advance timers for phase 4→5→6 removed; sequence pauses at phase 4 until user clicks a choice
+- Each scenario has a `results` object keyed by choice ID (A/B/C); `selected` field removed
+- New dice color classes: `.diceMercy` (gold, Tier 4) and `.diceFailure` (orange, Tier 5)
+- Custom action row always dimmed (opacity 0.35) with "Available in game" label
+- firstView starts at phase 4 (not 11) — narrative/choices render instantly, dice/result appear on click with CSS fade-in
+- Updated all three scenario narratives and added 9 prefab results with approved copy
+
+**Files modified:** `app/landing/GameplayShowcase.js`, `app/landing/GameplayShowcase.module.css`.
+
 ### Showcase Transition Jank Fix
 Showcase transition jank fixed — container height preserved during scenario changes, crossfade added between scenarios.
 
@@ -66,10 +79,15 @@ Landing page polish pass — tagline contrast fix, feature body text readability
 
 **Files modified:** `app/landing/HeroSection.js`, `app/landing/page.js`, `app/landing/page.module.css`, `app/landing/GameplayShowcase.module.css`.
 
-### Fix: Session Recap Card Rendering Every Turn
-The "Previously..." recap card was appearing above every new turn instead of only once on session load. Root cause: the render condition `isLast && sessionRecap` re-triggered whenever a new turn became the last entry. Fixed with a `recapShownRef` that flips after the first render, gated to only show on loaded (non-`_isNew`) turns.
+### Fix: Session Recap Card Rendering Every Turn (v2)
+The "Previously..." recap card was still re-appearing after the initial recapShownRef fix — the ref resets if NarrativePanel remounts. Added belt-and-suspenders fix: `handleTurnResponse` now clears `sessionRecap` from `gameState` on the first player action, so the data is gone even if the component remounts. The ref still handles re-renders before the first action.
 
-**Files modified:** `app/play/components/NarrativePanel.js`.
+**Files modified:** `app/play/page.js`.
+
+### Fix: Condition Penalty Display Values
+Condition cards showed wrong penalty magnitudes (e.g., -0.1 instead of -0.5) because the top-level `conditions[].penalty` in the character endpoint returns a different value than the per-stat `stats[stat].conditions[].penalty` breakdown. Since the per-stat penalties are authoritative (they drive the correct effective stat values shown in the stat bars), the fix cross-references each condition against the per-stat breakdown to get the correct display value. Also fixed `isBuff` fallback to default to penalty unless API explicitly sends `isBuff: true`, and fixed the same sign-convention bug in menu page condition badges.
+
+**Files modified:** `app/play/components/CharacterTab.js`, `app/menu/page.js`.
 
 ### Gameplay Showcase Component (Landing Page)
 New `GameplayShowcase` component inserted between Hero and Features sections on `/landing`. Auto-plays a scripted gameplay turn when scrolled into view to demonstrate the "Any World. Any Genre." value prop.

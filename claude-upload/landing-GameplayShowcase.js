@@ -15,17 +15,44 @@ const SCENARIOS = [
       { id: 'B', text: 'Kick the heavy oak desk toward the door and vault through the open second-story window into the rain.' },
       { id: 'C', text: 'Drop the lockbox and raise your empty hands, pointing urgently toward the darkened corner behind them.' },
     ],
-    selected: 'B',
-    dice: {
-      segments: [
-        { text: 'DEX 6.0', bold: true },
-        { text: 'vs DC 11.0', bold: true },
-        { text: 'Matched' },
-        { text: 'Roll: 16', bold: true },
-        { text: 'Tier 2 Success', color: 'success' },
-      ],
+    results: {
+      A: {
+        dice: {
+          segments: [
+            { text: 'STR 4.5', bold: true },
+            { text: 'vs DC 13.0', bold: true },
+            { text: 'Outmatched' },
+            { text: 'Roll: 7', bold: true },
+            { text: 'Tier 4 Small Mercy', color: 'mercy' },
+          ],
+        },
+        result: 'You slam into the lead thug, but he barely shifts, catching your momentum and shoving you back into the desk. The lockbox clatters to the floor and bursts open, spilling no gold. Instead, a single wax-sealed ledger slides across the floorboards, and in the guttering lantern light you catch a name you were never meant to see.',
+      },
+      B: {
+        dice: {
+          segments: [
+            { text: 'DEX 6.0', bold: true },
+            { text: 'vs DC 11.0', bold: true },
+            { text: 'Matched' },
+            { text: 'Roll: 16', bold: true },
+            { text: 'Tier 2 Success', color: 'success' },
+          ],
+        },
+        result: 'The desk slams into the thugs with a dull thud, pinning them against the frame as you vault through the window. Cold rain stings your face before you hit the muddy cobblestones below. You are out of the room, but a dozen torches now flicker in the dark alleyway. You are not alone out here.',
+      },
+      C: {
+        dice: {
+          segments: [
+            { text: 'CHA 3.5', bold: true },
+            { text: 'vs DC 9.0', bold: true },
+            { text: 'Outmatched' },
+            { text: 'Roll: 11', bold: true },
+            { text: 'Tier 2 Success', color: 'success' },
+          ],
+        },
+        result: 'The thugs pivot toward the empty shadows, their blades dipping as they search for a threat that isn\u2019t there. You slip through the gap between them, the metal of their armor cold against your shoulder. The lockbox remains on the desk, gleaming once in the amber light before you vanish into the hall.',
+      },
     },
-    result: 'The desk slams into the thugs\u2019 shins with a wooden crack, buying you the second needed to tumble out into the night air. You land hard on the cobblestones, twisting your ankle, just as a shout from the street confirms the building is already surrounded.',
   },
   {
     genre: 'INDUSTRIAL SCI-FI',
@@ -36,44 +63,98 @@ const SCENARIOS = [
       { id: 'B', text: 'Short the localized power junction to kill the lights and mag-locks.' },
       { id: 'C', text: 'Present your temporary floor-lead badge and claim you\u2019re checking a pressure leak.' },
     ],
-    selected: 'C',
-    dice: {
-      segments: [
-        { text: 'CHA 5.5 + Forgery +1.0', bold: true },
-        { text: 'vs DC 13.0', bold: true },
-        { text: 'Matched' },
-        { text: 'Roll: 8', bold: true },
-        { text: 'Tier 3 Costly Success', color: 'costly' },
-      ],
+    results: {
+      A: {
+        dice: {
+          segments: [
+            { text: 'DEX 4.0', bold: true },
+            { text: 'vs DC 14.0', bold: true },
+            { text: 'Outmatched' },
+            { text: 'Roll: 17', bold: true },
+            { text: 'Tier 2 Success', color: 'success' },
+          ],
+        },
+        result: 'The supervisor tracks your twitching fingers, but you\u2019re already airborne. You scramble up the slick coolant pipes, vanishing into the overhead gloom before the strobe catches you. Their polished boots click uselessly on the metal floor below. You\u2019re safe for now, but these cramped, airless ducts are just a different kind of coffin.',
+      },
+      B: {
+        dice: {
+          segments: [
+            { text: 'INT 6.0 + Electrical +1.0', bold: true },
+            { text: 'vs DC 15.0', bold: true },
+            { text: 'Outmatched' },
+            { text: 'Roll: 3', bold: true },
+            { text: 'Tier 5 Failure', color: 'failure' },
+          ],
+        },
+        result: 'The junction box spits a violent geyser of blue sparks, leaving the mag-locks frozen shut and your face bathed in light. The supervisor\u2019s eyes track the smoke to your singed sleeve, then drop to the drive-shaped bulge in your vest. He signals the guards. Nice work, Edison.',
+      },
+      C: {
+        dice: {
+          segments: [
+            { text: 'CHA 5.5 + Forgery +1.0', bold: true },
+            { text: 'vs DC 13.0', bold: true },
+            { text: 'Matched' },
+            { text: 'Roll: 8', bold: true },
+            { text: 'Tier 3 Costly Success', color: 'costly' },
+          ],
+        },
+        result: 'The supervisor\u2019s eyes track your twitching hand before settling on the counterfeit badge. He smells a lie like ozone before a short circuit. He nods for you to proceed, but his fingers are already tracing the silent alarm on his belt. You\u2019re clear, but not clean. Move.',
+      },
     },
-    result: 'The supervisor stares at the forged badge, his thumb tracing the jagged edge of the laminate while his radio begins to hiss with an unscheduled roll call. He nods you through, but he lingers to watch your gait, already reaching for his headset to verify your clearance.',
   },
   {
     genre: 'NOIR MYSTERY',
     storyteller: 'Whisper narrator',
-    narrative: 'The desk lamp casts a golden glow over the polished mahogany and the steam rising from your tea smells of cinnamon. Your client leans back in the leather chair while the radiator hums a steady, rhythmic tune of home. Outside the window, the heavy rain falls upward in gentle, silver streaks toward the clouds.',
+    narrative: 'The desk lamp casts a golden glow over the polished mahogany and the steam rising from your tea smells of cinnamon. Your client leans back in the leather chair while the radiator hums a steady, rhythmic tune. He hasn\u2019t blinked since you placed the photograph between you. The corners of his mouth are doing something that isn\u2019t quite a smile.',
     choices: [
       { id: 'A', text: 'Lay the photograph face down on the blotter and watch the client\u2019s reflection in the window while the silence stretches.' },
       { id: 'B', text: 'Slide the photograph into your inner coat pocket and offer the client a fresh cup of tea to end the meeting early.' },
       { id: 'C', text: 'Turn the photograph over to show the date on the back and ask the client why the timeline is different.' },
     ],
-    selected: 'A',
-    dice: {
-      segments: [
-        { text: 'WIS 5.5', bold: true },
-        { text: 'vs DC 10.0', bold: true },
-        { text: 'Matched' },
-        { text: 'Roll: 13', bold: true },
-        { text: 'Tier 2 Success', color: 'success' },
-      ],
+    results: {
+      A: {
+        dice: {
+          segments: [
+            { text: 'WIS 5.5', bold: true },
+            { text: 'vs DC 10.0', bold: true },
+            { text: 'Matched' },
+            { text: 'Roll: 13', bold: true },
+            { text: 'Tier 2 Success', color: 'success' },
+          ],
+        },
+        result: 'You set the photograph face down without a word. In the window glass, the client\u2019s reflection does what his face won\u2019t: his jaw tightens, and one hand drifts to his breast pocket before stopping itself. He leaves the photograph where it is. He hasn\u2019t asked what you know. That tells you more than the picture did.',
+      },
+      B: {
+        dice: {
+          segments: [
+            { text: 'CHA 4.0', bold: true },
+            { text: 'vs DC 8.0', bold: true },
+            { text: 'Matched' },
+            { text: 'Roll: 15', bold: true },
+            { text: 'Tier 2 Success', color: 'success' },
+          ],
+        },
+        result: 'The photograph disappears into your coat and the client\u2019s shoulders settle half an inch. He accepts the fresh cup with both hands, steady now, and thanks you warmly. The conversation turns to the weather, to the tea, to nothing at all. His gaze drifts to your coat pocket twice before he finishes his cup.',
+      },
+      C: {
+        dice: {
+          segments: [
+            { text: 'INT 6.0', bold: true },
+            { text: 'vs DC 14.0', bold: true },
+            { text: 'Outmatched' },
+            { text: 'Roll: 3', bold: true },
+            { text: 'Tier 5 Failure', color: 'failure' },
+          ],
+        },
+        result: 'The client sets down his tea and regards you with a patient, pleasant expression. He tells you he appreciates your thoroughness but he\u2019s not sure this arrangement is working out. He takes the photograph from the desk and slides it into his jacket. He wishes you a lovely evening on his way out the door.',
+      },
     },
-    result: 'The client gazes at the photograph and a single bead of sweat tracks slowly down his temple despite the pleasant chill of the room. He adjusts his tie and whispers that he must have simply forgotten he was at the docks that night.',
   },
 ];
 
 // ─── Animation Phases ───
 // 0 = idle, 1 = genre fade, 2 = narrative typing, 3 = pause after narrative,
-// 4 = choices sliding in, 5 = pause before selection, 6 = selection highlight,
+// 4 = choices visible (WAITING for user click), 6 = selection highlight,
 // 7 = dice fade, 8 = pause before result, 9 = result typing,
 // 10 = pause after result, 11 = controls visible
 
@@ -105,8 +186,9 @@ function useTypewriter(text, speed, active, skipAnimation) {
 
 export default function GameplayShowcase() {
   const [scenarioIndex, setScenarioIndex] = useState(0);
-  const [phase, setPhase] = useState(11); // Start at 11 (fully rendered) for first view
+  const [phase, setPhase] = useState(4); // Start at 4 for firstView (choices visible, awaiting click)
   const [firstView, setFirstView] = useState(true);
+  const [selectedChoice, setSelectedChoice] = useState(null);
   const [revealed, setRevealed] = useState(false); // IO fade-in trigger
   const [allPlayed, setAllPlayed] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
@@ -127,6 +209,7 @@ export default function GameplayShowcase() {
   }, []);
 
   const scenario = SCENARIOS[scenarioIndex];
+  const selectedResult = selectedChoice ? scenario.results[selectedChoice] : null;
 
   // Skip animations: first view shows everything instantly, reduced motion also skips typewriter
   const skipTypewriter = firstView || reducedMotion;
@@ -153,7 +236,7 @@ export default function GameplayShowcase() {
 
   // Typewriter for result (phase 9)
   const result = useTypewriter(
-    scenario.result,
+    selectedResult?.result || '',
     40,
     phase >= 9,
     skipTypewriter
@@ -175,13 +258,7 @@ export default function GameplayShowcase() {
     }
   }, [phase === 2, narrative.done, firstView]);
 
-  useEffect(() => {
-    if (firstView) return;
-    if (phase === 4) {
-      addTimer(() => setPhase(5), 1000);
-      addTimer(() => setPhase(6), 1500);
-    }
-  }, [phase === 4, firstView]);
+  // Phase 4 = choices visible — NO auto-advance. Wait for user click.
 
   useEffect(() => {
     if (firstView) return;
@@ -247,6 +324,24 @@ export default function GameplayShowcase() {
 
   // ─── Handlers ───
 
+  const handleChoiceClick = useCallback((choiceId) => {
+    if (selectedChoice) return; // Already selected
+    setSelectedChoice(choiceId);
+    if (firstView) {
+      // Skip timer progression — jump to fully rendered, CSS animations handle fade-in
+      setPhase(11);
+    } else {
+      setPhase(6);
+    }
+  }, [selectedChoice, firstView]);
+
+  const handleChoiceKeyDown = useCallback((e, choiceId) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleChoiceClick(choiceId);
+    }
+  }, [handleChoiceClick]);
+
   // Shared transition logic: fade out → swap scenario → fade in + animate
   const transitionTo = useCallback((nextIndex) => {
     // Lock height and fade out
@@ -260,6 +355,7 @@ export default function GameplayShowcase() {
     addTimer(() => {
       setFirstView(false);
       setScenarioIndex(nextIndex);
+      setSelectedChoice(null);
       setPhase(0);
       setTransitioning(false);
       // Small delay for state to propagate, then kick off animation
@@ -283,9 +379,9 @@ export default function GameplayShowcase() {
   // ─── Render ───
 
   const showChoices = phase >= 4;
-  const selectionMade = phase >= 6;
-  const showDice = phase >= 7;
-  const showResult = phase >= 9;
+  const selectionMade = !!selectedChoice;
+  const showDice = phase >= 7 && selectedResult;
+  const showResult = phase >= 9 && selectedResult;
   const showControls = phase >= 11;
 
   const buttonText = allPlayed || (scenarioIndex === SCENARIOS.length - 1 && showControls)
@@ -325,8 +421,8 @@ export default function GameplayShowcase() {
         {showChoices && (
           <div className={styles.choicesBlock}>
             {scenario.choices.map((choice, i) => {
-              const isSelected = selectionMade && choice.id === scenario.selected;
-              const isDimmed = selectionMade && choice.id !== scenario.selected;
+              const isSelected = selectionMade && choice.id === selectedChoice;
+              const isDimmed = selectionMade && choice.id !== selectedChoice;
               return (
                 <div
                   key={choice.id}
@@ -335,6 +431,11 @@ export default function GameplayShowcase() {
                     ...choiceAnimStyle,
                     ...(firstView ? {} : { animationDelay: `${i * 120}ms` }),
                   }}
+                  onClick={selectionMade ? undefined : () => handleChoiceClick(choice.id)}
+                  onKeyDown={selectionMade ? undefined : (e) => handleChoiceKeyDown(e, choice.id)}
+                  tabIndex={selectionMade ? -1 : 0}
+                  role="button"
+                  aria-label={`Choice ${choice.id}: ${choice.text}`}
                 >
                   <span className={`${styles.choiceLetter} ${isSelected ? styles.choiceLetterSelected : ''}`}>
                     {choice.id}
@@ -343,30 +444,30 @@ export default function GameplayShowcase() {
                 </div>
               );
             })}
-            {/* Custom action row (D) */}
+            {/* Custom action row — always dimmed, not interactive */}
             <div
-              className={`${styles.customRow} ${selectionMade ? styles.choiceDimmed : ''}`}
-              style={{
-                ...choiceAnimStyle,
-                ...(firstView ? {} : { animationDelay: `${scenario.choices.length * 120}ms` }),
-              }}
+              className={styles.customRow}
+              style={firstView ? { animation: 'none' } : { animationDelay: `${scenario.choices.length * 120}ms` }}
             >
               <div className={styles.customInput}>Or describe your own action...</div>
               <div className={styles.customGo}>GO</div>
             </div>
+            <div className={styles.customAvailableLabel}>Available in game</div>
           </div>
         )}
 
         {/* Dice Result */}
         {showDice && (
-          <div className={styles.diceBar} style={firstView ? { animation: 'none', opacity: 1, transform: 'none' } : {}}>
-            {scenario.dice.segments.map((seg, i) => (
+          <div className={styles.diceBar}>
+            {selectedResult.dice.segments.map((seg, i) => (
               <span key={i} className={styles.diceSegment}>
                 {i > 0 && <span className={styles.diceDot}>&middot;</span>}
                 <span
                   className={`${seg.bold ? styles.diceBold : ''} ${
                     seg.color === 'success' ? styles.diceSuccess :
-                    seg.color === 'costly' ? styles.diceCostly : ''
+                    seg.color === 'costly' ? styles.diceCostly :
+                    seg.color === 'mercy' ? styles.diceMercy :
+                    seg.color === 'failure' ? styles.diceFailure : ''
                   }`}
                 >
                   {seg.text}
@@ -389,7 +490,7 @@ export default function GameplayShowcase() {
 
         {/* Replay Controls */}
         {showControls && (
-          <div className={styles.controlsBlock} style={firstView ? { animation: 'none', opacity: 1, transform: 'none' } : {}}>
+          <div className={styles.controlsBlock}>
             <button className={styles.replayButton} onClick={handleNext}>
               {buttonText}
             </button>

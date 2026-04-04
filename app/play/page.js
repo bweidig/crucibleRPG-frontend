@@ -215,12 +215,16 @@ function PlayPage() {
       setActions(response.nextActions);
     }
 
-    if (response.stateChanges?.clock) {
-      setGameState(prev => prev ? {
-        ...prev,
-        clock: { ...prev.clock, ...response.stateChanges.clock }
-      } : prev);
-    }
+    // Clear session recap after the first action so it never re-appears
+    // (handles component remount edge cases where the ref would reset)
+    setGameState(prev => {
+      if (!prev) return prev;
+      const updates = { sessionRecap: null };
+      if (response.stateChanges?.clock) {
+        updates.clock = { ...prev.clock, ...response.stateChanges.clock };
+      }
+      return { ...prev, ...updates };
+    });
 
     if (response.stateChanges) {
       addNotifications(response.stateChanges);

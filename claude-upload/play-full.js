@@ -216,12 +216,16 @@ function PlayPage() {
       setActions(response.nextActions);
     }
 
-    if (response.stateChanges?.clock) {
-      setGameState(prev => prev ? {
-        ...prev,
-        clock: { ...prev.clock, ...response.stateChanges.clock }
-      } : prev);
-    }
+    // Clear session recap after the first action so it never re-appears
+    // (handles component remount edge cases where the ref would reset)
+    setGameState(prev => {
+      if (!prev) return prev;
+      const updates = { sessionRecap: null };
+      if (response.stateChanges?.clock) {
+        updates.clock = { ...prev.clock, ...response.stateChanges.clock };
+      }
+      return { ...prev, ...updates };
+    });
 
     if (response.stateChanges) {
       addNotifications(response.stateChanges);
@@ -1143,6 +1147,17 @@ export default function CharacterTab({ data, onEntityClick }) {
   const conditions = Array.isArray(data.conditions) ? data.conditions : [];
   const companions = Array.isArray(data.companions) ? data.companions : [];
 
+  // Build penalty lookup from per-stat condition breakdowns (these drive the
+  // correct effective stat values, so they are authoritative for display).
+  const statPenalties = {};
+  for (const [key, stat] of Object.entries(stats)) {
+    if (Array.isArray(stat.conditions)) {
+      for (const c of stat.conditions) {
+        statPenalties[`${(c.name || '').toLowerCase()}|${key}`] = c.penalty;
+      }
+    }
+  }
+
   const activeSkills = skills.filter(s => s.type === 'active');
   const foundationalSkills = skills.filter(s => s.type === 'foundational');
 
@@ -1203,8 +1218,9 @@ export default function CharacterTab({ data, onEntityClick }) {
         ) : (
           conditions.map((cond, i) => {
             const isCon = (cond.stat || '').toLowerCase() === 'con';
-            const val = cond.penalty ?? 0;
-            const isBuff = cond.isBuff != null ? cond.isBuff === true : val < 0;
+            const statKey = `${(cond.name || '').toLowerCase()}|${(cond.stat || '').toLowerCase()}`;
+            const val = statPenalties[statKey] ?? cond.penalty ?? 0;
+            const isBuff = cond.isBuff === true;
             const absVal = Math.abs(val);
             const signedVal = isBuff ? `+${absVal.toFixed(1)}` : `\u2212${absVal.toFixed(1)}`;
             return (

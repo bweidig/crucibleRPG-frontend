@@ -1,5 +1,5 @@
 /* ==============================================
-   GameplayShowcase — Auto-playing turn demo
+   GameplayShowcase — Interactive turn demo
    ============================================== */
 
 .showcase {
@@ -59,7 +59,7 @@
   letter-spacing: 0.5px;
 }
 
-/* ─── Narrative Text ���── */
+/* ─── Narrative Text ─── */
 
 .narrativeBlock {
   margin-bottom: 28px;
@@ -106,6 +106,24 @@
   animation: slideInChoice 0.5s ease-out both;
 }
 
+.choiceCard:not(.choiceSelected):not(.choiceDimmed) {
+  cursor: pointer;
+}
+
+.choiceCard:not(.choiceSelected):not(.choiceDimmed):hover {
+  border-color: rgba(201, 168, 76, 0.2);
+  background: rgba(201, 168, 76, 0.04);
+}
+
+.choiceCard:not(.choiceSelected):not(.choiceDimmed):hover .choiceLetter {
+  color: #c9a84c;
+}
+
+.choiceCard:focus-visible {
+  outline: 2px solid rgba(201, 168, 76, 0.6);
+  outline-offset: 2px;
+}
+
 .choiceSelected {
   background: rgba(201, 168, 76, 0.08);
   border-color: rgba(201, 168, 76, 0.3);
@@ -147,8 +165,9 @@
   display: flex;
   gap: 10px;
   align-items: center;
-  transition: opacity 0.4s ease-out;
-  animation: slideInChoice 0.5s ease-out both;
+  opacity: 0.35;
+  cursor: default;
+  animation: slideInChoiceDimmed 0.5s ease-out both;
 }
 
 .customInput {
@@ -177,6 +196,15 @@
   flex-shrink: 0;
 }
 
+.customAvailableLabel {
+  font-family: var(--font-alegreya-sans);
+  font-size: 11px;
+  color: #9a8545;
+  font-style: italic;
+  margin-top: 4px;
+  text-align: right;
+}
+
 @keyframes slideInChoice {
   from {
     opacity: 0;
@@ -184,6 +212,17 @@
   }
   to {
     opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInChoiceDimmed {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 0.35;
     transform: translateX(0);
   }
 }
@@ -233,6 +272,16 @@
   font-weight: 600;
 }
 
+.diceMercy {
+  color: #c9a84c;
+  font-weight: 600;
+}
+
+.diceFailure {
+  color: #e8845a;
+  font-weight: 600;
+}
+
 @keyframes fadeUpIn {
   from {
     opacity: 0;
@@ -244,11 +293,12 @@
   }
 }
 
-/* ���── Result Text ─── */
+/* ─── Result Text ─── */
 
 .resultBlock {
   margin-top: 24px;
   min-height: 60px;
+  animation: fadeUpIn 0.4s ease-out both;
 }
 
 .resultText {
@@ -333,14 +383,25 @@
   .choiceCard,
   .customRow {
     animation: none;
-    opacity: 1;
     transform: none;
+  }
+
+  .choiceCard {
+    opacity: 1;
+  }
+
+  .customRow {
+    opacity: 0.35;
   }
 
   .diceBar {
     animation: none;
     opacity: 1;
     transform: none;
+  }
+
+  .resultBlock {
+    animation: none;
   }
 
   .controlsBlock {

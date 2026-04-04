@@ -2,7 +2,7 @@
 
 > **This contract is verified against backend code as of 2026-03-17. The frontend uses this as its single source of truth. Do not change response shapes without updating this document.**
 
-**Last Updated:** 2026-03-30
+**Last Updated:** 2026-04-01
 
 Base URL: `https://<host>` (Railway production or `http://localhost:3000` local)
 
@@ -63,6 +63,7 @@ Create a new account.
     "email": "user@example.com",
     "displayName": "Player One",
     "isPlaytester": false,
+    "isDebug": false,
     "createdAt": "2026-03-16T..."
   }
 }
@@ -98,6 +99,7 @@ Authenticate with email/password.
     "email": "user@example.com",
     "displayName": "Player One",
     "isPlaytester": true,
+    "isDebug": false,
     "createdAt": "2026-03-16T..."
   }
 }
@@ -132,6 +134,7 @@ Google OAuth sign-in. Creates account if new, logs in if existing.
     "email": "user@gmail.com",
     "displayName": "User Name",
     "isPlaytester": false,
+    "isDebug": false,
     "createdAt": "2026-03-16T..."
   }
 }
@@ -187,6 +190,7 @@ Update the authenticated user's display name. Requires JWT.
     "email": "user@example.com",
     "displayName": "New Name",
     "isPlaytester": true,
+    "isDebug": false,
     "createdAt": "2026-03-16T..."
   }
 }
@@ -241,13 +245,17 @@ List all games owned by the authenticated user.
       "scenarioIntensity": "Standard",
       "status": "active",
       "createdAt": "2026-03-16T...",
-      "character": { "id": 3, "name": "Jasper" }
+      "lastPlayedAt": "2026-03-20T...",
+      "turnCount": 47,
+      "worldName": "The Fraying Throne",
+      "character": { "id": 3, "name": "Jasper" },
+      "blurb": "You're lying low at the Rusted Lantern after eavesdropping on a consortium shipment. The dockmaster saw your face."
     }
   ]
 }
 ```
 
-`character` is `null` if no character created yet.
+`character` is `null` if no character created yet. `blurb` is `null` before turn 6 (when summarization begins). `turnCount` is `null` if no world_clock exists yet. `lastPlayedAt` is `null` if no turns have been played. `worldName` is `null` if world gen hasn't produced one.
 
 ---
 
@@ -292,6 +300,8 @@ Load full game state. **Requires playtester access.**
   "difficulty": "standard",
   "difficultyPreset": "standard",
   "scenarioIntensity": "Standard",
+  "worldBriefing": "The port city of Ashenmoor clings to a coast...",
+  "worldName": "The Fraying Throne",
   "status": "active",
   "createdAt": "2026-03-16T...",
   "dials": {
@@ -722,11 +732,12 @@ Poll world generation progress.
     "locations": 6,
     "npcs": 5,
     "unresolvedHooks": 2
-  }
+  },
+  "worldName": "The Fraying Throne"
 }
 ```
 
-`status`: `"pending"` | `"generating"` | `"complete"`. `summary` only present when `complete`.
+`status`: `"pending"` | `"generating"` | `"complete"`. `summary` and `worldName` only present when `complete`. `worldName` is `null` if world gen didn't produce one.
 
 ---
 
@@ -869,13 +880,14 @@ Allowed tiers: `novice`, `competent`, `veteran`, `legendary`.
 }
 ```
 
-`source`: `"ai"` | `"ai_retry"` | `"stub"` (fallback on AI failure). `innateTraits` empty for humans. `species` null for humans.
+`source`: `"ai"` | `"ai_retry"`. `innateTraits` empty for humans. `species` null for humans.
 
 **Status Codes:**
 | Code | Meaning |
 |------|---------|
 | 200 | Proposal generated |
 | 400 | No character (Phase 3 incomplete), world gen not complete |
+| 503 | AI proposal generation failed (all retries exhausted). Response: `{ "error": "proposal_generation_failed", "message": "...", "retryable": true }`. Frontend should show retry UI. |
 | 500 | Internal server error |
 
 ---
@@ -1070,13 +1082,12 @@ Generate 3 opening scenarios via AI, tailored to the character and world. **Idem
 
 Gold/time by intensity: Calm=25/8, Standard=15/14, Dire=5/22.
 
-> **Stub notice:** Scenarios are currently stub-generated from hardcoded Ironhaven world data (not AI-generated). The response shape is correct and stable, but content will not vary between games. AI scenario generation (`generateScenariosViaAI`) exists in init-prompts.js but is not yet wired up.
-
 **Status Codes:**
 | Code | Meaning |
 |------|---------|
 | 200 | Scenarios generated |
 | 400 | Invalid intensity, game not initializing, world gen incomplete, character not finalized, world minimums not met |
+| 503 | AI scenario generation failed (all retries exhausted). Response: `{ "error": "scenario_generation_failed", "message": "...", "retryable": true }`. Frontend should show retry UI. |
 | 500 | Internal server error |
 
 ---
@@ -1684,11 +1695,15 @@ Ask the GM a question. Phase 1: free keyword lookup (no turn cost).
   "source": "rulebook",
   "title": "How Rolls Work",
   "sectionId": "how-rolls-work",
-  "content": "When you attempt something where the outcome is uncertain...",
+  "content": "When you attempt an action, your stat plus any skill bonus is compared against a difficulty target...",
+  "refined": true,
+  "rulebookUrl": "https://www.cruciblerpg.com/rulebook#how-rolls-work",
   "turnCost": false,
   "canEscalate": true
 }
 ```
+
+The `refined` field indicates whether the content was refined by an AI call (`true`) or is the raw static rulebook text (`false`). Refinement uses a Flash/Mini AI call to extract a focused 3–5 sentence answer from the matched section. Falls back to static content (`refined: false`) on AI failure or rate limit (5/60s per user).
 
 **Response — No match (200):**
 ```json
@@ -1718,6 +1733,79 @@ AI-powered GM response. **Costs a turn.** Rate limited (10/60s).
 
 ---
 
+### POST /api/game/:id/talk-to-gm/meta
+
+Non-advancing AI query for strategy, lore, and player directives. **Does not cost a turn.** Rate limited (5/60s per user). Uses Flash/Mini tier with full game context.
+
+**Request Body:**
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `question` | string | yes | 1–500 chars |
+
+**Response (200):**
+```json
+{
+  "response": "Great question! The merchant guild controls trade in this region...",
+  "turnAdvanced": false,
+  "directiveStored": true,
+  "directiveLane": "goal"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `response` | string | AI's conversational reply to the player |
+| `turnAdvanced` | boolean | Always `false` — meta queries never advance the turn |
+| `directiveStored` | boolean | Whether a goal/preference directive was extracted and stored |
+| `directiveLane` | string\|null | `"goal"`, `"preference"`, or `null` if no directive was stored |
+
+**Directive classification:** The AI classifies player input as a goal (concrete pursuit), preference (tone/pacing), or question (no directive stored). Goals and preferences are reformulated as target-state descriptions and stored in rolling buffers of 10 each.
+
+**Status Codes:** 200, 400 (invalid input / game not active), 429 (rate limited), 503 (AI failure — `{ "error": "meta_query_failed", "message": "...", "retryable": true }`).
+
+---
+
+### DELETE /api/game/:id/talk-to-gm/meta/directive
+
+Remove a player directive by lane and index.
+
+**Request Body:**
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `lane` | string | yes | `"goal"` or `"preference"` |
+| `index` | integer | yes | 0-based, must be within array bounds |
+
+**Response (200):**
+```json
+{
+  "directives": {
+    "goals": [{ "text": "..." }],
+    "preferences": [{ "text": "..." }],
+    "limits": { "goalsMax": 10, "preferencesMax": 10 }
+  }
+}
+```
+
+**Status Codes:** 200, 400 (invalid lane/index/out of bounds).
+
+---
+
+### Directive state in GET /api/game/:id/state
+
+The `directives` field is added to the game state response:
+
+```json
+{
+  "directives": {
+    "goals": [{ "text": "Create an arc toward thieves guild membership..." }],
+    "preferences": [{ "text": "The player wants combat-heavy gameplay..." }],
+    "limits": { "goalsMax": 10, "preferencesMax": 10 }
+  }
+}
+```
+
+---
+
 ## Admin
 
 Mount: `/api/admin`
@@ -1743,6 +1831,7 @@ List all users with game counts.
       "email": "user@example.com",
       "displayName": "Player One",
       "isPlaytester": true,
+      "isDebug": false,
       "createdAt": "2026-03-16T...",
       "gameCount": 5,
       "lastActive": "2026-03-29T..."
@@ -1768,6 +1857,7 @@ Detailed view of a single user including all their games.
     "email": "user@example.com",
     "displayName": "Player One",
     "isPlaytester": true,
+    "isDebug": false,
     "createdAt": "2026-03-16T..."
   },
   "games": [
@@ -1808,12 +1898,38 @@ Toggle playtester status for a user.
     "id": 1,
     "email": "user@example.com",
     "displayName": "Player One",
-    "isPlaytester": true
+    "isPlaytester": true,
+    "isDebug": false
   }
 }
 ```
 
 **Status Codes:** 200, 400 (`isPlaytester` not a boolean), 404 (user not found).
+
+---
+
+### PATCH /api/admin/users/:id/debug
+
+Toggle debug mode for a user. Debug mode enables `X-Debug: true` header support (AD-487).
+
+**Request Body:**
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `isDebug` | boolean | yes | Must be `true` or `false` |
+
+**Response (200):**
+```json
+{
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "displayName": "Player One",
+    "isDebug": true
+  }
+}
+```
+
+**Status Codes:** 200, 400 (`isDebug` not a boolean), 404 (user not found).
 
 ---
 
