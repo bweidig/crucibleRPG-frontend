@@ -19,8 +19,8 @@ const SCENARIOS = [
       A: {
         dice: {
           segments: [
+            { text: 'DC 13.0', bold: true },
             { text: 'STR 4.5', bold: true },
-            { text: 'vs DC 13.0', bold: true },
             { text: 'Outmatched' },
             { text: 'Roll: 7', bold: true },
             { text: 'Total: 11.5', bold: true },
@@ -32,8 +32,8 @@ const SCENARIOS = [
       B: {
         dice: {
           segments: [
+            { text: 'DC 11.0', bold: true },
             { text: 'DEX 6.0', bold: true },
-            { text: 'vs DC 11.0', bold: true },
             { text: 'Matched' },
             { text: 'Roll: 16', bold: true },
             { text: 'Total: 22.0', bold: true },
@@ -45,8 +45,8 @@ const SCENARIOS = [
       C: {
         dice: {
           segments: [
+            { text: 'DC 9.0', bold: true },
             { text: 'CHA 3.5', bold: true },
-            { text: 'vs DC 9.0', bold: true },
             { text: 'Outmatched' },
             { text: 'Roll: 11', bold: true },
             { text: 'Total: 14.5', bold: true },
@@ -70,8 +70,8 @@ const SCENARIOS = [
       A: {
         dice: {
           segments: [
+            { text: 'DC 14.0', bold: true },
             { text: 'DEX 4.0', bold: true },
-            { text: 'vs DC 14.0', bold: true },
             { text: 'Outmatched' },
             { text: 'Roll: 17', bold: true },
             { text: 'Total: 21.0', bold: true },
@@ -83,8 +83,8 @@ const SCENARIOS = [
       B: {
         dice: {
           segments: [
+            { text: 'DC 15.0', bold: true },
             { text: 'INT 6.0 + Electrical +1.0', bold: true },
-            { text: 'vs DC 15.0', bold: true },
             { text: 'Outmatched' },
             { text: 'Roll: 3', bold: true },
             { text: 'Total: 10.0', bold: true },
@@ -96,8 +96,8 @@ const SCENARIOS = [
       C: {
         dice: {
           segments: [
+            { text: 'DC 13.0', bold: true },
             { text: 'CHA 5.5 + Forgery +1.0', bold: true },
-            { text: 'vs DC 13.0', bold: true },
             { text: 'Matched' },
             { text: 'Roll: 8', bold: true },
             { text: 'Total: 14.5', bold: true },
@@ -121,8 +121,8 @@ const SCENARIOS = [
       A: {
         dice: {
           segments: [
+            { text: 'DC 10.0', bold: true },
             { text: 'WIS 5.5', bold: true },
-            { text: 'vs DC 10.0', bold: true },
             { text: 'Matched' },
             { text: 'Roll: 13', bold: true },
             { text: 'Total: 18.5', bold: true },
@@ -134,8 +134,8 @@ const SCENARIOS = [
       B: {
         dice: {
           segments: [
+            { text: 'DC 8.0', bold: true },
             { text: 'CHA 4.0', bold: true },
-            { text: 'vs DC 8.0', bold: true },
             { text: 'Matched' },
             { text: 'Roll: 15', bold: true },
             { text: 'Total: 19.0', bold: true },
@@ -147,8 +147,8 @@ const SCENARIOS = [
       C: {
         dice: {
           segments: [
+            { text: 'DC 14.0', bold: true },
             { text: 'INT 6.0', bold: true },
-            { text: 'vs DC 14.0', bold: true },
             { text: 'Outmatched' },
             { text: 'Roll: 3', bold: true },
             { text: 'Total: 9.0', bold: true },
