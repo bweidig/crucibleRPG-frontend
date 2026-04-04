@@ -7,6 +7,7 @@
   position: relative;
   z-index: 10;
   border-bottom: 1px solid #1e2540;
+  background: var(--bg-main);
 }
 
 .standardLinks {
