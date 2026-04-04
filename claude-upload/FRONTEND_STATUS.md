@@ -34,6 +34,17 @@
 
 ## Recent Work (This Session: 2026-04-04)
 
+### Init Wizard: ParticleField + Design System Color Alignment
+Added ParticleField background to init wizard (matches landing/menu pages). Replaced ~20 hardcoded hex values with CSS variables throughout Phase 3/4 proposal review components.
+
+- Added `<ParticleField />` as first child of page container
+- `#111528` → `var(--bg-card)` (info block backgrounds: skills, loadout, factions, traits, sub-tags)
+- `#1e2540` → `var(--border-primary)` (block borders, stat stepper buttons, stat bar track, row dividers)
+- `#1a1e30` → `var(--border-card-separator)` (inner dividers between traits/items)
+- Preserved `#0d1120` (bg-panel), error/warning colors, transition overlay, stat bar gradient
+
+**Files modified:** `app/init/page.js`.
+
 ### Admin Page: Sidebar Overlay Layout Fix
 Admin detail panel changed from flex push layout to fixed overlay. Table always uses full width regardless of sidebar state. Backdrop click closes panel.
 

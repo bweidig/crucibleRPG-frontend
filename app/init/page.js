@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import * as api from '@/lib/api';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
+import ParticleField from '@/components/ParticleField';
 import styles from './page.module.css';
 
 // --- SVG ICONS ---
@@ -962,8 +963,8 @@ function PrebuiltWorldCard({ world, isSelected, isExpanded, onToggle }) {
             {world.subTags.map(tag => (
               <span key={tag.label} style={{
                 fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
-                color: '#7082a4', background: '#111528',
-                border: '1px solid #1e2540', borderRadius: 4,
+                color: '#7082a4', background: 'var(--bg-card)',
+                border: '1px solid var(--border-primary)', borderRadius: 4,
                 padding: '5px 12px',
               }}>{tag.label}: {tag.value}</span>
             ))}
@@ -1051,8 +1052,8 @@ function WorldSnapshotList({ snapshots, selectedSnapshot, setSelectedSnapshot, a
                     {snap.tags.map(tag => (
                       <span key={tag.label} style={{
                         fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
-                        color: '#7082a4', background: '#111528',
-                        border: '1px solid #1e2540', borderRadius: 4,
+                        color: '#7082a4', background: 'var(--bg-card)',
+                        border: '1px solid var(--border-primary)', borderRadius: 4,
                         padding: '5px 12px',
                       }}>{tag.label}: {tag.value}</span>
                     ))}
@@ -1364,8 +1365,8 @@ function ArchetypeCard({ archetype, isSelected, onSelect }) {
         {archetype.personality.map(trait => (
           <span key={trait} style={{
             fontFamily: 'var(--font-alegreya-sans)', fontSize: 12,
-            color: '#7082a4', background: '#111528',
-            border: '1px solid #1e2540', borderRadius: 4,
+            color: '#7082a4', background: 'var(--bg-card)',
+            border: '1px solid var(--border-primary)', borderRadius: 4,
             padding: '4px 10px',
           }}>{trait}</span>
         ))}
@@ -1517,13 +1518,13 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
           fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 700,
           color: editing ? 'var(--bg-main)' : 'var(--text-secondary)', letterSpacing: '0.08em',
           background: editing ? 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))' : 'transparent',
-          border: `1px solid ${editing ? 'transparent' : '#1e2540'}`,
+          border: `1px solid ${editing ? 'transparent' : 'var(--border-primary)'}`,
           borderRadius: 5, padding: '9px 24px',
         }}>{editing ? 'LOCK' : 'ADJUST'}</button>
       </div>
 
       <div style={{
-        background: '#111528', border: '1px solid #1e2540', borderRadius: 10, padding: '8px 0',
+        background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 0',
         marginBottom: 20,
       }}>
         {stats.map((s, i) => {
@@ -1533,7 +1534,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
           return (
             <div key={s.name} style={{
               padding: '16px 24px',
-              borderBottom: i < stats.length - 1 ? '1px solid #1e2540' : 'none',
+              borderBottom: i < stats.length - 1 ? '1px solid var(--border-primary)' : 'none',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                 <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{s.emoji}</span>
@@ -1551,7 +1552,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                       <button onClick={() => handleStatChange(s.name, -0.5)} className={styles.statStepBtn} style={{
                         width: 32, height: 32, borderRadius: '6px 0 0 6px',
-                        background: '#0d1120', border: '1px solid #1e2540',
+                        background: '#0d1120', border: '1px solid var(--border-primary)',
                         color: 'var(--text-secondary)', fontSize: 18, fontWeight: 700,
                         cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>{'\u2212'}</button>
@@ -1576,7 +1577,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
                           onClick={() => { setEditingStatName(s.name); setEditInputValue(s.value.toFixed(1)); }}
                           style={{
                             width: 56, height: 32,
-                            background: 'var(--bg-main)', borderTop: '1px solid #1e2540', borderBottom: '1px solid #1e2540',
+                            background: 'var(--bg-main)', borderTop: '1px solid var(--border-primary)', borderBottom: '1px solid var(--border-primary)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             fontFamily: 'var(--font-jetbrains)', fontSize: 15, fontWeight: 500,
                             color: changed ? 'var(--accent-gold)' : 'var(--text-heading)',
@@ -1585,7 +1586,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
                       )}
                       <button onClick={() => handleStatChange(s.name, 0.5)} className={styles.statStepBtn} style={{
                         width: 32, height: 32, borderRadius: '0 6px 6px 0',
-                        background: '#0d1120', border: '1px solid #1e2540',
+                        background: '#0d1120', border: '1px solid var(--border-primary)',
                         color: 'var(--text-secondary)', fontSize: 18, fontWeight: 700,
                         cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>+</button>
@@ -1611,7 +1612,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
                     <div style={{
                       position: 'absolute', top: 0, left: 0,
                       height: '100%', width: `${(initialStats[i].value / 20) * 100}%`,
-                      background: '#1e2540', borderRadius: 4,
+                      background: 'var(--border-primary)', borderRadius: 4,
                     }} />
                     <div style={{
                       position: 'absolute', top: 0, left: 0,
@@ -1662,7 +1663,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
       {/* Backstory Skills */}
       {skills && skills.length > 0 && (
         <div style={{
-          background: '#111528', border: '1px solid #1e2540', borderRadius: 6, padding: '10px 16px',
+          background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '10px 16px',
           fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4', marginBottom: 10,
         }}>
           <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Skills: </span>
@@ -1673,7 +1674,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
       {/* Innate Traits */}
       {innateTraits && innateTraits.length > 0 && (
         <div style={{
-          background: '#111528', border: '1px solid #1e2540', borderRadius: 6, padding: '10px 16px',
+          background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '10px 16px',
           fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4', marginBottom: 10,
         }}>
           <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 6 }}>Innate Traits</div>
@@ -1681,7 +1682,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
             const hasPenalty = t.penalty != null;
             const hasDetail = t.effect || t.value != null || hasPenalty || t.stat;
             return (
-              <div key={i} style={{ padding: '4px 0', borderBottom: i < innateTraits.length - 1 ? '1px solid #1a1e30' : 'none' }}>
+              <div key={i} style={{ padding: '4px 0', borderBottom: i < innateTraits.length - 1 ? '1px solid var(--border-card-separator)' : 'none' }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <span style={{ color: hasPenalty ? '#e8a04a' : 'var(--text-heading)', fontWeight: 500 }}>{formatTraitName(t.trait)}</span>
                   <span style={{ color: '#6b83a3', fontSize: 12, fontStyle: 'italic' }}>{t.source}</span>
@@ -1703,7 +1704,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
       {/* Foundational Skills */}
       {foundationalSkills && foundationalSkills.length > 0 && (
         <div style={{
-          background: '#111528', border: '1px solid #1e2540', borderRadius: 6, padding: '10px 16px',
+          background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '10px 16px',
           fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4', marginBottom: 10,
         }}>
           <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 6 }}>Foundational Skills</div>
@@ -1723,7 +1724,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
       {/* Starting Loadout */}
       {startingLoadout && startingLoadout.length > 0 && (
         <div style={{
-          background: '#111528', border: '1px solid #1e2540', borderRadius: 6, padding: '10px 16px',
+          background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '10px 16px',
           fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4', marginBottom: 10,
         }}>
           <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 6 }}>Starting Loadout</div>
@@ -1742,7 +1743,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
       {/* Faction Standings */}
       {factionStandings && factionStandings.length > 0 && (
         <div style={{
-          background: '#111528', border: '1px solid #1e2540', borderRadius: 6, padding: '10px 16px',
+          background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '10px 16px',
           fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4', marginBottom: 10,
         }}>
           <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 6 }}>Faction Standings</div>
@@ -1762,7 +1763,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
 
       {/* Inventory Slots */}
       <div style={{
-        background: '#111528', border: '1px solid #1e2540', borderRadius: 6, padding: '10px 16px',
+        background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '10px 16px',
         fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4',
       }}>
         <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Inventory Slots: </span>
@@ -2504,6 +2505,7 @@ function InitWizardInner() {
       minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)',
       display: 'flex', flexDirection: 'column', alignItems: 'center',
     }}>
+      <ParticleField />
       <div style={{ width: '100%' }}><NavBar /></div>
 
       {/* Offline banner */}
