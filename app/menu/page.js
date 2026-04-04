@@ -69,8 +69,8 @@ function DiffBadge({ difficulty }) {
   const d = map[difficulty] || map.Standard;
   return (
     <span style={{
-      fontFamily: "var(--font-jetbrains)", fontSize: 12, fontWeight: 500,
-      padding: '3px 10px', borderRadius: 10, letterSpacing: '0.06em',
+      fontFamily: "var(--font-cinzel)", fontSize: 12, fontWeight: 700,
+      padding: '4px 12px', borderRadius: 10,
       color: d.color, background: d.bg, border: `1px solid ${d.border}`,
     }}>{difficulty.toUpperCase()}</span>
   );
@@ -88,7 +88,7 @@ function SectionLabel({ text, count }) {
       {count != null && (
         <span style={{
           fontFamily: 'var(--font-jetbrains)', fontSize: 12,
-          color: 'var(--text-dim)',
+          color: 'var(--text-secondary)',
         }}>({count})</span>
       )}
     </div>
@@ -128,7 +128,7 @@ function CharacterSnapshot({ detail }) {
               minWidth: 52, padding: '6px 8px', textAlign: 'center',
               background: 'var(--bg-main)', borderRadius: 5, border: '1px solid var(--border-primary)',
             }}>
-              <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 700, color: '#9a8545', letterSpacing: '0.08em' }}>{key.toUpperCase()}</div>
+              <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 700, color: '#9a8545', letterSpacing: '0.08em' }}>{key.toUpperCase()}</div>
               <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 15, fontWeight: 500, color }}>{Number(effective).toFixed(1)}</div>
             </div>
           );
@@ -222,7 +222,7 @@ function GameDetailModal({ game, onClose, onNavigate, onDelete }) {
       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', animation: 'fadeIn 0.2s' }} />
       <div onClick={e => e.stopPropagation()} style={{
         position: 'relative', zIndex: 1, maxWidth: 640, width: '92%',
-        background: 'var(--bg-card)', borderRadius: 12, padding: '32px 36px 28px',
+        background: 'var(--bg-card)', borderRadius: 8, padding: '32px 36px 28px',
         borderTop: '1px solid var(--border-card)',
         borderRight: '1px solid var(--border-card)',
         borderBottom: '1px solid var(--border-card)',
@@ -294,14 +294,14 @@ function GameDetailModal({ game, onClose, onNavigate, onDelete }) {
 // ─── METADATA LINE ───
 
 function MetaLine({ game, small }) {
-  const sep = <span style={{ color: '#3a4460', margin: '0 6px' }}>{'\u00B7'}</span>;
+  const sep = <span style={{ color: 'var(--border-primary)', margin: '0 6px' }}>{'\u00B7'}</span>;
   return (
     <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
       {game.storyteller && game.storyteller !== 'pending' && (
-        <><span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: small ? 12 : 13, color: 'var(--text-dim)' }}>{game.storyteller}</span>{sep}</>
+        <><span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: small ? 12 : 13, color: 'var(--text-secondary)' }}>{game.storyteller}</span>{sep}</>
       )}
       {game.turnCount > 0 && (
-        <><span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: small ? 10 : 12, color: 'var(--text-dim)' }}>{game.turnCount} turns</span>{sep}</>
+        <><span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 12, color: 'var(--text-secondary)' }}>{game.turnCount} turns</span>{sep}</>
       )}
       {game.difficulty && <><DiffBadge difficulty={game.difficulty} /></>}
     </div>
@@ -334,7 +334,7 @@ function DeleteConfirmModal({ game, onConfirm, onCancel }) {
     <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }} />
       <div onClick={e => e.stopPropagation()} style={{
-        background: "var(--bg-card)", border: "1px solid var(--border-card)", borderRadius: 10,
+        background: "var(--bg-card)", border: "1px solid var(--border-card)", borderRadius: 8,
         padding: "24px 28px", maxWidth: 420, width: "90%", position: "relative", zIndex: 1,
       }}>
         <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: 'var(--color-danger)', marginBottom: 12, marginTop: 0 }}>Delete Game</h3>
@@ -550,7 +550,7 @@ export default function MenuPage() {
                 transition: 'opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.05s, transform 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.05s',
               }}>Welcome back.</h1>
               <p style={{
-                fontFamily: 'var(--font-alegreya)', fontSize: 17, fontStyle: 'italic', fontWeight: 500,
+                fontFamily: 'var(--font-alegreya)', fontSize: 18, fontStyle: 'italic', fontWeight: 500,
                 color: 'var(--text-secondary-bright)', margin: 0,
                 opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(10px)',
                 transition: 'opacity 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s, transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s',
@@ -571,7 +571,7 @@ export default function MenuPage() {
               borderRight: '1px solid var(--border-card)',
               borderBottom: '1px solid var(--border-card)',
               borderLeft: '4px solid var(--accent-gold)',
-              borderRadius: 10, padding: '28px 32px',
+              borderRadius: 8, padding: '28px 32px',
               boxShadow: '0 4px 24px rgba(0,0,0,0.3), 0 0 1px rgba(201,168,76,0.08)',
               marginBottom: 16,
               position: 'relative', overflow: 'hidden',
@@ -585,7 +585,7 @@ export default function MenuPage() {
                 }}>{heroIsSetup ? 'New Character' : (heroGame.character?.name || 'New Character')}</div>
                 <span style={{
                   fontFamily: 'var(--font-jetbrains)', fontSize: 12,
-                  color: 'var(--text-muted)', flexShrink: 0, marginLeft: 12,
+                  color: 'var(--text-secondary)', flexShrink: 0, marginLeft: 12,
                 }}>{formatTimeAgo(heroGame.lastPlayedAt || heroGame.createdAt)}</span>
               </div>
 
@@ -598,12 +598,12 @@ export default function MenuPage() {
               {/* Blurb / Setup message */}
               {heroIsSetup ? (
                 <p style={{
-                  fontFamily: 'var(--font-alegreya)', fontSize: 16.5, fontStyle: 'italic',
+                  fontFamily: 'var(--font-alegreya)', fontSize: 16, fontStyle: 'italic',
                   color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 14px',
                 }}>Character creation in progress.</p>
               ) : heroGame.blurb ? (
                 <p style={{
-                  fontFamily: 'var(--font-alegreya)', fontSize: 16.5, fontStyle: 'italic',
+                  fontFamily: 'var(--font-alegreya)', fontSize: 16, fontStyle: 'italic',
                   color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 14px',
                 }}>{heroGame.blurb}</p>
               ) : null}
@@ -679,15 +679,15 @@ export default function MenuPage() {
                             }}>{isSetup ? 'New Character' : (game.character?.name || 'New Character')}</span>
                             {isSetup && (
                               <span style={{
-                                fontFamily: 'var(--font-jetbrains)', fontSize: 10, color: 'var(--text-muted)',
+                                fontFamily: 'var(--font-jetbrains)', fontSize: 10, color: 'var(--text-secondary)',
                                 background: 'var(--bg-main)', padding: '1px 5px', borderRadius: 3,
                                 border: '1px solid var(--border-primary)',
                               }}>SETUP</span>
                             )}
                           </div>
                           <span style={{
-                            fontFamily: 'var(--font-jetbrains)', fontSize: 11,
-                            color: 'var(--text-muted)', flexShrink: 0, marginLeft: 12,
+                            fontFamily: 'var(--font-jetbrains)', fontSize: 12,
+                            color: 'var(--text-secondary)', flexShrink: 0, marginLeft: 12,
                           }}>{formatTimeAgo(game.lastPlayedAt || game.createdAt)}</span>
                         </div>
 
@@ -753,7 +753,7 @@ export default function MenuPage() {
                           }}>{isSetup ? 'New Character' : (game.character?.name || 'New Character')}</span>
                           {isSetup && (
                             <span style={{
-                              fontFamily: 'var(--font-jetbrains)', fontSize: 10, color: 'var(--text-muted)',
+                              fontFamily: 'var(--font-jetbrains)', fontSize: 10, color: 'var(--text-secondary)',
                               background: 'var(--bg-main)', padding: '1px 5px', borderRadius: 3,
                               border: '1px solid var(--border-primary)',
                             }}>SETUP</span>
@@ -774,8 +774,8 @@ export default function MenuPage() {
                         }}>
                           <MetaLine game={game} small />
                           <span style={{
-                            fontFamily: 'var(--font-jetbrains)', fontSize: 10,
-                            color: 'var(--text-dim)', marginLeft: 'auto',
+                            fontFamily: 'var(--font-jetbrains)', fontSize: 12,
+                            color: 'var(--text-secondary)', marginLeft: 'auto',
                           }}>{formatTimeAgo(game.lastPlayedAt || game.createdAt)}</span>
                         </div>
                       </div>
