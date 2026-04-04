@@ -154,7 +154,7 @@ export default function RulebookPage() {
   return (
     <div className={styles.pageContainer} style={{
       minHeight: '100vh', background: '#0a0e1a', color: 'var(--text-primary)',
-      display: 'flex', flexDirection: 'column',
+      display: 'flex', flexDirection: 'column', paddingTop: 72,
     }}>
       {/* Injected global styles for content sections */}
       <style>{`
@@ -201,7 +201,7 @@ export default function RulebookPage() {
       }}>
         {/* TOC Sidebar */}
         <div className={styles.tocSidebar} style={{
-          width: 260, flexShrink: 0, position: 'sticky', top: 0,
+          width: 260, flexShrink: 0, position: 'sticky', top: 80,
           alignSelf: 'flex-start', paddingRight: 24,
         }}>
           <div style={{

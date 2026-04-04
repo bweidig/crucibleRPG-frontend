@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { isAuthenticated, getUser } from '@/lib/api';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import ScrollReveal from '@/components/ScrollReveal';
@@ -102,14 +104,18 @@ const ALL_SECTIONS = SECTIONS;
 // --- MAIN ---
 
 export default function RulebookPage() {
+  const router = useRouter();
   const [loaded, setLoaded] = useState(false);
   const [activeSection, setActiveSection] = useState(0);
   const contentRef = useRef(null);
   const sectionRefs = useRef([]);
 
   useEffect(() => {
+    if (!isAuthenticated()) { router.replace('/auth'); return; }
+    const user = getUser();
+    if (user && !user.isPlaytester) { router.replace('/'); return; }
     setTimeout(() => setLoaded(true), 100);
-  }, []);
+  }, [router]);
 
   // Scroll spy
   useEffect(() => {
@@ -148,7 +154,7 @@ export default function RulebookPage() {
   return (
     <div className={styles.pageContainer} style={{
       minHeight: '100vh', background: '#0a0e1a', color: 'var(--text-primary)',
-      display: 'flex', flexDirection: 'column',
+      display: 'flex', flexDirection: 'column', paddingTop: 72,
     }}>
       {/* Injected global styles for content sections */}
       <style>{`
@@ -195,7 +201,7 @@ export default function RulebookPage() {
       }}>
         {/* TOC Sidebar */}
         <div className={styles.tocSidebar} style={{
-          width: 260, flexShrink: 0, position: 'sticky', top: 0,
+          width: 260, flexShrink: 0, position: 'sticky', top: 80,
           alignSelf: 'flex-start', paddingRight: 24,
         }}>
           <div style={{

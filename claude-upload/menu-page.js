@@ -461,7 +461,7 @@ export default function MenuPage() {
   return (
     <div className={styles.pageContainer} style={{
       minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)',
-      position: 'relative', display: 'flex', flexDirection: 'column',
+      position: 'relative', display: 'flex', flexDirection: 'column', paddingTop: 72,
     }}>
       <ParticleField />
       <NavBar />

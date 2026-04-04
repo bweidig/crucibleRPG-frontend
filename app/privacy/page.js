@@ -53,7 +53,7 @@ export default function PrivacyPolicyPage() {
       minHeight: '100vh',
       background: 'var(--bg-main)',
       color: 'var(--text-primary)',
-      position: 'relative',
+      position: 'relative', paddingTop: 72,
     }}>
       <ParticleField />
       <NavBar />

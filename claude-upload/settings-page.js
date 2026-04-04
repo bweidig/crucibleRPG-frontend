@@ -85,6 +85,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (!isAuthenticated()) { router.replace('/auth'); return; }
     const u = getUser();
+    if (u && !u.isPlaytester) { router.replace('/'); return; }
     setUserState(u);
     setDisplay(loadDisplaySettings());
     setReady(true);
@@ -168,7 +169,7 @@ export default function SettingsPage() {
 
   return (
     <div className={styles.pageContainer} style={{
-      minHeight: '100vh', background: '#0a0e1a', color: '#c8c0b0', position: 'relative',
+      minHeight: '100vh', background: '#0a0e1a', color: '#c8c0b0', position: 'relative', paddingTop: 72,
     }}>
       <ParticleField />
       <NavBar currentPage="settings" />

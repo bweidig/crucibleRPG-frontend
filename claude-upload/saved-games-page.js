@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { isAuthenticated, getUser } from '@/lib/api';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import ParticleField from '@/components/ParticleField';
@@ -409,10 +411,16 @@ function EmptyState() {
 // --- MAIN ---
 
 export default function SavedGamesPage() {
+  const router = useRouter();
   const [saves, setSaves] = useState(SAMPLE_SAVES);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [loaded, setLoaded] = useState(false);
-  useEffect(() => { setTimeout(() => setLoaded(true), 100); }, []);
+  useEffect(() => {
+    if (!isAuthenticated()) { router.replace('/auth'); return; }
+    const user = getUser();
+    if (user && !user.isPlaytester) { router.replace('/'); return; }
+    setTimeout(() => setLoaded(true), 100);
+  }, [router]);
 
   const handleDelete = (saveId) => {
     setSaves((prev) => prev.filter((s) => s.id !== saveId));
@@ -422,7 +430,7 @@ export default function SavedGamesPage() {
   return (
     <div className={styles.pageContainer} style={{
       minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)',
-      position: 'relative', display: 'flex', flexDirection: 'column',
+      position: 'relative', display: 'flex', flexDirection: 'column', paddingTop: 72,
     }}>
       <ParticleField />
       <NavBar />

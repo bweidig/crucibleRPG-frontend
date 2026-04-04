@@ -211,7 +211,7 @@ export default function AuthPage() {
     <div className={styles.pageContainer} style={{
       minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)',
       display: 'flex', flexDirection: 'column',
-      position: 'relative', overflow: 'hidden',
+      position: 'relative', overflow: 'hidden', paddingTop: 72,
     }}>
       <ParticleField />
       <NavBar />

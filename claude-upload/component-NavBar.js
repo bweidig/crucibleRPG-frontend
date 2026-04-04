@@ -10,7 +10,7 @@ export default function NavBar({ variant = 'standard', currentPage }) {
   const [scrollProgress, setScrollProgress] = useState(0);
 
   useEffect(() => {
-    if (variant !== 'landing') return;
+    if (variant !== 'landing' && variant !== 'standard') return;
     const h = () => setScrollProgress(Math.min(window.scrollY / 300, 1));
     window.addEventListener('scroll', h, { passive: true });
     return () => window.removeEventListener('scroll', h);
@@ -46,7 +46,10 @@ export default function NavBar({ variant = 'standard', currentPage }) {
   }
 
   return (
-    <nav className={styles.standardNav}>
+    <nav className={styles.standardNav} style={{
+      background: `rgba(10, 14, 26, ${0.5 + 0.35 * scrollProgress})`,
+      borderBottom: `1px solid rgba(30, 37, 64, ${0.4 + 0.2 * scrollProgress})`,
+    }}>
       <Link href={wordmarkHref} className={styles.wordmark}>
         <span className={styles.wordmarkCrucible}>CRUCIBLE</span>
         <span className={styles.wordmarkRpg}>RPG</span>
