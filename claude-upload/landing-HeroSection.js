@@ -122,12 +122,12 @@ export default function HeroSection() {
           border: 'none', borderRadius: 6, padding: '16px 40px',
           cursor: 'pointer', letterSpacing: '0.1em',
         }}>START YOUR ADVENTURE</button>
-        <a href="#how-it-works" style={{ textDecoration: 'none' }}>
+        <a href="#showcase" style={{ textDecoration: 'none' }}>
           <button className={styles.ctaSecondary} style={{
             fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 600, color: 'var(--accent-gold)',
             background: 'transparent', border: '1px solid var(--border-card)',
             borderRadius: 6, padding: '16px 40px', cursor: 'pointer', letterSpacing: '0.1em',
-          }}>SEE HOW IT WORKS</button>
+          }}>SEE IT IN ACTION</button>
         </a>
       </div>
 
