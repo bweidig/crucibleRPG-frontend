@@ -211,8 +211,9 @@ export default function GameplayShowcase() {
   const scenario = SCENARIOS[scenarioIndex];
   const selectedResult = selectedChoice ? scenario.results[selectedChoice] : null;
 
-  // Skip animations: first view shows everything instantly, reduced motion also skips typewriter
-  const skipTypewriter = firstView || reducedMotion;
+  // Narrative skips typewriter on firstView (already visible); result always typewriters
+  const skipNarrativeTypewriter = firstView || reducedMotion;
+  const skipResultTypewriter = reducedMotion;
 
   // Clear all pending timers
   const clearTimers = useCallback(() => {
@@ -226,20 +227,20 @@ export default function GameplayShowcase() {
     return id;
   }, []);
 
-  // Typewriter for narrative (phase 2)
+  // Typewriter for narrative (phase 2) — skipped on firstView since it's pre-rendered
   const narrative = useTypewriter(
     scenario.narrative,
     50,
     phase >= 2,
-    skipTypewriter
+    skipNarrativeTypewriter
   );
 
-  // Typewriter for result (phase 9)
+  // Typewriter for result (phase 9) — always animates, even on firstView
   const result = useTypewriter(
     selectedResult?.result || '',
     40,
     phase >= 9,
-    skipTypewriter
+    skipResultTypewriter
   );
 
   // Drive the animation sequence forward (only when NOT in firstView)
@@ -276,12 +277,11 @@ export default function GameplayShowcase() {
   }, [phase === 7, firstView]);
 
   useEffect(() => {
-    if (firstView) return;
     if (phase === 9 && result.done) {
       addTimer(() => setPhase(10), 200);
       addTimer(() => setPhase(11), 1200);
     }
-  }, [phase === 9, result.done, firstView]);
+  }, [phase === 9, result.done]);
 
   // Clear locked height once enough content has rendered
   useEffect(() => {
@@ -328,10 +328,12 @@ export default function GameplayShowcase() {
     if (selectedChoice) return; // Already selected
     setSelectedChoice(choiceId);
     if (firstView) {
-      // Stagger dice → result → controls so each fadeUpIn animation is visible
-      setPhase(7);
-      addTimer(() => setPhase(9), 150);
-      addTimer(() => setPhase(11), 500);
+      // Same cadence as normal: highlight → dice → result typewriter → controls
+      // Manual timers because firstView guards skip the phase useEffects
+      setPhase(6);
+      addTimer(() => setPhase(7), 600);
+      addTimer(() => setPhase(9), 1000);
+      // Phase 11 handled by useEffect when result.done
     } else {
       setPhase(6);
     }
