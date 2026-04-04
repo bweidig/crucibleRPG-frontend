@@ -2189,6 +2189,12 @@ function InitWizardInner() {
   const [createdGameId, setCreatedGameId] = useState(null);
   const gameId = urlGameId || createdGameId;
 
+  // Playtester gate
+  useEffect(() => {
+    const user = api.getUser();
+    if (user && !user.isPlaytester) router.replace('/');
+  }, [router]);
+
   // --- Core wizard state ---
   const [phase, setPhase] = useState(0);
   const [storyteller, setStoryteller] = useState(null);

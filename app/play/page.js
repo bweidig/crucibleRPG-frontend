@@ -519,10 +519,14 @@ function PlayPage() {
     };
   }, [authReady, gameId, router]);
 
-  // ─── Redirect if no gameId ───
+  // ─── Redirect if no gameId or not playtester ───
   useEffect(() => {
     if (authReady && !gameId) {
       router.replace('/menu');
+    }
+    if (authReady && gameId) {
+      const user = api.getUser();
+      if (user && !user.isPlaytester) router.replace('/');
     }
   }, [authReady, gameId, router]);
 

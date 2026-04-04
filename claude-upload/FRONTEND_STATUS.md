@@ -34,6 +34,19 @@
 
 ## Recent Work (This Session: 2026-04-04)
 
+### Playtest Access Restructure
+Multi-file restructure gating site access behind playtest approval system.
+
+1. **Root route swap**: `/` now serves the landing page (re-exports from `/landing`). Coming Soon page retired.
+2. **Auth page**: Invite code removed. Playtest request checkbox + about/source fields added to signup. Post-signup confirmation for requesters ("You're on the list"). Google OAuth redirects by playtester status.
+3. **NavBar**: Playtester-aware — wordmark links to `/menu` for playtesters, `/` otherwise. "PLAYTEST ACCESS PENDING" label for logged-in non-playtesters. Rulebook/Pricing hidden from non-playtesters.
+4. **Route guards**: Playtester check added to menu, init, play, saved-games, settings, pricing, rulebook. Non-playtesters redirect to `/`.
+5. **Landing CTA**: Two-card layout — "Stay in the Loop" (mailing list) + "Join the Playtest" (request access link).
+6. **Menu page**: `isPlaytester` default changed from `true` to `false`.
+7. **Admin**: Playtest request info (about/source) in user detail panel. "Pending Requests" filter pill in Users tab.
+
+**Files modified:** `app/page.js`, `app/auth/page.js`, `components/NavBar.js`, `app/landing/CTASection.js`, `app/landing/page.module.css`, `app/menu/page.js`, `app/init/page.js`, `app/play/page.js`, `app/saved-games/page.js`, `app/settings/page.js`, `app/pricing/page.js`, `app/rulebook/page.js`, `app/admin/page.js`.
+
 ### World Seeds (Phase 2) + Scenario Rework (Phase 5)
 **Part 1: World Seeds — Advanced tab on Phase 2 (Setting)**
 - Tab bar (World / Advanced pills) below setting selection, visible when a setting is chosen

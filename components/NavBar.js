@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AuthAvatar from '@/components/AuthAvatar';
-import { getToken } from '@/lib/api';
+import { getToken, getUser } from '@/lib/api';
 import styles from './NavBar.module.css';
 
 export default function NavBar({ variant = 'standard', currentPage }) {
@@ -16,7 +16,10 @@ export default function NavBar({ variant = 'standard', currentPage }) {
     return () => window.removeEventListener('scroll', h);
   }, [variant]);
 
-  const wordmarkHref = getToken() ? '/menu' : '/landing';
+  const user = getUser();
+  const isPlaytester = user?.isPlaytester;
+  const isLoggedIn = !!getToken();
+  const wordmarkHref = isLoggedIn && isPlaytester ? '/menu' : '/';
 
   if (variant === 'landing') {
     return (
@@ -34,8 +37,8 @@ export default function NavBar({ variant = 'standard', currentPage }) {
           <a href="#features" onClick={e => { e.preventDefault(); document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }); }} className={styles.navLink + ' ' + styles.sectionLink}>Features</a>
           <a href="#how-it-works" onClick={e => { e.preventDefault(); document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' }); }} className={styles.navLink + ' ' + styles.sectionLink}>How It Works</a>
           <a href="#faq" onClick={e => { e.preventDefault(); document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' }); }} className={styles.navLink + ' ' + styles.sectionLink}>FAQ</a>
-          <Link href="/rulebook" className={`${styles.navLink}${currentPage === 'rulebook' ? ` ${styles.navLinkActive}` : ''}`}>Rulebook</Link>
-          <Link href="/pricing" className={`${styles.navLink}${currentPage === 'pricing' ? ` ${styles.navLinkActive}` : ''}`}>Pricing</Link>
+          {isPlaytester && <Link href="/rulebook" className={`${styles.navLink}${currentPage === 'rulebook' ? ` ${styles.navLinkActive}` : ''}`}>Rulebook</Link>}
+          {isPlaytester && <Link href="/pricing" className={`${styles.navLink}${currentPage === 'pricing' ? ` ${styles.navLinkActive}` : ''}`}>Pricing</Link>}
           <AuthAvatar size={32} active={currentPage === 'settings'} />
         </div>
       </nav>
@@ -49,9 +52,15 @@ export default function NavBar({ variant = 'standard', currentPage }) {
         <span className={styles.wordmarkRpg}>RPG</span>
       </Link>
       <div className={styles.standardLinks}>
+        {isLoggedIn && !isPlaytester && (
+          <span style={{
+            fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
+            color: 'var(--accent-gold)', letterSpacing: '0.15em', opacity: 0.7,
+          }}>PLAYTEST ACCESS PENDING</span>
+        )}
         <Link href="/faq" className={`${styles.navLink}${currentPage === 'faq' ? ` ${styles.navLinkActive}` : ''}`}>FAQ</Link>
-        <Link href="/rulebook" className={`${styles.navLink}${currentPage === 'rulebook' ? ` ${styles.navLinkActive}` : ''}`}>Rulebook</Link>
-        <Link href="/pricing" className={`${styles.navLink}${currentPage === 'pricing' ? ` ${styles.navLinkActive}` : ''}`}>Pricing</Link>
+        {(!isLoggedIn || isPlaytester) && <Link href="/rulebook" className={`${styles.navLink}${currentPage === 'rulebook' ? ` ${styles.navLinkActive}` : ''}`}>Rulebook</Link>}
+        {(!isLoggedIn || isPlaytester) && <Link href="/pricing" className={`${styles.navLink}${currentPage === 'pricing' ? ` ${styles.navLinkActive}` : ''}`}>Pricing</Link>}
         <AuthAvatar size={32} active={currentPage === 'settings'} />
       </div>
     </nav>

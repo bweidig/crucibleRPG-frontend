@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { isAuthenticated, getUser } from '@/lib/api';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import ScrollReveal from '@/components/ScrollReveal';
@@ -102,14 +104,18 @@ const ALL_SECTIONS = SECTIONS;
 // --- MAIN ---
 
 export default function RulebookPage() {
+  const router = useRouter();
   const [loaded, setLoaded] = useState(false);
   const [activeSection, setActiveSection] = useState(0);
   const contentRef = useRef(null);
   const sectionRefs = useRef([]);
 
   useEffect(() => {
+    if (!isAuthenticated()) { router.replace('/auth'); return; }
+    const user = getUser();
+    if (user && !user.isPlaytester) { router.replace('/'); return; }
     setTimeout(() => setLoaded(true), 100);
-  }, []);
+  }, [router]);
 
   // Scroll spy
   useEffect(() => {

@@ -85,6 +85,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (!isAuthenticated()) { router.replace('/auth'); return; }
     const u = getUser();
+    if (u && !u.isPlaytester) { router.replace('/'); return; }
     setUserState(u);
     setDisplay(loadDisplaySettings());
     setReady(true);

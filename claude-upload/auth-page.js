@@ -102,31 +102,29 @@ export default function AuthPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [inviteCode, setInviteCode] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [playtestRequest, setPlaytestRequest] = useState(false);
+  const [playtestAbout, setPlaytestAbout] = useState('');
+  const [playtestSource, setPlaytestSource] = useState('');
+  const [signupComplete, setSignupComplete] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [gsiReady, setGsiReady] = useState(false);
 
   const googleBtnRef = useRef(null);
-  // Use a ref so the Google callback always reads the latest mode/inviteCode
   const modeRef = useRef(mode);
-  const inviteCodeRef = useRef(inviteCode);
   useEffect(() => { modeRef.current = mode; }, [mode]);
-  useEffect(() => { inviteCodeRef.current = inviteCode; }, [inviteCode]);
 
   const handleGoogleResponse = useCallback(async (response) => {
     setError('');
     setLoading(true);
     try {
-      const code = modeRef.current === 'signup' ? inviteCodeRef.current.trim() : null;
       const data = await post('/api/auth/google', {
         credential: response.credential,
-        inviteCode: code,
       });
       setToken(data.token);
       if (data.user) setUser(data.user);
-      router.push('/menu');
+      router.push(data.user?.isPlaytester ? '/menu' : '/');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -166,7 +164,6 @@ export default function AuthPage() {
       if (!email.trim()) { setError('Email is required.'); return; }
       if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
       if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
-      if (!inviteCode.trim()) { setError('Invite code is required.'); return; }
       if (!agreedToTerms) { setError('You must agree to the Terms of Service.'); return; }
     } else {
       if (!email.trim()) { setError('Email is required.'); return; }
@@ -176,15 +173,25 @@ export default function AuthPage() {
     setLoading(true);
     try {
       if (mode === 'signup') {
-        const data = await post('/api/auth/signup', { email, password, displayName, inviteCode: inviteCode.trim() });
+        const body = { email, password, displayName };
+        if (playtestRequest) {
+          body.playtestRequest = true;
+          body.playtestAbout = playtestAbout.trim() || null;
+          body.playtestSource = playtestSource.trim() || null;
+        }
+        const data = await post('/api/auth/signup', body);
         setToken(data.token);
         if (data.user) setUser(data.user);
+        if (playtestRequest) {
+          setSignupComplete(true);
+          return;
+        }
       } else {
         const data = await post('/api/auth/login', { email, password });
         setToken(data.token);
         if (data.user) setUser(data.user);
       }
-      router.push('/menu');
+      router.push('/');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -228,7 +235,7 @@ export default function AuthPage() {
         <div style={{
           position: 'absolute', width: 1400, height: 1400, borderRadius: '50%',
           background: 'radial-gradient(circle, rgba(201,168,76,0.05) 0%, transparent 55%)',
-          top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none',
+          top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', filter: 'blur(40px)',
         }} />
 
         {/* Card */}
@@ -238,6 +245,24 @@ export default function AuthPage() {
         backdropFilter: 'blur(20px)',
         boxShadow: '0 0 80px rgba(201,168,76,0.04), 0 4px 24px rgba(0,0,0,0.3)',
       }}>
+        {/* Signup complete confirmation */}
+        {signupComplete ? (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <h1 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 700, color: 'var(--accent-gold)', marginBottom: 16 }}>
+              You're on the list.
+            </h1>
+            <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 28 }}>
+              We'll review your request and let you know when your access is ready. In the meantime, feel free to explore the site.
+            </p>
+            <Link href="/" style={{
+              fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 600,
+              color: 'var(--accent-gold)', background: 'transparent',
+              border: '1px solid var(--border-card)', borderRadius: 6, padding: '12px 28px',
+              textDecoration: 'none', letterSpacing: '0.08em',
+            }}>Back to Home</Link>
+          </div>
+        ) : (
+        <>
         {/* Header */}
         <div className={loaded ? styles.stagger0 : styles.staggerHidden} style={{ textAlign: 'center', marginBottom: 20 }}>
           <h1 style={{
@@ -279,26 +304,13 @@ export default function AuthPage() {
           </div>
         )}
 
-        {/* Invite code — shown above Google button on signup so user fills it first */}
         <div className={loaded ? styles.stagger2 : styles.staggerHidden}>
-        {mode === 'signup' && (
-          <InputField
-            label="Invite Code"
-            placeholder="Enter your invite code"
-            value={inviteCode}
-            onChange={e => setInviteCode(e.target.value)}
-            autoComplete="off"
-          />
-        )}
-
         {/* Google Sign-In button */}
         {mode !== 'forgot' && GOOGLE_CLIENT_ID && (
           <div style={{ marginBottom: 0 }}>
-            {/* Hidden Google-rendered button (needed for auth initialization) */}
             <div ref={googleBtnRef} style={{
               position: 'absolute', width: 0, height: 0, overflow: 'hidden', opacity: 0, pointerEvents: 'none',
             }} />
-            {/* Custom styled trigger */}
             <button type="button" className={styles.googleBtn} onClick={() => {
               const iframe = googleBtnRef.current?.querySelector('div[role="button"]');
               if (iframe) { iframe.click(); return; }
@@ -312,12 +324,6 @@ export default function AuthPage() {
               </svg>
               <span>Continue with Google</span>
             </button>
-            {mode === 'signup' && (
-              <p style={{
-                fontFamily: 'var(--font-alegreya-sans)', fontSize: 12,
-                color: 'var(--text-dim)', textAlign: 'center', marginTop: 8, marginBottom: 0,
-              }}>Enter your invite code above before signing in with Google.</p>
-            )}
           </div>
         )}
         </div>
@@ -401,6 +407,55 @@ export default function AuthPage() {
                 <a href="/privacy" target="_blank" className={styles.legalLink}>Privacy Policy</a>
               </span>
             </div>
+
+            {/* Playtest request */}
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: playtestRequest ? 12 : 22,
+            }}>
+              <div
+                onClick={() => setPlaytestRequest(!playtestRequest)}
+                style={{
+                  width: 20, height: 20, borderRadius: 4, flexShrink: 0, marginTop: 1,
+                  border: `1px solid ${playtestRequest ? 'var(--accent-gold)' : 'var(--text-dim)'}`,
+                  background: playtestRequest ? 'var(--bg-gold-light)' : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', transition: 'all 0.2s',
+                }}
+              >
+                {playtestRequest && <span style={{ color: 'var(--accent-gold)', fontSize: 13, lineHeight: 1 }}>&#10003;</span>}
+              </div>
+              <span style={{
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5,
+              }}>I'd like to request playtest access</span>
+            </div>
+
+            {playtestRequest && (
+              <div style={{ marginBottom: 22, overflow: 'hidden', transition: 'max-height 0.3s ease' }}>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 500, color: 'var(--text-muted)', display: 'block', marginBottom: 7 }}>Tell us a bit about yourself</label>
+                  <textarea
+                    value={playtestAbout}
+                    onChange={e => setPlaytestAbout(e.target.value)}
+                    placeholder="What kind of games do you play?"
+                    maxLength={1000}
+                    rows={3}
+                    style={{
+                      width: '100%', background: 'var(--bg-input)',
+                      border: '1px solid var(--border-gold-faint)',
+                      borderRadius: 6, padding: '13px 16px',
+                      fontFamily: 'var(--font-alegreya-sans)', fontSize: 16, color: 'var(--text-primary)',
+                      outline: 'none', boxSizing: 'border-box', resize: 'vertical',
+                    }}
+                  />
+                </div>
+                <InputField
+                  label="How did you hear about CrucibleRPG?"
+                  placeholder="A friend, social media, search..."
+                  value={playtestSource}
+                  onChange={e => setPlaytestSource(e.target.value)}
+                />
+              </div>
+            )}
           </>
         )}
 
@@ -475,6 +530,8 @@ export default function AuthPage() {
           </div>
         )}
         </div>{/* end stagger5 */}
+        </>
+        )}
       </form>
       </div>
 

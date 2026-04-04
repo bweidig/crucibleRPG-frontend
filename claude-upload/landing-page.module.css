@@ -263,6 +263,10 @@
     padding-bottom: 60px !important;
   }
 
+  .ctaGrid {
+    grid-template-columns: 1fr !important;
+  }
+
   .faqQuestion {
     min-height: 44px;
   }

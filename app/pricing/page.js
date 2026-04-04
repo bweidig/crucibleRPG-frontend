@@ -1,3 +1,8 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { isAuthenticated, getUser } from '@/lib/api';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import ParticleField from '@/components/ParticleField';
@@ -81,6 +86,13 @@ function Feature({ text }) {
 // --- MAIN ---
 
 export default function PricingPage() {
+  const router = useRouter();
+  useEffect(() => {
+    if (!isAuthenticated()) { router.replace('/auth'); return; }
+    const user = getUser();
+    if (user && !user.isPlaytester) { router.replace('/'); return; }
+  }, [router]);
+
   return (
     <div className={styles.pageContainer} style={{
       minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)',

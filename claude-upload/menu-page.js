@@ -386,7 +386,7 @@ export default function MenuPage() {
   const [textSize, setTextSize] = useState("medium");
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
-  const [isPlaytester, setIsPlaytester] = useState(true);
+  const [isPlaytester, setIsPlaytester] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [detailTarget, setDetailTarget] = useState(null);
   const [heroDetail, setHeroDetail] = useState(null);
@@ -395,6 +395,7 @@ export default function MenuPage() {
   useEffect(() => {
     if (!isAuthenticated()) { router.replace('/auth'); return; }
     const user = getUser();
+    if (user && !user.isPlaytester) { router.replace('/'); return; }
     if (user) setIsPlaytester(!!user.isPlaytester);
 
     async function fetchGames() {
