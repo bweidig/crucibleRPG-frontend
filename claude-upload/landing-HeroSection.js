@@ -111,7 +111,7 @@ export default function HeroSection() {
       {/* Sub-tagline */}
       <p style={{
         fontFamily: 'var(--font-alegreya-sans)', fontSize: 'clamp(16px, 2vw, 18px)',
-        fontWeight: 300, color: 'var(--text-dim)', textAlign: 'center', maxWidth: 560,
+        fontWeight: 400, color: 'var(--text-secondary)', textAlign: 'center', maxWidth: 560,
         lineHeight: 1.7, marginBottom: 52,
         ...heroStyle(3),
       }}>A solo tabletop RPG powered by AI. Real mechanics, real consequences, and a world that remembers everything you do.</p>

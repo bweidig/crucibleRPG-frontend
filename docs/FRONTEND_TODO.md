@@ -1,6 +1,6 @@
 # Crucible RPG — To Do
 
-**Last Updated:** 2026-03-30
+**Last Updated:** 2026-04-03
 
 > **For Claude Code:** Read this file at the start of every session. The user manages this list with plain-language commands:
 > **Work initiation:** Items on this list are for tracking only. Do NOT start work on any item unprompted. The user will initiate each task via a prompt from Claude Chat.
@@ -22,6 +22,11 @@
 - [ ] Deploy Gemini model routing prompt (Pro for init, Flash for gameplay)
 
 ## 🟡 Soon — Next Up After Current Work
+
+- [ ] Frontend: Foundational skill display — show subcategory labels. Broad format: "Custom Name (Domain/Subcat + Domain/Subcat)". Character endpoint returns new fields.
+- [ ] Frontend: Magic skill axis display — show domain-axis vs discipline-axis. E.g. "Pyromancy +3.0 (Thermal Domain)" vs "Healing Arts +2.0 (Restoration Discipline)"
+- [ ] Frontend: Element name update — fire→Thermal, ice→Cryo, lightning→Voltaic. Update UI references, icons, color schemes. 11 new elements need visual treatment.
+- [ ] Frontend: Fortune condition display — show remaining charges not turns. "Hexed — 2 checks remaining" not "Hexed — 2 turns remaining"
 
 - [ ] Too many items added during character proposal — tighten item count guidance
 - [ ] Missing glossary entries for proposal-generated items
@@ -48,6 +53,7 @@
 - [ ] NPC glossary descriptions too omniscient at seeding
 - [ ] Item description inconsistency (safety net items get boilerplate)
 - [ ] Equipment auto-equip logic (cloak should be worn)
+- [ ] Frontend: Skill Relevance Challenge UI — after a check resolves, player taps a skill to argue it should have applied. POST to challenge endpoint. (v4.10)
 
 ## ✅ Done (Recent)
 

@@ -241,7 +241,7 @@ export default function GameplayShowcase() {
   // Typewriter for narrative (phase 2) — skipped on firstView since it's pre-rendered
   const narrative = useTypewriter(
     scenario.narrative,
-    50,
+    30,
     phase >= 2,
     skipNarrativeTypewriter
   );
@@ -249,7 +249,7 @@ export default function GameplayShowcase() {
   // Typewriter for result (phase 9) — always animates, even on firstView
   const result = useTypewriter(
     selectedResult?.result || '',
-    40,
+    25,
     phase >= 9,
     skipResultTypewriter
   );

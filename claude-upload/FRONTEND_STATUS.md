@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-03
+**Last Updated:** 2026-04-04
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -32,7 +32,18 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-03)
+## Recent Work (This Session: 2026-04-04)
+
+### Audit Cleanup: Five Fixes from 7.45 Audit
+Audit cleanup — FAQ answer text updated to match body text system (16px/400/#8a94a8), hero sub-tagline contrast and weight fixed, showcase container border/bg opacity increased for visibility, typewriter speed increased 1.6x on repeat scenarios, showcase entrance fade-in added.
+
+- FAQ answer paragraphs: fontSize 17→16, fontWeight 300→400, color var(--text-muted)→var(--text-secondary)
+- Hero sub-tagline: fontWeight 300→400, color var(--text-dim)→var(--text-secondary) (5.9:1 contrast)
+- Showcase .inner container: border opacity 0.06→0.12, background opacity 0.3→0.5
+- Typewriter narrative speed 50ms→30ms per word, result speed 40ms→25ms per word (firstView unaffected)
+- Showcase fade-in transition adjusted to 0.6s; prefers-reduced-motion override added (opacity: 1)
+
+**Files modified:** `app/landing/FAQSection.js`, `app/landing/HeroSection.js`, `app/landing/GameplayShowcase.js`, `app/landing/GameplayShowcase.module.css`.
 
 ### Showcase Polish: Totals, Navigation, Scroll, Reset Transition
 Showcase polish: dice bar now shows roll totals, NEXT SCENARIO and dots visible without picking a choice, TRY ANOTHER scrolls to showcase top and fades out result before resetting choices.

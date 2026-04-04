@@ -51,8 +51,8 @@ export default function FAQSection() {
                 }}
               >
                 <p style={{
-                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 17, fontWeight: 300,
-                  color: 'var(--text-muted)', lineHeight: 1.75,
+                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 16, fontWeight: 400,
+                  color: 'var(--text-secondary)', lineHeight: 1.75,
                 }}>{item.a}</p>
               </div>
             </div>
