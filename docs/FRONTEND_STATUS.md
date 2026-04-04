@@ -34,6 +34,17 @@
 
 ## Recent Work (This Session: 2026-04-04)
 
+### Wire Talk to GM Meta Endpoint + Directive Awareness
+My Story tab now wired to `POST /talk-to-gm/meta` (replacing Phase 1 fallback). Response parsing simplified to `res.response`. Directive feedback shown when GM stores a goal or preference. Rate limit (429) handled with warning text.
+
+- Endpoint switched from `/talk-to-gm` to `/talk-to-gm/meta`
+- Response extraction: single `res.response` field instead of multi-field chain
+- `storyResult` changed from plain string to object `{ text, directiveStored, directiveLane }`
+- Directive confirmation line: Alegreya Sans 11px, `--text-dim`, italic
+- 429 rate limit: shows warning in `--text-warning` color
+
+**Files modified:** `app/play/components/TalkToGM.js`, `app/play/components/TalkToGM.module.css`.
+
 ### Spell Patterns Section + Skill Glossary Clicks in CharacterTab
 CharacterTab now renders Spell Patterns section (after skills, before conditions) when `spellPatterns` array is non-empty. All skill names (foundational, active, passive masteries, spell patterns) are clickable — opens existing EntityPopup with glossary definition. Skills grouped under labeled sub-headers (Foundational, Active, Passive Masteries). Hover highlights skill name in gold.
 
@@ -193,7 +204,9 @@ Three interconnected features added to the /play game layout:
   - Subtle "The GM will respond without advancing your turn" hint below input
   - Response displayed inline as GM aside (Alegreya italic, gold left border)
   - Response also injected into narrative panel as `gm_aside` entry
-  - **TODO:** Currently uses `POST /talk-to-gm` (Phase 1) as fallback — switch to `/talk-to-gm/meta` when backend implements non-advancing meta endpoint
+  - Wired to `POST /talk-to-gm/meta` (non-advancing meta endpoint)
+  - Directive feedback: when `directiveStored: true`, shows confirmation line ("The GM noted your goal/preference") in 11px dim italic
+  - Rate limit (429): shows warning text in `--text-warning` instead of generic error
 
 **3. GM Aside Rendering (NarrativePanel)**
 - Entries with `type: 'gm_aside'` render as compact aside blocks (not TurnBlocks)
@@ -977,6 +990,8 @@ All pending rgba/color fixes from previous sessions have been completed.
 | `/api/game/:id/notes` | GET/POST/DELETE | Wired (sidebar NotesTab CRUD, refetch on mutation) |
 | `/api/game/:id/talk-to-gm` | POST | Wired (Phase 1 free lookup, displays command/rulebook/no-match) |
 | `/api/game/:id/talk-to-gm/escalate` | POST | Wired (Phase 2 escalation, processes as turn response) |
+| `/api/game/:id/talk-to-gm/meta` | POST | Wired (My Story tab, non-advancing meta query) |
+| `/api/game/:id/talk-to-gm/meta/directive` | DELETE | Not wired (directive management UI deferred) |
 | `/api/game/:id/settings/storyteller` | PUT | Wired (Settings panel Game Settings tab) |
 | `/api/game/:id/settings/difficulty` | PUT | Wired (Settings panel Game Settings tab, presets + individual dials) |
 | `/api/game/:id/settings/ai-model` | GET/PUT | Wired (Settings panel AI Models section, playtester-only, graceful fallback if endpoint not deployed) |

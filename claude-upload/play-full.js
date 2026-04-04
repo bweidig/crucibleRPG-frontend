@@ -6127,16 +6127,15 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
     setStoryInput('');
 
     try {
-      // TODO: Switch to /talk-to-gm/meta when backend implements non-advancing meta endpoint
-      const res = await api.post(`/api/game/${gameId}/talk-to-gm`, { question });
+      const res = await api.post(`/api/game/${gameId}/talk-to-gm/meta`, { question });
 
-      // Extract response text
-      const responseText = res.content || res.suggestion || res.data?.briefing ||
-        (res.source === 'rulebook' ? res.content : null) ||
-        (typeof res.data === 'string' ? res.data : null) ||
-        'The GM considered your question but had no specific response.';
+      const responseText = res.response || 'The GM considered your question but had no specific response.';
 
-      setStoryResult(responseText);
+      setStoryResult({
+        text: responseText,
+        directiveStored: res.directiveStored || false,
+        directiveLane: res.directiveLane || null,
+      });
 
       // Inject as GM aside into narrative
       if (onMetaResponse) {
@@ -6144,7 +6143,11 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
       }
     } catch (err) {
       console.error('Meta question failed:', err);
-      setStoryResult('Failed to reach the GM. Try again.');
+      if (err.status === 429) {
+        setStoryResult({ text: "You've asked the GM a lot recently. Give it a moment.", isRateLimit: true });
+      } else {
+        setStoryResult({ text: 'Failed to reach the GM. Try again.' });
+      }
     } finally {
       setStoryLoading(false);
     }
@@ -6633,7 +6636,14 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
             {storyResult && (
               <div className={styles.metaResponse}>
                 <div className={styles.metaLabel}>GM</div>
-                <div className={styles.metaText}>{storyResult}</div>
+                <div className={storyResult.isRateLimit ? styles.metaTextWarning : styles.metaText}>{storyResult.text}</div>
+                {storyResult.directiveStored && (
+                  <div className={styles.directiveConfirmation}>
+                    {storyResult.directiveLane === 'goal'
+                      ? 'The GM noted your goal and will look for opportunities.'
+                      : 'The GM noted your preference.'}
+                  </div>
+                )}
               </div>
             )}
           </div>

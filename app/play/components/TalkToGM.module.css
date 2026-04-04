@@ -260,6 +260,21 @@
   line-height: 1.6;
 }
 
+.metaTextWarning {
+  font-family: var(--font-alegreya-sans);
+  font-size: 13px;
+  color: var(--text-warning, #e8845a);
+  line-height: 1.5;
+}
+
+.directiveConfirmation {
+  font-family: var(--font-alegreya-sans);
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+  margin-top: 6px;
+}
+
 .storyInputArea {
   flex-shrink: 0;
 }
