@@ -14,6 +14,21 @@ function getDurabilityColor(durability, maxDurability) {
   return '#8aba7a';
 }
 
+function ColumnHeaders({ items }) {
+  const hasQuality = items.some(item => item.qualityBonus !== 0 && item.qualityBonus != null);
+  return (
+    <div className={styles.columnHeaders}>
+      <span className={styles.colHeaderSpacer} />
+      <div className={styles.colHeaderRight}>
+        <span className={styles.colHeader} style={{ width: 40 }} />
+        <span className={styles.colHeader} style={{ width: 38 }}>DUR</span>
+        {hasQuality && <span className={styles.colHeader} style={{ width: 32 }}>QUAL</span>}
+        <span className={styles.colHeader} style={{ width: 28 }}>WT</span>
+      </div>
+    </div>
+  );
+}
+
 function ItemRow({ item, isEquipped, onEntityClick }) {
   const durPct = item.maxDurability > 0
     ? (item.durability / item.maxDurability) * 100
@@ -88,7 +103,10 @@ export default function InventoryTab({ data, onEntityClick }) {
         {equipped.length === 0 ? (
           <div className={sidebarStyles.emptyState}>Nothing equipped</div>
         ) : (
-          equipped.map(item => <ItemRow key={item.id || item.name} item={item} isEquipped onEntityClick={onEntityClick} />)
+          <>
+            <ColumnHeaders items={equipped} />
+            {equipped.map(item => <ItemRow key={item.id || item.name} item={item} isEquipped onEntityClick={onEntityClick} />)}
+          </>
         )}
       </PanelSection>
 
@@ -96,7 +114,10 @@ export default function InventoryTab({ data, onEntityClick }) {
         {carried.length === 0 ? (
           <div className={sidebarStyles.emptyState}>Nothing carried</div>
         ) : (
-          carried.map(item => <ItemRow key={item.id || item.name} item={item} onEntityClick={onEntityClick} />)
+          <>
+            <ColumnHeaders items={carried} />
+            {carried.map(item => <ItemRow key={item.id || item.name} item={item} onEntityClick={onEntityClick} />)}
+          </>
         )}
       </PanelSection>
     </div>

@@ -14,6 +14,25 @@
   height: 100%;
   overflow-y: auto;
   padding: 24px 16px 16px;
+  scrollbar-width: thin;
+  scrollbar-color: #3a3328 transparent;
+}
+
+.narrativeScroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.narrativeScroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.narrativeScroll::-webkit-scrollbar-thumb {
+  background: #3a3328;
+  border-radius: 3px;
+}
+
+.narrativeScroll::-webkit-scrollbar-thumb:hover {
+  background: #564b2e;
 }
 
 .narrativeInner {

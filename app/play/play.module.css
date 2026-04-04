@@ -26,6 +26,11 @@
   min-width: 0;
 }
 
+.narrativeExpanded {
+  max-width: 48rem;
+  margin: 0 auto;
+}
+
 /* ─── Loading Overlay ─── */
 
 .loadingOverlay {

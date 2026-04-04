@@ -34,6 +34,19 @@
 
 ## Recent Work (This Session: 2026-04-04)
 
+### Play Screen Polish Pass (Bucket 1)
+Seven targeted UI fixes from a play screen audit:
+
+1. **Narrative max-width when sidebar collapsed**: `.narrativeExpanded` class adds `max-width: 48rem; margin: 0 auto` when sidebar is hidden, preventing ultra-wide line lengths
+2. **Scroll position — new vs saved game**: Single first turn (`turns.length === 1 && _isNew`) scrolls to top of panel (shows prologue), subsequent turns scroll to header, saved game loads scroll to bottom
+3. **Settings modal dark theme hardening**: Overlay backdrop darkened to 0.7 opacity, panel/tab/close styles hardcoded to dark theme values (not CSS vars) so modal stays dark regardless of display theme
+4. **Custom scrollbar**: Themed thin scrollbar (`#3a3328` thumb, transparent track, `#564b2e` hover) on narrative scroll, sidebar tab content, and settings modal
+5. **Bug/Suggest footer buttons**: Icon-only (11px), `#6b83a3` dim color, no border/background, CSS tooltip on hover. Debug button keeps text label.
+6. **GM button positioning**: Shrunk from 44px to 38px, repositioned to `right: 4px; bottom: 12px` to reduce text overlap
+7. **Inventory column headers**: DUR/QUAL/WT header row above items in Equipped and Carried sections, fixed-width right columns for alignment
+
+**Files modified:** `app/play/page.js`, `app/play/play.module.css`, `app/play/components/NarrativePanel.js`, `app/play/components/NarrativePanel.module.css`, `app/play/components/Sidebar.js`, `app/play/components/Sidebar.module.css`, `app/play/components/SettingsModal.module.css`, `app/play/components/TalkToGM.module.css`, `app/play/components/InventoryTab.js`, `app/play/components/InventoryTab.module.css`.
+
 ### Play Overlay: Returning game awareness + wordmark link
 Loading overlay now distinguishes new vs returning games. Phase label shows "WELCOME BACK" for returning games, "PROLOGUE" for new. Lore ready text shows "Your story continues..." vs "Your story begins...". Wordmark is now a Link to /menu as an escape hatch.
 

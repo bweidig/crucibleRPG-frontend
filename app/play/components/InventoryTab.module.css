@@ -100,7 +100,7 @@
 .itemRight {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   flex-shrink: 0;
   margin-left: 8px;
 }
@@ -109,12 +109,16 @@
   font-family: var(--font-jetbrains);
   font-size: 11px;
   font-weight: 600;
+  width: 38px;
+  text-align: right;
 }
 
 .itemSlots {
   font-family: var(--font-jetbrains);
   font-size: 11px;
   color: var(--text-muted);
+  width: 28px;
+  text-align: right;
 }
 
 /* Durability bar */
@@ -136,4 +140,35 @@
   font-family: var(--font-jetbrains);
   font-size: 10px;
   color: var(--text-dim);
+  width: 32px;
+  text-align: right;
+}
+
+/* Column headers */
+.columnHeaders {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 2px;
+}
+
+.colHeaderSpacer {
+  flex: 1;
+}
+
+.colHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.colHeader {
+  font-family: var(--font-alegreya-sans);
+  font-size: 10px;
+  font-weight: 600;
+  color: #9a8545;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: right;
+  display: inline-block;
 }

@@ -615,7 +615,7 @@ function PlayPage() {
         debugMode={debugMode}
       />
       <div className={styles.mainContent}>
-        <div className={styles.narrativeColumn}>
+        <div className={`${styles.narrativeColumn} ${!sidebarOpen ? styles.narrativeExpanded : ''}`}>
           <NarrativePanel
             ref={narrativeRef}
             turns={turns}

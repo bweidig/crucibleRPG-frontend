@@ -616,7 +616,7 @@ function PlayPage() {
         debugMode={debugMode}
       />
       <div className={styles.mainContent}>
-        <div className={styles.narrativeColumn}>
+        <div className={`${styles.narrativeColumn} ${!sidebarOpen ? styles.narrativeExpanded : ''}`}>
           <NarrativePanel
             ref={narrativeRef}
             turns={turns}
@@ -2939,6 +2939,21 @@ function getDurabilityColor(durability, maxDurability) {
   return '#8aba7a';
 }
 
+function ColumnHeaders({ items }) {
+  const hasQuality = items.some(item => item.qualityBonus !== 0 && item.qualityBonus != null);
+  return (
+    <div className={styles.columnHeaders}>
+      <span className={styles.colHeaderSpacer} />
+      <div className={styles.colHeaderRight}>
+        <span className={styles.colHeader} style={{ width: 40 }} />
+        <span className={styles.colHeader} style={{ width: 38 }}>DUR</span>
+        {hasQuality && <span className={styles.colHeader} style={{ width: 32 }}>QUAL</span>}
+        <span className={styles.colHeader} style={{ width: 28 }}>WT</span>
+      </div>
+    </div>
+  );
+}
+
 function ItemRow({ item, isEquipped, onEntityClick }) {
   const durPct = item.maxDurability > 0
     ? (item.durability / item.maxDurability) * 100
@@ -3013,7 +3028,10 @@ export default function InventoryTab({ data, onEntityClick }) {
         {equipped.length === 0 ? (
           <div className={sidebarStyles.emptyState}>Nothing equipped</div>
         ) : (
-          equipped.map(item => <ItemRow key={item.id || item.name} item={item} isEquipped onEntityClick={onEntityClick} />)
+          <>
+            <ColumnHeaders items={equipped} />
+            {equipped.map(item => <ItemRow key={item.id || item.name} item={item} isEquipped onEntityClick={onEntityClick} />)}
+          </>
         )}
       </PanelSection>
 
@@ -3021,7 +3039,10 @@ export default function InventoryTab({ data, onEntityClick }) {
         {carried.length === 0 ? (
           <div className={sidebarStyles.emptyState}>Nothing carried</div>
         ) : (
-          carried.map(item => <ItemRow key={item.id || item.name} item={item} onEntityClick={onEntityClick} />)
+          <>
+            <ColumnHeaders items={carried} />
+            {carried.map(item => <ItemRow key={item.id || item.name} item={item} onEntityClick={onEntityClick} />)}
+          </>
         )}
       </PanelSection>
     </div>
@@ -3769,13 +3790,17 @@ const NarrativePanel = forwardRef(function NarrativePanel({
 }, ref) {
   const newTurnRef = useRef(null);
   const bottomRef = useRef(null);
+  const scrollRef = useRef(null);
   const recapShownRef = useRef(false);
 
-  // Auto-scroll: new turns scroll to turn header at top; initial load scrolls to bottom
+  // Auto-scroll: first turn of new game → top; subsequent new turns → turn header; saved game load → bottom
   useEffect(() => {
     if (turns.length === 0) return;
     const lastTurn = turns[turns.length - 1];
-    if (lastTurn._isNew && newTurnRef.current) {
+    if (lastTurn._isNew && turns.length === 1) {
+      // New game: first turn just arrived — scroll to top so player sees prologue
+      if (scrollRef.current) scrollRef.current.scrollTop = 0;
+    } else if (lastTurn._isNew && newTurnRef.current) {
       requestAnimationFrame(() => {
         newTurnRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
@@ -3786,7 +3811,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
 
   return (
     <div className={styles.narrativeWrapper}>
-      <div className={styles.narrativeScroll} ref={ref}>
+      <div className={styles.narrativeScroll} ref={(el) => { scrollRef.current = el; if (typeof ref === 'function') ref(el); else if (ref) ref.current = el; }}>
         <div className={styles.narrativeInner}>
           {worldBriefing && (
             <div className={styles.worldBriefing}>
@@ -5949,20 +5974,18 @@ export default function Sidebar({
         <div className={styles.sidebarFooter}>
           {onOpenReport && (
             <>
-              <button className={styles.footerBtn} onClick={() => onOpenReport('bug')}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <button className={styles.footerIconBtn} onClick={() => onOpenReport('bug')} aria-label="Report a bug" data-tooltip="Report a bug">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="8" y="6" width="8" height="14" rx="4" /><path d="M19 10h2" /><path d="M3 10h2" />
                   <path d="M19 14h2" /><path d="M3 14h2" /><path d="M19 18h2" /><path d="M3 18h2" />
                   <path d="M16 2l-2 4" /><path d="M8 2l2 4" />
                 </svg>
-                Bug
               </button>
-              <button className={styles.footerBtn} onClick={() => onOpenReport('suggest')}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <button className={styles.footerIconBtn} onClick={() => onOpenReport('suggest')} aria-label="Share a suggestion" data-tooltip="Share a suggestion">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 18h6" /><path d="M10 22h4" />
                   <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
                 </svg>
-                Suggest
               </button>
             </>
           )}

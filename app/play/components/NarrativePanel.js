@@ -20,13 +20,17 @@ const NarrativePanel = forwardRef(function NarrativePanel({
 }, ref) {
   const newTurnRef = useRef(null);
   const bottomRef = useRef(null);
+  const scrollRef = useRef(null);
   const recapShownRef = useRef(false);
 
-  // Auto-scroll: new turns scroll to turn header at top; initial load scrolls to bottom
+  // Auto-scroll: first turn of new game → top; subsequent new turns → turn header; saved game load → bottom
   useEffect(() => {
     if (turns.length === 0) return;
     const lastTurn = turns[turns.length - 1];
-    if (lastTurn._isNew && newTurnRef.current) {
+    if (lastTurn._isNew && turns.length === 1) {
+      // New game: first turn just arrived — scroll to top so player sees prologue
+      if (scrollRef.current) scrollRef.current.scrollTop = 0;
+    } else if (lastTurn._isNew && newTurnRef.current) {
       requestAnimationFrame(() => {
         newTurnRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
@@ -37,7 +41,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
 
   return (
     <div className={styles.narrativeWrapper}>
-      <div className={styles.narrativeScroll} ref={ref}>
+      <div className={styles.narrativeScroll} ref={(el) => { scrollRef.current = el; if (typeof ref === 'function') ref(el); else if (ref) ref.current = el; }}>
         <div className={styles.narrativeInner}>
           {worldBriefing && (
             <div className={styles.worldBriefing}>

@@ -146,20 +146,18 @@ export default function Sidebar({
         <div className={styles.sidebarFooter}>
           {onOpenReport && (
             <>
-              <button className={styles.footerBtn} onClick={() => onOpenReport('bug')}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <button className={styles.footerIconBtn} onClick={() => onOpenReport('bug')} aria-label="Report a bug" data-tooltip="Report a bug">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="8" y="6" width="8" height="14" rx="4" /><path d="M19 10h2" /><path d="M3 10h2" />
                   <path d="M19 14h2" /><path d="M3 14h2" /><path d="M19 18h2" /><path d="M3 18h2" />
                   <path d="M16 2l-2 4" /><path d="M8 2l2 4" />
                 </svg>
-                Bug
               </button>
-              <button className={styles.footerBtn} onClick={() => onOpenReport('suggest')}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <button className={styles.footerIconBtn} onClick={() => onOpenReport('suggest')} aria-label="Share a suggestion" data-tooltip="Share a suggestion">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 18h6" /><path d="M10 22h4" />
                   <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
                 </svg>
-                Suggest
               </button>
             </>
           )}
