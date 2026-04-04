@@ -1,7 +1,7 @@
 // FILE: app/play/page.js
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import * as api from '@/lib/api';
@@ -15,6 +15,7 @@ import SettingsModal, { THEMES, FONTS, SIZES } from './components/SettingsModal'
 import EntityPopup from './components/EntityPopup';
 import DebugPanel from './components/DebugPanel';
 import ReportModal from './components/ReportModal';
+import { buildGlossaryTermSet } from '@/lib/renderLinkedText';
 import styles from './play.module.css';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -162,6 +163,13 @@ function PlayPage() {
     }).catch(err => console.error('Failed to refresh character:', err));
   }, [gameId]);
 
+  const refetchGlossary = useCallback(() => {
+    if (!gameId) return;
+    api.get(`/api/game/${gameId}/glossary`).then(data => {
+      setGlossaryData(data);
+    }).catch(err => console.error('Failed to refresh glossary:', err));
+  }, [gameId]);
+
   const refetchNotes = useCallback(() => {
     if (!gameId) return;
     api.get(`/api/game/${gameId}/notes`).then(data => {
@@ -235,6 +243,7 @@ function PlayPage() {
     if (response.stateChanges) {
       addNotifications(response.stateChanges);
       refetchCharacter();
+      refetchGlossary();
     }
 
     // Enrich latest debug entry with turn number
@@ -245,7 +254,7 @@ function PlayPage() {
         return [{ ...latest, turnNumber: response.turn.number }, ...rest];
       });
     }
-  }, [addNotifications, refetchCharacter, gameState]);
+  }, [addNotifications, refetchCharacter, refetchGlossary, gameState]);
 
   // ─── Compass Escalation Handler ───
   const handleCompassEscalate = useCallback(async () => {
@@ -283,6 +292,9 @@ function PlayPage() {
   const lastResolutionTurn = turns.slice().reverse().find(t => t.resolution);
   const lastResolution = lastResolutionTurn?.resolution || null;
   const lastStateChanges = lastResolutionTurn?.stateChanges || null;
+
+  // Build glossary term set for bracket-notation linking in narrative
+  const glossaryTerms = useMemo(() => buildGlossaryTermSet(glossaryData), [glossaryData]);
 
   // ─── Submit Action (Step 5 handler) ───
   const submitAction = useCallback(async (actionBody) => {
@@ -627,6 +639,8 @@ function PlayPage() {
             lastResolution={lastResolution}
             lastStateChanges={lastStateChanges}
             onMetaResponse={handleMetaResponse}
+            glossaryTerms={glossaryTerms}
+            onEntityClick={setEntityPopup}
           />
           <ActionPanel
             actions={actions}
@@ -3771,6 +3785,7 @@ export default function MapTab({ data: initialData, gameId, onEntityClick }) {
 import { useRef, useEffect, forwardRef } from 'react';
 import TurnBlock from './TurnBlock';
 import TalkToGM from './TalkToGM';
+import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './NarrativePanel.module.css';
 
 // Small compass icon for GM aside header
@@ -3787,6 +3802,7 @@ function AsideCompassIcon() {
 const NarrativePanel = forwardRef(function NarrativePanel({
   turns, sessionRecap, worldBriefing, gameId, onTurnResponse,
   lastResolution, lastStateChanges, onMetaResponse,
+  glossaryTerms, onEntityClick,
 }, ref) {
   const newTurnRef = useRef(null);
   const bottomRef = useRef(null);
@@ -3816,7 +3832,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
           {worldBriefing && (
             <div className={styles.worldBriefing}>
               <div className={styles.briefingLabel}>Prologue</div>
-              <div className={styles.briefingText}>{worldBriefing}</div>
+              <div className={styles.briefingText}>{renderLinkedText(worldBriefing, glossaryTerms, onEntityClick)}</div>
             </div>
           )}
 
@@ -3856,6 +3872,8 @@ const NarrativePanel = forwardRef(function NarrativePanel({
                 <TurnBlock
                   turn={turn}
                   isNew={isNew}
+                  glossaryTerms={glossaryTerms}
+                  onEntityClick={onEntityClick}
                   ref={isLast && isNew ? newTurnRef : undefined}
                 />
               </div>
@@ -6153,6 +6171,25 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
     }
   }, [lastQuestion, gameId, rulesLoading, onTurnResponse]);
 
+  // ─── Rules Tab: Meta fallback (free, no turn cost) ───
+  const handleMetaFromRules = useCallback(async () => {
+    if (!lastQuestion || !gameId || rulesLoading) return;
+
+    setRulesLoading(true);
+    setRulesResult(prev => ({ ...prev, metaLoading: true }));
+
+    try {
+      const res = await api.post(`/api/game/${gameId}/talk-to-gm/meta`, { question: lastQuestion });
+      const responseText = res.response || 'The GM considered your question but had no specific response.';
+      setRulesResult(prev => ({ ...prev, metaResponse: responseText, metaLoading: false }));
+    } catch (err) {
+      console.error('Meta from rules failed:', err);
+      setRulesResult(prev => ({ ...prev, metaResponse: 'Failed to reach the GM. You can try escalating instead.', metaLoading: false }));
+    } finally {
+      setRulesLoading(false);
+    }
+  }, [lastQuestion, gameId, rulesLoading]);
+
   // ─── My Story Tab: Meta question ───
   const handleAskStory = useCallback(async () => {
     const question = storyInput.trim();
@@ -6541,23 +6578,51 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
       );
     }
 
+    // No keyword match — show meta response if available, otherwise offer meta then escalation
+    if (rulesResult.metaResponse) {
+      return (
+        <div>
+          <div className={styles.metaResponse} style={{ marginBottom: 10 }}>
+            <div className={styles.metaLabel}>GM</div>
+            <div className={styles.metaText}>{rulesResult.metaResponse}</div>
+          </div>
+          {rulesResult.canEscalate && (
+            <>
+              <div className={styles.resultSuggestion}>Need the GM to act on this in-world?</div>
+              <button className={styles.escalateButton} onClick={handleEscalate} disabled={rulesLoading}>
+                {rulesLoading ? 'Thinking...' : 'Escalate (costs a turn)'}
+              </button>
+              <div className={styles.turnCostWarning}>This will advance the story by one turn.</div>
+            </>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div>
         <div className={styles.resultSuggestion}>
-          {rulesResult.suggestion || 'The GM couldn\'t find an answer in the rulebook. Want to ask directly?'}
+          {rulesResult.suggestion || 'Not in the rulebook. Let me ask the GM...'}
         </div>
-        {rulesResult.canEscalate && (
-          <>
+        {rulesResult.canEscalate && !rulesResult.metaLoading && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              className={styles.escalateButton} style={{ borderColor: 'var(--accent-gold)', color: 'var(--accent-gold)' }}
+              onClick={handleMetaFromRules}
+              disabled={rulesLoading}
+            >
+              {rulesLoading ? 'Thinking...' : 'Ask the GM (free)'}
+            </button>
             <button
               className={styles.escalateButton}
               onClick={handleEscalate}
               disabled={rulesLoading}
             >
-              {rulesLoading ? 'Thinking...' : 'Ask the GM (costs a turn)'}
+              {rulesLoading ? 'Thinking...' : 'Escalate (costs a turn)'}
             </button>
-            <div className={styles.turnCostWarning}>This will use one turn.</div>
-          </>
+          </div>
         )}
+        {rulesResult.metaLoading && <div className={styles.loadingText}>The GM is thinking...</div>}
       </div>
     );
   };
@@ -6577,7 +6642,7 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
   }
 
   const contextualChip = getContextualChipLabel(lastResolution, lastStateChanges);
-  const showChips = !rulesLoading && !rulesResult;
+  const showChips = !rulesLoading;
 
   // ─── Expanded panel ───
   return (
@@ -6838,6 +6903,7 @@ import React, { useState, forwardRef } from 'react';
 import InlineDicePanel from './InlineDicePanel';
 import ResolutionBlock from './ResolutionBlock';
 import ReflectionBlock from './ReflectionBlock';
+import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './TurnBlock.module.css';
 
 // Format clock fields for display
@@ -6872,8 +6938,8 @@ function getWeatherEmoji(weather) {
   return null;
 }
 
-// Render narrative text: \n\n = paragraph break, \n = <br>
-function renderNarrative(text) {
+// Render narrative text: \n\n = paragraph break, \n = <br>, [brackets] = glossary links
+function renderNarrative(text, glossaryTerms, onEntityClick) {
   if (!text) return null;
   return text.split('\n\n').map((paragraph, i) => {
     const lines = paragraph.split('\n');
@@ -6882,7 +6948,7 @@ function renderNarrative(text) {
         {lines.map((line, j) => (
           <React.Fragment key={j}>
             {j > 0 && <br />}
-            {line}
+            {renderLinkedText(line, glossaryTerms, onEntityClick)}
           </React.Fragment>
         ))}
       </p>
@@ -6998,7 +7064,7 @@ function StatusBadges({ stateChanges }) {
   );
 }
 
-const TurnBlock = forwardRef(function TurnBlock({ turn, isNew }, ref) {
+const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, onEntityClick }, ref) {
   const hasResolution = !!turn.resolution;
   const shouldAnimate = isNew && hasResolution;
   const [showContent, setShowContent] = useState(!shouldAnimate);
@@ -7060,7 +7126,7 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew }, ref) {
           <ReflectionBlock reflection={turn.reflection} />
 
           <div className={styles.narrativeText}>
-            {renderNarrative(turn.narrative)}
+            {renderNarrative(turn.narrative, glossaryTerms, onEntityClick)}
           </div>
 
           <StatusBadges stateChanges={turn.stateChanges} />

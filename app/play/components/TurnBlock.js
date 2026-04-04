@@ -2,6 +2,7 @@ import React, { useState, forwardRef } from 'react';
 import InlineDicePanel from './InlineDicePanel';
 import ResolutionBlock from './ResolutionBlock';
 import ReflectionBlock from './ReflectionBlock';
+import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './TurnBlock.module.css';
 
 // Format clock fields for display
@@ -36,8 +37,8 @@ function getWeatherEmoji(weather) {
   return null;
 }
 
-// Render narrative text: \n\n = paragraph break, \n = <br>
-function renderNarrative(text) {
+// Render narrative text: \n\n = paragraph break, \n = <br>, [brackets] = glossary links
+function renderNarrative(text, glossaryTerms, onEntityClick) {
   if (!text) return null;
   return text.split('\n\n').map((paragraph, i) => {
     const lines = paragraph.split('\n');
@@ -46,7 +47,7 @@ function renderNarrative(text) {
         {lines.map((line, j) => (
           <React.Fragment key={j}>
             {j > 0 && <br />}
-            {line}
+            {renderLinkedText(line, glossaryTerms, onEntityClick)}
           </React.Fragment>
         ))}
       </p>
@@ -162,7 +163,7 @@ function StatusBadges({ stateChanges }) {
   );
 }
 
-const TurnBlock = forwardRef(function TurnBlock({ turn, isNew }, ref) {
+const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, onEntityClick }, ref) {
   const hasResolution = !!turn.resolution;
   const shouldAnimate = isNew && hasResolution;
   const [showContent, setShowContent] = useState(!shouldAnimate);
@@ -224,7 +225,7 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew }, ref) {
           <ReflectionBlock reflection={turn.reflection} />
 
           <div className={styles.narrativeText}>
-            {renderNarrative(turn.narrative)}
+            {renderNarrative(turn.narrative, glossaryTerms, onEntityClick)}
           </div>
 
           <StatusBadges stateChanges={turn.stateChanges} />

@@ -145,6 +145,25 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
     }
   }, [lastQuestion, gameId, rulesLoading, onTurnResponse]);
 
+  // ─── Rules Tab: Meta fallback (free, no turn cost) ───
+  const handleMetaFromRules = useCallback(async () => {
+    if (!lastQuestion || !gameId || rulesLoading) return;
+
+    setRulesLoading(true);
+    setRulesResult(prev => ({ ...prev, metaLoading: true }));
+
+    try {
+      const res = await api.post(`/api/game/${gameId}/talk-to-gm/meta`, { question: lastQuestion });
+      const responseText = res.response || 'The GM considered your question but had no specific response.';
+      setRulesResult(prev => ({ ...prev, metaResponse: responseText, metaLoading: false }));
+    } catch (err) {
+      console.error('Meta from rules failed:', err);
+      setRulesResult(prev => ({ ...prev, metaResponse: 'Failed to reach the GM. You can try escalating instead.', metaLoading: false }));
+    } finally {
+      setRulesLoading(false);
+    }
+  }, [lastQuestion, gameId, rulesLoading]);
+
   // ─── My Story Tab: Meta question ───
   const handleAskStory = useCallback(async () => {
     const question = storyInput.trim();
@@ -533,23 +552,51 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
       );
     }
 
+    // No keyword match — show meta response if available, otherwise offer meta then escalation
+    if (rulesResult.metaResponse) {
+      return (
+        <div>
+          <div className={styles.metaResponse} style={{ marginBottom: 10 }}>
+            <div className={styles.metaLabel}>GM</div>
+            <div className={styles.metaText}>{rulesResult.metaResponse}</div>
+          </div>
+          {rulesResult.canEscalate && (
+            <>
+              <div className={styles.resultSuggestion}>Need the GM to act on this in-world?</div>
+              <button className={styles.escalateButton} onClick={handleEscalate} disabled={rulesLoading}>
+                {rulesLoading ? 'Thinking...' : 'Escalate (costs a turn)'}
+              </button>
+              <div className={styles.turnCostWarning}>This will advance the story by one turn.</div>
+            </>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div>
         <div className={styles.resultSuggestion}>
-          {rulesResult.suggestion || 'The GM couldn\'t find an answer in the rulebook. Want to ask directly?'}
+          {rulesResult.suggestion || 'Not in the rulebook. Let me ask the GM...'}
         </div>
-        {rulesResult.canEscalate && (
-          <>
+        {rulesResult.canEscalate && !rulesResult.metaLoading && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              className={styles.escalateButton} style={{ borderColor: 'var(--accent-gold)', color: 'var(--accent-gold)' }}
+              onClick={handleMetaFromRules}
+              disabled={rulesLoading}
+            >
+              {rulesLoading ? 'Thinking...' : 'Ask the GM (free)'}
+            </button>
             <button
               className={styles.escalateButton}
               onClick={handleEscalate}
               disabled={rulesLoading}
             >
-              {rulesLoading ? 'Thinking...' : 'Ask the GM (costs a turn)'}
+              {rulesLoading ? 'Thinking...' : 'Escalate (costs a turn)'}
             </button>
-            <div className={styles.turnCostWarning}>This will use one turn.</div>
-          </>
+          </div>
         )}
+        {rulesResult.metaLoading && <div className={styles.loadingText}>The GM is thinking...</div>}
       </div>
     );
   };
@@ -569,7 +616,7 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
   }
 
   const contextualChip = getContextualChipLabel(lastResolution, lastStateChanges);
-  const showChips = !rulesLoading && !rulesResult;
+  const showChips = !rulesLoading;
 
   // ─── Expanded panel ───
   return (

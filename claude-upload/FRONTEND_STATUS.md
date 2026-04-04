@@ -34,6 +34,32 @@
 
 ## Recent Work (This Session: 2026-04-04)
 
+### Playtest Findings: Glossary Linking, Talk to GM Flow, Glossary Refetch
+Three features from 2026-04-04 playtest findings:
+
+**1. Bracket notation → clickable glossary links in narrative**
+- New utility `lib/renderLinkedText.js`: parses `[Bracketed Terms]` into gold clickable spans that open EntityPopup
+- `buildGlossaryTermSet()` creates a fast-lookup Set from glossary entries
+- Integrated into TurnBlock (narrative text) and NarrativePanel (world briefing)
+- Props threaded: page.js → NarrativePanel → TurnBlock (glossaryTerms + onEntityClick)
+- Bracket terms not found in glossary render as plain text (brackets stripped)
+
+**2. Talk to GM — meta before escalation + persistent chips**
+- Suggested question chips now remain visible after a result (previously hidden)
+- When keyword lookup misses: "Ask the GM (free)" button calls `/talk-to-gm/meta` endpoint (no turn cost)
+- "Escalate (costs a turn)" button still available alongside for in-world actions
+- Meta response renders as GM aside with gold left-border styling
+- After meta response, escalation still offered below if needed
+
+**3. Glossary refetch after turns**
+- Added `refetchGlossary()` callback (parallel to `refetchCharacter()`)
+- Called on every stateChanges response so new glossary entries from gameplay are available
+
+**Session recap (Item 4):** Already implemented — `GET /api/games/:id` is called on load, `sessionRecap` is extracted and passed to NarrativePanel, displays as "PREVIOUSLY..." card. No changes needed.
+
+**Files created:** `lib/renderLinkedText.js`.
+**Files modified:** `app/play/page.js`, `app/play/components/NarrativePanel.js`, `app/play/components/TurnBlock.js`, `app/play/components/TalkToGM.js`.
+
 ### Play Screen Polish Pass (Bucket 1)
 Seven targeted UI fixes from a play screen audit:
 

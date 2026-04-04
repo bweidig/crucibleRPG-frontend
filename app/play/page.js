@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import * as api from '@/lib/api';
@@ -14,6 +14,7 @@ import SettingsModal, { THEMES, FONTS, SIZES } from './components/SettingsModal'
 import EntityPopup from './components/EntityPopup';
 import DebugPanel from './components/DebugPanel';
 import ReportModal from './components/ReportModal';
+import { buildGlossaryTermSet } from '@/lib/renderLinkedText';
 import styles from './play.module.css';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -161,6 +162,13 @@ function PlayPage() {
     }).catch(err => console.error('Failed to refresh character:', err));
   }, [gameId]);
 
+  const refetchGlossary = useCallback(() => {
+    if (!gameId) return;
+    api.get(`/api/game/${gameId}/glossary`).then(data => {
+      setGlossaryData(data);
+    }).catch(err => console.error('Failed to refresh glossary:', err));
+  }, [gameId]);
+
   const refetchNotes = useCallback(() => {
     if (!gameId) return;
     api.get(`/api/game/${gameId}/notes`).then(data => {
@@ -234,6 +242,7 @@ function PlayPage() {
     if (response.stateChanges) {
       addNotifications(response.stateChanges);
       refetchCharacter();
+      refetchGlossary();
     }
 
     // Enrich latest debug entry with turn number
@@ -244,7 +253,7 @@ function PlayPage() {
         return [{ ...latest, turnNumber: response.turn.number }, ...rest];
       });
     }
-  }, [addNotifications, refetchCharacter, gameState]);
+  }, [addNotifications, refetchCharacter, refetchGlossary, gameState]);
 
   // ─── Compass Escalation Handler ───
   const handleCompassEscalate = useCallback(async () => {
@@ -282,6 +291,9 @@ function PlayPage() {
   const lastResolutionTurn = turns.slice().reverse().find(t => t.resolution);
   const lastResolution = lastResolutionTurn?.resolution || null;
   const lastStateChanges = lastResolutionTurn?.stateChanges || null;
+
+  // Build glossary term set for bracket-notation linking in narrative
+  const glossaryTerms = useMemo(() => buildGlossaryTermSet(glossaryData), [glossaryData]);
 
   // ─── Submit Action (Step 5 handler) ───
   const submitAction = useCallback(async (actionBody) => {
@@ -626,6 +638,8 @@ function PlayPage() {
             lastResolution={lastResolution}
             lastStateChanges={lastStateChanges}
             onMetaResponse={handleMetaResponse}
+            glossaryTerms={glossaryTerms}
+            onEntityClick={setEntityPopup}
           />
           <ActionPanel
             actions={actions}

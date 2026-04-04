@@ -1,6 +1,7 @@
 import { useRef, useEffect, forwardRef } from 'react';
 import TurnBlock from './TurnBlock';
 import TalkToGM from './TalkToGM';
+import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './NarrativePanel.module.css';
 
 // Small compass icon for GM aside header
@@ -17,6 +18,7 @@ function AsideCompassIcon() {
 const NarrativePanel = forwardRef(function NarrativePanel({
   turns, sessionRecap, worldBriefing, gameId, onTurnResponse,
   lastResolution, lastStateChanges, onMetaResponse,
+  glossaryTerms, onEntityClick,
 }, ref) {
   const newTurnRef = useRef(null);
   const bottomRef = useRef(null);
@@ -46,7 +48,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
           {worldBriefing && (
             <div className={styles.worldBriefing}>
               <div className={styles.briefingLabel}>Prologue</div>
-              <div className={styles.briefingText}>{worldBriefing}</div>
+              <div className={styles.briefingText}>{renderLinkedText(worldBriefing, glossaryTerms, onEntityClick)}</div>
             </div>
           )}
 
@@ -86,6 +88,8 @@ const NarrativePanel = forwardRef(function NarrativePanel({
                 <TurnBlock
                   turn={turn}
                   isNew={isNew}
+                  glossaryTerms={glossaryTerms}
+                  onEntityClick={onEntityClick}
                   ref={isLast && isNew ? newTurnRef : undefined}
                 />
               </div>
