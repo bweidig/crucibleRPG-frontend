@@ -224,37 +224,26 @@
   max-width: 280px;
 }
 
-/* ─── Detail Panel (overlay) ─── */
-
-.panelBackdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 9;
-  animation: fadeIn 0.2s ease;
-}
+/* ─── Detail Panel (inline push) ─── */
 
 .pushPanel {
-  position: fixed;
+  width: 440px;
+  flex-shrink: 0;
+  position: sticky;
   top: 0;
-  left: 0;
-  width: 480px;
-  height: 100vh;
+  align-self: flex-start;
+  max-height: 100vh;
   background: #0d1120;
   border-right: 1px solid #1e2540;
+  border-radius: 0 8px 8px 0;
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
   overflow-y: auto;
-  z-index: 10;
-  animation: slideIn 0.25s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  animation: slideIn 0.2s ease-out;
 }
 
 @keyframes slideIn {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 .panelClose {
@@ -579,7 +568,7 @@
 
 @media (max-width: 1023px) {
   .pushPanel {
-    width: 380px;
+    width: 340px;
   }
 
   .searchInput {

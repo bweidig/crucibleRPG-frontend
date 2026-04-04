@@ -34,6 +34,11 @@
 
 ## Recent Work (This Session: 2026-04-04)
 
+### Admin Detail Panel — Inline Push Instead of Overlay
+Changed the admin detail panel (user detail, game detail) from a fixed-position overlay to an inline flex element that pushes the table content to the right. The panel is now sticky-positioned at the top of the viewport, sits inside the existing flex layout, and scrolls independently. Removed the backdrop overlay and the content area maxWidth cap so the panel + table use the full viewport width.
+
+**Files modified:** `app/admin/page.js`, `app/admin/page.module.css`.
+
 ### Universal Glossary Linking
 Extended `renderLinkedText` from narrative-only to every component that displays prose or definitions.
 

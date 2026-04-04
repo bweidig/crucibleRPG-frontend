@@ -311,6 +311,7 @@ function TurnBlock({ entry }) {
 
 function UsersTab({ data, loading, onRefresh, onGameDeleted, onViewGame, onNavigateToGames }) {
   const [search, setSearch] = useState('');
+  const [pendingOnly, setPendingOnly] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userDetail, setUserDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -323,6 +324,8 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted, onViewGame, onNavig
   useEffect(() => { if (data?.users) setUsers(data.users); }, [data]);
 
   const filtered = users.filter(u => {
+    if (pendingOnly && u.isPlaytester) return false;
+    if (pendingOnly && !u.playtestAbout && !u.playtestSource) return false;
     if (!search) return true;
     const q = search.toLowerCase();
     return (u.displayName || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q);
@@ -379,6 +382,26 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted, onViewGame, onNavig
                 Joined {formatDate(userDetail.user?.createdAt)} &middot; Playtester: {userDetail.user?.isPlaytester ? 'Yes' : 'No'} &middot; Debug: {userDetail.user?.isDebug ? 'Yes' : 'No'}
               </p>
 
+              {(userDetail.user?.playtestAbout || userDetail.user?.playtestSource) && (
+                <div style={{ marginBottom: 24 }}>
+                  <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 10 }}>
+                    Playtest Request
+                  </span>
+                  {userDetail.user.playtestAbout && (
+                    <div style={{ marginBottom: 8 }}>
+                      <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#6b83a3' }}>About: </span>
+                      <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#8a94a8' }}>{userDetail.user.playtestAbout}</span>
+                    </div>
+                  )}
+                  {userDetail.user.playtestSource && (
+                    <div>
+                      <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#6b83a3' }}>Source: </span>
+                      <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#8a94a8' }}>{userDetail.user.playtestSource}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div style={{ marginBottom: 24 }}>
                 <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                   Total AI Spend
@@ -434,6 +457,7 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted, onViewGame, onNavig
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <input className={styles.searchInput} placeholder="Search by name or email..." value={search} onChange={e => setSearch(e.target.value)} />
+            <button className={pendingOnly ? styles.filterPillActive : styles.filterPill} onClick={() => setPendingOnly(!pendingOnly)} style={{ fontSize: 11, padding: '4px 10px' }}>Pending Requests</button>
             <button className={styles.refreshBtn} onClick={onRefresh}>Refresh</button>
           </div>
         </div>
@@ -1789,7 +1813,7 @@ export default function AdminPage() {
       </div>
 
       {/* Content */}
-      <div style={{ padding: '24px 40px', maxWidth: 1200 }}>
+      <div style={{ padding: '24px 40px' }}>
         {activeTab === 'Users' && (
           <UsersTab
             data={usersData} loading={usersLoading}
