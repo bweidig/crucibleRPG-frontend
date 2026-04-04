@@ -32,27 +32,29 @@ Use this document when implementing or updating any CrucibleRPG frontend page. A
 | Secondary text | `#8a94a8` | 5.9:1 | Stat values, descriptions |
 | Brighter secondary | `#8a9ab8` | 6.6:1 | Italic subtitles, timestamps, small text needing extra legibility |
 | Stat values bright | `#b0b8cc` | 8.5:1 | Card detail values (setting, storyteller, etc.) |
-| Muted text | `#7082a4` | 4.7:1 | Labels, metadata, tab text |
+| Muted text | `#7082a4` | ~4.7:1* | Labels, metadata, tab text |
 | Dim text | `#6b83a3` | 4.7:1 | Tertiary info |
 | Accent gold | `#c9a84c` | 7.9:1 | Active states, links, highlights |
 | Accent bright | `#ddb84e` | 9.5:1 | CTAs, emphasis |
 | Danger | `#e8845a` | 6.8:1 | Condition penalties, warnings |
 | Success | `#8aba7a` | 8.1:1 | Resolution success, positive states |
 
+*`--text-muted` achieves 4.7:1 mathematically but reads lower at light font weights. Use `--text-secondary` (#8a94a8, 5.9:1) for any text meant to be read at length. Reserve `--text-muted` for short labels at 14px+ and weight 400+ only.
+
 ### Marketing Page Text Rules
 
 Body text on marketing pages (landing, pricing, FAQ, rulebook) must use:
 - **`--text-secondary` (#8a94a8)** at **weight 400** for all body/description text
 - **`--text-primary` (#c8c0b0)** for primary content the user must read
-- **`--text-muted` (#7082a4)** only for labels, metadata, and truly de-emphasized elements at 14px minimum
+- **`--text-muted` (#7082a4)** only for short labels, metadata, and de-emphasized elements at 14px minimum
 
 Do NOT use `--text-dim` (#6b83a3) or weight 300 for body text on marketing pages. These fail readability at paragraph length.
 
 On the game layout (`/play`), `--text-muted` and `--text-dim` remain valid for sidebar metadata and tertiary info where the context is dense and the user is already engaged.
 
-### Consolidation Note (April 2026)
+### Text Color Consolidation (April 2026)
 
-The landing page uses only two grey-blue text values: `--text-secondary` (#8a94a8) for body text and `--text-muted` (#7082a4) for de-emphasized metadata. `--text-secondary-bright` (#8a9ab8) and `--text-dim` (#6b83a3) are retained in the system for game layout use but should NOT appear on marketing pages. When building new marketing pages, use `--text-secondary` as the default body text color.
+Marketing pages use only two grey-blue text values: `--text-secondary` (#8a94a8) for body text and `--text-muted` (#7082a4) for de-emphasized metadata. `--text-secondary-bright` (#8a9ab8) and `--text-dim` (#6b83a3) are retained for game layout use but must NOT appear on marketing pages. When building new marketing pages, use `--text-secondary` as the default body text color.
 
 **Gold Label Colors:**
 | Role | Hex | CSS Variable | Usage |
@@ -128,20 +130,20 @@ If a new weight or style is needed, add it to the import. Never use a weight/sty
 
 **Key rule:** If you need italic text, use **Alegreya** (not Alegreya Sans). Alegreya Sans has no italic variant loaded.
 
+### Weight Rules — Marketing Pages
+- **Weight 300** (light): Do not use for body text on marketing pages. Reserved for game layout UI where text is short and high-contrast.
+- **Weight 400** (regular): Default for all body text on marketing pages.
+- **Weight 500** (medium): Alegreya italic taglines and subtitles only.
+- **Weight 600** (semibold): Cinzel labels, section headers, secondary buttons.
+- **Weight 700** (bold): Cinzel headings, primary buttons.
+- **Weight 900** (black): Cinzel hero wordmark only.
+
 ### Font Inheritance Rule
 All text in the game layout must respect the user's font setting via `var(--body-font)`. The `--body-font` variable is set on `:root` (defaults to Lexie Readable) and applied to `html, body`. To swap fonts at runtime, update `--body-font` via JavaScript. Only use hardcoded font families for:
 - `Cinzel` on section headers and labels (decorative/structural)
 - `JetBrains Mono` on pure numerical values (stat numbers, turn counts, timestamps)
 
 Everything else inherits from the user's font choice.
-
-### Weight Rules
-- **Weight 300** (light): Do not use for body text on marketing pages. Reserved for game layout UI where text is short and high-contrast.
-- **Weight 400** (regular): Default for all body text.
-- **Weight 500** (medium): Alegreya italic taglines and subtitles.
-- **Weight 600** (semibold): Cinzel labels, section headers, secondary buttons.
-- **Weight 700** (bold): Cinzel headings, primary buttons.
-- **Weight 900** (black): Cinzel hero wordmark only.
 
 ---
 
@@ -168,8 +170,7 @@ Appears on ALL pages: Landing, Coming Soon, Main Menu, Auth, Init Wizard, Loadin
 - Font: Cinzel, 13px, 700 weight, letter-spacing 0.1em
 - Padding: `14px 28px`
 - Border: none
-- Border-radius: `4px`
-- Hover: `box-shadow: 0 4px 30px rgba(201, 168, 76, 0.45)` + `translateY(-2px)`
+- Border-radius: `6px`
 
 ### Secondary / Ghost Button
 - Background: transparent
@@ -177,28 +178,31 @@ Appears on ALL pages: Landing, Coming Soon, Main Menu, Auth, Init Wizard, Loadin
 - Text: `#c9a84c`
 - Font: Cinzel, 12px, 600 weight
 - Padding: `12px 24px`
-- Border-radius: `4px`
-- Hover: border color `#564b2e`, background `rgba(201,168,76,0.04)`
+- Border-radius: `6px`
 
 ---
 
 ## Hover & Interaction Patterns
 
 ### Interactive Elements (buttons, links, clickable cards)
-- Primary CTA: `translateY(-2px)` + `box-shadow: 0 4px 30px rgba(201,168,76,0.45)`
-- Secondary/Ghost CTA: background fills to `--bg-gold-subtle`, border warms to `--border-card-hover`, text shifts to `--accent-gold`
-- Nav links: color shifts to `--accent-gold` (0.2s), underline scales via ::after (0.3s)
-- Clickable cards (e.g. showcase choice cards): border warms to `rgba(201,168,76,0.2)`, background tints to `rgba(201,168,76,0.04)`, cursor: pointer
+- **Primary CTA:** `translateY(-2px)` + `box-shadow: 0 4px 30px rgba(201,168,76,0.45)` (0.3s ease)
+- **Secondary/Ghost CTA:** background fills to `--bg-gold-subtle`, border warms to `--border-card-hover`, text color shifts to `--accent-gold` (0.3s ease)
+- **Nav links:** color shifts to `--accent-gold` (0.2s), underline scales from 0 to 1 via ::after (0.3s)
+- **Clickable cards (showcase choice cards, saved game cards):** border warms to `rgba(201,168,76,0.2)`, background tints to `rgba(201,168,76,0.04)`, cursor: pointer
 
 ### Non-Interactive Cards (feature cards, info cards)
 - Border warms to `rgba(201,168,76,0.25)`, background shifts to `--bg-card-elevated` (#1a2038)
 - Heading text shifts to `--accent-gold`
-- Do NOT add `translateY`, `box-shadow`, or `cursor: pointer` — these signal clickability
+- Transition: `border-color 0.4s ease, background 0.4s ease`
+- Do NOT add `translateY`, `box-shadow`, or `cursor: pointer` — these signal clickability. Non-interactive cards should feel alive on hover but never suggest they are links or buttons.
 
-### Universal
+### Focus-Visible (all interactive elements)
+- `outline: 2px solid rgba(201,168,76,0.6); outline-offset: 3px; border-radius: 6px`
+- Applied via `:focus-visible` — never `:focus` (which fires on mouse click)
+
+### Universal Timing
 - All hover transitions: 0.3s–0.4s ease
-- Spring-out easing for card transitions: `cubic-bezier(0.16, 1, 0.3, 1)`
-- All interactive elements must have `:focus-visible` styles: `outline: 2px solid rgba(201,168,76,0.6); outline-offset: 3px`
+- Spring-out easing for card entrance animations: `cubic-bezier(0.16, 1, 0.3, 1)`
 
 ---
 
@@ -206,12 +210,25 @@ Appears on ALL pages: Landing, Coming Soon, Main Menu, Auth, Init Wizard, Loadin
 
 - Background: `#0a0e1a`
 - Border: `1px solid rgba(201,168,76,0.15)` (decorative, transparency OK here)
-- Border-radius: `4px`
+- Border-radius: `6px`
 - Padding: `14px 20px`
 - Font: Alegreya Sans, 16px, 400 weight
 - Text color: `#c8c0b0`
 - Placeholder color: `#7082a4`
-- Focus: subtle gold glow `box-shadow: 0 0 0 2px rgba(201,168,76,0.2)`
+- Focus: gold ring `box-shadow: rgba(201,168,76,0.15) 0 0 0 3px, rgba(201,168,76,0.08) 0 0 16px` + border-color shift to `#564b2e`
+
+### Chrome Autofill Override
+Required in `globals.css` for all dark-theme forms. Prevents Chrome autofill from turning input backgrounds white.
+```css
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-main) inset !important;
+  -webkit-text-fill-color: #c8c0b0 !important;
+  caret-color: #c8c0b0;
+  transition: background-color 5000s ease-in-out 0s;
+}
+```
 
 ---
 
@@ -227,16 +244,17 @@ Appears on ALL pages: Landing, Coming Soon, Main Menu, Auth, Init Wizard, Loadin
 - Card padding: `24px–32px`
 - Element gaps: `12px` (tight), `20px` (standard), `32px` (loose), `48px` (section breaks)
 
-### Border Radius
-- Cards, buttons, inputs: `4px`
-- Modals, popups: `8px`
-- Circular elements (avatars, badges): `50%`
-
 ### Showcase / Demo Containers
-- Border: `1px solid rgba(201,168,76,0.12)` (subtle gold-tinted)
+- Border: `1px solid rgba(201,168,76,0.12)`
 - Background: `rgba(21,26,44,0.5)`
 - Border-radius: `8px`
 - Padding: `36px 32px` (desktop), `28px 20px` (mobile)
+
+### Border Radius
+- Cards, containers, showcase: `8px`
+- Buttons, inputs: `6px`
+- Modals, popups: `8px`
+- Circular elements (avatars, badges): `50%`
 
 ---
 
@@ -252,22 +270,22 @@ Appears on ALL pages: Landing, Coming Soon, Main Menu, Auth, Init Wizard, Loadin
 
 ## Type Scale — Marketing Pages
 
-Marketing pages use a constrained type scale. Avoid introducing sizes between these steps.
+Marketing pages use a constrained type scale. Do not introduce sizes between these steps.
 
-| Size | Usage |
-|------|-------|
-| 80px | Hero wordmark (Cinzel 900, clamp down on mobile) |
-| 36px | Hero tagline (Alegreya italic 500) |
-| 27px | Feature card headings (Cinzel 700) |
-| 24px | Step headings, section subheadings (Cinzel 700) |
-| 18px | Featured body text, narrative showcase text (Alegreya italic / Alegreya Sans 400) |
-| 16px | Standard body text, descriptions, FAQ answers (Alegreya Sans 400) |
-| 15px | CTA button text (Cinzel 700) |
-| 14px | Section labels, metadata (Cinzel 600) |
-| 12px | Nav links (Cinzel 600) |
-| 11px | Category labels, chevron labels (Cinzel 600, requires 7:1+ contrast color) |
+| Size | Font | Weight | Usage |
+|------|------|--------|-------|
+| 80px | Cinzel | 900 | Hero wordmark (clamp down on mobile) |
+| 36px | Alegreya italic | 500 | Hero tagline |
+| 27px | Cinzel | 700 | Feature card headings |
+| 24px | Cinzel | 700 | Step headings, section subheadings |
+| 18px | Alegreya / Alegreya Sans | 400 | Featured body text, narrative showcase text, hero sub-tagline |
+| 16px | Alegreya Sans | 400 | Standard body text, descriptions, FAQ answers |
+| 15px | Cinzel | 700 | CTA button text |
+| 14px | Cinzel | 600 | Section labels, metadata |
+| 12px | Cinzel | 600 | Nav links |
+| 11px | Cinzel | 600 | Category labels, chevron labels (requires 7:1+ contrast color) |
 
-The 16/17/18/19px cluster was consolidated to 16px (standard) and 18px (featured). Do not add 17px or 19px body text sizes.
+The body text cluster was consolidated from 16/17/18/19px to two sizes: 16px (standard) and 18px (featured). Do not add 17px or 19px body text sizes.
 
 ---
 
@@ -283,11 +301,72 @@ Used for form validation errors (e.g., incorrect password on modal).
 
 ## Particle Field
 
-The floating gold particle animation appears on: Landing, Coming Soon.
-- 35–40 particles, random positions, sizes 0.8–3.3px
+The floating gold particle animation appears on ALL pages: Landing, Coming Soon, Auth, Menu, Pricing, FAQ, Rulebook, Saved Games, Settings, Privacy, Terms. Hidden on mobile via `@media (max-width: 767px)`. Also appears on `/play` (game layout).
+
+- 35–40 particles (60 on Coming Soon), random positions, sizes 0.8–3.3px
 - Color: `#c9a84c`, low opacity (0.08–0.33)
 - Animation: slow vertical float, 6–20 second duration
-- Must respect `prefers-reduced-motion` (disable animation when set)
+- Optional twinkle: 40% of particles get a secondary opacity pulse animation
+- Depth layering: particles grouped into 3 size-based layers with cursor parallax (4/8/14px max shift)
+- Must respect `prefers-reduced-motion` (disable all animation when set)
+- GPU compositing: `will-change: transform, opacity` on particle elements
+
+---
+
+## Interactive Gameplay Showcase
+
+Landing page centerpiece positioned between hero and features sections. Visitors click choice cards to see different dice-resolved narrative outcomes.
+
+### Structure
+Three scenarios cycle via NEXT SCENARIO button and dot navigation: Dark Fantasy (Bard voice), Industrial Sci-Fi (Noir voice), Noir Mystery (Whisper voice). Each scenario contains: genre label, storyteller name, narrative passage, three clickable choice cards, permanently disabled custom action input, dice result bar, and narrative outcome.
+
+### First Load Behavior
+First scenario renders immediately with all content visible (no typewriter animation). Choices appear unselected, waiting for user click. Subsequent scenarios triggered by NEXT SCENARIO use the full typewriter animation sequence.
+
+### Interactivity
+- Each scenario has 3 prefab results (9 total) covering Tier 2, 3, 4, and 5 outcomes
+- Clicking a choice card highlights it (gold border + background), dims others to 0.35 opacity
+- Dice bar and result text appear after selection (with fade-in on firstView, typewriter on subsequent scenarios)
+- TRY ANOTHER button resets to choices within same scenario (fade out result, scroll to showcase top, restore choice cards)
+- NEXT SCENARIO and dots visible from the moment choices appear (no selection required to advance)
+- Custom action row permanently greyed out (opacity 0.35) with "Available in game" label in `--gold-muted` at 11px
+
+### Dice Bar Format
+DC X.X · Stat X.X [+ Skill +X.X] · Matched/Outmatched · Roll: X · Total: X.X · Tier N Result
+
+### Dice Tier Colors
+| Tier | CSS Class | Color |
+|------|-----------|-------|
+| Tier 2 Success | `.diceSuccess` | `#8ab060` |
+| Tier 3 Costly Success | `.diceCostly` | `#d4a84c` |
+| Tier 4 Small Mercy | `.diceMercy` | `#c9a84c` |
+| Tier 5 Failure | `.diceFailure` | `#e8845a` |
+
+### Typography
+- Genre label: Cinzel 11px/600, letter-spacing 3px, `--accent-gold`
+- Storyteller label: Alegreya Sans 12px, `--gold-muted` (#9a8545)
+- Narrative text: Alegreya italic 18px, line-height 1.75, `#b8ad94`
+- Choice letter: Cinzel 14px/600, `#564b2e` default / `--accent-gold` selected
+- Choice text: Alegreya Sans 15px, line-height 1.55, `--text-muted` default / `--text-heading` selected
+- Result text: Alegreya italic 18px, line-height 1.75, `#b8ad94`
+- Dice bar: Alegreya Sans 14px, `--gold-muted`, letter-spacing 0.3px
+- Buttons: Cinzel 12px/600, letter-spacing 2px, `--gold-muted`
+
+### Animation Timing
+- Narrative typewriter: 30ms per word (was 50ms, sped up for marketing context)
+- Result typewriter: 25ms per word (was 40ms)
+- Choice card entrance: slideInChoice 0.5s ease-out, staggered 120ms between each
+- Dice bar entrance: fadeUpIn 0.5s ease-out
+- Scenario crossfade: 200ms opacity transition with minHeight preservation to prevent layout collapse
+- TRY ANOTHER reset: 250ms fade out on result/dice, 300ms fade in on restored choices
+- Showcase container entrance: 0.6s opacity fade on IntersectionObserver trigger
+
+### Choice Card States
+- Default: bg `rgba(255,255,255,0.02)`, border `rgba(255,255,255,0.06)`, cursor pointer
+- Hover (unselected): border `rgba(201,168,76,0.2)`, bg `rgba(201,168,76,0.04)`, letter turns gold
+- Selected: bg `rgba(201,168,76,0.08)`, border `rgba(201,168,76,0.3)`
+- Dimmed: opacity 0.35
+- Focus-visible: `outline: 2px solid rgba(201,168,76,0.6); outline-offset: 2px`
 
 ---
 
@@ -307,6 +386,24 @@ Standard footer across all pages:
 - **Value proposition:** "Your story. Your choices. No table required."
 - **Landing page CTA:** "Every Hero Needs a Crucible. Yours is waiting."
 - **Voice:** Confident but not corporate, accessible but not childish, fantasy-flavored without being cheesy.
+
+---
+
+## Storyteller Voices
+
+Six narrator voices plus Custom, selected during character creation. Selection is purely narrative with no mechanical effect. Can be changed mid-game at any time.
+
+| Voice | One-Liner | Technique |
+|-------|-----------|-----------|
+| Chronicler | The world as it is. | Factual, court-witness detail, no metaphor or simile |
+| Bard | You are the hero of this story. | Grounded epic, earned emotional weight, never stacked similes |
+| Trickster | The world has a sense of humor. | Observational, dry, one wry line per paragraph max |
+| Poet | Every victory has a cost. | Sensory absence, specific images over abstraction |
+| Whisper | Something is always wrong. | 90% warmth / 10% buried wrongness, one wrong detail per scene |
+| Noir | Nobody is clean. | Read people by actions, one deduction per scene, earned cynicism |
+| Custom | Define your own voice. | Player-defined via freeform text |
+
+Font usage: storyteller names in Alegreya Sans, one-liners in Alegreya italic, narrator labels in Alegreya Sans at reduced size and `--gold-muted`.
 
 ---
 
@@ -358,5 +455,3 @@ Mobile:   below 768px
 ### Deferred (post-launch):
 - [ ] Full screen reader testing with assistive technology
 - [ ] Comprehensive device/browser accessibility testing
-
-

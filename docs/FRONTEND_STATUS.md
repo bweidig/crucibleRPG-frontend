@@ -34,6 +34,11 @@
 
 ## Recent Work (This Session: 2026-04-04)
 
+### Design System Document Overhaul
+Design system document overhauled — marketing text rules, type scale discipline (font/weight columns added), weight rules scoped to marketing pages, hover/interaction patterns (non-interactive cards no longer lift, focus-visible standard, universal timing), interactive gameplay showcase specs, storyteller voices reference, text color consolidation note, contrast warning on --text-muted, Chrome autofill override, border-radius updates (6px buttons/inputs, 8px cards), input focus state update, particle field expanded to all pages.
+
+**Files modified:** `docs/design-system.md`.
+
 ### Admin Detail Panel — Inline Push Instead of Overlay
 Changed the admin detail panel (user detail, game detail) from a fixed-position overlay to an inline flex element that pushes the table content to the right. The panel is now sticky-positioned at the top of the viewport, sits inside the existing flex layout, and scrolls independently. Removed the backdrop overlay and the content area maxWidth cap so the panel + table use the full viewport width.
 
