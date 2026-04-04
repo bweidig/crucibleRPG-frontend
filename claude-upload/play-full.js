@@ -1,4 +1,4 @@
-// FILE: app/play/page.js
+// ──── FILE: app/play/page.js ────
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
@@ -657,12 +657,15 @@ function PlayPage() {
             currentLocation={gameState?.world?.currentLocation}
             onEscalate={handleCompassEscalate}
             hintLoading={hintLoading}
+            glossaryTerms={glossaryTerms}
+            onEntityClick={setEntityPopup}
           />
         </div>
         <Sidebar
           collapsed={!sidebarOpen}
           characterData={characterData}
           glossaryData={glossaryData}
+          glossaryTerms={glossaryTerms}
           mapData={mapData}
           notesData={notesData}
           gameId={gameId}
@@ -709,10 +712,12 @@ function PlayPage() {
         <EntityPopup
           entity={entityPopup}
           glossaryData={glossaryData}
+          glossaryTerms={glossaryTerms}
           notesData={notesData}
           gameId={gameId}
           onClose={() => setEntityPopup(null)}
           onNotesChange={refetchNotes}
+          onEntityClick={setEntityPopup}
         />
       )}
 
@@ -914,8 +919,10 @@ export default function Page() {
   );
 }
 
-// FILE: app/play/components/ActionPanel.js
+
+// ──── FILE: app/play/components/ActionPanel.js ────
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './ActionPanel.module.css';
 
 // ─── Compass SVG Icon ───
@@ -940,7 +947,7 @@ function PinIcon({ size = 13 }) {
 }
 
 // ─── Direction Popover ───
-function CompassPopover({ objectives, currentLocation, onEscalate, onClose }) {
+function CompassPopover({ objectives, currentLocation, onEscalate, onClose, glossaryTerms, onEntityClick }) {
   const popoverRef = useRef(null);
 
   // Close on click outside
@@ -1001,7 +1008,7 @@ function CompassPopover({ objectives, currentLocation, onEscalate, onClose }) {
           {allItems.map((item, i) => (
             <div key={i} className={styles.compassObjectiveItem}>
               <span className={styles.compassMarker}>{item.marker}</span>
-              <span>{item.text}</span>
+              <span>{renderLinkedText(item.text, glossaryTerms, onEntityClick)}</span>
             </div>
           ))}
           {overflow > 0 && (
@@ -1027,6 +1034,7 @@ function CompassPopover({ objectives, currentLocation, onEscalate, onClose }) {
 export default function ActionPanel({
   actions, submitting, error, onSubmit,
   compassOpen, onToggleCompass, objectives, currentLocation, onEscalate, hintLoading,
+  glossaryTerms, onEntityClick,
 }) {
   const [customText, setCustomText] = useState('');
 
@@ -1065,6 +1073,8 @@ export default function ActionPanel({
             currentLocation={currentLocation}
             onEscalate={onEscalate}
             onClose={onToggleCompass}
+            glossaryTerms={glossaryTerms}
+            onEntityClick={onEntityClick}
           />
         )}
 
@@ -1129,7 +1139,8 @@ export default function ActionPanel({
   );
 }
 
-// FILE: app/play/components/CharacterTab.js
+
+// ──── FILE: app/play/components/CharacterTab.js ────
 import PanelSection from './PanelSection';
 import styles from './CharacterTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
@@ -1319,7 +1330,8 @@ export default function CharacterTab({ data, onEntityClick }) {
   );
 }
 
-// FILE: app/play/components/DebugPanel.js
+
+// ──── FILE: app/play/components/DebugPanel.js ────
 'use client';
 
 import React, { useState, useRef, useCallback } from 'react';
@@ -2268,9 +2280,11 @@ export default function DebugPanel({ entries, onClear }) {
   );
 }
 
-// FILE: app/play/components/EntityPopup.js
+
+// ──── FILE: app/play/components/EntityPopup.js ────
 import { useState, useEffect, useCallback } from 'react';
 import * as api from '@/lib/api';
+import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './EntityPopup.module.css';
 
 function getDurabilityColor(dur, max) {
@@ -2283,7 +2297,7 @@ function getDurabilityColor(dur, max) {
   return '#8aba7a';
 }
 
-export default function EntityPopup({ entity, glossaryData, notesData, gameId, onClose, onNotesChange }) {
+export default function EntityPopup({ entity, glossaryData, glossaryTerms, notesData, gameId, onClose, onNotesChange, onEntityClick }) {
   const [noteText, setNoteText] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -2342,7 +2356,7 @@ export default function EntityPopup({ entity, glossaryData, notesData, gameId, o
           {match ? (
             <>
               <div className={styles.category}>{match.category}</div>
-              <div className={styles.definition}>{match.definition}</div>
+              <div className={styles.definition}>{renderLinkedText(match.definition, glossaryTerms, onEntityClick)}</div>
             </>
           ) : (
             <div className={styles.notFound}>
@@ -2447,8 +2461,10 @@ export default function EntityPopup({ entity, glossaryData, notesData, gameId, o
   );
 }
 
-// FILE: app/play/components/GlossaryTab.js
+
+// ──── FILE: app/play/components/GlossaryTab.js ────
 import { useState, useMemo } from 'react';
+import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './GlossaryTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
 
@@ -2463,7 +2479,7 @@ const TABS = [
 
 const KNOWN_CATEGORIES = new Set(['npc', 'location', 'faction', 'item']);
 
-export default function GlossaryTab({ data, characterData, onEntityClick }) {
+export default function GlossaryTab({ data, characterData, glossaryTerms, onEntityClick }) {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('all');
 
@@ -2552,7 +2568,7 @@ export default function GlossaryTab({ data, characterData, onEntityClick }) {
               <span className={styles.entryDiscovered}>{entry.discoveredAt}</span>
             )}
           </div>
-          <div className={styles.entryDef}>{entry.definition}</div>
+          <div className={styles.entryDef}>{renderLinkedText(entry.definition, glossaryTerms, onEntityClick)}</div>
         </div>
       ))}
 
@@ -2563,7 +2579,8 @@ export default function GlossaryTab({ data, characterData, onEntityClick }) {
   );
 }
 
-// FILE: app/play/components/InlineDicePanel.js
+
+// ──── FILE: app/play/components/InlineDicePanel.js ────
 import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './InlineDicePanel.module.css';
 
@@ -2940,7 +2957,8 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
   );
 }
 
-// FILE: app/play/components/InventoryTab.js
+
+// ──── FILE: app/play/components/InventoryTab.js ────
 import PanelSection from './PanelSection';
 import styles from './InventoryTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
@@ -3067,7 +3085,8 @@ export default function InventoryTab({ data, onEntityClick }) {
   );
 }
 
-// FILE: app/play/components/MapTab.js
+
+// ──── FILE: app/play/components/MapTab.js ────
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -3785,7 +3804,8 @@ export default function MapTab({ data: initialData, gameId, onEntityClick }) {
   );
 }
 
-// FILE: app/play/components/NarrativePanel.js
+
+// ──── FILE: app/play/components/NarrativePanel.js ────
 import { useRef, useEffect, forwardRef } from 'react';
 import TurnBlock from './TurnBlock';
 import TalkToGM from './TalkToGM';
@@ -3856,7 +3876,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
                     <AsideCompassIcon />
                     <span className={styles.gmAsideLabel}>GM</span>
                   </div>
-                  <div className={styles.gmAsideBody}>{turn.content}</div>
+                  <div className={styles.gmAsideBody}>{renderLinkedText(turn.content, glossaryTerms, onEntityClick)}</div>
                 </div>
               );
             }
@@ -3870,7 +3890,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
                 {showRecap && (
                   <div className={styles.sessionRecap}>
                     <div className={styles.recapHeader}>PREVIOUSLY...</div>
-                    <div className={styles.recapText}>{sessionRecap}</div>
+                    <div className={styles.recapText}>{renderLinkedText(sessionRecap, glossaryTerms, onEntityClick)}</div>
                   </div>
                 )}
                 <TurnBlock
@@ -3894,6 +3914,8 @@ const NarrativePanel = forwardRef(function NarrativePanel({
         lastResolution={lastResolution}
         lastStateChanges={lastStateChanges}
         onMetaResponse={onMetaResponse}
+        glossaryTerms={glossaryTerms}
+        onEntityClick={onEntityClick}
       />
     </div>
   );
@@ -3901,7 +3923,8 @@ const NarrativePanel = forwardRef(function NarrativePanel({
 
 export default NarrativePanel;
 
-// FILE: app/play/components/NotesTab.js
+
+// ──── FILE: app/play/components/NotesTab.js ────
 import { useState, useCallback } from 'react';
 import * as api from '@/lib/api';
 import styles from './NotesTab.module.css';
@@ -4034,11 +4057,13 @@ export default function NotesTab({ data, gameId, onNotesChange }) {
   );
 }
 
-// FILE: app/play/components/NPCTab.js
+
+// ──── FILE: app/play/components/NPCTab.js ────
+import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './NPCTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
 
-export default function NPCTab({ glossaryData, onEntityClick }) {
+export default function NPCTab({ glossaryData, glossaryTerms, onEntityClick }) {
   if (!glossaryData) {
     return <div className={sidebarStyles.loadingState}>Loading...</div>;
   }
@@ -4061,7 +4086,7 @@ export default function NPCTab({ glossaryData, onEntityClick }) {
             <span className={styles.npcName}>{npc.term}</span>
             <span className={styles.npcCategory}>NPC</span>
           </div>
-          <div className={styles.npcDefinition}>{npc.definition}</div>
+          <div className={styles.npcDefinition}>{renderLinkedText(npc.definition, glossaryTerms, onEntityClick)}</div>
           {npc.discoveredAt && (
             <div className={styles.npcDiscovered}>Discovered: {npc.discoveredAt}</div>
           )}
@@ -4071,7 +4096,8 @@ export default function NPCTab({ glossaryData, onEntityClick }) {
   );
 }
 
-// FILE: app/play/components/PanelSection.js
+
+// ──── FILE: app/play/components/PanelSection.js ────
 import { useState } from 'react';
 import styles from './PanelSection.module.css';
 
@@ -4088,27 +4114,10 @@ export default function PanelSection({ title, children, defaultOpen = true }) {
   );
 }
 
-// FILE: app/play/components/ReflectionBlock.js
-import React from 'react';
-import styles from './ReflectionBlock.module.css';
 
-// Render narrative text: \n\n = paragraph break, \n = <br>
-function renderText(text) {
-  if (!text) return null;
-  return text.split('\n\n').map((paragraph, i) => {
-    const lines = paragraph.split('\n');
-    return (
-      <p key={i}>
-        {lines.map((line, j) => (
-          <React.Fragment key={j}>
-            {j > 0 && <br />}
-            {line}
-          </React.Fragment>
-        ))}
-      </p>
-    );
-  });
-}
+// ──── FILE: app/play/components/ReflectionBlock.js ────
+import styles from './ReflectionBlock.module.css';
+import { renderNarrative } from '@/lib/renderLinkedText';
 
 function gainTypeIcon(type) {
   if (type === 'stat') return '\u25B2';       // ▲
@@ -4122,7 +4131,7 @@ function gainTypeClass(type) {
   return styles.gainSkill;
 }
 
-export default function ReflectionBlock({ reflection }) {
+export default function ReflectionBlock({ reflection, glossaryTerms, onEntityClick }) {
   if (!reflection) return null;
 
   // Blocked state — starvation prevents reflection
@@ -4156,7 +4165,7 @@ export default function ReflectionBlock({ reflection }) {
       </div>
 
       <div className={styles.narrative}>
-        {renderText(reflection.narrative)}
+        {renderNarrative(reflection.narrative, glossaryTerms, onEntityClick)}
       </div>
 
       {questBonuses.length > 0 && (
@@ -4194,7 +4203,8 @@ export default function ReflectionBlock({ reflection }) {
   );
 }
 
-// FILE: app/play/components/ReportModal.js
+
+// ──── FILE: app/play/components/ReportModal.js ────
 'use client';
 
 import { useState } from 'react';
@@ -4598,7 +4608,8 @@ export default function ReportModal({ mode, gameId, gameState, turns, characterD
   );
 }
 
-// FILE: app/play/components/ResolutionBlock.js
+
+// ──── FILE: app/play/components/ResolutionBlock.js ────
 import { useState } from 'react';
 import styles from './ResolutionBlock.module.css';
 
@@ -4718,7 +4729,8 @@ export default function ResolutionBlock({ resolution }) {
   );
 }
 
-// FILE: app/play/components/SettingsModal.js
+
+// ──── FILE: app/play/components/SettingsModal.js ────
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -5847,7 +5859,8 @@ export default function SettingsModal({ settings, onSave, onClose, gameId, gameS
   );
 }
 
-// FILE: app/play/components/Sidebar.js
+
+// ──── FILE: app/play/components/Sidebar.js ────
 import { useState, useCallback } from 'react';
 import CharacterTab from './CharacterTab';
 import InventoryTab from './InventoryTab';
@@ -5909,6 +5922,7 @@ export default function Sidebar({
   collapsed,
   characterData,
   glossaryData,
+  glossaryTerms,
   mapData,
   notesData,
   gameId,
@@ -5958,9 +5972,9 @@ export default function Sidebar({
       case 'inventory':
         return <InventoryTab data={characterData} onEntityClick={onEntityClick} />;
       case 'npcs':
-        return <NPCTab glossaryData={glossaryData} onEntityClick={onEntityClick} />;
+        return <NPCTab glossaryData={glossaryData} glossaryTerms={glossaryTerms} onEntityClick={onEntityClick} />;
       case 'glossary':
-        return <GlossaryTab data={glossaryData} characterData={characterData} onEntityClick={onEntityClick} />;
+        return <GlossaryTab data={glossaryData} characterData={characterData} glossaryTerms={glossaryTerms} onEntityClick={onEntityClick} />;
       case 'map':
         return <MapTab data={mapData} gameId={gameId} onEntityClick={onEntityClick} />;
       case 'notes':
@@ -6027,9 +6041,11 @@ export default function Sidebar({
   );
 }
 
-// FILE: app/play/components/TalkToGM.js
+
+// ──── FILE: app/play/components/TalkToGM.js ────
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as api from '@/lib/api';
+import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './TalkToGM.module.css';
 
 // ─── Contextual Chip Logic ───
@@ -6092,7 +6108,7 @@ const STATIC_CHIPS = [
   'What do I know about this place?',
 ];
 
-export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastStateChanges, onMetaResponse }) {
+export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastStateChanges, onMetaResponse, glossaryTerms, onEntityClick }) {
   const [open, setOpen] = useState(false);
   const [tabMode, setTabMode] = useState('rules'); // 'rules' | 'story'
 
@@ -6237,7 +6253,7 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
     const paragraphs = text.split(/\n\n|\n/).filter(p => p.trim());
     return (
       <div className={styles.commandProse}>
-        {paragraphs.map((p, i) => <p key={i}>{p}</p>)}
+        {paragraphs.map((p, i) => <p key={i}>{renderLinkedText(p, glossaryTerms, onEntityClick)}</p>)}
       </div>
     );
   };
@@ -6577,7 +6593,7 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
               {rulesResult.section}
             </div>
           )}
-          <div className={styles.commandProse}>{rulesResult.content}</div>
+          <div className={styles.commandProse}>{renderLinkedText(rulesResult.content, glossaryTerms, onEntityClick)}</div>
         </div>
       );
     }
@@ -6588,7 +6604,7 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
         <div>
           <div className={styles.metaResponse} style={{ marginBottom: 10 }}>
             <div className={styles.metaLabel}>GM</div>
-            <div className={styles.metaText}>{rulesResult.metaResponse}</div>
+            <div className={styles.metaText}>{renderLinkedText(rulesResult.metaResponse, glossaryTerms, onEntityClick)}</div>
           </div>
           {rulesResult.canEscalate && (
             <>
@@ -6741,7 +6757,7 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
             {storyResult && (
               <div className={styles.metaResponse}>
                 <div className={styles.metaLabel}>GM</div>
-                <div className={storyResult.isRateLimit ? styles.metaTextWarning : styles.metaText}>{storyResult.text}</div>
+                <div className={storyResult.isRateLimit ? styles.metaTextWarning : styles.metaText}>{renderLinkedText(storyResult.text, glossaryTerms, onEntityClick)}</div>
                 {storyResult.directiveStored && (
                   <div className={styles.directiveConfirmation}>
                     {storyResult.directiveLane === 'goal'
@@ -6789,7 +6805,8 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
   );
 }
 
-// FILE: app/play/components/TopBar.js
+
+// ──── FILE: app/play/components/TopBar.js ────
 import Link from 'next/link';
 import AuthAvatar from '@/components/AuthAvatar';
 import styles from './TopBar.module.css';
@@ -6902,12 +6919,13 @@ export default function TopBar({ setting, clock, sseConnected, sidebarOpen, onTo
   );
 }
 
-// FILE: app/play/components/TurnBlock.js
+
+// ──── FILE: app/play/components/TurnBlock.js ────
 import React, { useState, forwardRef } from 'react';
 import InlineDicePanel from './InlineDicePanel';
 import ResolutionBlock from './ResolutionBlock';
 import ReflectionBlock from './ReflectionBlock';
-import { renderLinkedText } from '@/lib/renderLinkedText';
+import { renderNarrative } from '@/lib/renderLinkedText';
 import styles from './TurnBlock.module.css';
 
 // Format clock fields for display
@@ -6940,24 +6958,6 @@ function getWeatherEmoji(weather) {
   if (w.includes('fog') || w.includes('mist')) return '\u{1F32B}\uFE0F';
   if (w.includes('wind')) return '\u{1F32C}\uFE0F';
   return null;
-}
-
-// Render narrative text: \n\n = paragraph break, \n = <br>, [brackets] = glossary links
-function renderNarrative(text, glossaryTerms, onEntityClick) {
-  if (!text) return null;
-  return text.split('\n\n').map((paragraph, i) => {
-    const lines = paragraph.split('\n');
-    return (
-      <p key={i}>
-        {lines.map((line, j) => (
-          <React.Fragment key={j}>
-            {j > 0 && <br />}
-            {renderLinkedText(line, glossaryTerms, onEntityClick)}
-          </React.Fragment>
-        ))}
-      </p>
-    );
-  });
 }
 
 // ─── Status Change Badges ───
@@ -7127,7 +7127,7 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
         <>
           <ResolutionBlock resolution={turn.resolution} />
 
-          <ReflectionBlock reflection={turn.reflection} />
+          <ReflectionBlock reflection={turn.reflection} glossaryTerms={glossaryTerms} onEntityClick={onEntityClick} />
 
           <div className={styles.narrativeText}>
             {renderNarrative(turn.narrative, glossaryTerms, onEntityClick)}
@@ -7141,3 +7141,4 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
 });
 
 export default TurnBlock;
+

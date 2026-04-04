@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as api from '@/lib/api';
+import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './EntityPopup.module.css';
 
 function getDurabilityColor(dur, max) {
@@ -12,7 +13,7 @@ function getDurabilityColor(dur, max) {
   return '#8aba7a';
 }
 
-export default function EntityPopup({ entity, glossaryData, notesData, gameId, onClose, onNotesChange }) {
+export default function EntityPopup({ entity, glossaryData, glossaryTerms, notesData, gameId, onClose, onNotesChange, onEntityClick }) {
   const [noteText, setNoteText] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -71,7 +72,7 @@ export default function EntityPopup({ entity, glossaryData, notesData, gameId, o
           {match ? (
             <>
               <div className={styles.category}>{match.category}</div>
-              <div className={styles.definition}>{match.definition}</div>
+              <div className={styles.definition}>{renderLinkedText(match.definition, glossaryTerms, onEntityClick)}</div>
             </>
           ) : (
             <div className={styles.notFound}>

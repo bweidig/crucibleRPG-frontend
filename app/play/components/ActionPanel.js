@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './ActionPanel.module.css';
 
 // ─── Compass SVG Icon ───
@@ -23,7 +24,7 @@ function PinIcon({ size = 13 }) {
 }
 
 // ─── Direction Popover ───
-function CompassPopover({ objectives, currentLocation, onEscalate, onClose }) {
+function CompassPopover({ objectives, currentLocation, onEscalate, onClose, glossaryTerms, onEntityClick }) {
   const popoverRef = useRef(null);
 
   // Close on click outside
@@ -84,7 +85,7 @@ function CompassPopover({ objectives, currentLocation, onEscalate, onClose }) {
           {allItems.map((item, i) => (
             <div key={i} className={styles.compassObjectiveItem}>
               <span className={styles.compassMarker}>{item.marker}</span>
-              <span>{item.text}</span>
+              <span>{renderLinkedText(item.text, glossaryTerms, onEntityClick)}</span>
             </div>
           ))}
           {overflow > 0 && (
@@ -110,6 +111,7 @@ function CompassPopover({ objectives, currentLocation, onEscalate, onClose }) {
 export default function ActionPanel({
   actions, submitting, error, onSubmit,
   compassOpen, onToggleCompass, objectives, currentLocation, onEscalate, hintLoading,
+  glossaryTerms, onEntityClick,
 }) {
   const [customText, setCustomText] = useState('');
 
@@ -148,6 +150,8 @@ export default function ActionPanel({
             currentLocation={currentLocation}
             onEscalate={onEscalate}
             onClose={onToggleCompass}
+            glossaryTerms={glossaryTerms}
+            onEntityClick={onEntityClick}
           />
         )}
 

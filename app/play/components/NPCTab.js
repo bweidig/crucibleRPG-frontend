@@ -1,7 +1,8 @@
+import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './NPCTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
 
-export default function NPCTab({ glossaryData, onEntityClick }) {
+export default function NPCTab({ glossaryData, glossaryTerms, onEntityClick }) {
   if (!glossaryData) {
     return <div className={sidebarStyles.loadingState}>Loading...</div>;
   }
@@ -24,7 +25,7 @@ export default function NPCTab({ glossaryData, onEntityClick }) {
             <span className={styles.npcName}>{npc.term}</span>
             <span className={styles.npcCategory}>NPC</span>
           </div>
-          <div className={styles.npcDefinition}>{npc.definition}</div>
+          <div className={styles.npcDefinition}>{renderLinkedText(npc.definition, glossaryTerms, onEntityClick)}</div>
           {npc.discoveredAt && (
             <div className={styles.npcDiscovered}>Discovered: {npc.discoveredAt}</div>
           )}

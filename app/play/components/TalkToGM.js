@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as api from '@/lib/api';
+import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './TalkToGM.module.css';
 
 // ─── Contextual Chip Logic ───
@@ -62,7 +63,7 @@ const STATIC_CHIPS = [
   'What do I know about this place?',
 ];
 
-export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastStateChanges, onMetaResponse }) {
+export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastStateChanges, onMetaResponse, glossaryTerms, onEntityClick }) {
   const [open, setOpen] = useState(false);
   const [tabMode, setTabMode] = useState('rules'); // 'rules' | 'story'
 
@@ -207,7 +208,7 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
     const paragraphs = text.split(/\n\n|\n/).filter(p => p.trim());
     return (
       <div className={styles.commandProse}>
-        {paragraphs.map((p, i) => <p key={i}>{p}</p>)}
+        {paragraphs.map((p, i) => <p key={i}>{renderLinkedText(p, glossaryTerms, onEntityClick)}</p>)}
       </div>
     );
   };
@@ -547,7 +548,7 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
               {rulesResult.section}
             </div>
           )}
-          <div className={styles.commandProse}>{rulesResult.content}</div>
+          <div className={styles.commandProse}>{renderLinkedText(rulesResult.content, glossaryTerms, onEntityClick)}</div>
         </div>
       );
     }
@@ -558,7 +559,7 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
         <div>
           <div className={styles.metaResponse} style={{ marginBottom: 10 }}>
             <div className={styles.metaLabel}>GM</div>
-            <div className={styles.metaText}>{rulesResult.metaResponse}</div>
+            <div className={styles.metaText}>{renderLinkedText(rulesResult.metaResponse, glossaryTerms, onEntityClick)}</div>
           </div>
           {rulesResult.canEscalate && (
             <>
@@ -711,7 +712,7 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
             {storyResult && (
               <div className={styles.metaResponse}>
                 <div className={styles.metaLabel}>GM</div>
-                <div className={storyResult.isRateLimit ? styles.metaTextWarning : styles.metaText}>{storyResult.text}</div>
+                <div className={storyResult.isRateLimit ? styles.metaTextWarning : styles.metaText}>{renderLinkedText(storyResult.text, glossaryTerms, onEntityClick)}</div>
                 {storyResult.directiveStored && (
                   <div className={styles.directiveConfirmation}>
                     {storyResult.directiveLane === 'goal'

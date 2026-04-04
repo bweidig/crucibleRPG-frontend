@@ -656,12 +656,15 @@ function PlayPage() {
             currentLocation={gameState?.world?.currentLocation}
             onEscalate={handleCompassEscalate}
             hintLoading={hintLoading}
+            glossaryTerms={glossaryTerms}
+            onEntityClick={setEntityPopup}
           />
         </div>
         <Sidebar
           collapsed={!sidebarOpen}
           characterData={characterData}
           glossaryData={glossaryData}
+          glossaryTerms={glossaryTerms}
           mapData={mapData}
           notesData={notesData}
           gameId={gameId}
@@ -708,10 +711,12 @@ function PlayPage() {
         <EntityPopup
           entity={entityPopup}
           glossaryData={glossaryData}
+          glossaryTerms={glossaryTerms}
           notesData={notesData}
           gameId={gameId}
           onClose={() => setEntityPopup(null)}
           onNotesChange={refetchNotes}
+          onEntityClick={setEntityPopup}
         />
       )}
 

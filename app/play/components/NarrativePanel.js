@@ -68,7 +68,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
                     <AsideCompassIcon />
                     <span className={styles.gmAsideLabel}>GM</span>
                   </div>
-                  <div className={styles.gmAsideBody}>{turn.content}</div>
+                  <div className={styles.gmAsideBody}>{renderLinkedText(turn.content, glossaryTerms, onEntityClick)}</div>
                 </div>
               );
             }
@@ -82,7 +82,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
                 {showRecap && (
                   <div className={styles.sessionRecap}>
                     <div className={styles.recapHeader}>PREVIOUSLY...</div>
-                    <div className={styles.recapText}>{sessionRecap}</div>
+                    <div className={styles.recapText}>{renderLinkedText(sessionRecap, glossaryTerms, onEntityClick)}</div>
                   </div>
                 )}
                 <TurnBlock
@@ -106,6 +106,8 @@ const NarrativePanel = forwardRef(function NarrativePanel({
         lastResolution={lastResolution}
         lastStateChanges={lastStateChanges}
         onMetaResponse={onMetaResponse}
+        glossaryTerms={glossaryTerms}
+        onEntityClick={onEntityClick}
       />
     </div>
   );

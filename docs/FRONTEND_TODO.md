@@ -43,7 +43,7 @@
 - [x] Frontend: FAQ page (2026-03-30)
 - [x] Frontend: Legal pages (ToS, Privacy Policy starters) (2026-03-29)
 - [ ] Frontend: Copy audit on init wizard and game layout
-- [ ] Frontend: Universal glossary linking beyond bracket notation — match entity names in sidebar, compass, status report text against glossary database
+- [x] Frontend: Universal glossary linking beyond bracket notation — match entity names in sidebar, compass, status report text against glossary database (2026-04-04)
 - [ ] Frontend: Saved games page API wiring (real data)
 - [ ] Frontend: Game creation flow from /menu
 - [ ] Frontend: Journal tab (mockup exists)

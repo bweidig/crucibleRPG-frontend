@@ -34,6 +34,23 @@
 
 ## Recent Work (This Session: 2026-04-04)
 
+### Universal Glossary Linking
+Extended `renderLinkedText` from narrative-only to every component that displays prose or definitions.
+
+- **Shared `renderNarrative` export** added to `lib/renderLinkedText.js` — consolidates the paragraph/linebreak/linking logic that was duplicated in TurnBlock and ReflectionBlock
+- **ReflectionBlock**: replaced local `renderText()` with shared `renderNarrative`; now receives `glossaryTerms` and `onEntityClick` props
+- **NarrativePanel**: GM aside content and session recap text now parsed for glossary links
+- **TalkToGM**: all prose responses (briefing, meta, rulebook content, story tab) now parsed for glossary links via `renderProse` and inline `renderLinkedText`
+- **EntityPopup**: glossary definition text now parsed — clicking a linked term in one popup navigates to that entity's popup
+- **GlossaryTab**: entry definitions now parsed for glossary links
+- **NPCTab**: NPC definitions now parsed for glossary links
+- **ActionPanel (CompassPopover)**: quest/objective descriptions now parsed for glossary links
+- **Props threading**: `glossaryTerms` now flows from page.js → Sidebar, ActionPanel, EntityPopup, and through NarrativePanel → TalkToGM
+
+**One utility, one import path.** No component has its own glossary rendering logic. Sidebar UI items (stats, skills, items, NPCs) keep their existing direct-click-to-popup behavior — only prose/definition text uses bracket-notation parsing.
+
+**Files modified:** `lib/renderLinkedText.js`, `app/play/page.js`, `app/play/components/NarrativePanel.js`, `app/play/components/TurnBlock.js`, `app/play/components/ReflectionBlock.js`, `app/play/components/TalkToGM.js`, `app/play/components/EntityPopup.js`, `app/play/components/GlossaryTab.js`, `app/play/components/NPCTab.js`, `app/play/components/ActionPanel.js`, `app/play/components/Sidebar.js`.
+
 ### Playtest Access Restructure
 Multi-file restructure gating site access behind playtest approval system.
 

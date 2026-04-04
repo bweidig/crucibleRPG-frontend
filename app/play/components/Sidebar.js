@@ -59,6 +59,7 @@ export default function Sidebar({
   collapsed,
   characterData,
   glossaryData,
+  glossaryTerms,
   mapData,
   notesData,
   gameId,
@@ -108,9 +109,9 @@ export default function Sidebar({
       case 'inventory':
         return <InventoryTab data={characterData} onEntityClick={onEntityClick} />;
       case 'npcs':
-        return <NPCTab glossaryData={glossaryData} onEntityClick={onEntityClick} />;
+        return <NPCTab glossaryData={glossaryData} glossaryTerms={glossaryTerms} onEntityClick={onEntityClick} />;
       case 'glossary':
-        return <GlossaryTab data={glossaryData} characterData={characterData} onEntityClick={onEntityClick} />;
+        return <GlossaryTab data={glossaryData} characterData={characterData} glossaryTerms={glossaryTerms} onEntityClick={onEntityClick} />;
       case 'map':
         return <MapTab data={mapData} gameId={gameId} onEntityClick={onEntityClick} />;
       case 'notes':

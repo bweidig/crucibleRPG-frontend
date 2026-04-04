@@ -1,23 +1,5 @@
-import React from 'react';
 import styles from './ReflectionBlock.module.css';
-
-// Render narrative text: \n\n = paragraph break, \n = <br>
-function renderText(text) {
-  if (!text) return null;
-  return text.split('\n\n').map((paragraph, i) => {
-    const lines = paragraph.split('\n');
-    return (
-      <p key={i}>
-        {lines.map((line, j) => (
-          <React.Fragment key={j}>
-            {j > 0 && <br />}
-            {line}
-          </React.Fragment>
-        ))}
-      </p>
-    );
-  });
-}
+import { renderNarrative } from '@/lib/renderLinkedText';
 
 function gainTypeIcon(type) {
   if (type === 'stat') return '\u25B2';       // ▲
@@ -31,7 +13,7 @@ function gainTypeClass(type) {
   return styles.gainSkill;
 }
 
-export default function ReflectionBlock({ reflection }) {
+export default function ReflectionBlock({ reflection, glossaryTerms, onEntityClick }) {
   if (!reflection) return null;
 
   // Blocked state — starvation prevents reflection
@@ -65,7 +47,7 @@ export default function ReflectionBlock({ reflection }) {
       </div>
 
       <div className={styles.narrative}>
-        {renderText(reflection.narrative)}
+        {renderNarrative(reflection.narrative, glossaryTerms, onEntityClick)}
       </div>
 
       {questBonuses.length > 0 && (

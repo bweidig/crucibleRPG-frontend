@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './GlossaryTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
 
@@ -13,7 +14,7 @@ const TABS = [
 
 const KNOWN_CATEGORIES = new Set(['npc', 'location', 'faction', 'item']);
 
-export default function GlossaryTab({ data, characterData, onEntityClick }) {
+export default function GlossaryTab({ data, characterData, glossaryTerms, onEntityClick }) {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('all');
 
@@ -102,7 +103,7 @@ export default function GlossaryTab({ data, characterData, onEntityClick }) {
               <span className={styles.entryDiscovered}>{entry.discoveredAt}</span>
             )}
           </div>
-          <div className={styles.entryDef}>{entry.definition}</div>
+          <div className={styles.entryDef}>{renderLinkedText(entry.definition, glossaryTerms, onEntityClick)}</div>
         </div>
       ))}
 
