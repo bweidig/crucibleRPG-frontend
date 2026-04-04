@@ -231,11 +231,26 @@ export default function AuthPage() {
         position: 'relative', zIndex: 1,
         padding: '24px clamp(16px, 5vw, 32px)',
       }}>
-        {/* Radial glow */}
+        {/* Ambient glow — four small circles around card edges to avoid gradient banding */}
         <div style={{
-          position: 'absolute', width: 1400, height: 1400, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(201,168,76,0.05) 0%, transparent 55%)',
-          top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', filter: 'blur(40px)',
+          position: 'absolute', width: 500, height: 500, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(201,168,76,0.06) 0%, transparent 60%)',
+          top: '20%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none',
+        }} />
+        <div style={{
+          position: 'absolute', width: 500, height: 500, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(201,168,76,0.06) 0%, transparent 60%)',
+          bottom: '20%', left: '50%', transform: 'translate(-50%, 50%)', pointerEvents: 'none',
+        }} />
+        <div style={{
+          position: 'absolute', width: 400, height: 400, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(201,168,76,0.04) 0%, transparent 60%)',
+          top: '50%', left: '35%', transform: 'translate(-50%, -50%)', pointerEvents: 'none',
+        }} />
+        <div style={{
+          position: 'absolute', width: 400, height: 400, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(201,168,76,0.04) 0%, transparent 60%)',
+          top: '50%', left: '65%', transform: 'translate(-50%, -50%)', pointerEvents: 'none',
         }} />
 
         {/* Card */}
