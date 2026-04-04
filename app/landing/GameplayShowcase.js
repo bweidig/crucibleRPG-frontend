@@ -23,6 +23,7 @@ const SCENARIOS = [
             { text: 'vs DC 13.0', bold: true },
             { text: 'Outmatched' },
             { text: 'Roll: 7', bold: true },
+            { text: 'Total: 11.5', bold: true },
             { text: 'Tier 4 Small Mercy', color: 'mercy' },
           ],
         },
@@ -35,6 +36,7 @@ const SCENARIOS = [
             { text: 'vs DC 11.0', bold: true },
             { text: 'Matched' },
             { text: 'Roll: 16', bold: true },
+            { text: 'Total: 22.0', bold: true },
             { text: 'Tier 2 Success', color: 'success' },
           ],
         },
@@ -47,6 +49,7 @@ const SCENARIOS = [
             { text: 'vs DC 9.0', bold: true },
             { text: 'Outmatched' },
             { text: 'Roll: 11', bold: true },
+            { text: 'Total: 14.5', bold: true },
             { text: 'Tier 2 Success', color: 'success' },
           ],
         },
@@ -71,6 +74,7 @@ const SCENARIOS = [
             { text: 'vs DC 14.0', bold: true },
             { text: 'Outmatched' },
             { text: 'Roll: 17', bold: true },
+            { text: 'Total: 21.0', bold: true },
             { text: 'Tier 2 Success', color: 'success' },
           ],
         },
@@ -83,6 +87,7 @@ const SCENARIOS = [
             { text: 'vs DC 15.0', bold: true },
             { text: 'Outmatched' },
             { text: 'Roll: 3', bold: true },
+            { text: 'Total: 10.0', bold: true },
             { text: 'Tier 5 Failure', color: 'failure' },
           ],
         },
@@ -95,6 +100,7 @@ const SCENARIOS = [
             { text: 'vs DC 13.0', bold: true },
             { text: 'Matched' },
             { text: 'Roll: 8', bold: true },
+            { text: 'Total: 14.5', bold: true },
             { text: 'Tier 3 Costly Success', color: 'costly' },
           ],
         },
@@ -119,6 +125,7 @@ const SCENARIOS = [
             { text: 'vs DC 10.0', bold: true },
             { text: 'Matched' },
             { text: 'Roll: 13', bold: true },
+            { text: 'Total: 18.5', bold: true },
             { text: 'Tier 2 Success', color: 'success' },
           ],
         },
@@ -131,6 +138,7 @@ const SCENARIOS = [
             { text: 'vs DC 8.0', bold: true },
             { text: 'Matched' },
             { text: 'Roll: 15', bold: true },
+            { text: 'Total: 19.0', bold: true },
             { text: 'Tier 2 Success', color: 'success' },
           ],
         },
@@ -143,6 +151,7 @@ const SCENARIOS = [
             { text: 'vs DC 14.0', bold: true },
             { text: 'Outmatched' },
             { text: 'Roll: 3', bold: true },
+            { text: 'Total: 9.0', bold: true },
             { text: 'Tier 5 Failure', color: 'failure' },
           ],
         },
@@ -189,6 +198,7 @@ export default function GameplayShowcase() {
   const [phase, setPhase] = useState(4); // Start at 4 for firstView (choices visible, awaiting click)
   const [firstView, setFirstView] = useState(true);
   const [selectedChoice, setSelectedChoice] = useState(null);
+  const [fadingOut, setFadingOut] = useState(false);
   const [revealed, setRevealed] = useState(false); // IO fade-in trigger
   const [allPlayed, setAllPlayed] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
@@ -352,6 +362,7 @@ export default function GameplayShowcase() {
     if (innerRef.current) {
       setLockedHeight(innerRef.current.offsetHeight);
     }
+    setFadingOut(false);
     setTransitioning(true);
     clearTimers();
 
@@ -368,19 +379,25 @@ export default function GameplayShowcase() {
   }, [clearTimers, addTimer]);
 
   const handleTryAnother = useCallback(() => {
-    if (innerRef.current) {
-      setLockedHeight(innerRef.current.offsetHeight);
-    }
-    setTransitioning(true);
-    clearTimers();
-
-    addTimer(() => {
+    if (reducedMotion) {
+      clearTimers();
       setSelectedChoice(null);
       setPhase(4);
-      setTransitioning(false);
-      addTimer(() => setLockedHeight(undefined), 300);
-    }, 200);
-  }, [clearTimers, addTimer]);
+      return;
+    }
+
+    // Scroll to showcase top + fade out dice/result/TRY ANOTHER simultaneously
+    containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setFadingOut(true);
+    clearTimers();
+
+    // After fade completes, reset to choice selection
+    addTimer(() => {
+      setFadingOut(false);
+      setSelectedChoice(null);
+      setPhase(4);
+    }, 250);
+  }, [reducedMotion, clearTimers, addTimer]);
 
   const handleNext = useCallback(() => {
     const nextIndex = (scenarioIndex + 1) % SCENARIOS.length;
@@ -477,7 +494,7 @@ export default function GameplayShowcase() {
 
         {/* Dice Result */}
         {showDice && (
-          <div className={styles.diceBar}>
+          <div className={`${styles.diceBar} ${fadingOut ? styles.fadingOut : ''}`}>
             {selectedResult.dice.segments.map((seg, i) => (
               <span key={i} className={styles.diceSegment}>
                 {i > 0 && <span className={styles.diceDot}>&middot;</span>}
@@ -498,7 +515,7 @@ export default function GameplayShowcase() {
 
         {/* Result Text */}
         {showResult && (
-          <div className={styles.resultBlock}>
+          <div className={`${styles.resultBlock} ${fadingOut ? styles.fadingOut : ''}`}>
             <span className={styles.resultText}>
               {result.visible}
               {!result.done && <span className={styles.cursor}>|</span>}
@@ -507,13 +524,18 @@ export default function GameplayShowcase() {
           </div>
         )}
 
-        {/* Replay Controls */}
-        {showControls && (
-          <div className={styles.controlsBlock}>
+        {/* Navigation — visible from phase 4; TRY ANOTHER only after result */}
+        {showChoices && (
+          <div className={styles.controlsBlock} style={firstView ? { animation: 'none', opacity: 1, transform: 'none' } : {}}>
             <div className={styles.buttonRow}>
-              <button className={styles.replayButton} onClick={handleTryAnother}>
-                TRY ANOTHER
-              </button>
+              {showControls && (
+                <button
+                  className={`${styles.replayButton} ${fadingOut ? styles.fadingOut : ''}`}
+                  onClick={handleTryAnother}
+                >
+                  TRY ANOTHER
+                </button>
+              )}
               <button className={styles.replayButton} onClick={handleNext}>
                 {buttonText}
               </button>

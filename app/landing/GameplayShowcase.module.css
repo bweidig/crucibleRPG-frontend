@@ -383,6 +383,13 @@
   outline-offset: 2px;
 }
 
+/* ─── Fade Out (TRY ANOTHER reset) ─── */
+
+.fadingOut {
+  opacity: 0 !important;
+  transition: opacity 0.25s ease !important;
+}
+
 /* ─── Reduced Motion ─── */
 
 @media (prefers-reduced-motion: reduce) {

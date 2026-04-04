@@ -34,6 +34,17 @@
 
 ## Recent Work (This Session: 2026-04-03)
 
+### Showcase Polish: Totals, Navigation, Scroll, Reset Transition
+Showcase polish: dice bar now shows roll totals, NEXT SCENARIO and dots visible without picking a choice, TRY ANOTHER scrolls to showcase top and fades out result before resetting choices.
+
+- Dice bar segments now include "Total: X.X" between Roll and Tier for all 9 results
+- NEXT SCENARIO button and scenario dots visible from phase 4 (choices visible), no longer gated behind result
+- TRY ANOTHER only appears after a result renders; fades out dice/result/itself over 250ms while scrolling to showcase top, then resets choices
+- Reduced motion: TRY ANOTHER resets instantly (no fade, no scroll)
+- Choice cards smoothly transition from dimmed (0.35) back to full opacity on reset via existing CSS transition
+
+**Files modified:** `app/landing/GameplayShowcase.js`, `app/landing/GameplayShowcase.module.css`.
+
 ### Showcase: TRY ANOTHER Button + FirstView Transition Fix
 Showcase: TRY ANOTHER button added for replaying choices within same scenario. FirstView result transition fixed — dice and result now fade in instead of popping.
 
