@@ -51,13 +51,13 @@ export default function CTASection() {
 
       <ScrollReveal delay={0.1} variant="fadeUpSlow">
         <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32,
-          maxWidth: 800, margin: '0 auto', position: 'relative', textAlign: 'left',
+          display: 'grid', gap: 32,
+          maxWidth: 800, width: '100%', margin: '0 auto', position: 'relative', textAlign: 'left',
         }} className={styles.ctaGrid}>
           {/* Stay in the Loop */}
-          <div style={{
+          <div className={styles.ctaCard} style={{
             background: 'var(--bg-card)', border: '1px solid var(--border-primary)',
-            borderRadius: 8, padding: '36px 32px',
+            borderRadius: 8, padding: '36px 32px', boxSizing: 'border-box',
           }}>
             <h3 style={{
               fontFamily: 'var(--font-cinzel)', fontSize: 20, fontWeight: 700,
@@ -108,9 +108,9 @@ export default function CTASection() {
           </div>
 
           {/* Join the Playtest */}
-          <div style={{
+          <div className={styles.ctaCard} style={{
             background: 'var(--bg-card)', border: '1px solid var(--border-primary)',
-            borderRadius: 8, padding: '36px 32px',
+            borderRadius: 8, padding: '36px 32px', boxSizing: 'border-box',
           }}>
             <h3 style={{
               fontFamily: 'var(--font-cinzel)', fontSize: 20, fontWeight: 700,

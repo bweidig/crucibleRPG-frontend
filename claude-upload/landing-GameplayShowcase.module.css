@@ -69,7 +69,6 @@
 .narrativeText {
   font-family: var(--font-alegreya);
   font-size: 18px;
-  font-style: italic;
   line-height: 1.75;
   color: #b8ad94;
 }
@@ -304,7 +303,6 @@
 .resultText {
   font-family: var(--font-alegreya);
   font-size: 18px;
-  font-style: italic;
   line-height: 1.75;
   color: #b8ad94;
 }
@@ -335,6 +333,10 @@
   border: 1px solid rgba(201, 168, 76, 0.25);
   border-radius: 6px;
   padding: 10px 28px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   transition: color 0.3s ease-out, border-color 0.3s ease-out, box-shadow 0.3s ease-out;
 }
@@ -352,30 +354,43 @@
 
 .dotsRow {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   justify-content: center;
   margin-top: 16px;
 }
 
 .dot {
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dot::after {
+  content: '';
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: none;
   background: rgba(201, 168, 76, 0.2);
-  padding: 0;
-  cursor: pointer;
   transition: background 0.2s ease-out, transform 0.2s ease-out;
 }
 
-.dot:hover:not(.dotActive) {
+.dot:hover:not(.dotActive)::after {
   background: rgba(201, 168, 76, 0.5);
   transform: scale(1.3);
 }
 
 .dotActive {
-  background: #c9a84c;
   cursor: default;
+}
+
+.dotActive::after {
+  background: #c9a84c;
 }
 
 .dot:focus-visible {

@@ -354,7 +354,7 @@
 
 .dotsRow {
   display: flex;
-  gap: 0;
+  gap: 8px;
   justify-content: center;
   margin-top: 16px;
 }

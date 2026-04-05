@@ -120,6 +120,11 @@
   text-underline-offset: 4px;
 }
 
+/* CTA grid */
+.ctaGrid {
+  grid-template-columns: 1fr 1fr;
+}
+
 /* Feature card hover */
 .featureCard {
   transition: border-color 0.4s ease, background 0.4s ease;
@@ -260,6 +265,10 @@
 
   .ctaGrid {
     grid-template-columns: 1fr !important;
+  }
+
+  .ctaCard {
+    padding: 28px 20px !important;
   }
 
   .faqQuestion {
