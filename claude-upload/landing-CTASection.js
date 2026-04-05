@@ -35,7 +35,7 @@ export default function CTASection() {
   };
 
   return (
-    <section className={styles.ctaSection} style={{ padding: '120px 24px 100px', textAlign: 'center', position: 'relative' }}>
+    <section className={styles.ctaSection} style={{ padding: '120px 24px 100px', textAlign: 'center', position: 'relative', boxSizing: 'border-box' }}>
       <div style={{
         position: 'absolute', width: 500, height: 300, borderRadius: '50%',
         background: 'radial-gradient(circle, rgba(201,168,76,0.04) 0%, transparent 65%)',
@@ -53,11 +53,13 @@ export default function CTASection() {
         <div style={{
           display: 'grid', gap: 32,
           maxWidth: 800, width: '100%', margin: '0 auto', position: 'relative', textAlign: 'left',
+          boxSizing: 'border-box',
         }} className={styles.ctaGrid}>
           {/* Stay in the Loop */}
           <div className={styles.ctaCard} style={{
             background: 'var(--bg-card)', border: '1px solid var(--border-primary)',
             borderRadius: 8, padding: '36px 32px', boxSizing: 'border-box',
+            minWidth: 0,
           }}>
             <h3 style={{
               fontFamily: 'var(--font-cinzel)', fontSize: 20, fontWeight: 700,
@@ -111,6 +113,7 @@ export default function CTASection() {
           <div className={styles.ctaCard} style={{
             background: 'var(--bg-card)', border: '1px solid var(--border-primary)',
             borderRadius: 8, padding: '36px 32px', boxSizing: 'border-box',
+            minWidth: 0,
           }}>
             <h3 style={{
               fontFamily: 'var(--font-cinzel)', fontSize: 20, fontWeight: 700,
