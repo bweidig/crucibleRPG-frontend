@@ -159,6 +159,7 @@ function PlayPage() {
   const handleSettingsChange = useCallback((newSettings) => {
     setDisplaySettings(newSettings);
     saveSettings(newSettings);
+    window.dispatchEvent(new Event('display-settings-changed'));
   }, []);
 
   // ─── Refetch helpers ───
@@ -925,7 +926,7 @@ export default function Page() {
   );
 }
 
-// ─��── FILE: app/play/components/ActionPanel.js ────
+// ──── FILE: app/play/components/ActionPanel.js ────
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './ActionPanel.module.css';
@@ -1144,7 +1145,7 @@ export default function ActionPanel({
   );
 }
 
-// ─��── FILE: app/play/components/CharacterTab.js ────
+// ──── FILE: app/play/components/CharacterTab.js ────
 import PanelSection from './PanelSection';
 import styles from './CharacterTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
@@ -1334,7 +1335,7 @@ export default function CharacterTab({ data, onEntityClick }) {
   );
 }
 
-// ─��── FILE: app/play/components/DebugPanel.js ────
+// ──── FILE: app/play/components/DebugPanel.js ────
 'use client';
 
 import React, { useState, useRef, useCallback } from 'react';
@@ -2283,7 +2284,7 @@ export default function DebugPanel({ entries, onClear }) {
   );
 }
 
-// ─��── FILE: app/play/components/EntityPopup.js ────
+// ──── FILE: app/play/components/EntityPopup.js ────
 import { useState, useEffect, useCallback } from 'react';
 import * as api from '@/lib/api';
 import { renderLinkedText } from '@/lib/renderLinkedText';
@@ -2463,7 +2464,7 @@ export default function EntityPopup({ entity, glossaryData, glossaryTerms, notes
   );
 }
 
-// ─��── FILE: app/play/components/GlossaryTab.js ────
+// ──── FILE: app/play/components/GlossaryTab.js ────
 import { useState, useMemo } from 'react';
 import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './GlossaryTab.module.css';
@@ -2580,7 +2581,7 @@ export default function GlossaryTab({ data, characterData, glossaryTerms, onEnti
   );
 }
 
-// ─��── FILE: app/play/components/InlineDicePanel.js ────
+// ──── FILE: app/play/components/InlineDicePanel.js ────
 import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './InlineDicePanel.module.css';
 
@@ -2957,7 +2958,7 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
   );
 }
 
-// ─��── FILE: app/play/components/InventoryTab.js ────
+// ──── FILE: app/play/components/InventoryTab.js ────
 import PanelSection from './PanelSection';
 import styles from './InventoryTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
@@ -3084,7 +3085,7 @@ export default function InventoryTab({ data, onEntityClick }) {
   );
 }
 
-// ─��── FILE: app/play/components/MapTab.js ────
+// ──── FILE: app/play/components/MapTab.js ────
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -3802,7 +3803,7 @@ export default function MapTab({ data: initialData, gameId, onEntityClick }) {
   );
 }
 
-// ─��── FILE: app/play/components/NarrativePanel.js ────
+// ──── FILE: app/play/components/NarrativePanel.js ────
 import { useRef, useEffect, forwardRef } from 'react';
 import TurnBlock from './TurnBlock';
 import TalkToGM from './TalkToGM';
@@ -3920,7 +3921,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
 
 export default NarrativePanel;
 
-// ─��── FILE: app/play/components/NotesTab.js ────
+// ──── FILE: app/play/components/NotesTab.js ────
 import { useState, useCallback } from 'react';
 import * as api from '@/lib/api';
 import styles from './NotesTab.module.css';
@@ -4053,7 +4054,7 @@ export default function NotesTab({ data, gameId, onNotesChange }) {
   );
 }
 
-// ─��── FILE: app/play/components/NPCTab.js ────
+// ──── FILE: app/play/components/NPCTab.js ────
 import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './NPCTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
@@ -4091,7 +4092,7 @@ export default function NPCTab({ glossaryData, glossaryTerms, onEntityClick }) {
   );
 }
 
-// ─��── FILE: app/play/components/PanelSection.js ────
+// ──── FILE: app/play/components/PanelSection.js ────
 import { useState } from 'react';
 import styles from './PanelSection.module.css';
 
@@ -4108,7 +4109,7 @@ export default function PanelSection({ title, children, defaultOpen = true }) {
   );
 }
 
-// ─��── FILE: app/play/components/ReflectionBlock.js ────
+// ──── FILE: app/play/components/ReflectionBlock.js ────
 import styles from './ReflectionBlock.module.css';
 import { renderNarrative } from '@/lib/renderLinkedText';
 
@@ -4196,7 +4197,7 @@ export default function ReflectionBlock({ reflection, glossaryTerms, onEntityCli
   );
 }
 
-// ─��── FILE: app/play/components/ReportModal.js ────
+// ──── FILE: app/play/components/ReportModal.js ────
 'use client';
 
 import { useState } from 'react';
@@ -4600,7 +4601,7 @@ export default function ReportModal({ mode, gameId, gameState, turns, characterD
   );
 }
 
-// ─��── FILE: app/play/components/ResolutionBlock.js ────
+// ──── FILE: app/play/components/ResolutionBlock.js ────
 import { useState } from 'react';
 import styles from './ResolutionBlock.module.css';
 
@@ -4720,7 +4721,7 @@ export default function ResolutionBlock({ resolution }) {
   );
 }
 
-// ─��── FILE: app/play/components/SettingsModal.js ────
+// ──── FILE: app/play/components/SettingsModal.js ────
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -4777,7 +4778,7 @@ export const THEMES = {
 };
 
 export const FONTS = [
-  { id: 'alegreya', label: 'Alegreya', family: "'Alegreya Sans', sans-serif" },
+  { id: 'alegreya', label: 'Alegreya', family: "'Alegreya', serif" },
   { id: 'lexie', label: 'Lexie Readable', family: "'Lexie Readable', sans-serif" },
 ];
 
@@ -5845,7 +5846,7 @@ export default function SettingsModal({ settings, onSave, onClose, gameId, gameS
   );
 }
 
-// ─��── FILE: app/play/components/Sidebar.js ────
+// ──── FILE: app/play/components/Sidebar.js ────
 import { useState, useCallback } from 'react';
 import CharacterTab from './CharacterTab';
 import InventoryTab from './InventoryTab';
@@ -6026,7 +6027,7 @@ export default function Sidebar({
   );
 }
 
-// ─��── FILE: app/play/components/TalkToGM.js ────
+// ──── FILE: app/play/components/TalkToGM.js ────
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as api from '@/lib/api';
 import { renderLinkedText } from '@/lib/renderLinkedText';
@@ -6789,7 +6790,7 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
   );
 }
 
-// ─��── FILE: app/play/components/TopBar.js ────
+// ──── FILE: app/play/components/TopBar.js ────
 import Link from 'next/link';
 import AuthAvatar from '@/components/AuthAvatar';
 import styles from './TopBar.module.css';
@@ -6902,7 +6903,7 @@ export default function TopBar({ setting, clock, sseConnected, sidebarOpen, onTo
   );
 }
 
-// ─��── FILE: app/play/components/TurnBlock.js ────
+// ──── FILE: app/play/components/TurnBlock.js ────
 import React, { useState, forwardRef } from 'react';
 import InlineDicePanel from './InlineDicePanel';
 import ResolutionBlock from './ResolutionBlock';

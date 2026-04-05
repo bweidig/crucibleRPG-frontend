@@ -54,7 +54,7 @@ export const THEMES = {
 };
 
 export const FONTS = [
-  { id: 'alegreya', label: 'Alegreya', family: "'Alegreya Sans', sans-serif" },
+  { id: 'alegreya', label: 'Alegreya', family: "'Alegreya', serif" },
   { id: 'lexie', label: 'Lexie Readable', family: "'Lexie Readable', sans-serif" },
 ];
 

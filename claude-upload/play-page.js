@@ -158,6 +158,7 @@ function PlayPage() {
   const handleSettingsChange = useCallback((newSettings) => {
     setDisplaySettings(newSettings);
     saveSettings(newSettings);
+    window.dispatchEvent(new Event('display-settings-changed'));
   }, []);
 
   // ─── Refetch helpers ───

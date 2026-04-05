@@ -1,8 +1,26 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import ParticleField from '@/components/ParticleField';
 import ClientFadeIn from '@/components/ClientFadeIn';
 import styles from './page.module.css';
+
+const SETTINGS_KEY = 'crucible_display_settings';
+const SIZE_MAP = { small: '13px', medium: '15px', large: '17px', xlarge: '19px' };
+
+function loadDisplaySettings() {
+  if (typeof window === 'undefined') return { font: 'alegreya', textSize: 'medium' };
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { font: parsed.font || 'alegreya', textSize: parsed.textSize || 'medium' };
+    }
+  } catch {}
+  return { font: 'alegreya', textSize: 'medium' };
+}
 
 function Section({ title, children }) {
   return (
@@ -19,9 +37,9 @@ function Section({ title, children }) {
       }}>{title}</h2>
       <div style={{
         fontFamily: 'var(--font-alegreya-sans)',
-        fontSize: 15,
+        fontSize: 'var(--legal-body-size, 15px)',
         fontWeight: 400,
-        color: 'var(--text-secondary-bright)',
+        color: 'var(--text-secondary)',
         lineHeight: 1.75,
       }}>
         {children}
@@ -37,7 +55,7 @@ function LegalList({ items }) {
         <div key={i} style={{
           display: 'flex', gap: 12, marginBottom: 8,
           fontFamily: 'var(--font-alegreya-sans)',
-          fontSize: 15, color: 'var(--text-secondary-bright)', lineHeight: 1.75,
+          fontSize: 'var(--legal-body-size, 15px)', color: 'var(--text-secondary)', lineHeight: 1.75,
         }}>
           <span style={{ color: 'var(--gold-muted)', flexShrink: 0, marginTop: 1 }}>&middot;</span>
           <span>{item}</span>
@@ -48,12 +66,32 @@ function LegalList({ items }) {
 }
 
 export default function TermsOfServicePage() {
+  const [displaySettings, setDisplaySettings] = useState({ font: 'alegreya', textSize: 'medium' });
+
+  useEffect(() => {
+    setDisplaySettings(loadDisplaySettings());
+    const handleChange = () => setDisplaySettings(loadDisplaySettings());
+    window.addEventListener('display-settings-changed', handleChange);
+    window.addEventListener('storage', (e) => { if (e.key === SETTINGS_KEY) handleChange(); });
+    return () => {
+      window.removeEventListener('display-settings-changed', handleChange);
+      window.removeEventListener('storage', handleChange);
+    };
+  }, []);
+
+  const isLexie = displaySettings.font === 'lexie';
+  const containerVars = {
+    '--legal-body-size': SIZE_MAP[displaySettings.textSize] || '15px',
+    ...(isLexie ? { '--font-alegreya-sans': "'Lexie Readable', sans-serif" } : {}),
+  };
+
   return (
     <div className={styles.pageContainer} style={{
       minHeight: '100vh',
       background: 'var(--bg-main)',
       color: 'var(--text-primary)',
       position: 'relative', paddingTop: 72,
+      ...containerVars,
     }}>
       <ParticleField />
       <NavBar />
@@ -89,8 +127,8 @@ export default function TermsOfServicePage() {
         {/* Intro */}
         <p style={{
           fontFamily: 'var(--font-alegreya-sans)',
-          fontSize: 15, fontWeight: 400,
-          color: 'var(--text-secondary-bright)', lineHeight: 1.75,
+          fontSize: 'var(--legal-body-size, 15px)', fontWeight: 400,
+          color: 'var(--text-secondary)', lineHeight: 1.75,
           marginBottom: 48,
         }}>
           Welcome to CrucibleRPG. These Terms of Service (&ldquo;Terms&rdquo;) are an agreement between you and William Weidig (&ldquo;we,&rdquo; &ldquo;us,&rdquo; &ldquo;our&rdquo;). By creating an account or using CrucibleRPG, you agree to these Terms. If you don&rsquo;t agree, don&rsquo;t use the service.

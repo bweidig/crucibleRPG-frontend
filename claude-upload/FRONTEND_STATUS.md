@@ -34,6 +34,41 @@
 
 ## Recent Work (This Session: 2026-04-04)
 
+### Rulebook Structural Rewrite + Color Alignment
+Rewrote rulebook page to natural page scroll (removed maxHeight/overflowY from content area, scroll spy now uses window scroll instead of container scroll). Added ParticleField with zIndex layers on hero/main/CTA. Removed metadata "21 sections" span from hero. Fixed all text colors to design system tokens: body text #b0b8cc → #8a94a8, mechanic-callout #8a9ab8 → #8a94a8, h3/border colors to CSS variables, subtitle/CTA colors to --text-secondary, section titles to --text-heading, TOC inactive links to --text-muted, page background to --bg-main. Sticky TOC top adjusted to 24px with tocScroll maxHeight updated.
+
+**Files modified:** `app/rulebook/page.js`.
+
+### Privacy & Terms Color Fix
+Replaced --text-secondary-bright with --text-secondary in Section and LegalList components on both pages (banned on marketing pages per design system).
+
+**Files modified:** `app/terms/page.js`, `app/privacy/page.js`.
+
+### /play Font System: Alegreya Serif Default + Lexie Toggle
+Changed --body-font default in globals.css from Lexie Readable to Alegreya. FONTS array family updated from Alegreya Sans to Alegreya serif across SettingsModal and /settings page. buildThemeStyle() overrides --font-alegreya, --font-alegreya-sans, and --font-jetbrains when Lexie is enabled. Display settings changes now dispatch a `display-settings-changed` custom event for cross-page sync. Removed dead FONT_OPTIONS/SIZE_OPTIONS arrays from menu page.
+
+**Files modified:** `app/globals.css`, `app/play/page.js`, `app/play/components/SettingsModal.js`, `app/settings/page.js`, `app/menu/page.js`.
+
+### Settings Page Display Section Overhaul
+Updated SIZE_PX to match play page SIZES (13/15/17/19px). Section label font bumped to 14px. Preview paragraph changed to non-italic, uses Alegreya serif. Added scope note: "Applies to gameplay and reading pages (rulebook, terms, privacy)." Event dispatch added on settings change.
+
+**Files modified:** `app/settings/page.js`.
+
+### Rulebook Lexie Toggle + Font/Size Support
+Added Lexie Readable toggle to rulebook TOC sidebar. Reads crucible_display_settings from localStorage on mount. Content body text (p, ul, ol, mechanic-callout) uses CSS variables (--rulebook-body-font, --rulebook-body-size) that respond to the toggle. Listens for display-settings-changed and storage events for live cross-tab sync.
+
+**Files modified:** `app/rulebook/page.js`.
+
+### Terms & Privacy Silent Font Reading
+Converted both pages to client components. Read crucible_display_settings from localStorage on mount. When Lexie is enabled, override --font-alegreya-sans on the page container. Body text font size responds to textSize setting via --legal-body-size CSS variable. Listen for display-settings-changed and storage events.
+
+**Files modified:** `app/terms/page.js`, `app/privacy/page.js`.
+
+### Design System: Font Scope & Defaults
+Updated Font Stack (Lexie Readable description), replaced Font Inheritance Rule with new Font Scope subsection defining per-context font behavior (marketing pages, game layout, reading pages, settings page), and clarified the inheritance rule around --body-font defaults and Lexie overrides.
+
+**Files modified:** `docs/design-system.md`.
+
 ### Showcase Narrative Font: Italic to Upright
 Showcase narrative and result text changed from Alegreya italic to Alegreya regular to match /play default font. Hero tagline and feature card epigraphs remain italic (marketing narrator voice).
 

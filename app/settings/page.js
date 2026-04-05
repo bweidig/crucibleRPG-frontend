@@ -27,7 +27,7 @@ function saveDisplaySettings(settings) {
 // ─── FONT / SIZE MAPS ───
 
 const FONTS = [
-  { id: 'alegreya', label: 'Alegreya', family: "'Alegreya Sans', sans-serif" },
+  { id: 'alegreya', label: 'Alegreya', family: "'Alegreya', serif" },
   { id: 'lexie', label: 'Lexie Readable', family: "'Lexie Readable', sans-serif" },
 ];
 
@@ -38,7 +38,7 @@ const SIZES = [
   { id: 'xlarge', label: 'XL' },
 ];
 
-const SIZE_PX = { small: 14, medium: 16, large: 18, xlarge: 20 };
+const SIZE_PX = { small: 13, medium: 15, large: 17, xlarge: 19 };
 
 // ─── FONT / SIZE HELPERS ───
 
@@ -95,6 +95,7 @@ export default function SettingsPage() {
     const next = { ...display, ...patch };
     setDisplay(next);
     saveDisplaySettings(next);
+    window.dispatchEvent(new Event('display-settings-changed'));
   }
 
   // Edit name
@@ -225,7 +226,7 @@ export default function SettingsPage() {
           background: '#0d1120', border: '1px solid #3a3328', borderRadius: 12,
           padding: '28px 32px', marginBottom: 28,
         }}>
-          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 600, color: '#9a8545', letterSpacing: '0.12em', marginBottom: 20 }}>
+          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, color: '#9a8545', letterSpacing: '0.12em', marginBottom: 20 }}>
             DISPLAY
           </div>
 
@@ -279,12 +280,20 @@ export default function SettingsPage() {
             background: '#111528', border: '1px solid #2a2622', borderRadius: 6, padding: 16,
           }}>
             <p style={{
-              fontFamily: display.font === 'lexie' ? "'Lexie Readable', sans-serif" : "'Alegreya Sans', sans-serif",
-              fontSize: SIZE_PX[display.textSize] || 16,
-              color: '#d4c4a0', lineHeight: 1.7, fontStyle: 'italic', margin: 0,
+              fontFamily: display.font === 'lexie' ? "'Lexie Readable', sans-serif" : "'Alegreya', serif",
+              fontSize: SIZE_PX[display.textSize] || 15,
+              color: '#d4c4a0', lineHeight: 1.7, margin: 0,
             }}>
               The tavern falls silent as you push open the heavy oak door. A dozen eyes track your movement across the room. The bartender polishes a glass that was already clean, watching you with practiced indifference.
             </p>
+          </div>
+
+          {/* Scope note */}
+          <div style={{
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#6b83a3',
+            marginTop: 12, fontStyle: 'italic',
+          }}>
+            Applies to gameplay and reading pages (rulebook, terms, privacy).
           </div>
         </div>
 

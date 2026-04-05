@@ -74,7 +74,7 @@
   --font-alegreya-sans: 'Alegreya Sans', sans-serif;
   --font-jetbrains: 'JetBrains Mono', monospace;
   --font-lexie: 'Lexie Readable', sans-serif;
-  --body-font: var(--font-lexie);
+  --body-font: var(--font-alegreya);
 }
 
 * {

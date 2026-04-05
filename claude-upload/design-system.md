@@ -116,7 +116,7 @@ Marketing pages use only two grey-blue text values: `--text-secondary` (#8a94a8)
 - **Alegreya** — Narrative body text, subtitles, italic descriptions
 - **Alegreya Sans** — UI labels, stat names, metadata, body copy
 - **JetBrains Mono** — Numbers, mechanical resolution, timestamps, turn counts
-- **Lexie Readable** — Default body font (dyslexia-friendly), user can switch in Display Settings
+- **Lexie Readable** — Accessibility font (dyslexia-friendly), available as a toggle in display settings for gameplay and reading pages
 
 ### Font Import - Required Weights
 When adding or modifying the font configuration in `app/layout.js`, all of these weights must be loaded to avoid faux bold/italic:
@@ -138,12 +138,23 @@ If a new weight or style is needed, add it to the import. Never use a weight/sty
 - **Weight 700** (bold): Cinzel headings, primary buttons.
 - **Weight 900** (black): Cinzel hero wordmark only.
 
-### Font Inheritance Rule
-All text in the game layout must respect the user's font setting via `var(--body-font)`. The `--body-font` variable is set on `:root` (defaults to Lexie Readable) and applied to `html, body`. To swap fonts at runtime, update `--body-font` via JavaScript. Only use hardcoded font families for:
-- `Cinzel` on section headers and labels (decorative/structural)
-- `JetBrains Mono` on pure numerical values (stat numbers, turn counts, timestamps)
+### Font Scope
+Fonts are assigned by page context, not globally.
 
-Everything else inherits from the user's font choice.
+**Marketing pages** (landing, pricing, FAQ, coming soon, auth, menu, saved games): Fonts are hardcoded per element. Cinzel for headers/labels, Alegreya italic for taglines and subtitles, Alegreya Sans for body text and UI labels. No user font settings apply. Do not modify these pages to reference `--body-font`.
+
+**Game layout** (`/play`): The default reading font is Alegreya serif. Players can toggle to Lexie Readable (dyslexia-friendly) in the SettingsModal Display tab. When Lexie is enabled, all fonts switch to Lexie Readable except Cinzel (structural headers/labels). This includes Alegreya serif, Alegreya Sans, and JetBrains Mono. Font and text size preferences are stored in `crucible_display_settings` localStorage key and applied as CSS variable overrides on the page container.
+
+**Reading pages** (rulebook, terms of service, privacy policy): Body text respects the Lexie Readable and text size settings from localStorage. The rulebook has its own small toggle for users who haven't visited `/play` or `/settings`. ToS and Privacy read the setting silently with no toggle UI. Cinzel headers and Alegreya italic taglines remain fixed.
+
+**Settings page** (`/settings`): Display section includes the Lexie Readable toggle and text size picker with a note explaining scope: "Applies to gameplay and reading pages (rulebook, terms, privacy)."
+
+### Font Inheritance Rule
+`--body-font` is set on `:root` in `globals.css` and defaults to `var(--font-alegreya)`. The `/play` page overrides font CSS variables on its container when the user enables Lexie Readable. Reading pages apply the same overrides by reading from localStorage on mount.
+
+Only hardcode font families for:
+- `Cinzel` on section headers and labels (decorative/structural)
+- Marketing page elements (which use explicit font assignments, not `--body-font`)
 
 ---
 

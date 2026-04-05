@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { isAuthenticated, getUser } from '@/lib/api';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
+import ParticleField from '@/components/ParticleField';
 import ScrollReveal from '@/components/ScrollReveal';
 import styles from './page.module.css';
 
@@ -103,79 +104,126 @@ const ALL_SECTIONS = SECTIONS;
 
 // --- MAIN ---
 
+const SETTINGS_KEY = 'crucible_display_settings';
+const SIZE_MAP = { small: '13px', medium: '15px', large: '17px', xlarge: '19px' };
+
+function loadDisplaySettings() {
+  if (typeof window === 'undefined') return { font: 'alegreya', textSize: 'medium' };
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { font: parsed.font || 'alegreya', textSize: parsed.textSize || 'medium' };
+    }
+  } catch {}
+  return { font: 'alegreya', textSize: 'medium' };
+}
+
 export default function RulebookPage() {
   const router = useRouter();
   const [loaded, setLoaded] = useState(false);
   const [activeSection, setActiveSection] = useState(0);
-  const contentRef = useRef(null);
+  const [displaySettings, setDisplaySettings] = useState({ font: 'alegreya', textSize: 'medium' });
   const sectionRefs = useRef([]);
 
   useEffect(() => {
     if (!isAuthenticated()) { router.replace('/auth'); return; }
     const user = getUser();
     if (user && !user.isPlaytester) { router.replace('/'); return; }
+    setDisplaySettings(loadDisplaySettings());
     setTimeout(() => setLoaded(true), 100);
+
+    const handleSettingsChange = () => setDisplaySettings(loadDisplaySettings());
+    window.addEventListener('display-settings-changed', handleSettingsChange);
+    window.addEventListener('storage', (e) => {
+      if (e.key === SETTINGS_KEY) handleSettingsChange();
+    });
+    return () => {
+      window.removeEventListener('display-settings-changed', handleSettingsChange);
+      window.removeEventListener('storage', handleSettingsChange);
+    };
   }, [router]);
 
   // Scroll spy
   useEffect(() => {
-    const container = contentRef.current;
-    if (!container) return;
-
     const handleScroll = () => {
-      const scrollTop = container.scrollTop;
-      const containerHeight = container.clientHeight;
       let current = 0;
-
       for (let i = 0; i < sectionRefs.current.length; i++) {
         const el = sectionRefs.current[i];
         if (!el) continue;
-        const offsetTop = el.offsetTop - container.offsetTop;
-        if (scrollTop >= offsetTop - containerHeight * 0.3) {
+        const rect = el.getBoundingClientRect();
+        if (rect.top <= window.innerHeight * 0.3) {
           current = i;
         }
       }
-
       setActiveSection(current);
     };
 
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // set initial state
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const scrollToSection = (index) => {
     const el = sectionRefs.current[index];
-    const container = contentRef.current;
-    if (!el || !container) return;
-    const offsetTop = el.offsetTop - container.offsetTop;
-    container.scrollTo({ top: offsetTop, behavior: 'smooth' });
+    if (!el) return;
+    const y = el.getBoundingClientRect().top + window.scrollY - 24;
+    window.scrollTo({ top: y, behavior: 'smooth' });
+  };
+
+  const toggleLexie = () => {
+    const next = displaySettings.font === 'lexie' ? 'alegreya' : 'lexie';
+    const updated = { ...displaySettings, font: next };
+    setDisplaySettings(updated);
+    try {
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      const full = raw ? { ...JSON.parse(raw), font: next } : { theme: 'dark', font: next, textSize: updated.textSize };
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(full));
+    } catch {}
+    window.dispatchEvent(new Event('display-settings-changed'));
+  };
+
+  const isLexie = displaySettings.font === 'lexie';
+  const bodyFont = isLexie ? "'Lexie Readable', sans-serif" : "'Alegreya', serif";
+  const bodySize = SIZE_MAP[displaySettings.textSize] || '15px';
+  const containerVars = {
+    '--rulebook-body-font': bodyFont,
+    '--rulebook-body-size': bodySize,
+    ...(isLexie ? {
+      '--font-alegreya': "'Lexie Readable', sans-serif",
+      '--font-alegreya-sans': "'Lexie Readable', sans-serif",
+      '--font-jetbrains': "'Lexie Readable', sans-serif",
+    } : {}),
   };
 
   return (
     <div className={styles.pageContainer} style={{
-      minHeight: '100vh', background: '#0a0e1a', color: 'var(--text-primary)',
+      minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)',
       display: 'flex', flexDirection: 'column', paddingTop: 72,
+      ...containerVars,
     }}>
       {/* Injected global styles for content sections */}
       <style>{`
-        .content-section h3 { font-family: 'Cinzel', serif; font-size: 14px; font-weight: 700; color: #c9a84c; letter-spacing: 0.06em; margin: 28px 0 12px 0; }
-        .content-section p { font-family: 'Alegreya', serif; font-size: 16px; color: #b0b8cc; line-height: 1.8; margin-bottom: 16px; }
-        .content-section ul, .content-section ol { margin: 0 0 16px 20px; font-family: 'Alegreya', serif; font-size: 16px; color: #b0b8cc; line-height: 1.8; }
+        .content-section h3 { font-family: 'Cinzel', serif; font-size: 14px; font-weight: 700; color: var(--accent-gold); letter-spacing: 0.06em; margin: 28px 0 12px 0; }
+        .content-section p { font-family: var(--rulebook-body-font, 'Alegreya', serif); font-size: var(--rulebook-body-size, 15px); color: #8a94a8; line-height: 1.8; margin-bottom: 16px; }
+        .content-section ul, .content-section ol { margin: 0 0 16px 20px; font-family: var(--rulebook-body-font, 'Alegreya', serif); font-size: var(--rulebook-body-size, 15px); color: #8a94a8; line-height: 1.8; }
         .content-section li { margin-bottom: 6px; }
         .content-section li strong { color: #d0c098; }
-        .mechanic-callout { background: #111525; border: 1px solid #3a3328; border-left: 3px solid #c9a84c; border-radius: 0 6px 6px 0; padding: 16px 20px; margin: 20px 0; font-family: 'Alegreya Sans', sans-serif; font-size: 15px; color: #8a9ab8; line-height: 1.7; }
+        .mechanic-callout { background: #111525; border: 1px solid var(--border-card); border-left: 3px solid var(--accent-gold); border-radius: 0 6px 6px 0; padding: 16px 20px; margin: 20px 0; font-family: var(--rulebook-body-font, 'Alegreya Sans', sans-serif); font-size: var(--rulebook-body-size, 15px); color: #8a94a8; line-height: 1.7; }
         @media (max-width: 767px) {
           .content-section ul, .content-section ol { margin-left: 12px; }
           .mechanic-callout { padding: 14px 16px; margin: 16px 0; }
         }
       `}</style>
 
+      <ParticleField />
       <NavBar currentPage="rulebook" />
 
       {/* Hero section */}
       <ScrollReveal>
         <div style={{
           textAlign: 'center', padding: '48px 24px 36px',
+          position: 'relative', zIndex: 1,
         }}>
           <h1 style={{
             fontFamily: 'var(--font-cinzel)', fontSize: 'clamp(26px, 3.5vw, 34px)',
@@ -183,25 +231,22 @@ export default function RulebookPage() {
           }}>The Rulebook</h1>
           <p style={{
             fontFamily: 'var(--font-alegreya)', fontSize: 18, fontStyle: 'italic',
-            fontWeight: 400, color: '#9a9480', marginBottom: 8,
+            fontWeight: 400, color: 'var(--text-secondary)',
           }}>Real rules. Real consequences. Here&rsquo;s how the system works.</p>
-          <span style={{
-            fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
-            color: 'var(--text-muted)',
-          }}>21 sections &middot; Player-friendly reference &middot; No spoilers</span>
         </div>
       </ScrollReveal>
 
       {/* Main area: TOC sidebar + content */}
       <div className={styles.mainArea} style={{
-        flex: 1, display: 'flex', maxWidth: 1100, width: '100%',
+        display: 'flex', maxWidth: 1100, width: '100%',
         margin: '0 auto', padding: '0 clamp(16px, 3vw, 48px) 48px',
         opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(16px)',
         transition: 'all 1s cubic-bezier(0.16,1,0.3,1) 0.4s',
+        position: 'relative', zIndex: 1,
       }}>
         {/* TOC Sidebar */}
         <div className={styles.tocSidebar} style={{
-          width: 260, flexShrink: 0, position: 'sticky', top: 80,
+          width: 260, flexShrink: 0, position: 'sticky', top: 24,
           alignSelf: 'flex-start', paddingRight: 24,
         }}>
           <div style={{
@@ -210,7 +255,7 @@ export default function RulebookPage() {
             paddingBottom: 12, borderBottom: '1px solid #1e2540',
           }}>CONTENTS</div>
           <div className={styles.tocScroll} style={{
-            maxHeight: 'calc(100vh - 220px)', overflowY: 'auto',
+            maxHeight: 'calc(100vh - 140px)', overflowY: 'auto',
           }}>
             {ALL_SECTIONS.map((section, i) => (
               <a
@@ -221,7 +266,7 @@ export default function RulebookPage() {
                   fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
                   color: activeSection === i
                     ? ('var(--accent-gold)')
-                    : '#6b7a96',
+                    : 'var(--text-muted)',
                   fontWeight: activeSection === i ? 600 : 400,
                   padding: '5px 0',
                   display: 'flex', alignItems: 'baseline', gap: 8,
@@ -231,21 +276,45 @@ export default function RulebookPage() {
                   fontFamily: 'var(--font-jetbrains)', fontSize: 10,
                   color: activeSection === i
                     ? ('var(--accent-gold)')
-                    : '#4a5568',
+                    : '#556178',
                   minWidth: 18,
                 }}>{section.number}</span>
                 {section.title}
               </a>
             ))}
           </div>
+
+          {/* Lexie Readable toggle */}
+          <div style={{
+            marginTop: 20, paddingTop: 16, borderTop: '1px solid #1e2540',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <span style={{
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 12,
+              color: isLexie ? 'var(--accent-gold)' : 'var(--text-muted)',
+            }}>Lexie Readable</span>
+            <button onClick={toggleLexie} style={{
+              width: 36, height: 20, borderRadius: 10, cursor: 'pointer',
+              background: isLexie ? '#c9a84c' : '#111528',
+              border: `1px solid ${isLexie ? '#c9a84c' : '#1e2540'}`,
+              position: 'relative', transition: 'all 0.2s', flexShrink: 0,
+            }}>
+              <div style={{
+                width: 14, height: 14, borderRadius: '50%',
+                background: isLexie ? '#0a0e1a' : '#8a94a8',
+                position: 'absolute', top: 2,
+                left: isLexie ? 18 : 2,
+                transition: 'left 0.2s, background 0.2s',
+              }} />
+            </button>
+          </div>
         </div>
 
         {/* Content area */}
         <div
-          ref={contentRef}
           className={styles.scrollArea}
           style={{
-            flex: 1, overflowY: 'auto', maxHeight: 'calc(100vh - 220px)',
+            flex: 1,
             paddingRight: 16, paddingLeft: 8,
           }}
         >
@@ -269,7 +338,7 @@ export default function RulebookPage() {
                 }}>{section.number.toString().padStart(2, '0')}</span>
                 <h2 style={{
                   fontFamily: 'var(--font-cinzel)', fontSize: 18, fontWeight: 700,
-                  color: '#d0c098',
+                  color: 'var(--text-heading)',
                   letterSpacing: '0.04em',
                 }}>{section.title}</h2>
               </div>
@@ -285,6 +354,7 @@ export default function RulebookPage() {
           {/* Bottom CTA */}
           <div style={{
             textAlign: 'center', padding: '48px 24px 24px',
+            position: 'relative', zIndex: 1,
           }}>
             <div style={{
               position: 'relative',
@@ -301,7 +371,7 @@ export default function RulebookPage() {
               }}>Every Hero Needs a Crucible.</h2>
               <p style={{
                 fontFamily: 'var(--font-alegreya)', fontSize: 18, fontStyle: 'italic',
-                fontWeight: 400, color: '#9a9480', marginBottom: 28,
+                fontWeight: 400, color: 'var(--text-secondary)', marginBottom: 28,
                 position: 'relative',
               }}>Yours is waiting.</p>
               <Link href="/auth" style={{ textDecoration: 'none' }}>

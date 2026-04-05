@@ -9,22 +9,6 @@ import ParticleField from '@/components/ParticleField';
 import { CardNoise } from '@/components/CardNoise';
 import styles from './page.module.css';
 
-// ─── FONT & SIZE OPTIONS (for display settings persistence) ───
-
-const FONT_OPTIONS = [
-  { id: "lexie", label: "Lexie Readable", family: "var(--font-lexie), sans-serif" },
-  { id: "system", label: "System Default", family: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
-  { id: "alegreya-sans", label: "Alegreya Sans", family: "var(--font-alegreya-sans), sans-serif" },
-  { id: "georgia", label: "Georgia", family: "Georgia, 'Times New Roman', serif" },
-  { id: "mono", label: "Monospace", family: "var(--font-jetbrains), 'Courier New', monospace" },
-];
-const SIZE_OPTIONS = [
-  { id: "small", label: "Small", base: 13, meta: 10, heading: 22, sub: 14 },
-  { id: "medium", label: "Medium", base: 15, meta: 11, heading: 26, sub: 16 },
-  { id: "large", label: "Large", base: 17, meta: 12, heading: 30, sub: 18 },
-  { id: "xlarge", label: "X-Large", base: 19, meta: 13, heading: 34, sub: 20 },
-];
-
 // ─── HELPERS ───
 
 function formatTimeAgo(dateStr) {
