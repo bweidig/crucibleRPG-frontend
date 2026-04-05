@@ -51,6 +51,7 @@
   gap: 8px;
   text-decoration: none;
   user-select: none;
+  padding: 8px 0;
 }
 
 .wordmarkCrucible {
@@ -110,9 +111,9 @@
 /* Hamburger button — hidden on desktop */
 .hamburger {
   display: none;
-  width: 32px;
-  height: 32px;
-  padding: 4px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
   background: none;
   border: none;
   cursor: pointer;
@@ -123,20 +124,24 @@
 .hamburgerLine {
   display: block;
   position: absolute;
-  left: 4px;
-  right: 4px;
+  left: 10px;
+  right: 10px;
   height: 2px;
   background: #9a8545;
   border-radius: 1px;
   transition: transform 0.25s ease, opacity 0.25s ease;
 }
 
-.hamburgerLine:nth-child(1) { top: 8px; }
-.hamburgerLine:nth-child(2) { top: 15px; }
-.hamburgerLine:nth-child(3) { top: 22px; }
+.hamburgerLine:nth-child(1) { top: 14px; }
+.hamburgerLine:nth-child(2) { top: 21px; }
+.hamburgerLine:nth-child(3) { top: 28px; }
 
 .hamburgerOpen .hamburgerLine:nth-child(1) {
   transform: translateY(7px) rotate(45deg);
+}
+.hamburger:focus-visible {
+  outline: 2px solid rgba(201, 168, 76, 0.6);
+  outline-offset: 2px;
 }
 .hamburgerOpen .hamburgerLine:nth-child(2) {
   opacity: 0;
@@ -157,11 +162,11 @@
   }
 
   .standardLinks {
-    gap: 12px;
+    gap: 16px;
   }
 
   .landingLinks {
-    gap: 12px;
+    gap: 16px;
   }
 
   .hamburger {

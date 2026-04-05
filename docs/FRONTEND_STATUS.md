@@ -34,6 +34,11 @@
 
 ## Recent Work (This Session: 2026-04-05)
 
+### Mobile Tap Target Fixes — NavBar + GameplayShowcase
+Fixed undersized tap targets on mobile. NavBar: hamburger button expanded to 44x44 (icon lines repositioned to stay visually centered), wordmark link gets 8px vertical padding for 44px+ tap area, AuthAvatar wrapped in 44x44 Link with inner span for 32px visual circle, mobile gap between hamburger/avatar increased to 16px. GameplayShowcase: NEXT SCENARIO button gets min-height 44px, pagination dots changed to 44x44 invisible tap zones with ::after pseudo-element for the 10px visual dot.
+
+**Files modified:** `components/NavBar.module.css`, `components/AuthAvatar.js`, `app/landing/GameplayShowcase.module.css`.
+
 ### Privacy Policy & Terms of Service — Content Rewrite + Design System Alignment
 Complete content replacement on both legal pages with final production copy. Design system fixes applied: body text fallback 15px→16px, SIZE_MAP medium 15px→16px, bold label color `#b0a890`→`var(--text-heading)`, section border `#1e2540`→`var(--border-primary)`. All email links use `legalLink` class. Privacy page third-party service links are real `<a>` tags with `target="_blank"`. Lexie Readable support was already present — retained as-is.
 
