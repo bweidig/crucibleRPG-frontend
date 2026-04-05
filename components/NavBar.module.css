@@ -177,9 +177,9 @@
     top: 72px;
     left: 0;
     right: 0;
-    background: rgba(10, 14, 26, 0.95);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: rgba(10, 14, 26, 0.97);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     border-bottom: 1px solid #1e2540;
     max-height: 0;
     overflow: hidden;
