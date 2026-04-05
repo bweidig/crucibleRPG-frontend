@@ -9,22 +9,22 @@ import ParticleField from '@/components/ParticleField';
 import ScrollReveal from '@/components/ScrollReveal';
 import styles from './page.module.css';
 
-// --- PLACEHOLDER CONFIG (easy to swap later) ---
+// --- PRICING CONFIG ---
 
 const PRICING = {
   trial: {
-    turns: 'XX',
+    turns: '25',
     label: 'Free Trial',
   },
   subscription: {
-    price: 'X.XX',
-    turns: 'XXX',
-    label: 'Adventurer',
+    price: '9.99',
+    turns: '225',
+    label: 'Hero',
   },
   topups: [
-    { turns: 'XX', price: 'X.XX' },
-    { turns: 'XX', price: 'X.XX' },
-    { turns: 'XXX', price: 'XX.XX' },
+    { turns: '25', price: '1.49' },
+    { turns: '50', price: '2.49' },
+    { turns: '100', price: '4.49' },
   ],
 };
 
@@ -76,7 +76,7 @@ function Feature({ text }) {
     <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 14 }}>
       <Check />
       <span style={{
-        fontFamily: 'var(--font-alegreya-sans)', fontSize: 15,
+        fontFamily: 'var(--font-alegreya-sans)', fontSize: 16,
         fontWeight: 400, color: 'var(--text-secondary)', lineHeight: 1.5,
       }}>{text}</span>
     </div>
@@ -113,14 +113,14 @@ export default function PricingPage() {
           }}>PRICING</span>
 
           <h1 style={{
-            fontFamily: 'var(--font-alegreya)', fontSize: 'clamp(26px, 3.5vw, 34px)',
+            fontFamily: 'var(--font-alegreya)', fontSize: 'clamp(28px, 4vw, 36px)',
             fontStyle: 'italic', fontWeight: 500, color: '#9a9480',
             marginTop: 20, marginBottom: 14,
           }}>No tiers. No gates. Just the whole world for one price.</h1>
 
           <p style={{
-            fontFamily: 'var(--font-alegreya-sans)', fontSize: 17, fontWeight: 300,
-            color: 'var(--text-muted)', maxWidth: 480, margin: '0 auto', lineHeight: 1.7,
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 18, fontWeight: 400,
+            color: 'var(--text-secondary)', maxWidth: 480, margin: '0 auto', lineHeight: 1.7,
           }}>Every storyteller. Every setting. Every feature. Start free or jump right in.</p>
         </ScrollReveal>
       </div>
@@ -157,8 +157,8 @@ export default function PricingPage() {
           }}>{PRICING.trial.turns} turns</div>
 
           <div style={{
-            fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
-            color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 28,
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 16, fontWeight: 400,
+            color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 28,
             paddingBottom: 24, borderBottom: '1px solid var(--border-gold-faint)',
           }}>No credit card. No commitment. Just jump in.</div>
 
@@ -189,17 +189,7 @@ export default function PricingPage() {
           border: '1px solid var(--border-card-separator)',
           borderRadius: 10, padding: '36px 32px',
           width: 300, maxWidth: '100%', display: 'flex', flexDirection: 'column',
-          position: 'relative',
         }}>
-          {/* Recommended badge */}
-          <div style={{
-            position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)',
-            fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 700,
-            color: 'var(--bg-main)', letterSpacing: '0.15em',
-            background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
-            borderRadius: 20, padding: '5px 16px',
-          }}>RECOMMENDED</div>
-
           <div style={{
             fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
             color: 'var(--gold-muted)', letterSpacing: '0.2em', marginBottom: 16,
@@ -224,8 +214,8 @@ export default function PricingPage() {
           }}>{PRICING.subscription.turns} turns included</div>
 
           <div style={{
-            fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
-            color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 28,
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 16, fontWeight: 400,
+            color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 28,
             paddingBottom: 24, borderBottom: '1px solid var(--border-gold-faint)',
           }}>Your monthly turns. Spend them however you want. Resets every billing cycle. Cancel anytime.</div>
 
@@ -264,8 +254,8 @@ export default function PricingPage() {
               color: 'var(--gold-muted)', letterSpacing: '0.2em',
             }}>NEED MORE TURNS?</span>
           <p style={{
-            fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 300,
-            color: 'var(--text-muted)', marginTop: 10, lineHeight: 1.6,
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 16, fontWeight: 400,
+            color: 'var(--text-secondary)', marginTop: 10, lineHeight: 1.6,
           }}>Top-up packs for when the story can't wait. Available to subscribers anytime.</p>
         </div>
         </ScrollReveal>
@@ -286,8 +276,8 @@ export default function PricingPage() {
                   fontWeight: 500, color: 'var(--text-heading)', marginBottom: 4,
                 }}>{pack.turns}</div>
                 <div style={{
-                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
-                  color: 'var(--text-muted)', marginBottom: 12,
+                  fontFamily: 'var(--font-cinzel)', fontSize: 14,
+                  fontWeight: 600, color: 'var(--text-muted)', marginBottom: 12,
                 }}>turns</div>
                 <div style={{
                   fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700,
@@ -322,12 +312,12 @@ export default function PricingPage() {
               borderBottom: i < FAQ_ITEMS.length - 1 ? '1px solid var(--border-gold-faint)' : 'none',
             }}>
               <div style={{
-                fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 700,
+                fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600,
                 color: 'var(--text-heading)', marginBottom: 8,
               }}>{item.q}</div>
               <div style={{
-                fontFamily: 'var(--font-alegreya-sans)', fontSize: 15,
-                fontWeight: 300, color: 'var(--text-muted)', lineHeight: 1.7,
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 16,
+                fontWeight: 400, color: 'var(--text-secondary)', lineHeight: 1.7,
               }}>{item.a}</div>
             </div>
           </ScrollReveal>
@@ -345,12 +335,12 @@ export default function PricingPage() {
           top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none',
         }} />
         <h2 style={{
-          fontFamily: 'var(--font-cinzel)', fontSize: 'clamp(22px, 3vw, 28px)',
+          fontFamily: 'var(--font-cinzel)', fontSize: 'clamp(22px, 3vw, 27px)',
           fontWeight: 700, color: 'var(--text-heading)', marginBottom: 14, position: 'relative',
         }}>Every Hero Needs a Crucible. Yours is waiting.</h2>
         <p style={{
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 16, fontWeight: 300,
-          color: 'var(--text-muted)', lineHeight: 1.7, maxWidth: 420, margin: '0 auto 32px',
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 16, fontWeight: 400,
+          color: 'var(--text-secondary)', lineHeight: 1.7, maxWidth: 420, margin: '0 auto 32px',
           position: 'relative',
         }}>No group required. No prep time. Just you and a world waiting to see what you'll do.</p>
         <button

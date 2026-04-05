@@ -34,6 +34,11 @@
 
 ## Recent Work (This Session: 2026-04-05)
 
+### Pricing Page — Real Prices + Design System Alignment
+Pricing page updated with real prices (Free: 25 turns/1 world, Hero: $9.99/225 turns/5 worlds, turn packs: 25/$1.49, 50/$2.49, 100/$4.49). Tier renamed from Adventurer to Hero. Recommended badge removed. Full design system alignment pass completed.
+
+**Files modified:** `app/pricing/page.js`.
+
 ### Announcements — Admin Panel + Menu Display
 Admin Settings tab now has an Announcement section above Invite Code: shows current announcement text with timestamp, textarea to post a new one (1000 char max with counter), Post/Clear buttons with inline feedback. Settings tab fetch loads both invite code and announcement in parallel. Menu page shows a gold-bordered banner when an announcement is active, with dismiss button (session-only, reappears if text changes). API client functions added: `getAnnouncement`/`setAnnouncement`/`clearAnnouncement` in adminApi.js, `getAnnouncement` in api.js.
 
