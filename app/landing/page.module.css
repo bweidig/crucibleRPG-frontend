@@ -35,9 +35,8 @@
 
 /* Scroll chevron */
 .scrollChevron {
-  position: absolute;
-  bottom: 64px;
-  left: 50%;
+  margin-top: 52px;
+  text-align: center;
   background: none;
   border: none;
   padding: 12px;
@@ -55,8 +54,8 @@
 }
 
 @keyframes chevronFloat {
-  0%, 100% { transform: translateX(-50%) translateY(0); }
-  50% { transform: translateX(-50%) translateY(7px); }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(7px); }
 }
 
 /* Scroll fade indicator */
@@ -176,7 +175,7 @@
 
   .scrollChevron {
     animation: none;
-    transform: translateX(-50%);
+    transform: none;
   }
 
   .faqAnswer {
@@ -215,10 +214,6 @@
   .heroSection {
     padding-top: 100px !important;
     padding-bottom: 60px !important;
-  }
-
-  .scrollChevron {
-    bottom: 40px;
   }
 
   .featuresSection {

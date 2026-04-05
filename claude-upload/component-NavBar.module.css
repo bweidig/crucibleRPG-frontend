@@ -110,7 +110,7 @@
 /* Mobile */
 @media (max-width: 767px) {
   .sectionLink {
-    display: none;
+    display: none !important;
   }
 
   .standardLinks {

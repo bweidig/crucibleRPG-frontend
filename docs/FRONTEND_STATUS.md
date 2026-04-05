@@ -34,6 +34,14 @@
 
 ## Recent Work (This Session: 2026-04-05)
 
+### Landing Hero: Nav Mobile Fix, Chevron Flow, iOS Viewport
+Three related mobile/viewport fixes on the landing hero:
+- Nav bar section links (FEATURES, HOW IT WORKS, FAQ) now hidden on mobile via `!important` override — previously the `.navLink { display: inline-flex }` rule was winning over `.sectionLink { display: none }`.
+- Scroll chevron moved from absolute positioning to normal document flow (margin-top spacing, flex-centered). Prevents overlap on short viewports.
+- Hero minHeight changed from `100vh` to `100dvh` so iOS Safari browser chrome doesn't steal space from the visible hero area.
+
+**Files modified:** `components/NavBar.module.css`, `app/landing/page.module.css`, `app/landing/HeroSection.js`.
+
 ### Showcase Dice Bar Font Update
 Showcase dice bar font changed from Alegreya Sans to JetBrains Mono to match /play resolution display.
 

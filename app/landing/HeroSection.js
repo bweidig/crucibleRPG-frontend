@@ -78,7 +78,7 @@ export default function HeroSection() {
 
   return (
     <section className={styles.heroSection} style={{
-      position: 'relative', minHeight: '100vh',
+      position: 'relative', minHeight: '100dvh',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       padding: '120px 24px 48px',
     }}>
