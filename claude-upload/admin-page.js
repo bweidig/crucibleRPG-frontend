@@ -9,6 +9,7 @@ import {
   getAdminCosts, getAdminHealth,
   getAdminReports, updateReport,
   getInviteCode, updateInviteCode,
+  getAnnouncement as getAdminAnnouncement, setAnnouncement as setAdminAnnouncement, clearAnnouncement as clearAdminAnnouncement,
 } from '@/lib/adminApi';
 import styles from './page.module.css';
 
@@ -1561,9 +1562,15 @@ function SettingsTab({ data, loading, onRefresh }) {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
 
+  // Announcement state
+  const [annText, setAnnText] = useState('');
+  const [annSaving, setAnnSaving] = useState(false);
+  const [annMsg, setAnnMsg] = useState('');
+
   if (loading) return <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 40 }}>Loading...</p>;
 
-  const invite = data || {};
+  const invite = data?.invite || data || {};
+  const announcement = data?.announcement || null;
 
   async function handleUpdateCode() {
     if (!newCode.trim()) return;
@@ -1580,11 +1587,104 @@ function SettingsTab({ data, loading, onRefresh }) {
     setSaving(false);
   }
 
+  async function handlePostAnnouncement() {
+    if (!annText.trim()) return;
+    setAnnSaving(true);
+    setAnnMsg('');
+    try {
+      await setAdminAnnouncement(annText.trim());
+      setAnnText('');
+      setAnnMsg('Posted');
+      onRefresh();
+      setTimeout(() => setAnnMsg(''), 2000);
+    } catch (err) {
+      setAnnMsg(err.message || 'Failed');
+    }
+    setAnnSaving(false);
+  }
+
+  async function handleClearAnnouncement() {
+    setAnnSaving(true);
+    setAnnMsg('');
+    try {
+      await clearAdminAnnouncement();
+      setAnnMsg('Cleared');
+      onRefresh();
+      setTimeout(() => setAnnMsg(''), 2000);
+    } catch (err) {
+      setAnnMsg(err.message || 'Failed');
+    }
+    setAnnSaving(false);
+  }
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: '#d0c098', margin: 0 }}>Settings</h2>
         <button className={styles.refreshBtn} onClick={onRefresh}>Refresh</button>
+      </div>
+
+      {/* Announcement */}
+      <div style={{ background: '#111528', border: '1px solid #3a3328', borderRadius: 6, padding: 20, maxWidth: 480, marginBottom: 20 }}>
+        <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+          Announcement
+        </div>
+
+        {/* Current announcement display */}
+        {announcement?.text ? (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0', lineHeight: 1.6, marginBottom: 4 }}>
+              {announcement.text}
+            </div>
+            <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>
+              Posted {timeAgo(announcement.postedAt)}
+            </div>
+          </div>
+        ) : (
+          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4', fontStyle: 'italic', marginBottom: 16 }}>
+            No active announcement
+          </div>
+        )}
+
+        {/* Textarea */}
+        <div style={{ position: 'relative', marginBottom: 12 }}>
+          <textarea
+            rows={3}
+            maxLength={1000}
+            placeholder="Write an announcement for all players..."
+            value={annText}
+            onChange={e => setAnnText(e.target.value)}
+            style={{
+              width: '100%', boxSizing: 'border-box',
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0',
+              background: '#0a0e1a', border: '1px solid #1e2540', borderRadius: 6,
+              padding: '10px 14px', resize: 'vertical', outline: 'none',
+            }}
+          />
+          <div style={{
+            position: 'absolute', bottom: 8, right: 10,
+            fontFamily: 'var(--font-jetbrains-mono)', fontSize: 10, color: '#7082a4',
+          }}>
+            {annText.length}/1000
+          </div>
+        </div>
+
+        {/* Buttons */}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <button className={styles.goldBtn} onClick={handlePostAnnouncement} disabled={annSaving || !annText.trim()}>
+            {annSaving ? 'Saving...' : 'Post Announcement'}
+          </button>
+          {announcement?.text && (
+            <button className={styles.ghostBtn} onClick={handleClearAnnouncement} disabled={annSaving}>
+              Clear Announcement
+            </button>
+          )}
+        </div>
+        {annMsg && (
+          <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: annMsg === 'Posted' || annMsg === 'Cleared' ? '#8aba7a' : '#e85a5a', marginTop: 8 }}>
+            {annMsg}
+          </p>
+        )}
       </div>
 
       {/* Invite Code */}
@@ -1741,7 +1841,10 @@ export default function AdminPage() {
       setReportsLoading(false);
     } else if (tab === 'Settings') {
       setSettingsLoading(true);
-      try { setSettingsData(await getInviteCode()); } catch { /* keep stale */ }
+      try {
+        const [invite, announcement] = await Promise.all([getInviteCode(), getAdminAnnouncement()]);
+        setSettingsData({ invite, announcement });
+      } catch { /* keep stale */ }
       setSettingsLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

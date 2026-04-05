@@ -103,6 +103,7 @@ export default function AuthPage() {
   const [displayName, setDisplayName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [confirmedAge, setConfirmedAge] = useState(false);
   const [playtestRequest, setPlaytestRequest] = useState(false);
   const [playtestAbout, setPlaytestAbout] = useState('');
   const [playtestSource, setPlaytestSource] = useState('');
@@ -165,6 +166,7 @@ export default function AuthPage() {
       if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
       if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
       if (!agreedToTerms) { setError('You must agree to the Terms of Service.'); return; }
+      if (!confirmedAge) { setError('You must confirm you are 18 or older.'); return; }
     } else {
       if (!email.trim()) { setError('Email is required.'); return; }
       if (!password) { setError('Password is required.'); return; }
@@ -202,6 +204,7 @@ export default function AuthPage() {
   function switchMode(newMode) {
     setMode(newMode);
     setError('');
+    setConfirmedAge(false);
   }
 
   const [loaded, setLoaded] = useState(false);
@@ -399,6 +402,27 @@ export default function AuthPage() {
                 {' '}and{' '}
                 <a href="/privacy" target="_blank" className={styles.legalLink}>Privacy Policy</a>
               </span>
+            </div>
+
+            {/* Age confirmation */}
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 22,
+            }}>
+              <div
+                onClick={() => setConfirmedAge(!confirmedAge)}
+                style={{
+                  width: 20, height: 20, borderRadius: 4, flexShrink: 0, marginTop: 1,
+                  border: `1px solid ${confirmedAge ? 'var(--accent-gold)' : 'var(--text-dim)'}`,
+                  background: confirmedAge ? 'var(--bg-gold-light)' : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', transition: 'all 0.2s',
+                }}
+              >
+                {confirmedAge && <span style={{ color: 'var(--accent-gold)', fontSize: 13, lineHeight: 1 }}>&#10003;</span>}
+              </div>
+              <span style={{
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5,
+              }}>I am 18 years of age or older</span>
             </div>
 
             {/* Playtest request */}

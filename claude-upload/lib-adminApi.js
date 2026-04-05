@@ -86,6 +86,20 @@ export function getReportSummary() {
   return get('/api/admin/reports/summary');
 }
 
+// ─── Announcement ───
+
+export function getAnnouncement() {
+  return get('/api/admin/announcement');
+}
+
+export function setAnnouncement(text) {
+  return put('/api/admin/announcement', { text });
+}
+
+export function clearAnnouncement() {
+  return del('/api/admin/announcement');
+}
+
 // ─── Invite Code ───
 
 export function getInviteCode() {

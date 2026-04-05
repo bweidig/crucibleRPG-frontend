@@ -34,6 +34,16 @@
 
 ## Recent Work (This Session: 2026-04-05)
 
+### Announcements — Admin Panel + Menu Display
+Admin Settings tab now has an Announcement section above Invite Code: shows current announcement text with timestamp, textarea to post a new one (1000 char max with counter), Post/Clear buttons with inline feedback. Settings tab fetch loads both invite code and announcement in parallel. Menu page shows a gold-bordered banner when an announcement is active, with dismiss button (session-only, reappears if text changes). API client functions added: `getAnnouncement`/`setAnnouncement`/`clearAnnouncement` in adminApi.js, `getAnnouncement` in api.js.
+
+**Files modified:** `lib/adminApi.js`, `lib/api.js`, `app/admin/page.js`, `app/menu/page.js`.
+
+### Age Verification Checkbox on Auth Signup
+Added "I am 18 years of age or older" checkbox to the signup form, matching the Terms checkbox styling. Validated in handleSubmit after the terms check. Resets on mode switch.
+
+**Files modified:** `app/auth/page.js`.
+
 ### Mobile: Hamburger Menu, Particles, Chevron Threshold
 - Added hamburger menu for mobile nav (both landing and standard variants). Three-line icon transitions to X, slide-down panel with stacked links, closes on link tap or toggle.
 - Re-enabled particles on mobile — removed `display: none` media query, capped count at 20 on mobile for performance.

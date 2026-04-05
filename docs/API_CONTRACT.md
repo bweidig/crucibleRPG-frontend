@@ -2254,6 +2254,45 @@ Recent error log with pagination.
 
 Errors are automatically pruned after 30 days.
 
+### GET /api/admin/announcement
+
+Returns the current announcement.
+
+**Response (200):**
+```json
+{ "text": "Server maintenance tonight at 11 PM EST.", "updatedAt": "2026-04-01T..." }
+```
+If no announcement: `{ "text": null, "updatedAt": null }`
+
+### PUT /api/admin/announcement
+
+Set or update the announcement.
+
+**Request body:** `{ "text": "Your announcement here" }` — required, 1–1000 chars.
+
+**Response (200):**
+```json
+{ "text": "Your announcement here", "updatedAt": "2026-04-01T..." }
+```
+
+### DELETE /api/admin/announcement
+
+Clear the announcement.
+
+**Response (200):** `{ "cleared": true }`
+
+### GET /api/games/announcement
+
+**Auth:** JWT required (any user, not admin-only).
+
+Returns the current announcement. Same response shape as admin GET.
+
+**Response (200):**
+```json
+{ "text": "Server maintenance tonight at 11 PM EST.", "updatedAt": "2026-04-01T..." }
+```
+If no announcement: `{ "text": null, "updatedAt": null }`
+
 ---
 
 ## Global Notes

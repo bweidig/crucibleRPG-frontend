@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { get, post, del, clearToken, isAuthenticated, getUser } from '@/lib/api';
+import { get, post, del, clearToken, isAuthenticated, getUser, getAnnouncement } from '@/lib/api';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import ParticleField from '@/components/ParticleField';
@@ -374,6 +374,8 @@ export default function MenuPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [detailTarget, setDetailTarget] = useState(null);
   const [heroDetail, setHeroDetail] = useState(null);
+  const [announcement, setAnnouncementData] = useState(null);
+  const [dismissedAnnouncement, setDismissedAnnouncement] = useState(null);
 
   // Auth check + fetch games
   useEffect(() => {
@@ -403,6 +405,7 @@ export default function MenuPage() {
       }
     }
     fetchGames();
+    getAnnouncement().then(data => setAnnouncementData(data)).catch(() => {});
     setTimeout(() => setLoaded(true), 100);
   }, [router]);
 
@@ -461,6 +464,37 @@ export default function MenuPage() {
         {/* Error */}
         {error && (
           <div style={{ background: '#201416', border: '1px solid #5a3020', borderRadius: 6, padding: '10px 14px', marginBottom: 18, marginTop: 12, fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--color-danger)' }}>{error}</div>
+        )}
+
+        {/* Announcement banner */}
+        {announcement?.text && dismissedAnnouncement !== announcement.text && (
+          <div style={{
+            background: '#1a1814', border: '1px solid #3a3328', borderLeft: '3px solid #c9a84c',
+            borderRadius: 8, padding: '14px 20px', marginTop: 12, marginBottom: 18,
+            position: 'relative',
+          }}>
+            <button
+              onClick={() => setDismissedAnnouncement(announcement.text)}
+              style={{
+                position: 'absolute', top: 10, right: 12,
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4',
+                padding: 4, lineHeight: 1, transition: 'color 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#c9a84c'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#7082a4'; }}
+              aria-label="Dismiss announcement"
+            >&times;</button>
+            <div style={{
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0',
+              lineHeight: 1.6, paddingRight: 20,
+            }}>{announcement.text}</div>
+            {announcement.postedAt && (
+              <div style={{
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4', marginTop: 6,
+              }}>Posted {formatTimeAgo(announcement.postedAt)}</div>
+            )}
+          </div>
         )}
 
         {/* Playtester gate */}
