@@ -16,7 +16,7 @@
 | Main Menu | `/menu` | Complete (redesigned) | Delete games + auto-fetch hero stats | Single-column layout. Snapshots/display settings removed from this page. |
 | Init Wizard | `/init` | Complete (reworked) | All 10 endpoints wired | Gracefully skips API when no gameId |
 | Loading Screen | `/loading` | Removed (merged into /play) | N/A | N/A |
-| Saved Games | `/saved-games` | Complete | None (mock data) | Needs API wiring for real saves |
+| Saved Games | `/saved-games` | Removed | N/A | N/A |
 | Pricing | `/pricing` | Complete | None (static) | Dollar amounts TBD |
 | Game Layout | `/play` | Rewrite Phase 4 | All gameplay + talk-to-gm + notes CRUD | Polish pass pending |
 | FAQ | `/faq` | Complete | None (static) | None |
@@ -33,6 +33,12 @@
 ---
 
 ## Recent Work (This Session: 2026-04-04)
+
+### Removed /saved-games Page
+Deleted the saved-games page (redundant, mock data only). Removed route from middleware PUBLIC_ROUTES. No navigation links pointed to it.
+
+**Files deleted:** `app/saved-games/page.js`, `app/saved-games/page.module.css`, `claude-upload/saved-games-page.js`.
+**Files modified:** `middleware.js`.
 
 ### Rulebook Structural Rewrite + Color Alignment
 Rewrote rulebook page to natural page scroll (removed maxHeight/overflowY from content area, scroll spy now uses window scroll instead of container scroll). Added ParticleField with zIndex layers on hero/main/CTA. Removed metadata "21 sections" span from hero. Fixed all text colors to design system tokens: body text #b0b8cc → #8a94a8, mechanic-callout #8a9ab8 → #8a94a8, h3/border colors to CSS variables, subtitle/CTA colors to --text-secondary, section titles to --text-heading, TOC inactive links to --text-muted, page background to --bg-main. Sticky TOC top adjusted to 24px with tocScroll maxHeight updated.
