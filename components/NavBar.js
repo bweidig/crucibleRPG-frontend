@@ -9,6 +9,11 @@ import styles from './NavBar.module.css';
 export default function NavBar({ variant = 'standard', currentPage }) {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+  }, []);
 
   useEffect(() => {
     if (variant !== 'landing' && variant !== 'standard') return;
@@ -50,7 +55,10 @@ export default function NavBar({ variant = 'standard', currentPage }) {
 
   if (variant === 'landing') {
     return (
-      <nav className={styles.landingNav} style={{
+      <nav className={styles.landingNav} style={isMobile ? {
+        background: 'rgba(10, 14, 26, 1)',
+        borderBottom: '1px solid rgba(30, 37, 64, 0.6)',
+      } : {
         background: scrollProgress > 0 || menuOpen ? `rgba(10, 14, 26, ${Math.max(0.85 * scrollProgress, menuOpen ? 0.95 : 0)})` : 'transparent',
         backdropFilter: scrollProgress > 0 || menuOpen ? `blur(${Math.max(16 * scrollProgress, menuOpen ? 16 : 0)}px)` : 'none',
         WebkitBackdropFilter: scrollProgress > 0 || menuOpen ? `blur(${Math.max(16 * scrollProgress, menuOpen ? 16 : 0)}px)` : 'none',
