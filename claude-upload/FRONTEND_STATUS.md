@@ -34,6 +34,11 @@
 
 ## Recent Work (This Session: 2026-04-04)
 
+### Advanced Difficulty Dials on Phase 5
+Added Difficulty/Advanced tab bar to Phase 5 (same pill style as Phase 2 world seeds). Difficulty tab shows the four preset cards as before. Advanced tab exposes seven individual dials: DC Offset (slider), Progression Speed (slider), Encounter Pressure (selector pills), Survival (toggle), Durability (toggle), Fortune's Balance (toggle), Simplified Outcomes (toggle). Local `SliderDial`, `ToggleDial`, `SelectorDial` components built inline (not imported from play settings). Preset selection resets overrides to null; any dial change initializes overrides from the current preset. When custom overrides are active, no preset card is highlighted and a "Custom settings active" note shows. `saveDifficulty()` sends `{ preset, overrides }` when overrides exist. `PRESET_DIALS` constant defines default values per preset.
+
+**Files modified:** `app/init/page.js`.
+
 ### Removed /saved-games Page
 Deleted the saved-games page (redundant, mock data only). Removed route from middleware PUBLIC_ROUTES. No navigation links pointed to it.
 

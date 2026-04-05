@@ -162,6 +162,13 @@ const DIFFICULTIES = [
   { id: 'brutal', name: 'Brutal', color: '#c84a4a', desc: 'Near-lethal. Every fight is a risk. Death is a real and constant possibility.' },
 ];
 
+const PRESET_DIALS = {
+  forgiving: { dcOffset: -2, fateDc: 8, survivalEnabled: false, durabilityEnabled: false, progressionSpeed: 1, encounterPressure: 'low', fortunesBalanceEnabled: true, simplifiedOutcomes: false },
+  standard: { dcOffset: 0, fateDc: 12, survivalEnabled: true, durabilityEnabled: true, progressionSpeed: 1, encounterPressure: 'standard', fortunesBalanceEnabled: true, simplifiedOutcomes: false },
+  harsh: { dcOffset: 2, fateDc: 16, survivalEnabled: true, durabilityEnabled: true, progressionSpeed: 1, encounterPressure: 'high', fortunesBalanceEnabled: true, simplifiedOutcomes: false },
+  brutal: { dcOffset: 4, fateDc: 18, survivalEnabled: true, durabilityEnabled: true, progressionSpeed: 1, encounterPressure: 'high', fortunesBalanceEnabled: true, simplifiedOutcomes: false },
+};
+
 const SCENARIOS = [
   { key: 'A', name: 'Slow Burn', icon: 'long_road', desc: 'You arrive somewhere. Nothing is trying to kill you yet. There\'s a place to explore, people to talk to, and a thread to find when you\'re ready.' },
   { key: 'B', name: 'Turning Point', icon: 'subtle_hook', desc: 'Something is already in motion. A deal gone wrong, a stranger with a warning, a door that shouldn\'t be open. You\'re not in danger yet, but the window is closing.' },
@@ -2064,26 +2071,162 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
   );
 }
 
-function Phase5({ selected, onSelect }) {
+// ─── Difficulty Dial Controls (local to init page) ───
+
+function SliderDial({ label, description, value, min, max, step, format, onChange }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+        <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)' }}>{label}</span>
+        <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 14, color: 'var(--accent-gold)' }}>{format(value)}</span>
+      </div>
+      <input type="range" min={min} max={max} step={step} value={value} onChange={e => onChange(Number(e.target.value))}
+        style={{ width: '100%', accentColor: 'var(--accent-gold)', cursor: 'pointer' }} />
+      <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--text-dim)', marginTop: 4 }}>{description}</div>
+    </div>
+  );
+}
+
+function ToggleDial({ label, description, checked, onChange }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, minHeight: 44 }}>
+      <button onClick={() => onChange(!checked)} aria-pressed={checked} style={{
+        width: 36, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer', padding: 0,
+        background: checked ? 'var(--accent-gold)' : 'var(--border-primary)',
+        position: 'relative', flexShrink: 0, transition: 'background 0.2s',
+      }}>
+        <span style={{
+          position: 'absolute', top: 2, left: checked ? 18 : 2,
+          width: 16, height: 16, borderRadius: '50%', background: '#fff',
+          transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+        }} />
+      </button>
+      <div style={{ flex: 1 }}>
+        <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)' }}>{label}</span>
+        <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--text-dim)', marginLeft: 8 }}>{description}</span>
+      </div>
+    </div>
+  );
+}
+
+function SelectorDial({ label, description, options, value, onChange }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>{label}</div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {options.map(opt => (
+          <button key={opt.value} onClick={() => onChange(opt.value)} style={{
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, fontWeight: 600,
+            color: value === opt.value ? 'var(--accent-gold)' : 'var(--text-muted)',
+            background: value === opt.value ? 'var(--bg-gold-light)' : 'transparent',
+            border: `1px solid ${value === opt.value ? 'var(--border-card)' : 'var(--border-primary)'}`,
+            borderRadius: 20, padding: '8px 18px', cursor: 'pointer',
+            letterSpacing: '0.06em', textTransform: 'uppercase', transition: 'all 0.2s',
+            minHeight: 44,
+          }}>{opt.label}</button>
+        ))}
+      </div>
+      <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--text-dim)', marginTop: 6 }}>{description}</div>
+    </div>
+  );
+}
+
+function Phase5({ selected, onSelect, difficultyTab, setDifficultyTab, dialOverrides, setDialOverrides }) {
+  // Get current dial values: overrides if set, else preset defaults, else standard
+  const currentDials = dialOverrides || PRESET_DIALS[selected] || PRESET_DIALS.standard;
+
+  const handleDialChange = (key, value) => {
+    const base = dialOverrides || { ...(PRESET_DIALS[selected] || PRESET_DIALS.standard) };
+    setDialOverrides({ ...base, [key]: value });
+  };
+
+  // Check if overrides match any preset
+  const isCustom = dialOverrides !== null;
+
   return (
     <div>
       <PhaseTitle title="Select Difficulty" subtitle="How hard should the world push back?" />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {DIFFICULTIES.map(d => (
-          <SelectionCard key={d.id} item={d} selected={selected} onSelect={onSelect}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-              <div style={{
-                width: 12, height: 12, borderRadius: '50%', background: d.color,
-                marginTop: 6, flexShrink: 0, boxShadow: `0 0 8px ${d.color}44`,
-              }} />
-              <div style={{ flex: 1 }}>
-                <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 19, fontWeight: 700, color: 'var(--text-heading)', display: 'block', marginBottom: 4 }}>{d.name}</span>
-                <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>{d.desc}</p>
-              </div>
-            </div>
-          </SelectionCard>
+
+      {/* Tab bar — same pill style as Phase 2 */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
+        {[{ id: 'difficulty', label: 'Difficulty' }, { id: 'advanced', label: 'Advanced' }].map(tab => (
+          <button key={tab.id} onClick={() => setDifficultyTab(tab.id)} style={{
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 600,
+            color: difficultyTab === tab.id ? 'var(--accent-gold)' : 'var(--text-muted)',
+            background: difficultyTab === tab.id ? 'var(--bg-gold-light)' : 'transparent',
+            border: `1px solid ${difficultyTab === tab.id ? 'var(--border-card)' : 'var(--border-primary)'}`,
+            borderRadius: 20, padding: '8px 20px', cursor: 'pointer',
+            letterSpacing: '0.08em', textTransform: 'uppercase', transition: 'all 0.2s',
+          }}>{tab.label}</button>
         ))}
       </div>
+
+      {/* Difficulty tab — preset cards */}
+      {difficultyTab === 'difficulty' && (
+        <div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {DIFFICULTIES.map(d => (
+              <SelectionCard key={d.id} item={d} selected={isCustom ? null : selected} onSelect={onSelect}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                  <div style={{
+                    width: 12, height: 12, borderRadius: '50%', background: d.color,
+                    marginTop: 6, flexShrink: 0, boxShadow: `0 0 8px ${d.color}44`,
+                  }} />
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 19, fontWeight: 700, color: 'var(--text-heading)', display: 'block', marginBottom: 4 }}>{d.name}</span>
+                    <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>{d.desc}</p>
+                  </div>
+                </div>
+              </SelectionCard>
+            ))}
+          </div>
+          {isCustom && (
+            <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 14, fontStyle: 'italic', color: 'var(--text-dim)', textAlign: 'center', marginTop: 12 }}>
+              Custom settings active — select a preset to reset
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Advanced tab — individual dials */}
+      {difficultyTab === 'advanced' && (
+        <div>
+          <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 16, fontStyle: 'italic', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 24 }}>
+            These settings are pre-configured by your difficulty preset. Adjust individual dials here if you want finer control. You can also change these at any time during play.
+          </p>
+
+          <SliderDial label="DC Offset" description="Flat modifier applied to all difficulty checks"
+            value={currentDials.dcOffset} min={-4} max={6} step={1}
+            format={v => v >= 0 ? `+${v}` : `${v}`}
+            onChange={v => handleDialChange('dcOffset', v)} />
+
+          <SliderDial label="Progression Speed" description="Multiplier on stat and skill gains"
+            value={currentDials.progressionSpeed} min={0.25} max={3} step={0.25}
+            format={v => `${v}x`}
+            onChange={v => handleDialChange('progressionSpeed', v)} />
+
+          <SelectorDial label="Encounter Pressure" description="Frequency and tension of encounters"
+            options={[{ value: 'low', label: 'Low' }, { value: 'standard', label: 'Standard' }, { value: 'high', label: 'High' }]}
+            value={currentDials.encounterPressure}
+            onChange={v => handleDialChange('encounterPressure', v)} />
+
+          <ToggleDial label="Survival" description="Track rations, water, and malnourishment"
+            checked={currentDials.survivalEnabled}
+            onChange={v => handleDialChange('survivalEnabled', v)} />
+
+          <ToggleDial label="Durability" description="Items degrade with use and need repair"
+            checked={currentDials.durabilityEnabled}
+            onChange={v => handleDialChange('durabilityEnabled', v)} />
+
+          <ToggleDial label="Fortune's Balance" description="Outmatched/Matched/Dominant dice selection"
+            checked={currentDials.fortunesBalanceEnabled}
+            onChange={v => handleDialChange('fortunesBalanceEnabled', v)} />
+
+          <ToggleDial label="Simplified Outcomes" description="Binary pass/fail instead of 6-tier results"
+            checked={currentDials.simplifiedOutcomes}
+            onChange={v => handleDialChange('simplifiedOutcomes', v)} />
+        </div>
+      )}
     </div>
   );
 }
@@ -2214,6 +2357,8 @@ function InitWizardInner() {
   const [selectedArchetype, setSelectedArchetype] = useState(null);
   const [characterMode, setCharacterMode] = useState('archetype');
   const [difficulty, setDifficulty] = useState(null);
+  const [difficultyTab, setDifficultyTab] = useState('difficulty');
+  const [dialOverrides, setDialOverrides] = useState(null);
   const [scenario, setScenario] = useState(null);
   const [customStartText, setCustomStartText] = useState('');
   const [scenarioAlts, setScenarioAlts] = useState({});
@@ -2553,10 +2698,10 @@ function InitWizardInner() {
   };
 
   const saveDifficulty = async () => {
-    // TODO: Use API presets when available, fall back to DIFFICULTIES
-    await api.post(`/api/init/${gameId}/difficulty`, {
-      preset: difficulty,
-    });
+    const body = dialOverrides
+      ? { preset: difficulty, overrides: dialOverrides }
+      : { preset: difficulty };
+    await api.post(`/api/init/${gameId}/difficulty`, body);
   };
 
   const fetchScenarios = async (intensityId, isRetry = false) => {
@@ -2939,7 +3084,7 @@ function InitWizardInner() {
             />
           )
         )}
-        {phase === 4 && <Phase5 selected={difficulty} onSelect={setDifficulty} />}
+        {phase === 4 && <Phase5 selected={difficulty} onSelect={(id) => { setDifficulty(id); setDialOverrides(null); }} difficultyTab={difficultyTab} setDifficultyTab={setDifficultyTab} dialOverrides={dialOverrides} setDialOverrides={setDialOverrides} />}
         {phase === 5 && (
           scenariosFailed && !scenariosLoading ? (
             <div style={{ textAlign: 'center', padding: '60px 24px' }}>
