@@ -34,6 +34,13 @@
 
 ## Recent Work (This Session: 2026-04-05)
 
+### Mobile: Hamburger Menu, Particles, Chevron Threshold
+- Added hamburger menu for mobile nav (both landing and standard variants). Three-line icon transitions to X, slide-down panel with stacked links, closes on link tap or toggle.
+- Re-enabled particles on mobile — removed `display: none` media query, capped count at 20 on mobile for performance.
+- Chevron scroll-out threshold changed from hardcoded 100px to `window.innerHeight * 0.3` so it doesn't flicker on small phones.
+
+**Files modified:** `components/NavBar.js`, `components/NavBar.module.css`, `components/ParticleField.js`, `components/ParticleField.module.css`, `app/landing/HeroSection.js`, `docs/design-system.md`.
+
 ### Landing Hero: Nav Mobile Fix, Chevron Flow, iOS Viewport
 Three related mobile/viewport fixes on the landing hero:
 - Nav bar section links (FEATURES, HOW IT WORKS, FAQ) now hidden on mobile via `!important` override — previously the `.navLink { display: inline-flex }` rule was winning over `.sectionLink { display: none }`.

@@ -107,6 +107,49 @@
   color: #c9a84c;
 }
 
+/* Hamburger button — hidden on desktop */
+.hamburger {
+  display: none;
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.hamburgerLine {
+  display: block;
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  height: 2px;
+  background: #9a8545;
+  border-radius: 1px;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.hamburgerLine:nth-child(1) { top: 8px; }
+.hamburgerLine:nth-child(2) { top: 15px; }
+.hamburgerLine:nth-child(3) { top: 22px; }
+
+.hamburgerOpen .hamburgerLine:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.hamburgerOpen .hamburgerLine:nth-child(2) {
+  opacity: 0;
+}
+.hamburgerOpen .hamburgerLine:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* Mobile slide-down menu — hidden on desktop */
+.mobileMenu {
+  display: none;
+}
+
 /* Mobile */
 @media (max-width: 767px) {
   .sectionLink {
@@ -114,16 +157,60 @@
   }
 
   .standardLinks {
-    gap: 16px;
+    gap: 12px;
   }
 
   .landingLinks {
-    gap: 16px;
+    gap: 12px;
   }
 
-  .navLink {
-    min-height: 44px;
-    display: inline-flex;
+  .hamburger {
+    display: flex;
     align-items: center;
+    justify-content: center;
+  }
+
+  .mobileMenu {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 72px;
+    left: 0;
+    right: 0;
+    background: rgba(10, 14, 26, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid #1e2540;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease;
+  }
+
+  .mobileMenuOpen {
+    max-height: 320px;
+  }
+
+  .mobileMenuLink {
+    font-family: var(--font-cinzel);
+    font-size: 13px;
+    font-weight: 600;
+    color: #9a8545;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    min-height: 48px;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s ease;
+  }
+
+  .mobileMenuLink:hover,
+  .mobileMenuLink:active {
+    color: #c9a84c;
+  }
+
+  .mobileMenuLinkActive {
+    color: #c9a84c;
   }
 }

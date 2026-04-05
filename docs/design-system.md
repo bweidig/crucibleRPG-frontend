@@ -312,7 +312,7 @@ Used for form validation errors (e.g., incorrect password on modal).
 
 ## Particle Field
 
-The floating gold particle animation appears on ALL pages: Landing, Coming Soon, Auth, Menu, Pricing, FAQ, Rulebook, Saved Games, Settings, Privacy, Terms. Hidden on mobile via `@media (max-width: 767px)`. Also appears on `/play` (game layout).
+The floating gold particle animation appears on ALL pages: Landing, Coming Soon, Auth, Menu, Pricing, FAQ, Rulebook, Settings, Privacy, Terms. Visible on all viewports. Count reduced to 20 on mobile for performance. Cursor parallax disabled on touch devices. Also appears on `/play` (game layout).
 
 - 35–40 particles (60 on Coming Soon), random positions, sizes 0.8–3.3px
 - Color: `#c9a84c`, low opacity (0.08–0.33)

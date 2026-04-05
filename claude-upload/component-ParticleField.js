@@ -21,8 +21,10 @@ function assignLayer(size) {
 }
 
 export default function ParticleField({ count = 35 }) {
-  const [particles] = useState(() =>
-    Array.from({ length: count }, (_, i) => {
+  const [particles] = useState(() => {
+    const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
+    const effectiveCount = isMobile ? Math.min(count, 20) : count;
+    return Array.from({ length: effectiveCount }, (_, i) => {
       const color = EMBER_COLORS[Math.floor(Math.random() * EMBER_COLORS.length)];
       const size = Math.random() * 3.0 + 0.6;
       const opacity = Math.random() * 0.30 + 0.06;
@@ -38,8 +40,8 @@ export default function ParticleField({ count = 35 }) {
         blur: size > 2.5,
         layer: assignLayer(size),
       };
-    })
-  );
+    });
+  });
 
   // Group particles by layer
   const layerGroups = [[], [], []];

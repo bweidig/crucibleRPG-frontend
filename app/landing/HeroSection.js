@@ -1,15 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getToken } from '@/lib/api';
 import styles from './page.module.css';
 
 function ScrollChevron({ heroStage }) {
   const [scrolledPast, setScrolledPast] = useState(false);
+  const scrollThreshold = useRef(100);
 
   useEffect(() => {
-    const handleScroll = () => setScrolledPast(window.scrollY > 100);
+    scrollThreshold.current = window.innerHeight * 0.3;
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolledPast(window.scrollY > scrollThreshold.current);
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
