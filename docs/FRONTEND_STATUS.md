@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-04
+**Last Updated:** 2026-04-05
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -32,7 +32,12 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-04)
+## Recent Work (This Session: 2026-04-05)
+
+### Showcase Dice Bar Font Update
+Showcase dice bar font changed from Alegreya Sans to JetBrains Mono to match /play resolution display.
+
+**Files modified:** `app/landing/GameplayShowcase.module.css`, `docs/design-system.md`.
 
 ### Advanced Difficulty Dials on Phase 5
 Added Difficulty/Advanced tab bar to Phase 5 (same pill style as Phase 2 world seeds). Difficulty tab shows the four preset cards as before. Advanced tab exposes seven individual dials: DC Offset (slider), Progression Speed (slider), Encounter Pressure (selector pills), Survival (toggle), Durability (toggle), Fortune's Balance (toggle), Simplified Outcomes (toggle). Local `SliderDial`, `ToggleDial`, `SelectorDial` components built inline (not imported from play settings). Preset selection resets overrides to null; any dial change initializes overrides from the current preset. When custom overrides are active, no preset card is highlighted and a "Custom settings active" note shows. `saveDifficulty()` sends `{ preset, overrides }` when overrides exist. `PRESET_DIALS` constant defines default values per preset.

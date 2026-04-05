@@ -222,17 +222,26 @@ export default function RulebookPage() {
       {/* Hero section */}
       <ScrollReveal>
         <div style={{
-          textAlign: 'center', padding: '48px 24px 36px',
+          textAlign: 'center', padding: '48px 24px 12px',
           position: 'relative', zIndex: 1,
         }}>
+          <div style={{
+            fontFamily: 'var(--font-cinzel)',
+            fontSize: 14, fontWeight: 600,
+            color: '#c9a84c',
+            letterSpacing: '0.25em',
+            marginBottom: 16,
+          }}>RULEBOOK</div>
           <h1 style={{
-            fontFamily: 'var(--font-cinzel)', fontSize: 'clamp(26px, 3.5vw, 34px)',
-            fontWeight: 700, color: '#d0c098', marginBottom: 12,
-          }}>The Rulebook</h1>
-          <p style={{
-            fontFamily: 'var(--font-alegreya)', fontSize: 18, fontStyle: 'italic',
-            fontWeight: 400, color: 'var(--text-secondary)',
-          }}>Real rules. Real consequences. Here&rsquo;s how the system works.</p>
+            fontFamily: 'var(--font-alegreya)',
+            fontSize: 'clamp(22px, 3vw, 28px)',
+            fontWeight: 500,
+            fontStyle: 'italic',
+            color: 'var(--text-heading)',
+            letterSpacing: '0.02em',
+            marginBottom: 12,
+            marginTop: 0,
+          }}>Real rules. Real consequences. Here&rsquo;s how the system works.</h1>
         </div>
       </ScrollReveal>
 
