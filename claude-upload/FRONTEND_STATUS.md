@@ -34,6 +34,11 @@
 
 ## Recent Work (This Session: 2026-04-05)
 
+### Privacy Policy & Terms of Service — Content Rewrite + Design System Alignment
+Complete content replacement on both legal pages with final production copy. Design system fixes applied: body text fallback 15px→16px, SIZE_MAP medium 15px→16px, bold label color `#b0a890`→`var(--text-heading)`, section border `#1e2540`→`var(--border-primary)`. All email links use `legalLink` class. Privacy page third-party service links are real `<a>` tags with `target="_blank"`. Lexie Readable support was already present — retained as-is.
+
+**Files modified:** `app/terms/page.js`, `app/privacy/page.js`.
+
 ### Pricing Page — Real Prices + Design System Alignment
 Pricing page updated with real prices (Free: 25 turns/1 world, Hero: $9.99/225 turns/5 worlds, turn packs: 25/$1.49, 50/$2.49, 100/$4.49). Tier renamed from Adventurer to Hero. Recommended badge removed. Full design system alignment pass completed.
 
