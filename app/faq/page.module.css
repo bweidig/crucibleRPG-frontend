@@ -71,7 +71,7 @@
 /* FAQ answer slide */
 .faqAnswer {
   overflow: hidden;
-  transition: max-height 0.35s ease, opacity 0.25s ease, padding 0.35s ease;
+  transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
 }
 
 /* In-answer link */
