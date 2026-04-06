@@ -193,8 +193,6 @@ const PACING_MAP = { A: 'slow_burn', B: 'turning_point', C: 'into_the_fire', D: 
 // --- PHASE TRANSITION MESSAGES ---
 const PHASE_TRANSITION_MESSAGES = {
   0: { primary: "Your narrator takes the stage...", secondary: "Locking in narrative voice" },
-  1: { primary: "Your world takes shape...", secondary: "The engine is building geography, history, and power structures" },
-  2: { primary: "The engine reads your story...", secondary: "Deriving stats, skills, and loadout from your backstory" },
   3: { primary: "Your path is set...", secondary: "Locking in your attributes" },
   4: { primary: "The world sharpens its edges...", secondary: "Tuning encounter pressure and consequence severity" },
   5: { primary: "The crucible awaits...", secondary: "Preparing your first scene" },
@@ -202,12 +200,24 @@ const PHASE_TRANSITION_MESSAGES = {
 
 const OVERLAY_LABELS = {
   0: 'SETTING THE VOICE',
-  1: 'BUILDING YOUR WORLD',
-  2: 'FORGING YOUR CHARACTER',
   3: 'SETTING THE STAKES',
   4: 'PREPARING THE CRUCIBLE',
   5: 'INTO THE CRUCIBLE',
 };
+
+const WORLD_GEN_MESSAGES = [
+  { phase: 'generating_factions', text: 'Forging alliances and rivalries...' },
+  { phase: 'generating_locations', text: 'Carving the landscape...' },
+  { phase: 'generating_npcs', text: 'Breathing life into the world...' },
+  { phase: 'generating_anchors', text: 'Seeding conflict and opportunity...' },
+];
+
+const PROPOSAL_OVERLAY_MESSAGES = [
+  'The engine reads your story...',
+  'Deriving stats from your backstory...',
+  'Assembling your skills and gear...',
+  'Calibrating your starting position...',
+];
 
 const FIREFLY_EMBERS = [
   { x: 60, y: 40, size: 4, anim: 'ember0', dur: 17, delay: 0, color: '#c9a84c', glow: 11 },
@@ -2413,8 +2423,10 @@ function InitWizardInner() {
   const [contentFading, setContentFading] = useState(false);
   const [loreIndex, setLoreIndex] = useState(0);
   const [loreFade, setLoreFade] = useState(true);
-  const [worldGenStatus, setWorldGenStatus] = useState(null); // null, 'generating', 'complete', 'error'
+  const [worldGenStatus, setWorldGenStatus] = useState(null); // null, 'generating', 'complete', 'error', 'timeout'
   const [worldGenName, setWorldGenName] = useState(null);
+  const [worldGenPhase, setWorldGenPhase] = useState(null); // e.g. 'generating_factions'
+  const worldGenTimestamps = useRef({});
   const [proposalLoading, setProposalLoading] = useState(false);
   const [proposal, setProposal] = useState(null);
   const [adjustedStats, setAdjustedStats] = useState(null);
@@ -2432,6 +2444,16 @@ function InitWizardInner() {
   const bottomNavRef = useRef(null);
   const [scrollFadeVisible, setScrollFadeVisible] = useState(false);
   const [bottomNavHeight, setBottomNavHeight] = useState(0);
+
+  // --- Character→Attributes combined overlay ---
+  const [charOverlayActive, setCharOverlayActive] = useState(false);
+  const [charOverlayFading, setCharOverlayFading] = useState(false);
+  const [overlayLabel, setOverlayLabel] = useState('YOUR WORLD');
+  const [overlaySecondary, setOverlaySecondary] = useState('');
+  const [overlayLore, setOverlayLore] = useState('');
+  const [overlayLoreFade, setOverlayLoreFade] = useState(true);
+  const charOverlayAbortRef = useRef(false);
+  const proposalResultRef = useRef({ done: false, failed: false });
 
   // Keep worldGenStatusRef in sync with state so polling promises can read it
   useEffect(() => { worldGenStatusRef.current = worldGenStatus; }, [worldGenStatus]);
@@ -2516,12 +2538,7 @@ function InitWizardInner() {
   // If the game is already past certain phases, skip ahead to the appropriate phase
   // For now, always start at phase 0
 
-  // --- Generate proposal when entering Phase 4 (attributes) ---
-  useEffect(() => {
-    if (phase === 3 && !proposal && !proposalLoading && gameId) {
-      generateProposal();
-    }
-  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   // --- Fetch scenarios when entering Phase 6 ---
   useEffect(() => {
@@ -2556,6 +2573,211 @@ function InitWizardInner() {
     }, 4000);
     return () => clearInterval(interval);
   }, [transitionPhase]);
+
+  // --- Combined overlay sequence (Character → Attributes) ---
+  useEffect(() => {
+    if (!charOverlayActive) return;
+    let cancelled = false;
+    charOverlayAbortRef.current = false;
+
+    const sleep = (ms) => new Promise(resolve => {
+      const id = setTimeout(resolve, ms);
+      const check = setInterval(() => {
+        if (charOverlayAbortRef.current) { clearTimeout(id); clearInterval(check); resolve(); }
+      }, 200);
+      // Clean up interval when sleep resolves naturally
+      const orig = resolve;
+      resolve = (...args) => { clearInterval(check); orig(...args); };
+    });
+
+    // Cancellation-safe sleep
+    const safeSleep = (ms) => new Promise(r => {
+      const id = setTimeout(r, ms);
+      if (cancelled) { clearTimeout(id); r(); }
+    });
+
+    const fadeMessage = async (text) => {
+      setOverlayLoreFade(false);
+      await safeSleep(300);
+      if (cancelled) return;
+      setOverlayLore(text);
+      setOverlayLoreFade(true);
+    };
+
+    const run = async () => {
+      // --- Immediately save character ---
+      try {
+        await saveCharacter();
+      } catch (err) {
+        if (cancelled) return;
+        setCharOverlayActive(false);
+        setError(err.message || 'Failed to save character.');
+        return;
+      }
+      if (cancelled) return;
+
+      // --- World Gen Messages ---
+      setOverlayLabel('YOUR WORLD');
+      setOverlaySecondary('The engine is building geography, history, and power structures');
+      setOverlayLore(WORLD_GEN_MESSAGES[0].text);
+      setOverlayLoreFade(true);
+
+      const ts = worldGenTimestamps.current;
+      const phases = WORLD_GEN_MESSAGES.map(m => m.phase);
+      const isWorldComplete = () => worldGenStatusRef.current === 'complete';
+      const isWorldError = () => worldGenStatusRef.current === 'error' || worldGenStatusRef.current === 'timeout';
+
+      for (let i = 0; i < WORLD_GEN_MESSAGES.length; i++) {
+        if (cancelled) return;
+        if (isWorldError()) {
+          // Abort overlay, show error
+          setCharOverlayFading(true);
+          await safeSleep(500);
+          setCharOverlayActive(false);
+          setCharOverlayFading(false);
+          setError('World generation ran into a problem. Go back to try a different setting, or try again.');
+          return;
+        }
+
+        const msg = WORLD_GEN_MESSAGES[i];
+        if (i > 0) await fadeMessage(msg.text);
+        if (cancelled) return;
+
+        // Calculate display duration
+        const nextPhase = phases[i + 1] || 'complete';
+        const thisPhaseTs = ts[msg.phase];
+        const nextPhaseTs = ts[nextPhase];
+
+        if (thisPhaseTs && nextPhaseTs) {
+          // Phase already completed — proportional pacing
+          const firstTs = ts[phases[0]] || thisPhaseTs;
+          const completeTs = ts.complete || nextPhaseTs;
+          const totalTime = completeTs - firstTs;
+          const phaseDuration = nextPhaseTs - thisPhaseTs;
+          const proportion = totalTime > 0 ? phaseDuration / totalTime : 0.25;
+          const targetTotal = 22000;
+          let displayMs = proportion * targetTotal;
+          displayMs *= 0.8 + Math.random() * 0.4; // ±20%
+          displayMs = Math.max(displayMs, 4000);
+          await safeSleep(displayMs);
+        } else if (thisPhaseTs && !nextPhaseTs) {
+          // Phase in progress — hold until next phase appears, minimum 6s
+          const startedAt = Date.now();
+          while (!ts[nextPhase] && !isWorldError()) {
+            if (cancelled) return;
+            await safeSleep(500);
+          }
+          if (isWorldError()) continue; // Loop will catch error at top
+          const elapsed = Date.now() - startedAt;
+          if (elapsed < 6000) await safeSleep(6000 - elapsed);
+        } else {
+          // Phase not yet reached — wait for it to start, then wait for next
+          while (!ts[msg.phase] && !isWorldComplete() && !isWorldError()) {
+            if (cancelled) return;
+            await safeSleep(500);
+          }
+          if (isWorldError()) continue;
+          // If world completed while waiting, show for minimum 4s
+          if (isWorldComplete() && !ts[msg.phase]) {
+            await safeSleep(4000);
+          } else {
+            // Wait for next phase
+            const startedAt = Date.now();
+            while (!ts[nextPhase] && !isWorldError()) {
+              if (cancelled) return;
+              await safeSleep(500);
+            }
+            const elapsed = Date.now() - startedAt;
+            if (elapsed < 6000) await safeSleep(6000 - elapsed);
+          }
+        }
+        if (cancelled) return;
+      }
+
+      // --- Wait for world gen to complete before generating proposal ---
+      while (!isWorldComplete()) {
+        if (cancelled) return;
+        if (isWorldError()) {
+          setCharOverlayFading(true);
+          await safeSleep(500);
+          setCharOverlayActive(false);
+          setCharOverlayFading(false);
+          setError('World generation ran into a problem. Go back to try a different setting, or try again.');
+          return;
+        }
+        await safeSleep(500);
+      }
+
+      // --- Transition to Proposal Phase ---
+      setOverlayLabel('ATTRIBUTES');
+      setOverlaySecondary('Deriving stats, skills, and gear from your backstory');
+
+      // Fire off proposal generation
+      proposalResultRef.current = { done: false, failed: false };
+      generateProposal().then(() => {
+        proposalResultRef.current.done = true;
+      }).catch(() => {
+        proposalResultRef.current.failed = true;
+      });
+
+      // --- Proposal Messages ---
+      for (let i = 0; i < PROPOSAL_OVERLAY_MESSAGES.length; i++) {
+        if (cancelled) return;
+        await fadeMessage(PROPOSAL_OVERLAY_MESSAGES[i]);
+        if (cancelled) return;
+
+        const duration = 6000 + Math.random() * 3000; // 6-9 seconds
+        const msgStart = Date.now();
+
+        // Wait for duration, but check for completion
+        while (Date.now() - msgStart < duration) {
+          if (cancelled) return;
+          if (proposalResultRef.current.failed) {
+            // Proposal failed — fade out overlay, let Phase 3 proposalFailed UI handle it
+            setCharOverlayFading(true);
+            await safeSleep(500);
+            setPhase(3);
+            setCharOverlayActive(false);
+            setCharOverlayFading(false);
+            return;
+          }
+          await safeSleep(200);
+        }
+
+        // After this message's duration, if proposal is done and this isn't the last message,
+        // we can end early (show at least the current message fully)
+        if (proposalResultRef.current.done && i < PROPOSAL_OVERLAY_MESSAGES.length - 1) {
+          break; // Skip remaining messages
+        }
+      }
+
+      // If all 4 messages shown but proposal not done, hold on last message
+      while (!proposalResultRef.current.done && !proposalResultRef.current.failed) {
+        if (cancelled) return;
+        await safeSleep(500);
+      }
+
+      if (proposalResultRef.current.failed) {
+        setCharOverlayFading(true);
+        await safeSleep(500);
+        setPhase(3);
+        setCharOverlayActive(false);
+        setCharOverlayFading(false);
+        return;
+      }
+
+      // --- Success: advance to Phase 3 and fade out ---
+      if (cancelled) return;
+      setPhase(3);
+      setCharOverlayFading(true);
+      await safeSleep(500);
+      setCharOverlayActive(false);
+      setCharOverlayFading(false);
+    };
+
+    run();
+    return () => { cancelled = true; charOverlayAbortRef.current = true; };
+  }, [charOverlayActive]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- API save functions ---
 
@@ -2613,7 +2835,23 @@ function InitWizardInner() {
       if (res.status === 'complete') {
         setWorldGenStatus('complete');
         setWorldGenName(res.worldName || null);
+        if (!worldGenTimestamps.current.complete) {
+          worldGenTimestamps.current.complete = Date.now();
+        }
         return;
+      }
+      if (res.status === 'failed') {
+        setWorldGenStatus('error');
+        return;
+      }
+      // Handle generating_* statuses
+      const status = res.status || '';
+      if (status.startsWith('generating')) {
+        setWorldGenStatus('generating');
+        setWorldGenPhase(status);
+        if (!worldGenTimestamps.current[status]) {
+          worldGenTimestamps.current[status] = Date.now();
+        }
       }
       worldPollCount.current += 1;
       if (worldPollCount.current >= 60) {
@@ -2820,7 +3058,7 @@ function InitWizardInner() {
     switch (phase) {
       case 0: return !!storyteller;
       case 1: return !!setting;
-      case 2: return character.name.trim().length > 0 && (!gameId || worldGenStatus === 'complete') && worldGenStatus !== 'timeout';
+      case 2: return character.name.trim().length > 0;
       case 3: return !proposalLoading && !proposalFailed && !!proposal?.stats?.length && !(proposalValidation.hardErrors.length > 0);
       case 4: return !!difficulty;
       case 5: return !!scenario && !scenariosLoading && !scenariosFailed;
@@ -2849,8 +3087,8 @@ function InitWizardInner() {
       return;
     }
 
-    // Phase 1 (world gen) and Phase 2 (character save + proposal) use full ember overlay.
-    const useOverlay = phase === 1 || phase === 2;
+    // Phases that use the standard ember overlay (not phase 1 or 2 — those use background gen + combined overlay).
+    const useOverlay = phase === 0 || phase === 3 || phase === 4;
 
     setSaving(true);
     setError(null);
@@ -2871,21 +3109,25 @@ function InitWizardInner() {
           break;
         case 1:
           await saveSetting();
-          // Wait for world gen to finish (polling is already running via saveSetting)
-          await new Promise((resolve) => {
-            const check = setInterval(() => {
-              const status = worldGenStatusRef.current;
-              if (status === 'complete' || status === 'error' || status === 'timeout') {
-                clearInterval(check);
-                resolve();
-              }
-            }, 500);
-          });
+          // World gen polls in background — advance immediately
           break;
-        case 2:
-          await saveCharacter();
-          await generateProposal();
-          break;
+        case 2: {
+          // Gate on world gen status
+          const wgStatus = worldGenStatusRef.current;
+          if (wgStatus === 'error' || wgStatus === 'timeout') {
+            setSaving(false);
+            setContentFading(false);
+            setError('World generation ran into a problem. Go back to try a different setting, or try again.');
+            return;
+          }
+          // Activate the combined overlay — it handles saveCharacter, generateProposal, and phase advance
+          charOverlayAbortRef.current = false;
+          proposalResultRef.current = { done: false, failed: false };
+          setCharOverlayActive(true);
+          setContentFading(false);
+          setSaving(false);
+          return;
+        }
         case 3:
           await saveAttributes();
           break;
@@ -3047,24 +3289,6 @@ function InitWizardInner() {
           const hasArchetypes = availableArchetypes.length > 0;
           return (
             <>
-              {worldGenStatus === 'error' && (
-                <div style={{ marginBottom: 20, fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--color-danger)' }}>
-                  World generation failed. Please go back and try again.
-                </div>
-              )}
-              {worldGenStatus === 'timeout' && (
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--accent-gold)', marginBottom: 8 }}>
-                    World generation is taking longer than expected. This can happen with custom settings.
-                  </div>
-                  <button onClick={() => { worldPollCount.current = 0; setWorldGenStatus('generating'); pollWorldStatus(); }} style={{
-                    fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
-                    color: 'var(--accent-gold)', background: 'transparent',
-                    border: '1px solid var(--border-card)', borderRadius: 4,
-                    padding: '8px 18px', cursor: 'pointer', letterSpacing: '0.06em',
-                  }}>Check Again</button>
-                </div>
-              )}
               <Phase3
                 character={character}
                 onChange={handleCharChange}
@@ -3079,16 +3303,7 @@ function InitWizardInner() {
           );
         })()}
         {phase === 3 && (
-          proposalLoading && !proposal ? (
-            <div style={{ textAlign: 'center', padding: '80px 0' }}>
-              <div style={{ fontFamily: 'var(--font-alegreya)', fontSize: 20, fontStyle: 'italic', color: 'var(--accent-gold)', marginBottom: 8 }}>
-                Forging your character...
-              </div>
-              <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-dim)' }}>
-                Deriving stats, skills, and gear from your backstory
-              </div>
-            </div>
-          ) : proposalFailed ? (
+          proposalFailed ? (
             <div style={{ textAlign: 'center', padding: '60px 24px' }}>
               <div style={{ fontFamily: 'var(--font-alegreya)', fontSize: 20, fontStyle: 'italic', color: 'var(--accent-gold)', marginBottom: 12 }}>
                 Character generation hit a snag.
@@ -3202,6 +3417,95 @@ function InitWizardInner() {
       </div>
 
       <Footer variant="minimal" />
+
+      {/* Combined character→attributes overlay */}
+      {charOverlayActive && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          background: 'var(--bg-main)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          '--font-alegreya': "'Alegreya', serif",
+          '--font-alegreya-sans': "'Alegreya Sans', sans-serif",
+          '--font-jetbrains': "'JetBrains Mono', monospace",
+          opacity: charOverlayFading ? 0 : 1,
+          transition: 'opacity 0.5s ease',
+          pointerEvents: charOverlayFading ? 'none' : 'auto',
+        }}>
+          <style>{EMBER_KEYFRAMES}</style>
+
+          {/* Background particle field */}
+          <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
+            {Array.from({ length: 20 }, (_, i) => (
+              <div key={i} style={{
+                position: 'absolute',
+                left: `${(i * 37 + 13) % 100}%`,
+                top: `${(i * 53 + 7) % 100}%`,
+                width: ((i * 7 + 3) % 5) * 0.5 + 0.8,
+                height: ((i * 7 + 3) % 5) * 0.5 + 0.8,
+                borderRadius: '50%',
+                background: '#c9a84c',
+                opacity: ((i * 3 + 1) % 6) * 0.04 + 0.08,
+              }} />
+            ))}
+          </div>
+
+          {/* Radial glow */}
+          <div style={{
+            position: 'absolute', width: 500, height: 500, borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(201,168,76,0.04) 0%, transparent 70%)',
+            top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none',
+          }} />
+
+          {/* Wordmark */}
+          <div style={{ position: 'absolute', top: 22, left: 24, display: 'flex', alignItems: 'baseline', gap: 8, zIndex: 2 }}>
+            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 900, color: 'var(--accent-gold)', letterSpacing: '0.06em' }}>CRUCIBLE</span>
+            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: 'var(--gold-muted)', letterSpacing: '0.18em' }}>RPG</span>
+          </div>
+
+          {/* Center content */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+            {/* Phase label */}
+            <div style={{
+              fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
+              color: 'var(--accent-gold)', letterSpacing: '0.18em', textTransform: 'uppercase',
+              marginBottom: 32,
+            }}>{overlayLabel}</div>
+
+            {/* Firefly embers */}
+            <div style={{ width: 160, height: 160, position: 'relative' }}>
+              {FIREFLY_EMBERS.map((e, i) => (
+                <div key={i} style={{
+                  position: 'absolute', left: e.x, top: e.y,
+                  width: e.size, height: e.size, borderRadius: '50%',
+                  background: e.color, opacity: 0.65 + i * 0.025,
+                  boxShadow: `0 0 ${e.glow}px rgba(201,168,76,0.6), 0 0 ${Math.round(e.glow * 2.5)}px rgba(201,168,76,0.2)`,
+                  animation: `${e.anim} ${e.dur}s linear ${e.delay}s infinite`,
+                }} />
+              ))}
+            </div>
+
+            {/* Lore fragment */}
+            <div style={{ marginTop: 30, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{
+                fontFamily: 'var(--font-alegreya)', fontSize: 24, fontStyle: 'italic',
+                color: 'var(--text-heading)', fontWeight: 500,
+                opacity: overlayLoreFade ? 1 : 0,
+                transition: 'opacity 0.3s',
+              }}>
+                {overlayLore}
+              </span>
+            </div>
+
+            {/* Secondary description */}
+            <p style={{
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 16,
+              color: 'var(--text-muted)', margin: '12px 0 0', textAlign: 'center',
+              maxWidth: 400,
+            }}>{overlaySecondary}</p>
+          </div>
+        </div>
+      )}
 
       {/* Phase transition overlay */}
       {transitionPhase !== null && (() => {

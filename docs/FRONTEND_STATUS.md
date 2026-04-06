@@ -34,6 +34,31 @@
 
 ## Recent Work (This Session: 2026-04-05)
 
+### Init Wizard — Background World Gen + Phase-Aware Loading Overlay
+Major restructuring of the Setting→Character→Attributes flow:
+- **Background world gen:** After setting submission, the wizard advances to the character phase immediately. World gen polls silently in the background while the player fills out their character. No more blocking overlay during world gen.
+- **Granular poll status:** `pollWorldStatus()` now handles `generating_*` sub-phases (factions, locations, npcs, anchors) and records timestamps for each phase transition.
+- **Combined overlay:** When the player clicks CONTINUE on the character phase, a sequenced overlay plays 4 world gen messages (proportionally timed based on real backend durations, ~22s total) then 4 proposal messages (6-9s random each). No message ever repeats. saveCharacter() fires immediately; generateProposal() fires after world gen completes.
+- **Smart pacing:** Completed phases use proportional recap (longer real phases get more screen time, ±20% randomization, 4s minimum). In-progress phases hold until the backend advances (6s minimum). Proposal messages end when the API returns (waits for current message to finish).
+- **Error handling:** World gen errors show inline on the character phase via the existing error state. Proposal failures during the overlay fade it out and show the existing retry UI.
+- **Cleanup:** Removed PHASE_TRANSITION_MESSAGES entries 1 and 2, removed "Forging your character" loading state from Phase 3, removed auto-proposal trigger useEffect, removed worldGen error/timeout blocks from Phase 2 rendering.
+
+**Files modified:** `app/init/page.js`.
+
+### Admin Panel — Game Log Tab + Stat Display Fix
+Added a full Game Log tab to the admin panel for inspecting per-game event logs and turn snapshots.
+
+**Key changes:**
+- Added `getGameLog`, `getGameLogSnapshot`, `getGameLogSnapshots` API wrappers to `lib/adminApi.js`
+- Fixed stat display order in GamesTab detail panel: now shows effective/base (current/max) instead of base/effective; shows single number when equal
+- Added "View Game Log →" button in GamesTab detail sidebar (between Narrative Log and Delete)
+- Built full `GameLogTab` component with: game ID selector, turn timeline scrubber, event type filters (All, ai_call, turn_start, turn_end, error) with dedicated "Errors Only" panic button, two-column layout (snapshot on left, events on right)
+- Snapshot column shows: player stats with orange penalty highlighting, conditions as orange pills, NPC mini-cards, resources, scene state, collapsible world threads
+- Events column shows: colored event type badges, expandable JSON data, ai_call events display model/tokens/cost inline, error events have red background + left border + warning icon
+- Added 'Game Log' to TABS array (after Games), wired with pendingGameLogId state for cross-tab navigation
+
+**Files modified:** `app/admin/page.js`, `app/admin/page.module.css`, `lib/adminApi.js`
+
 ### Init Wizard — Fix "Try Another" Button Visibility on Scenario Cards
 The "try another" button on Phase 6 scenario cards had invisible text because `onMouseLeave` reset `color` to `''` (empty string), falling back to inherited black from the parent `<button>`. Fixed: `onMouseLeave` now resets to `var(--text-dim)` (matching the base style), `onMouseEnter` now sets `var(--accent-gold)` for a clear hover signal.
 
