@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-05
+**Last Updated:** 2026-04-06
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -32,7 +32,28 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-05)
+## Recent Work (This Session: 2026-04-06)
+
+### NPC Wound State Display in TurnBlock
+Added `NpcWoundStates` component to render enemy health state badges on combat turns. Reads `npcStates` array from turn data. Defeated NPCs show with grey strikethrough styling, staggering shows warning in red, bloodied shows in amber. Fresh NPCs are hidden. Section labeled "Enemy Status" with Cinzel gold label, visually distinct from player conditions (orange) and enemy conditions (steel-blue). Renders nothing when `npcStates` is missing or empty. Resolves the backend gap flagged in the playtest fixes session below.
+
+**Files modified:** `app/play/components/TurnBlock.js`, `app/play/components/TurnBlock.module.css`
+
+### Playtest Fixes — Narrative Item Popups, Condition Tags, Unknown Items
+Addressed frontend bugs identified during the 4/5 external playtest session.
+
+**Key changes:**
+- **Narrative item popups now show full stats:** Created centralized `handleEntityClick` in page.js that enriches item entities with inventory mechanical data (durability, damage, equipment category, etc.) before opening the popup. Previously, clicking an item name in narrative prose showed only the glossary entry; now it shows the full item card matching the inventory popup.
+- **Enemy vs player condition display:** Added `target`/`owner` field support to StatusBadges. When the backend includes a target field on condition stateChanges, enemy conditions render with ⚔ icon and steel-blue styling instead of ⚠ orange. Pending: backend needs to add `target` field to condition stateChanges.
+- **Unknown Item fallback improved:** Broadened item name extraction in StatusBadges to check `name`, `itemName`, and `displayName` fields, with inventory ID lookup as final fallback.
+- **NPC defeat indicators:** Investigated — backend does not surface NPC wound states or defeat flags in the turn response. Flagged as backend gap.
+
+**Files modified:** `app/play/page.js`, `app/play/components/TurnBlock.js`, `app/play/components/TurnBlock.module.css`, `app/play/components/NarrativePanel.js`
+**Files created:** `claude-upload/component-TurnBlock.module.css`
+
+---
+
+## Recent Work (Previous Session: 2026-04-05)
 
 ### Admin Panel — Game Log Tab + Stat Display Fix
 Added a full Game Log tab to the admin panel for inspecting per-game event logs and turn snapshots.

@@ -1,4 +1,4 @@
-// FILE: app/play/page.js
+// ═══ FILE: app/play/page.js ═══
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
@@ -88,6 +88,26 @@ function PlayPage() {
 
   // ─── Entity Popup ───
   const [entityPopup, setEntityPopup] = useState(null);
+
+  // Enrich item entities with inventory mechanical data before opening popup.
+  // Narrative links only pass { term, type }, missing durability/damage/etc.
+  // This mirrors the pattern GlossaryTab uses, but centralized for all click sources.
+  const handleEntityClick = useCallback((entity) => {
+    if (entity && characterData && (entity.type || '').toLowerCase() === 'item' && !entity.equipmentCategory) {
+      const allItems = [
+        ...(characterData.inventory?.equipped || []),
+        ...(characterData.inventory?.carried || []),
+      ];
+      const match = allItems.find(i =>
+        (i.name || '').toLowerCase() === (entity.term || entity.name || '').toLowerCase()
+      );
+      if (match) {
+        setEntityPopup({ ...match, ...entity, term: entity.term || match.name, type: 'item' });
+        return;
+      }
+    }
+    setEntityPopup(entity);
+  }, [characterData]);
 
   // ─── Report Modal ───
   const [reportMode, setReportMode] = useState(null); // null | 'bug' | 'suggest'
@@ -651,7 +671,8 @@ function PlayPage() {
             lastStateChanges={lastStateChanges}
             onMetaResponse={handleMetaResponse}
             glossaryTerms={glossaryTerms}
-            onEntityClick={setEntityPopup}
+            onEntityClick={handleEntityClick}
+            inventoryItems={[...(characterData?.inventory?.equipped || []), ...(characterData?.inventory?.carried || [])]}
           />
           <ActionPanel
             actions={actions}
@@ -665,7 +686,7 @@ function PlayPage() {
             onEscalate={handleCompassEscalate}
             hintLoading={hintLoading}
             glossaryTerms={glossaryTerms}
-            onEntityClick={setEntityPopup}
+            onEntityClick={handleEntityClick}
           />
         </div>
         <Sidebar
@@ -679,7 +700,7 @@ function PlayPage() {
           notifications={notifications}
           onClearNotification={(tabId) => setNotifications(prev => ({ ...prev, [tabId]: 0 }))}
           onNotesChange={refetchNotes}
-          onEntityClick={setEntityPopup}
+          onEntityClick={handleEntityClick}
           onOpenReport={setReportMode}
           debugMode={debugMode}
           isDebugUser={!!api.getUser()?.isDebug}
@@ -724,7 +745,7 @@ function PlayPage() {
           gameId={gameId}
           onClose={() => setEntityPopup(null)}
           onNotesChange={refetchNotes}
-          onEntityClick={setEntityPopup}
+          onEntityClick={handleEntityClick}
         />
       )}
 
@@ -926,7 +947,7 @@ export default function Page() {
   );
 }
 
-// FILE: app/play/components/ActionPanel.js
+// ═══ FILE: app/play/components/ActionPanel.js ═══
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './ActionPanel.module.css';
@@ -1145,7 +1166,7 @@ export default function ActionPanel({
   );
 }
 
-// FILE: app/play/components/CharacterTab.js
+// ═══ FILE: app/play/components/CharacterTab.js ═══
 import PanelSection from './PanelSection';
 import styles from './CharacterTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
@@ -1353,7 +1374,7 @@ export default function CharacterTab({ data, onEntityClick }) {
   );
 }
 
-// FILE: app/play/components/DebugPanel.js
+// ═══ FILE: app/play/components/DebugPanel.js ═══
 'use client';
 
 import React, { useState, useRef, useCallback } from 'react';
@@ -2302,7 +2323,7 @@ export default function DebugPanel({ entries, onClear }) {
   );
 }
 
-// FILE: app/play/components/EntityPopup.js
+// ═══ FILE: app/play/components/EntityPopup.js ═══
 import { useState, useEffect, useCallback } from 'react';
 import * as api from '@/lib/api';
 import { renderLinkedText } from '@/lib/renderLinkedText';
@@ -2482,7 +2503,7 @@ export default function EntityPopup({ entity, glossaryData, glossaryTerms, notes
   );
 }
 
-// FILE: app/play/components/GlossaryTab.js
+// ═══ FILE: app/play/components/GlossaryTab.js ═══
 import { useState, useMemo } from 'react';
 import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './GlossaryTab.module.css';
@@ -2599,7 +2620,7 @@ export default function GlossaryTab({ data, characterData, glossaryTerms, onEnti
   );
 }
 
-// FILE: app/play/components/InlineDicePanel.js
+// ═══ FILE: app/play/components/InlineDicePanel.js ═══
 import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './InlineDicePanel.module.css';
 
@@ -2976,7 +2997,7 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
   );
 }
 
-// FILE: app/play/components/InventoryTab.js
+// ═══ FILE: app/play/components/InventoryTab.js ═══
 import PanelSection from './PanelSection';
 import styles from './InventoryTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
@@ -3103,7 +3124,7 @@ export default function InventoryTab({ data, onEntityClick }) {
   );
 }
 
-// FILE: app/play/components/MapTab.js
+// ═══ FILE: app/play/components/MapTab.js ═══
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -3821,7 +3842,7 @@ export default function MapTab({ data: initialData, gameId, onEntityClick }) {
   );
 }
 
-// FILE: app/play/components/NarrativePanel.js
+// ═══ FILE: app/play/components/NarrativePanel.js ═══
 import { useRef, useEffect, forwardRef } from 'react';
 import TurnBlock from './TurnBlock';
 import TalkToGM from './TalkToGM';
@@ -3842,7 +3863,7 @@ function AsideCompassIcon() {
 const NarrativePanel = forwardRef(function NarrativePanel({
   turns, sessionRecap, worldBriefing, gameId, onTurnResponse,
   lastResolution, lastStateChanges, onMetaResponse,
-  glossaryTerms, onEntityClick,
+  glossaryTerms, onEntityClick, inventoryItems,
 }, ref) {
   const newTurnRef = useRef(null);
   const bottomRef = useRef(null);
@@ -3914,6 +3935,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
                   isNew={isNew}
                   glossaryTerms={glossaryTerms}
                   onEntityClick={onEntityClick}
+                  inventoryItems={inventoryItems}
                   ref={isLast && isNew ? newTurnRef : undefined}
                 />
               </div>
@@ -3939,7 +3961,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
 
 export default NarrativePanel;
 
-// FILE: app/play/components/NotesTab.js
+// ═══ FILE: app/play/components/NotesTab.js ═══
 import { useState, useCallback } from 'react';
 import * as api from '@/lib/api';
 import styles from './NotesTab.module.css';
@@ -4072,7 +4094,7 @@ export default function NotesTab({ data, gameId, onNotesChange }) {
   );
 }
 
-// FILE: app/play/components/NPCTab.js
+// ═══ FILE: app/play/components/NPCTab.js ═══
 import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './NPCTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
@@ -4110,7 +4132,7 @@ export default function NPCTab({ glossaryData, glossaryTerms, onEntityClick }) {
   );
 }
 
-// FILE: app/play/components/PanelSection.js
+// ═══ FILE: app/play/components/PanelSection.js ═══
 import { useState } from 'react';
 import styles from './PanelSection.module.css';
 
@@ -4127,7 +4149,7 @@ export default function PanelSection({ title, children, defaultOpen = true }) {
   );
 }
 
-// FILE: app/play/components/ReflectionBlock.js
+// ═══ FILE: app/play/components/ReflectionBlock.js ═══
 import styles from './ReflectionBlock.module.css';
 import { renderNarrative } from '@/lib/renderLinkedText';
 
@@ -4215,7 +4237,7 @@ export default function ReflectionBlock({ reflection, glossaryTerms, onEntityCli
   );
 }
 
-// FILE: app/play/components/ReportModal.js
+// ═══ FILE: app/play/components/ReportModal.js ═══
 'use client';
 
 import { useState } from 'react';
@@ -4619,7 +4641,7 @@ export default function ReportModal({ mode, gameId, gameState, turns, characterD
   );
 }
 
-// FILE: app/play/components/ResolutionBlock.js
+// ═══ FILE: app/play/components/ResolutionBlock.js ═══
 import { useState } from 'react';
 import styles from './ResolutionBlock.module.css';
 
@@ -4739,7 +4761,7 @@ export default function ResolutionBlock({ resolution }) {
   );
 }
 
-// FILE: app/play/components/SettingsModal.js
+// ═══ FILE: app/play/components/SettingsModal.js ═══
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -5864,7 +5886,7 @@ export default function SettingsModal({ settings, onSave, onClose, gameId, gameS
   );
 }
 
-// FILE: app/play/components/Sidebar.js
+// ═══ FILE: app/play/components/Sidebar.js ═══
 import { useState, useCallback } from 'react';
 import CharacterTab from './CharacterTab';
 import InventoryTab from './InventoryTab';
@@ -6045,7 +6067,7 @@ export default function Sidebar({
   );
 }
 
-// FILE: app/play/components/TalkToGM.js
+// ═══ FILE: app/play/components/TalkToGM.js ═══
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as api from '@/lib/api';
 import { renderLinkedText } from '@/lib/renderLinkedText';
@@ -6808,7 +6830,7 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
   );
 }
 
-// FILE: app/play/components/TopBar.js
+// ═══ FILE: app/play/components/TopBar.js ═══
 import Link from 'next/link';
 import AuthAvatar from '@/components/AuthAvatar';
 import styles from './TopBar.module.css';
@@ -6921,7 +6943,7 @@ export default function TopBar({ setting, clock, sseConnected, sidebarOpen, onTo
   );
 }
 
-// FILE: app/play/components/TurnBlock.js
+// ═══ FILE: app/play/components/TurnBlock.js ═══
 import React, { useState, forwardRef } from 'react';
 import InlineDicePanel from './InlineDicePanel';
 import ResolutionBlock from './ResolutionBlock';
@@ -6966,7 +6988,65 @@ function getWeatherEmoji(weather) {
 // Inventory: added=gained(gold), removed=lost(orange), modified=modified(blue)
 // CON conditions get red instead of orange
 
-function StatusBadges({ stateChanges }) {
+// Check if a condition targets an NPC rather than the player.
+// TODO: Backend should include a `target` or `owner` field on condition stateChanges
+// (e.g. target: "player" | "npc", with optional targetName). Until then, this reads
+// `target` / `owner` if present, falling back to player assumption.
+function isNpcCondition(item) {
+  if (typeof item !== 'object' || item === null) return false;
+  const t = (item.target || item.owner || '').toLowerCase();
+  return t && t !== 'player' && t !== 'self';
+}
+
+// Extract item name from stateChanges inventory entries.
+// Backend may send strings, objects with `name`, or objects with `itemName`.
+function getItemName(item, inventoryItems) {
+  if (typeof item === 'string') return item;
+  const name = item.name || item.itemName || item.displayName;
+  if (name) return name;
+  // Fallback: match against current inventory by id
+  if (item.id != null && inventoryItems) {
+    const match = inventoryItems.find(i => i.id === item.id);
+    if (match) return match.name;
+  }
+  return 'Unknown item';
+}
+
+function NpcWoundStates({ npcStates }) {
+  if (!Array.isArray(npcStates) || npcStates.length === 0) return null;
+
+  // Only show non-fresh NPCs
+  const visible = npcStates.filter(npc => npc.woundState && npc.woundState !== 'fresh');
+  if (visible.length === 0) return null;
+
+  return (
+    <div className={styles.badges} style={{ marginTop: 8 }}>
+      <span className={styles.npcStatesLabel}>Enemy Status</span>
+      {visible.map(npc => {
+        const defeated = npc.defeated || npc.woundState === 'incapacitated';
+        let cls, icon;
+        if (defeated) {
+          cls = styles.badgeNpcDefeated;
+          icon = '\u2620'; // ☠
+        } else if (npc.woundState === 'staggering') {
+          cls = styles.badgeNpcStaggering;
+          icon = '\u26A0'; // ⚠
+        } else {
+          cls = styles.badgeNpcBloodied;
+          icon = '\u{1FA78}'; // 🩸
+        }
+        const label = defeated ? 'Defeated' : npc.woundState.charAt(0).toUpperCase() + npc.woundState.slice(1);
+        return (
+          <span key={npc.npcId || npc.name} className={`${styles.badge} ${cls}`}>
+            {icon} {npc.name} — {label}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function StatusBadges({ stateChanges, inventoryItems }) {
   if (!stateChanges) return null;
 
   const badges = [];
@@ -6977,32 +7057,40 @@ function StatusBadges({ stateChanges }) {
     if (Array.isArray(conds.added)) {
       conds.added.forEach(item => {
         const name = typeof item === 'string' ? item : (item.name || 'Unknown condition');
-        const isCon = (typeof item === 'object' && item !== null) ? (item.stat || '').toLowerCase() === 'con' : false;
+        const isNpc = isNpcCondition(item);
+        const isCon = !isNpc && (typeof item === 'object' && item !== null) ? (item.stat || '').toLowerCase() === 'con' : false;
+        const npcLabel = isNpc ? (item.targetName || item.target || '') : '';
+        const icon = isNpc ? '\u2694' : '\u26A0'; // ⚔ for enemy, ⚠ for player
         badges.push({
-          type: isCon ? 'condConDanger' : 'condAdded',
-          text: `\u26A0 ${name}${(typeof item === 'object' && item?.penalty) ? `: ${item.penalty} ${(item.stat || '').toUpperCase()}` : ''}`,
-          key: `cond-add-${name}`,
+          type: isNpc ? 'condEnemy' : (isCon ? 'condConDanger' : 'condAdded'),
+          text: `${icon} ${npcLabel ? `${npcLabel}: ` : ''}${name}${(typeof item === 'object' && item?.penalty) ? `: ${item.penalty} ${(item.stat || '').toUpperCase()}` : ''}`,
+          key: `cond-add-${name}-${npcLabel}`,
         });
       });
     }
     if (Array.isArray(conds.removed)) {
       conds.removed.forEach(item => {
         const name = typeof item === 'string' ? item : (item.name || 'Unknown condition');
+        const isNpc = isNpcCondition(item);
+        const npcLabel = isNpc ? (item.targetName || item.target || '') : '';
         badges.push({
-          type: 'condRemoved',
-          text: `\u2713 ${name} cleared`,
-          key: `cond-rm-${name}`,
+          type: isNpc ? 'condEnemyCleared' : 'condRemoved',
+          text: `\u2713 ${npcLabel ? `${npcLabel}: ` : ''}${name} cleared`,
+          key: `cond-rm-${name}-${npcLabel}`,
         });
       });
     }
     if (Array.isArray(conds.modified)) {
       conds.modified.forEach(item => {
         const name = typeof item === 'string' ? item : (item.name || 'Unknown condition');
-        const isCon = (typeof item === 'object' && item !== null) ? (item.stat || '').toLowerCase() === 'con' : false;
+        const isNpc = isNpcCondition(item);
+        const isCon = !isNpc && (typeof item === 'object' && item !== null) ? (item.stat || '').toLowerCase() === 'con' : false;
+        const npcLabel = isNpc ? (item.targetName || item.target || '') : '';
+        const icon = isNpc ? '\u2694' : '\u26A0';
         badges.push({
-          type: isCon ? 'condConDanger' : 'condModified',
-          text: `\u26A0 ${name}${(typeof item === 'object' && item?.previousName) ? ` \u2192 ${item.name}` : ' escalated'}`,
-          key: `cond-mod-${name}`,
+          type: isNpc ? 'condEnemy' : (isCon ? 'condConDanger' : 'condModified'),
+          text: `${icon} ${npcLabel ? `${npcLabel}: ` : ''}${name}${(typeof item === 'object' && item?.previousName) ? ` \u2192 ${item.name}` : ' escalated'}`,
+          key: `cond-mod-${name}-${npcLabel}`,
         });
       });
     }
@@ -7013,7 +7101,7 @@ function StatusBadges({ stateChanges }) {
   if (inv) {
     if (Array.isArray(inv.added)) {
       inv.added.forEach(item => {
-        const name = typeof item === 'string' ? item : (item.name || 'Unknown item');
+        const name = getItemName(item, inventoryItems);
         badges.push({
           type: 'invAdded',
           text: `+ ${name}`,
@@ -7023,7 +7111,7 @@ function StatusBadges({ stateChanges }) {
     }
     if (Array.isArray(inv.removed)) {
       inv.removed.forEach(item => {
-        const name = typeof item === 'string' ? item : (item.name || 'Unknown item');
+        const name = getItemName(item, inventoryItems);
         badges.push({
           type: 'invRemoved',
           text: `\u2013 ${name}`,
@@ -7033,7 +7121,7 @@ function StatusBadges({ stateChanges }) {
     }
     if (Array.isArray(inv.modified)) {
       inv.modified.forEach(item => {
-        const name = typeof item === 'string' ? item : (item.name || 'Unknown item');
+        const name = getItemName(item, inventoryItems);
         badges.push({
           type: 'invModified',
           text: `~ ${name}`,
@@ -7047,14 +7135,16 @@ function StatusBadges({ stateChanges }) {
 
   const badgeClass = (type) => {
     switch (type) {
-      case 'condAdded':    return styles.badgeCondWarning;
-      case 'condModified': return styles.badgeCondWarning;
-      case 'condConDanger':return styles.badgeCondCon;
-      case 'condRemoved':  return styles.badgeCondCleared;
-      case 'invAdded':     return styles.badgeInvGained;
-      case 'invRemoved':   return styles.badgeInvLost;
-      case 'invModified':  return styles.badgeInvModified;
-      default:             return styles.badgeCondWarning;
+      case 'condAdded':       return styles.badgeCondWarning;
+      case 'condModified':    return styles.badgeCondWarning;
+      case 'condConDanger':   return styles.badgeCondCon;
+      case 'condRemoved':     return styles.badgeCondCleared;
+      case 'condEnemy':       return styles.badgeCondEnemy;
+      case 'condEnemyCleared':return styles.badgeCondCleared;
+      case 'invAdded':        return styles.badgeInvGained;
+      case 'invRemoved':      return styles.badgeInvLost;
+      case 'invModified':     return styles.badgeInvModified;
+      default:                return styles.badgeCondWarning;
     }
   };
 
@@ -7069,7 +7159,7 @@ function StatusBadges({ stateChanges }) {
   );
 }
 
-const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, onEntityClick }, ref) {
+const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, onEntityClick, inventoryItems }, ref) {
   const hasResolution = !!turn.resolution;
   const shouldAnimate = isNew && hasResolution;
   const [showContent, setShowContent] = useState(!shouldAnimate);
@@ -7134,7 +7224,8 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
             {renderNarrative(turn.narrative, glossaryTerms, onEntityClick)}
           </div>
 
-          <StatusBadges stateChanges={turn.stateChanges} />
+          <StatusBadges stateChanges={turn.stateChanges} inventoryItems={inventoryItems} />
+          <NpcWoundStates npcStates={turn.npcStates} />
         </>
       )}
     </div>

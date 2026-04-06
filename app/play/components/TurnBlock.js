@@ -42,7 +42,65 @@ function getWeatherEmoji(weather) {
 // Inventory: added=gained(gold), removed=lost(orange), modified=modified(blue)
 // CON conditions get red instead of orange
 
-function StatusBadges({ stateChanges }) {
+// Check if a condition targets an NPC rather than the player.
+// TODO: Backend should include a `target` or `owner` field on condition stateChanges
+// (e.g. target: "player" | "npc", with optional targetName). Until then, this reads
+// `target` / `owner` if present, falling back to player assumption.
+function isNpcCondition(item) {
+  if (typeof item !== 'object' || item === null) return false;
+  const t = (item.target || item.owner || '').toLowerCase();
+  return t && t !== 'player' && t !== 'self';
+}
+
+// Extract item name from stateChanges inventory entries.
+// Backend may send strings, objects with `name`, or objects with `itemName`.
+function getItemName(item, inventoryItems) {
+  if (typeof item === 'string') return item;
+  const name = item.name || item.itemName || item.displayName;
+  if (name) return name;
+  // Fallback: match against current inventory by id
+  if (item.id != null && inventoryItems) {
+    const match = inventoryItems.find(i => i.id === item.id);
+    if (match) return match.name;
+  }
+  return 'Unknown item';
+}
+
+function NpcWoundStates({ npcStates }) {
+  if (!Array.isArray(npcStates) || npcStates.length === 0) return null;
+
+  // Only show non-fresh NPCs
+  const visible = npcStates.filter(npc => npc.woundState && npc.woundState !== 'fresh');
+  if (visible.length === 0) return null;
+
+  return (
+    <div className={styles.badges} style={{ marginTop: 8 }}>
+      <span className={styles.npcStatesLabel}>Enemy Status</span>
+      {visible.map(npc => {
+        const defeated = npc.defeated || npc.woundState === 'incapacitated';
+        let cls, icon;
+        if (defeated) {
+          cls = styles.badgeNpcDefeated;
+          icon = '\u2620'; // ☠
+        } else if (npc.woundState === 'staggering') {
+          cls = styles.badgeNpcStaggering;
+          icon = '\u26A0'; // ⚠
+        } else {
+          cls = styles.badgeNpcBloodied;
+          icon = '\u{1FA78}'; // 🩸
+        }
+        const label = defeated ? 'Defeated' : npc.woundState.charAt(0).toUpperCase() + npc.woundState.slice(1);
+        return (
+          <span key={npc.npcId || npc.name} className={`${styles.badge} ${cls}`}>
+            {icon} {npc.name} — {label}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function StatusBadges({ stateChanges, inventoryItems }) {
   if (!stateChanges) return null;
 
   const badges = [];
@@ -53,32 +111,40 @@ function StatusBadges({ stateChanges }) {
     if (Array.isArray(conds.added)) {
       conds.added.forEach(item => {
         const name = typeof item === 'string' ? item : (item.name || 'Unknown condition');
-        const isCon = (typeof item === 'object' && item !== null) ? (item.stat || '').toLowerCase() === 'con' : false;
+        const isNpc = isNpcCondition(item);
+        const isCon = !isNpc && (typeof item === 'object' && item !== null) ? (item.stat || '').toLowerCase() === 'con' : false;
+        const npcLabel = isNpc ? (item.targetName || item.target || '') : '';
+        const icon = isNpc ? '\u2694' : '\u26A0'; // ⚔ for enemy, ⚠ for player
         badges.push({
-          type: isCon ? 'condConDanger' : 'condAdded',
-          text: `\u26A0 ${name}${(typeof item === 'object' && item?.penalty) ? `: ${item.penalty} ${(item.stat || '').toUpperCase()}` : ''}`,
-          key: `cond-add-${name}`,
+          type: isNpc ? 'condEnemy' : (isCon ? 'condConDanger' : 'condAdded'),
+          text: `${icon} ${npcLabel ? `${npcLabel}: ` : ''}${name}${(typeof item === 'object' && item?.penalty) ? `: ${item.penalty} ${(item.stat || '').toUpperCase()}` : ''}`,
+          key: `cond-add-${name}-${npcLabel}`,
         });
       });
     }
     if (Array.isArray(conds.removed)) {
       conds.removed.forEach(item => {
         const name = typeof item === 'string' ? item : (item.name || 'Unknown condition');
+        const isNpc = isNpcCondition(item);
+        const npcLabel = isNpc ? (item.targetName || item.target || '') : '';
         badges.push({
-          type: 'condRemoved',
-          text: `\u2713 ${name} cleared`,
-          key: `cond-rm-${name}`,
+          type: isNpc ? 'condEnemyCleared' : 'condRemoved',
+          text: `\u2713 ${npcLabel ? `${npcLabel}: ` : ''}${name} cleared`,
+          key: `cond-rm-${name}-${npcLabel}`,
         });
       });
     }
     if (Array.isArray(conds.modified)) {
       conds.modified.forEach(item => {
         const name = typeof item === 'string' ? item : (item.name || 'Unknown condition');
-        const isCon = (typeof item === 'object' && item !== null) ? (item.stat || '').toLowerCase() === 'con' : false;
+        const isNpc = isNpcCondition(item);
+        const isCon = !isNpc && (typeof item === 'object' && item !== null) ? (item.stat || '').toLowerCase() === 'con' : false;
+        const npcLabel = isNpc ? (item.targetName || item.target || '') : '';
+        const icon = isNpc ? '\u2694' : '\u26A0';
         badges.push({
-          type: isCon ? 'condConDanger' : 'condModified',
-          text: `\u26A0 ${name}${(typeof item === 'object' && item?.previousName) ? ` \u2192 ${item.name}` : ' escalated'}`,
-          key: `cond-mod-${name}`,
+          type: isNpc ? 'condEnemy' : (isCon ? 'condConDanger' : 'condModified'),
+          text: `${icon} ${npcLabel ? `${npcLabel}: ` : ''}${name}${(typeof item === 'object' && item?.previousName) ? ` \u2192 ${item.name}` : ' escalated'}`,
+          key: `cond-mod-${name}-${npcLabel}`,
         });
       });
     }
@@ -89,7 +155,7 @@ function StatusBadges({ stateChanges }) {
   if (inv) {
     if (Array.isArray(inv.added)) {
       inv.added.forEach(item => {
-        const name = typeof item === 'string' ? item : (item.name || 'Unknown item');
+        const name = getItemName(item, inventoryItems);
         badges.push({
           type: 'invAdded',
           text: `+ ${name}`,
@@ -99,7 +165,7 @@ function StatusBadges({ stateChanges }) {
     }
     if (Array.isArray(inv.removed)) {
       inv.removed.forEach(item => {
-        const name = typeof item === 'string' ? item : (item.name || 'Unknown item');
+        const name = getItemName(item, inventoryItems);
         badges.push({
           type: 'invRemoved',
           text: `\u2013 ${name}`,
@@ -109,7 +175,7 @@ function StatusBadges({ stateChanges }) {
     }
     if (Array.isArray(inv.modified)) {
       inv.modified.forEach(item => {
-        const name = typeof item === 'string' ? item : (item.name || 'Unknown item');
+        const name = getItemName(item, inventoryItems);
         badges.push({
           type: 'invModified',
           text: `~ ${name}`,
@@ -123,14 +189,16 @@ function StatusBadges({ stateChanges }) {
 
   const badgeClass = (type) => {
     switch (type) {
-      case 'condAdded':    return styles.badgeCondWarning;
-      case 'condModified': return styles.badgeCondWarning;
-      case 'condConDanger':return styles.badgeCondCon;
-      case 'condRemoved':  return styles.badgeCondCleared;
-      case 'invAdded':     return styles.badgeInvGained;
-      case 'invRemoved':   return styles.badgeInvLost;
-      case 'invModified':  return styles.badgeInvModified;
-      default:             return styles.badgeCondWarning;
+      case 'condAdded':       return styles.badgeCondWarning;
+      case 'condModified':    return styles.badgeCondWarning;
+      case 'condConDanger':   return styles.badgeCondCon;
+      case 'condRemoved':     return styles.badgeCondCleared;
+      case 'condEnemy':       return styles.badgeCondEnemy;
+      case 'condEnemyCleared':return styles.badgeCondCleared;
+      case 'invAdded':        return styles.badgeInvGained;
+      case 'invRemoved':      return styles.badgeInvLost;
+      case 'invModified':     return styles.badgeInvModified;
+      default:                return styles.badgeCondWarning;
     }
   };
 
@@ -145,7 +213,7 @@ function StatusBadges({ stateChanges }) {
   );
 }
 
-const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, onEntityClick }, ref) {
+const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, onEntityClick, inventoryItems }, ref) {
   const hasResolution = !!turn.resolution;
   const shouldAnimate = isNew && hasResolution;
   const [showContent, setShowContent] = useState(!shouldAnimate);
@@ -210,7 +278,8 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
             {renderNarrative(turn.narrative, glossaryTerms, onEntityClick)}
           </div>
 
-          <StatusBadges stateChanges={turn.stateChanges} />
+          <StatusBadges stateChanges={turn.stateChanges} inventoryItems={inventoryItems} />
+          <NpcWoundStates npcStates={turn.npcStates} />
         </>
       )}
     </div>
