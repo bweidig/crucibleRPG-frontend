@@ -34,6 +34,20 @@
 
 ## Recent Work (This Session: 2026-04-05)
 
+### Admin Panel — Game Log Tab + Stat Display Fix
+Added a full Game Log tab to the admin panel for inspecting per-game event logs and turn snapshots.
+
+**Key changes:**
+- Added `getGameLog`, `getGameLogSnapshot`, `getGameLogSnapshots` API wrappers to `lib/adminApi.js`
+- Fixed stat display order in GamesTab detail panel: now shows effective/base (current/max) instead of base/effective; shows single number when equal
+- Added "View Game Log →" button in GamesTab detail sidebar (between Narrative Log and Delete)
+- Built full `GameLogTab` component with: game ID selector, turn timeline scrubber, event type filters (All, ai_call, turn_start, turn_end, error) with dedicated "Errors Only" panic button, two-column layout (snapshot on left, events on right)
+- Snapshot column shows: player stats with orange penalty highlighting, conditions as orange pills, NPC mini-cards, resources, scene state, collapsible world threads
+- Events column shows: colored event type badges, expandable JSON data, ai_call events display model/tokens/cost inline, error events have red background + left border + warning icon
+- Added 'Game Log' to TABS array (after Games), wired with pendingGameLogId state for cross-tab navigation
+
+**Files modified:** `app/admin/page.js`, `app/admin/page.module.css`, `lib/adminApi.js`
+
 ### Init Wizard — Background World Gen + Phase-Aware Loading Overlay
 Major restructuring of the Setting→Character→Attributes flow:
 - **Background world gen:** After setting submission, the wizard advances to the character phase immediately. World gen polls silently in the background while the player fills out their character. No more blocking overlay during world gen.

@@ -109,3 +109,21 @@ export function getInviteCode() {
 export function updateInviteCode(inviteCode) {
   return put('/api/admin/invite-code', { inviteCode });
 }
+
+// ─── Game Log ───
+
+export function getGameLog(gameId, { type, turn } = {}) {
+  const params = new URLSearchParams();
+  if (type) params.set('type', type);
+  if (turn != null) params.set('turn', turn);
+  const qs = params.toString();
+  return get(`/api/admin/game-log/${gameId}${qs ? `?${qs}` : ''}`);
+}
+
+export function getGameLogSnapshot(gameId, turnNumber) {
+  return get(`/api/admin/game-log/${gameId}/snapshot/${turnNumber}`);
+}
+
+export function getGameLogSnapshots(gameId) {
+  return get(`/api/admin/game-log/${gameId}/snapshots`);
+}

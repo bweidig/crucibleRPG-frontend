@@ -10,6 +10,7 @@ import {
   getAdminReports, updateReport,
   getInviteCode, updateInviteCode,
   getAnnouncement as getAdminAnnouncement, setAnnouncement as setAdminAnnouncement, clearAnnouncement as clearAdminAnnouncement,
+  getGameLog, getGameLogSnapshot, getGameLogSnapshots,
 } from '@/lib/adminApi';
 import styles from './page.module.css';
 
@@ -532,7 +533,7 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted, onViewGame, onNavig
 // GAMES TAB
 // ═════════════════════════════════════════════════════════════════════════════
 
-function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pendingSearch, onClearPendingSearch }) {
+function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pendingSearch, onClearPendingSearch, onViewGameLog }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedGame, setSelectedGame] = useState(null);
@@ -707,7 +708,9 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
                             <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545' }}>{stat.toUpperCase()}</span>
                             <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#c8c0b0' }}>
                               {typeof val === 'object'
-                                ? (val.base != null && val.effective != null ? `${val.base}/${val.effective}` : `${val.base ?? val.effective ?? '—'}`)
+                                ? (val.base != null && val.effective != null
+                                  ? (val.effective === val.base ? `${val.effective}` : `${val.effective}/${val.base}`)
+                                  : `${val.effective ?? val.base ?? '—'}`)
                                 : val}
                             </span>
                           </div>
@@ -770,6 +773,13 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
                     <div style={{ padding: 14, textAlign: 'center', fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>No narrative entries.</div>
                   )}
                 </div>
+              </div>
+
+              {/* View Game Log */}
+              <div style={{ marginBottom: 24 }}>
+                <button className={styles.goldBtn} onClick={() => onViewGameLog?.(gameDetail.game?.id ?? selectedGame.id)}>
+                  View Game Log &rarr;
+                </button>
               </div>
 
               {/* Delete */}
@@ -1769,10 +1779,455 @@ function SettingsTab({ data, loading, onRefresh }) {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
+// GAME LOG TAB
+// ═════════════════════════════════════════════════════════════════════════════
+
+function EventTypeBadge({ type }) {
+  const t = (type || '').toLowerCase();
+  let cls = styles.badgeDefault;
+  if (t === 'ai_call') cls = styles.badgeAiCall;
+  else if (t === 'turn_start') cls = styles.badgeTurnStart;
+  else if (t === 'turn_end') cls = styles.badgeTurnEnd;
+  else if (t === 'error') cls = styles.badgeError;
+  return <span className={cls}>{type || 'unknown'}</span>;
+}
+
+function GameLogTab({ pendingGameId, onClearPending }) {
+  const [gameIdInput, setGameIdInput] = useState('');
+  const [loadedGameId, setLoadedGameId] = useState(null);
+  const [gameInfo, setGameInfo] = useState(null);
+  const [events, setEvents] = useState([]);
+  const [snapshots, setSnapshots] = useState([]);
+  const [currentSnapshot, setCurrentSnapshot] = useState(null);
+  const [selectedTurn, setSelectedTurn] = useState(null);
+  const [typeFilter, setTypeFilter] = useState('All');
+  const [errorsOnly, setErrorsOnly] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [snapshotLoading, setSnapshotLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [expandedEvents, setExpandedEvents] = useState(new Set());
+
+  const typeFilters = ['All', 'ai_call', 'turn_start', 'turn_end', 'error'];
+
+  // Auto-load from pending prop
+  useEffect(() => {
+    if (pendingGameId) {
+      setGameIdInput(String(pendingGameId));
+      loadGame(pendingGameId);
+      if (onClearPending) onClearPending();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingGameId]);
+
+  async function loadGame(id) {
+    const gid = id || gameIdInput.trim();
+    if (!gid) return;
+    setLoading(true);
+    setError(null);
+    setEvents([]);
+    setSnapshots([]);
+    setCurrentSnapshot(null);
+    setSelectedTurn(null);
+    setTypeFilter('All');
+    setErrorsOnly(false);
+    setExpandedEvents(new Set());
+    setGameInfo(null);
+
+    try {
+      const [logData, snapshotsData] = await Promise.all([
+        getGameLog(gid),
+        getGameLogSnapshots(gid),
+      ]);
+      const evts = logData?.events || logData || [];
+      const snaps = snapshotsData?.snapshots || snapshotsData || [];
+      setEvents(Array.isArray(evts) ? evts : []);
+      setSnapshots(Array.isArray(snaps) ? snaps : []);
+      setLoadedGameId(gid);
+
+      // Extract game info from first snapshot or events
+      if (snaps.length > 0) {
+        const first = snaps[0];
+        setGameInfo({
+          gameId: gid,
+          characterName: first.characterName || first.character?.name,
+          setting: first.setting || first.sceneState?.location,
+        });
+      } else if (evts.length > 0) {
+        setGameInfo({ gameId: gid, characterName: null, setting: null });
+      }
+
+      // Default to latest turn
+      const turnNumbers = snaps.map(s => s.turnNumber).filter(n => n != null).sort((a, b) => a - b);
+      if (turnNumbers.length > 0) {
+        const latest = turnNumbers[turnNumbers.length - 1];
+        setSelectedTurn(latest);
+        loadSnapshot(gid, latest);
+      } else {
+        // Try to get turn numbers from events
+        const evtTurns = [...new Set(evts.map(e => e.turnNumber).filter(n => n != null))].sort((a, b) => a - b);
+        if (evtTurns.length > 0) setSelectedTurn(evtTurns[evtTurns.length - 1]);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to load game log');
+    }
+    setLoading(false);
+  }
+
+  async function loadSnapshot(gid, turnNumber) {
+    setSnapshotLoading(true);
+    try {
+      const snap = await getGameLogSnapshot(gid || loadedGameId, turnNumber);
+      setCurrentSnapshot(snap);
+    } catch {
+      setCurrentSnapshot(null);
+    }
+    setSnapshotLoading(false);
+  }
+
+  function handleTurnClick(turnNumber) {
+    setSelectedTurn(turnNumber);
+    setExpandedEvents(new Set());
+    loadSnapshot(loadedGameId, turnNumber);
+  }
+
+  function toggleEventExpand(idx) {
+    setExpandedEvents(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx); else next.add(idx);
+      return next;
+    });
+  }
+
+  // Build turn list from snapshots + events
+  const turnNumbers = useMemo(() => {
+    const fromSnaps = snapshots.map(s => s.turnNumber).filter(n => n != null);
+    const fromEvts = events.map(e => e.turnNumber).filter(n => n != null);
+    return [...new Set([...fromSnaps, ...fromEvts])].sort((a, b) => a - b);
+  }, [snapshots, events]);
+
+  // Filter events
+  const filteredEvents = useMemo(() => {
+    let evts = events;
+    if (errorsOnly) {
+      return evts.filter(e => (e.event_type || e.eventType || '').toLowerCase() === 'error')
+        .sort((a, b) => new Date(a.timestamp || a.createdAt) - new Date(b.timestamp || b.createdAt));
+    }
+    if (selectedTurn != null) {
+      evts = evts.filter(e => e.turnNumber === selectedTurn);
+    }
+    if (typeFilter !== 'All') {
+      evts = evts.filter(e => (e.event_type || e.eventType) === typeFilter);
+    }
+    return evts.sort((a, b) => new Date(a.timestamp || a.createdAt) - new Date(b.timestamp || b.createdAt));
+  }, [events, selectedTurn, typeFilter, errorsOnly]);
+
+  // Snapshot data helpers
+  const snap = currentSnapshot?.snapshot || currentSnapshot;
+  const snapStats = snap?.character?.stats || snap?.stats;
+  const snapConditions = snap?.character?.conditions || snap?.conditions || [];
+  const snapNpcs = snap?.npcs || snap?.onScreenNpcs || [];
+  const snapResources = snap?.resources || snap?.character?.resources;
+  const snapScene = snap?.sceneState || snap?.scene;
+  const snapThreads = snap?.worldThreads || snapScene?.worldThreads;
+
+  return (
+    <div>
+      {/* Game Selector */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 18, fontWeight: 700, color: '#d0c098', margin: 0 }}>Game Log</h2>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input
+            className={styles.searchInput}
+            placeholder="Enter game ID..."
+            value={gameIdInput}
+            onChange={e => setGameIdInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') loadGame(); }}
+            style={{ width: 180 }}
+          />
+          <button className={styles.goldBtn} onClick={() => loadGame()} style={{ padding: '8px 16px' }}>Load</button>
+        </div>
+      </div>
+
+      {/* Game Info Header */}
+      {gameInfo && (
+        <div style={{ marginBottom: 16, fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#8a94a8' }}>
+          <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#c9a84c' }}>Game #{gameInfo.gameId}</span>
+          {gameInfo.characterName && <span> &middot; {gameInfo.characterName}</span>}
+          {gameInfo.setting && <span> &middot; {gameInfo.setting}</span>}
+        </div>
+      )}
+
+      {loading && <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 40 }}>Loading...</p>}
+      {error && <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#e85a5a', textAlign: 'center', padding: 40 }}>{error}</p>}
+
+      {loadedGameId && !loading && !error && (
+        <>
+          {events.length === 0 && snapshots.length === 0 ? (
+            <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 40 }}>No events recorded for this game.</p>
+          ) : (
+            <>
+              {/* Turn Scrubber */}
+              {turnNumbers.length > 0 && (
+                <div style={{ marginBottom: 12 }}>
+                  <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
+                    Turns
+                  </span>
+                  <div className={styles.turnScrubber}>
+                    {turnNumbers.map(t => (
+                      <button
+                        key={t}
+                        className={selectedTurn === t && !errorsOnly ? styles.turnBtnActive : styles.turnBtn}
+                        onClick={() => { setErrorsOnly(false); handleTurnClick(t); }}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Type Filters */}
+              <div style={{ display: 'flex', gap: 6, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+                {typeFilters.map(f => (
+                  <button
+                    key={f}
+                    className={!errorsOnly && typeFilter === f ? styles.typeFilterPillActive : styles.typeFilterPill}
+                    onClick={() => { setErrorsOnly(false); setTypeFilter(f); }}
+                  >
+                    {f === 'All' ? 'All' : f}
+                  </button>
+                ))}
+                <button
+                  className={errorsOnly ? styles.errorsOnlyPillActive : styles.errorsOnlyPill}
+                  onClick={() => setErrorsOnly(!errorsOnly)}
+                >
+                  {'\u26A0'} Errors Only
+                </button>
+              </div>
+
+              {/* Two-Column Layout */}
+              <div className={styles.logColumns}>
+                {/* Left Column — Snapshot */}
+                <div>
+                  <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700, color: '#d0c098', marginBottom: 12 }}>
+                    Snapshot {selectedTurn != null ? `— Turn ${selectedTurn}` : ''}
+                  </h3>
+                  {snapshotLoading ? (
+                    <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>Loading...</p>
+                  ) : !snap ? (
+                    <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>No snapshot recorded for this turn</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                      {/* Player Stats */}
+                      {snapStats && Object.keys(snapStats).length > 0 && (
+                        <div className={styles.tableCard} style={{ padding: 14 }}>
+                          <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Stats</span>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 20px' }}>
+                            {Object.entries(snapStats).map(([stat, val]) => {
+                              const isObj = typeof val === 'object' && val !== null;
+                              const effective = isObj ? (val.effective ?? val.current) : val;
+                              const base = isObj ? val.base : null;
+                              const hasPenalty = isObj && effective != null && base != null && effective < base;
+                              const display = isObj
+                                ? (effective != null && base != null
+                                  ? (effective === base ? `${effective}` : `${effective} / ${base}`)
+                                  : `${effective ?? base ?? '—'}`)
+                                : `${val}`;
+
+                              return (
+                                <div key={stat} className={styles.snapshotStatRow}>
+                                  <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#c9a84c' }}>{stat.toUpperCase()}</span>
+                                  <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: hasPenalty ? '#e8845a' : '#c8c0b0' }}>
+                                    {display}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Conditions */}
+                      {snapConditions.length > 0 && (
+                        <div>
+                          <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Conditions</span>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {snapConditions.map((c, i) => (
+                              <span key={i} style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#e8845a', background: '#201416', padding: '2px 8px', borderRadius: 3, border: '1px solid #e8845a33' }}>
+                                {typeof c === 'string' ? c : `${c.name}${c.penalty ? ` ${c.penalty}` : ''}`}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* NPCs */}
+                      {snapNpcs.length > 0 && (
+                        <div>
+                          <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>On-Screen NPCs</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {snapNpcs.map((npc, i) => (
+                              <div key={i} className={styles.npcCard}>
+                                <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#d0c098', fontWeight: 600, marginBottom: 4 }}>
+                                  {npc.name || 'Unknown NPC'}
+                                </div>
+                                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11, color: '#8a94a8' }}>
+                                  {npc.hp != null && <span>HP: {npc.hp}</span>}
+                                  {npc.disposition && <span>{npc.disposition}</span>}
+                                  {npc.attitude && <span>{npc.attitude}</span>}
+                                </div>
+                                {npc.conditions?.length > 0 && (
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                                    {npc.conditions.map((c, j) => (
+                                      <span key={j} style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#e8845a', background: '#201416', padding: '1px 6px', borderRadius: 3, border: '1px solid #e8845a33' }}>
+                                        {typeof c === 'string' ? c : c.name}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Resources */}
+                      {snapResources && Object.keys(snapResources).length > 0 && (
+                        <div className={styles.tableCard} style={{ padding: 14 }}>
+                          <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Resources</span>
+                          {Object.entries(snapResources).map(([key, val]) => (
+                            <div key={key} className={styles.snapshotStatRow}>
+                              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#8a94a8' }}>{key}</span>
+                              <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#c8c0b0' }}>{typeof val === 'object' ? JSON.stringify(val) : String(val)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Scene */}
+                      {snapScene && (
+                        <div className={styles.tableCard} style={{ padding: 14 }}>
+                          <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Scene</span>
+                          {Object.entries(snapScene).filter(([k]) => k !== 'worldThreads').map(([key, val]) => (
+                            <div key={key} className={styles.snapshotStatRow}>
+                              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#8a94a8' }}>{key}</span>
+                              <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#c8c0b0' }}>{typeof val === 'object' ? JSON.stringify(val) : String(val)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* World Threads */}
+                      {snapThreads?.length > 0 && (
+                        <CollapsibleSection title="World Threads">
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {snapThreads.map((thread, i) => (
+                              <div key={i} style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#8a94a8', padding: '4px 0', borderBottom: '1px solid #2a2622' }}>
+                                {typeof thread === 'string' ? thread : thread.name || JSON.stringify(thread)}
+                              </div>
+                            ))}
+                          </div>
+                        </CollapsibleSection>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Column — Events */}
+                <div>
+                  <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700, color: '#d0c098', marginBottom: 12 }}>
+                    Events {errorsOnly ? '— Errors (All Turns)' : selectedTurn != null ? `— Turn ${selectedTurn}` : ''}
+                    <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11, color: '#7082a4', marginLeft: 8 }}>{filteredEvents.length}</span>
+                  </h3>
+                  <div className={styles.tableCard}>
+                    {filteredEvents.length === 0 ? (
+                      <div style={{ padding: 14, textAlign: 'center', fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>
+                        {errorsOnly ? 'No errors found.' : 'No events for this selection.'}
+                      </div>
+                    ) : filteredEvents.map((evt, idx) => {
+                      const evtType = evt.event_type || evt.eventType || 'unknown';
+                      const isError = evtType.toLowerCase() === 'error';
+                      const isAiCall = evtType.toLowerCase() === 'ai_call';
+                      const evtData = evt.event_data || evt.eventData || evt.data;
+                      const expanded = expandedEvents.has(idx);
+                      const ts = evt.timestamp || evt.createdAt;
+
+                      // Extract ai_call stats
+                      const aiModel = isAiCall && evtData ? (evtData.model || evtData.modelName) : null;
+                      const aiInputTokens = isAiCall && evtData ? (evtData.input_tokens || evtData.inputTokens) : null;
+                      const aiOutputTokens = isAiCall && evtData ? (evtData.output_tokens || evtData.outputTokens) : null;
+                      const aiCost = isAiCall && evtData ? (evtData.cost || evtData.totalCost) : null;
+
+                      return (
+                        <div key={idx} className={isError ? styles.eventCardError : styles.eventCard}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            {isError && <span style={{ fontSize: 14 }}>{'\u26A0'}</span>}
+                            <EventTypeBadge type={evtType} />
+                            {errorsOnly && evt.turnNumber != null && (
+                              <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11, color: '#7082a4' }}>Turn {evt.turnNumber}</span>
+                            )}
+                            {ts && (
+                              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4', marginLeft: 'auto' }}>
+                                {new Date(ts).toLocaleTimeString()}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* AI Call compact stats */}
+                          {isAiCall && (aiModel || aiInputTokens != null || aiCost != null) && (
+                            <div className={styles.aiCallStats}>
+                              {aiModel && <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11, color: '#7ab4e8' }}>{aiModel}</span>}
+                              {aiInputTokens != null && <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11, color: '#8a94a8' }}>{'\u2192'} {aiInputTokens.toLocaleString()}</span>}
+                              {aiOutputTokens != null && <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11, color: '#8a94a8' }}>{'\u2190'} {aiOutputTokens.toLocaleString()}</span>}
+                              {aiCost != null && <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11, color: '#d0c098', fontWeight: 600 }}>{formatCost(aiCost)}</span>}
+                            </div>
+                          )}
+
+                          {/* Expandable event data */}
+                          {evtData && (
+                            <div style={{ marginTop: 6 }}>
+                              <button className={styles.eventExpand} onClick={() => toggleEventExpand(idx)}>
+                                {expanded ? '\u25BC Hide data' : '\u25B6 Show data'}
+                              </button>
+                              {expanded && (
+                                <pre className={styles.eventDataPre}>
+                                  {JSON.stringify(evtData, null, 2)}
+                                </pre>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function CollapsibleSection({ title, children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button className={styles.collapseToggle} onClick={() => setOpen(!open)}>
+        <span style={{ fontSize: 10 }}>{open ? '\u25BC' : '\u25B6'}</span>
+        {title}
+      </button>
+      {open && <div style={{ marginTop: 8 }}>{children}</div>}
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
 // MAIN ADMIN PAGE
 // ═════════════════════════════════════════════════════════════════════════════
 
-const TABS = ['Users', 'Games', 'Costs', 'Health', 'Reports', 'Settings'];
+const TABS = ['Users', 'Games', 'Game Log', 'Costs', 'Health', 'Reports', 'Settings'];
 
 export default function AdminPage() {
   const router = useRouter();
@@ -1797,6 +2252,7 @@ export default function AdminPage() {
   const [openReportCount, setOpenReportCount] = useState(0);
   const [pendingGameDetail, setPendingGameDetail] = useState(null);
   const [pendingSearch, setPendingSearch] = useState(null);
+  const [pendingGameLogId, setPendingGameLogId] = useState(null);
 
   useEffect(() => {
     if (!isAuthenticated()) { router.replace('/auth'); return; }
@@ -1932,6 +2388,13 @@ export default function AdminPage() {
             onRefresh={() => fetchTab('Games', true)}
             pendingGameId={pendingGameDetail} onClearPending={() => setPendingGameDetail(null)}
             pendingSearch={pendingSearch} onClearPendingSearch={() => setPendingSearch(null)}
+            onViewGameLog={(gid) => { setPendingGameLogId(gid); setActiveTab('Game Log'); }}
+          />
+        )}
+        {activeTab === 'Game Log' && (
+          <GameLogTab
+            pendingGameId={pendingGameLogId}
+            onClearPending={() => setPendingGameLogId(null)}
           />
         )}
         {activeTab === 'Costs' && (
