@@ -9,11 +9,6 @@ import styles from './NavBar.module.css';
 export default function NavBar({ variant = 'standard', currentPage }) {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    setIsMobile(window.innerWidth < 768);
-  }, []);
 
   useEffect(() => {
     if (variant !== 'landing' && variant !== 'standard') return;
@@ -55,14 +50,11 @@ export default function NavBar({ variant = 'standard', currentPage }) {
 
   if (variant === 'landing') {
     return (
-      <nav className={styles.landingNav} style={isMobile ? {
-        background: 'rgba(10, 14, 26, 1)',
-        borderBottom: '1px solid rgba(30, 37, 64, 0.6)',
-      } : {
-        background: scrollProgress > 0 || menuOpen ? `rgba(10, 14, 26, ${Math.max(0.85 * scrollProgress, menuOpen ? 0.95 : 0)})` : 'transparent',
-        backdropFilter: scrollProgress > 0 || menuOpen ? `blur(${Math.max(16 * scrollProgress, menuOpen ? 16 : 0)}px)` : 'none',
-        WebkitBackdropFilter: scrollProgress > 0 || menuOpen ? `blur(${Math.max(16 * scrollProgress, menuOpen ? 16 : 0)}px)` : 'none',
-        borderBottom: scrollProgress > 0.5 || menuOpen ? `1px solid rgba(30, 37, 64, ${menuOpen ? 0.6 : scrollProgress * 0.6})` : '1px solid transparent',
+      <nav className={styles.landingNav} style={{
+        background: `rgba(10, 14, 26, ${0.85 + 0.1 * scrollProgress})`,
+        backdropFilter: `blur(${12 + 12 * scrollProgress}px)`,
+        WebkitBackdropFilter: `blur(${12 + 12 * scrollProgress}px)`,
+        borderBottom: `1px solid rgba(30, 37, 64, ${0.4 + 0.2 * scrollProgress})`,
       }}>
         <Link href={wordmarkHref} className={styles.wordmark}>
           <span className={styles.wordmarkCrucible}>CRUCIBLE</span>
@@ -91,7 +83,9 @@ export default function NavBar({ variant = 'standard', currentPage }) {
 
   return (
     <nav className={styles.standardNav} style={{
-      background: `rgba(10, 14, 26, ${0.5 + 0.35 * scrollProgress})`,
+      background: `rgba(10, 14, 26, ${0.85 + 0.07 * scrollProgress})`,
+      backdropFilter: `blur(${16 + 4 * scrollProgress}px)`,
+      WebkitBackdropFilter: `blur(${16 + 4 * scrollProgress}px)`,
       borderBottom: `1px solid rgba(30, 37, 64, ${0.4 + 0.2 * scrollProgress})`,
     }}>
       <Link href={wordmarkHref} className={styles.wordmark}>
