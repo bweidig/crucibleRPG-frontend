@@ -102,12 +102,30 @@ export default function CharacterTab({ data, onEntityClick }) {
             {foundationalSkills.length > 0 && (
               <div className={styles.skillGroup}>
                 <div className={styles.skillGroupLabel}>Foundational</div>
-                {foundationalSkills.map((skill, i) => (
-                  <div key={`f-${i}`} className={styles.skillRow} onClick={() => handleSkillClick(skill.name, 'skill')} style={{ cursor: 'pointer' }}>
-                    <span className={styles.skillNameClickable}>{skill.name}</span>
-                    <span className={styles.skillModifier}>+{skill.modifier?.toFixed(1)}</span>
-                  </div>
-                ))}
+                {foundationalSkills.map((skill, i) => {
+                  const breadth = skill.breadth || skill.breadthCategory;
+                  let scopeLabel = '';
+                  if (skill.skillAxis && skill.scopeReference) {
+                    scopeLabel = `${breadth}: ${skill.scopeReference}`;
+                  } else if (breadth === 'broad' && skill.subcategory && skill.subcategorySecondary) {
+                    scopeLabel = `${breadth}: ${skill.subcategory} + ${skill.subcategorySecondary}`;
+                  } else if (skill.subcategory) {
+                    scopeLabel = `${breadth}: ${skill.subcategory}`;
+                  } else {
+                    scopeLabel = breadth || '';
+                  }
+                  const stat = (skill.stat || '').toUpperCase();
+                  return (
+                    <div key={`f-${i}`} className={styles.skillRow} onClick={() => handleSkillClick(skill.name, 'skill')} style={{ cursor: 'pointer' }}>
+                      <span className={styles.skillNameClickable}>
+                        {skill.name}
+                        <span className={styles.skillModifier} style={{ marginLeft: 6 }}>+{skill.modifier?.toFixed(1)}</span>
+                        {scopeLabel && <span className={styles.skillType}>({scopeLabel})</span>}
+                        {stat && <span className={styles.skillType}>{stat}</span>}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             )}
             {activeSkills.length > 0 && (

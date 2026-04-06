@@ -34,6 +34,11 @@
 
 ## Recent Work (This Session: 2026-04-05)
 
+### Character Sheet — Skill Subcategory Breakdown
+Foundational skills in CharacterTab now show subcategory scope and governing stat. Broad mundane: "(broad: Tracking & Hunting + Streetwise) WIS". Narrow mundane: "(narrow: Ranged Technique) DEX". Magic skills show scopeReference instead. Falls back to bare breadth label if taxonomy fields are missing.
+
+**Files modified:** `app/play/components/CharacterTab.js`.
+
 ### Mobile Tap Target Fixes — NavBar + GameplayShowcase
 Fixed undersized tap targets on mobile. NavBar: hamburger button expanded to 44x44 (icon lines repositioned to stay visually centered), wordmark link gets 8px vertical padding for 44px+ tap area, AuthAvatar wrapped in 44x44 Link with inner span for 32px visual circle, mobile gap between hamburger/avatar increased to 16px. GameplayShowcase: NEXT SCENARIO button gets min-height 44px, pagination dots changed to 44x44 invisible tap zones with ::after pseudo-element for the 10px visual dot.
 
