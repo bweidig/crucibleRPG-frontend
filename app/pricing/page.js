@@ -116,12 +116,12 @@ export default function PricingPage() {
             fontFamily: 'var(--font-alegreya)', fontSize: 'clamp(28px, 4vw, 36px)',
             fontStyle: 'italic', fontWeight: 500, color: '#9a9480',
             marginTop: 20, marginBottom: 14,
-          }}>No tiers. No gates. Just the whole world for one price.</h1>
+          }}>No locked features. No premium content. Just the whole world for one price.</h1>
 
           <p style={{
             fontFamily: 'var(--font-alegreya-sans)', fontSize: 18, fontWeight: 400,
             color: 'var(--text-secondary)', maxWidth: 480, margin: '0 auto', lineHeight: 1.7,
-          }}>Every storyteller. Every setting. Every feature. Start free or jump right in.</p>
+          }}>Every storyteller. Every setting. Start free or jump right in.</p>
         </ScrollReveal>
       </div>
 
@@ -152,7 +152,7 @@ export default function PricingPage() {
           </div>
 
           <div style={{
-            fontFamily: 'var(--font-jetbrains)', fontSize: 14,
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
             color: 'var(--accent-gold)', marginBottom: 24,
           }}>{PRICING.trial.turns} turns</div>
 
@@ -209,7 +209,7 @@ export default function PricingPage() {
           </div>
 
           <div style={{
-            fontFamily: 'var(--font-jetbrains)', fontSize: 14,
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
             color: 'var(--accent-gold)', marginBottom: 24,
           }}>{PRICING.subscription.turns} turns included</div>
 
@@ -272,8 +272,8 @@ export default function PricingPage() {
                 textAlign: 'center', flex: '1 1 160px', maxWidth: 190,
               }}>
                 <div style={{
-                  fontFamily: 'var(--font-jetbrains)', fontSize: 22,
-                  fontWeight: 500, color: 'var(--text-heading)', marginBottom: 4,
+                  fontFamily: 'var(--font-cinzel)', fontSize: 22,
+                  fontWeight: 700, color: 'var(--text-heading)', marginBottom: 4,
                 }}>{pack.turns}</div>
                 <div style={{
                   fontFamily: 'var(--font-cinzel)', fontSize: 14,

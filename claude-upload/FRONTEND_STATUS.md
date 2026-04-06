@@ -34,6 +34,11 @@
 
 ## Recent Work (This Session: 2026-04-05)
 
+### Pricing Page — Polish Pass #2
+Hero tagline and sub-tagline copy updated. Removed all JetBrains Mono from the page: turn count lines now use Alegreya Sans, top-up card numbers now use Cinzel 700. Removed hover effects from pricing cards and top-up cards (non-interactive containers). btnSecondary hover state and base transition were already correct.
+
+**Files modified:** `app/pricing/page.js`, `app/pricing/page.module.css`.
+
 ### Init Wizard — Design System Color Audit (No Changes Needed)
 Audited all hardcoded hex values in `app/init/page.js` Phase 3/4 proposal review sections. All six info blocks (skills, innate traits, foundational skills, starting loadout, faction standings, inventory slots), stat bar container, stat bar tracks, and inner dividers already use the correct CSS variables (`var(--bg-card)`, `var(--border-primary)`, `var(--border-card-separator)`). Remaining hardcoded hex values are all in exclusion categories: `#0d1120` (panel bg), error/warning semantic colors, connection banner, transition overlay embers, and stat bar gradient.
 
