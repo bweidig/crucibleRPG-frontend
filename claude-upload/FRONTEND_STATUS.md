@@ -34,6 +34,11 @@
 
 ## Recent Work (This Session: 2026-04-05)
 
+### Init Wizard — Fix "Try Another" Button Visibility on Scenario Cards
+The "try another" button on Phase 6 scenario cards had invisible text because `onMouseLeave` reset `color` to `''` (empty string), falling back to inherited black from the parent `<button>`. Fixed: `onMouseLeave` now resets to `var(--text-dim)` (matching the base style), `onMouseEnter` now sets `var(--accent-gold)` for a clear hover signal.
+
+**Files modified:** `app/init/page.js`.
+
 ### Init Wizard — Design System Variable Cleanup + Lexie Readable Support
 **Part 1:** Replaced ~20 hardcoded hex color values in inline styles with CSS variables: `#7082a4`→`var(--text-muted)`, `#6b83a3`→`var(--text-dim)`, `#b0b8cc`→`var(--text-stat-bright)`, `#8aba7a`→`var(--color-success)`, `#e8845a`→`var(--color-danger)`, `#c84a4a`→`var(--color-danger)` (style props only, not DIFFICULTIES array), `#9a8545`→`var(--gold-muted)`, `#c9a84c`→`var(--accent-gold)` (overlay wordmark/label only, not FIREFLY_EMBERS or particle dots), `#d0c098`→`var(--text-heading)`. Excluded: panel bg `#0d1120`, error/warning semantic colors, connection banner, deviation warning, stat bar gradients, ember data array.
 

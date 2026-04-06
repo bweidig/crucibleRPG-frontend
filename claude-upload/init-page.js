@@ -2302,7 +2302,7 @@ function Phase6({ scenario, setScenario, customStartText, setCustomStartText, sc
                         <button onClick={(e) => { e.stopPropagation(); onRefreshScenario(s.key); }} style={{
                           fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--text-dim)',
                           background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s',
-                        }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-muted)'; }} onMouseLeave={e => { e.currentTarget.style.color = ''; }}>
+                        }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent-gold)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}>
                           {'\u21BB'} try another
                         </button>
                       </div>
