@@ -8,6 +8,18 @@ import Footer from '@/components/Footer';
 import ParticleField from '@/components/ParticleField';
 import styles from './page.module.css';
 
+// --- DISPLAY SETTINGS (Lexie Readable support) ---
+const DISPLAY_SETTINGS_KEY = 'crucible_display_settings';
+
+function loadDisplayFont() {
+  if (typeof window === 'undefined') return 'alegreya';
+  try {
+    const raw = localStorage.getItem(DISPLAY_SETTINGS_KEY);
+    if (raw) return JSON.parse(raw).font || 'alegreya';
+  } catch {}
+  return 'alegreya';
+}
+
 // --- SVG ICONS ---
 
 const Icons = {
@@ -844,7 +856,7 @@ function Phase1({ selected, onSelect, customText, setCustomText }) {
               }}>
                 <p style={{
                   fontFamily: 'var(--font-alegreya)', fontSize: 15.5, fontStyle: 'italic',
-                  color: '#b0b8cc', lineHeight: 1.8, margin: 0,
+                  color: 'var(--text-stat-bright)', lineHeight: 1.8, margin: 0,
                 }}>{s.preview}</p>
               </div>
             )}
@@ -969,13 +981,13 @@ function PrebuiltWorldCard({ world, isSelected, isExpanded, onToggle }) {
         }}>
           <p style={{
             fontFamily: 'var(--font-alegreya)', fontSize: 15.5, fontStyle: 'italic',
-            color: '#b0b8cc', lineHeight: 1.8, margin: '0 0 18px 0',
+            color: 'var(--text-stat-bright)', lineHeight: 1.8, margin: '0 0 18px 0',
           }}>{world.expandedFlavor}</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {world.subTags.map(tag => (
               <span key={tag.label} style={{
                 fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
-                color: '#7082a4', background: 'var(--bg-card)',
+                color: 'var(--text-muted)', background: 'var(--bg-card)',
                 border: '1px solid var(--border-primary)', borderRadius: 4,
                 padding: '5px 12px',
               }}>{tag.label}: {tag.value}</span>
@@ -1048,7 +1060,7 @@ function WorldSnapshotList({ snapshots, selectedSnapshot, setSelectedSnapshot, a
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <span style={{
-                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4',
+                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: 'var(--text-muted)',
                 }}>{snap.snapshotType}</span>
               </div>
               <div style={{
@@ -1064,7 +1076,7 @@ function WorldSnapshotList({ snapshots, selectedSnapshot, setSelectedSnapshot, a
                     {snap.tags.map(tag => (
                       <span key={tag.label} style={{
                         fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
-                        color: '#7082a4', background: 'var(--bg-card)',
+                        color: 'var(--text-muted)', background: 'var(--bg-card)',
                         border: '1px solid var(--border-primary)', borderRadius: 4,
                         padding: '5px 12px',
                       }}>{tag.label}: {tag.value}</span>
@@ -1583,7 +1595,7 @@ function ArchetypeCard({ archetype, isSelected, onSelect }) {
         {archetype.personality.map(trait => (
           <span key={trait} style={{
             fontFamily: 'var(--font-alegreya-sans)', fontSize: 12,
-            color: '#7082a4', background: 'var(--bg-card)',
+            color: 'var(--text-muted)', background: 'var(--bg-card)',
             border: '1px solid var(--border-primary)', borderRadius: 4,
             padding: '4px 10px',
           }}>{trait}</span>
@@ -1728,7 +1740,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div style={{
           fontFamily: 'var(--font-jetbrains)', fontSize: 13,
-          color: '#7082a4',
+          color: 'var(--text-muted)',
         }}>
           Total: <span style={{ color: 'var(--text-heading)', fontWeight: 500 }}>{statTotal.toFixed(1)}</span>
         </div>
@@ -1762,7 +1774,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
                 }}>{s.name}</span>
                 <span style={{
                   fontFamily: 'var(--font-alegreya-sans)', fontSize: 12,
-                  color: '#7082a4', fontStyle: 'italic', marginRight: 8,
+                  color: 'var(--text-muted)', fontStyle: 'italic', marginRight: 8,
                 }}>{getTier(s.value)}</span>
 
                 {editing ? (
@@ -1811,7 +1823,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
                     </div>
                     <span style={{
                       fontFamily: 'var(--font-jetbrains)', fontSize: 11,
-                      color: delta > 0 ? '#8aba7a' : '#e8845a',
+                      color: delta > 0 ? 'var(--color-success)' : 'var(--color-danger)',
                       width: 44, textAlign: 'right',
                       visibility: changed ? 'visible' : 'hidden',
                     }}>{delta > 0 ? '+' : ''}{delta.toFixed(1)}</span>
@@ -1882,7 +1894,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
       {skills && skills.length > 0 && (
         <div style={{
           background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '10px 16px',
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4', marginBottom: 10,
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)', marginBottom: 10,
         }}>
           <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Skills: </span>
           {skills.join(', ')}
@@ -1893,7 +1905,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
       {innateTraits && innateTraits.length > 0 && (
         <div style={{
           background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '10px 16px',
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4', marginBottom: 10,
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)', marginBottom: 10,
         }}>
           <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 6 }}>Innate Traits</div>
           {innateTraits.map((t, i) => {
@@ -1903,10 +1915,10 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
               <div key={i} style={{ padding: '4px 0', borderBottom: i < innateTraits.length - 1 ? '1px solid var(--border-card-separator)' : 'none' }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <span style={{ color: hasPenalty ? '#e8a04a' : 'var(--text-heading)', fontWeight: 500 }}>{formatTraitName(t.trait)}</span>
-                  <span style={{ color: '#6b83a3', fontSize: 12, fontStyle: 'italic' }}>{t.source}</span>
+                  <span style={{ color: 'var(--text-dim)', fontSize: 12, fontStyle: 'italic' }}>{t.source}</span>
                 </div>
                 {hasDetail && (
-                  <div style={{ fontSize: 13, color: hasPenalty ? '#e8a04a' : '#6b83a3', marginTop: 2, paddingLeft: 2 }}>
+                  <div style={{ fontSize: 13, color: hasPenalty ? '#e8a04a' : 'var(--text-dim)', marginTop: 2, paddingLeft: 2 }}>
                     {t.effect && <span>{t.effect.replace(/_/g, ' ')}</span>}
                     {t.value != null && <span>{t.effect ? ': ' : ''}{t.value > 0 ? '+' : ''}{t.value}</span>}
                     {hasPenalty && <span>{t.effect ? ': ' : ''}{t.penalty}</span>}
@@ -1923,7 +1935,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
       {foundationalSkills && foundationalSkills.length > 0 && (
         <div style={{
           background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '10px 16px',
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4', marginBottom: 10,
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)', marginBottom: 10,
         }}>
           <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 6 }}>Foundational Skills</div>
           {foundationalSkills.map((fs, i) => (
@@ -1932,7 +1944,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
               {fs.modifier != null && (
                 <span style={{ color: 'var(--accent-gold)', fontSize: 14, fontFamily: 'var(--font-jetbrains)', fontWeight: 600 }}>+{Number(fs.modifier).toFixed(1)}</span>
               )}
-              <span style={{ color: '#7082a4', fontSize: 12 }}>({fs.breadthCategory})</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>({fs.breadthCategory})</span>
               <span style={{ color: 'var(--accent-gold)', fontSize: 12, fontFamily: 'var(--font-jetbrains)' }}>{fs.stat}</span>
             </div>
           ))}
@@ -1943,15 +1955,15 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
       {startingLoadout && startingLoadout.length > 0 && (
         <div style={{
           background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '10px 16px',
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4', marginBottom: 10,
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)', marginBottom: 10,
         }}>
           <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 6 }}>Starting Loadout</div>
           {startingLoadout.map((item, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 0' }}>
               <span style={{ color: 'var(--text-heading)' }}>{item.name}</span>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 12, color: '#7082a4' }}>{item.slotCost} slots</span>
-                <span style={{ fontSize: 12, color: '#6b83a3', fontStyle: 'italic' }}>{item.materialQuality}</span>
+                <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 12, color: 'var(--text-muted)' }}>{item.slotCost} slots</span>
+                <span style={{ fontSize: 12, color: 'var(--text-dim)', fontStyle: 'italic' }}>{item.materialQuality}</span>
               </div>
             </div>
           ))}
@@ -1962,7 +1974,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
       {factionStandings && factionStandings.length > 0 && (
         <div style={{
           background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '10px 16px',
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4', marginBottom: 10,
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)', marginBottom: 10,
         }}>
           <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 6 }}>Faction Standings</div>
           {factionStandings.map((fs, i) => (
@@ -1970,7 +1982,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
               <span style={{ color: 'var(--text-heading)' }}>{fs.factionName}</span>
               <span style={{
                 fontFamily: 'var(--font-jetbrains)', fontSize: 13,
-                color: fs.standing > 0 ? '#8aba7a' : fs.standing < 0 ? '#e8845a' : '#8a94a8',
+                color: fs.standing > 0 ? 'var(--color-success)' : fs.standing < 0 ? 'var(--color-danger)' : 'var(--text-secondary)',
               }}>
                 {fs.standing > 0 ? '+' : ''}{fs.standing}
               </span>
@@ -1982,7 +1994,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
       {/* Inventory Slots */}
       <div style={{
         background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '10px 16px',
-        fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4',
+        fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)',
       }}>
         <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Inventory Slots: </span>
         {(stats.find(s => s.name === 'Strength')?.value || 6.5) + 5} (STR {stats.find(s => s.name === 'Strength')?.value.toFixed(1)} + 5)
@@ -2003,7 +2015,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
 
       {editing && !hasDeviation && (
         <p style={{
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4',
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-muted)',
           marginTop: 16, lineHeight: 1.6,
         }}>
           Use +/- buttons or click a value to type directly. Stats must be between 1.0 and 20.0. Inventory slots update with Strength.
@@ -2346,6 +2358,25 @@ function InitWizardInner() {
     const user = api.getUser();
     if (user && !user.isPlaytester) router.replace('/');
   }, [router]);
+
+  // --- Lexie Readable ---
+  const [displayFont, setDisplayFont] = useState('alegreya');
+  useEffect(() => {
+    setDisplayFont(loadDisplayFont());
+    const handleChange = () => setDisplayFont(loadDisplayFont());
+    window.addEventListener('display-settings-changed', handleChange);
+    window.addEventListener('storage', (e) => { if (e.key === DISPLAY_SETTINGS_KEY) handleChange(); });
+    return () => {
+      window.removeEventListener('display-settings-changed', handleChange);
+      window.removeEventListener('storage', handleChange);
+    };
+  }, []);
+  const isLexie = displayFont === 'lexie';
+  const lexieVars = isLexie ? {
+    '--font-alegreya': "'Lexie Readable', sans-serif",
+    '--font-alegreya-sans': "'Lexie Readable', sans-serif",
+    '--font-jetbrains': "'Lexie Readable', sans-serif",
+  } : {};
 
   // --- Core wizard state ---
   const [phase, setPhase] = useState(0);
@@ -2925,6 +2956,7 @@ function InitWizardInner() {
     <div className={styles.pageContainer} style={{
       minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)',
       display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 72,
+      ...lexieVars,
     }}>
       <ParticleField />
       <div style={{ width: '100%' }}><NavBar /></div>
@@ -3016,7 +3048,7 @@ function InitWizardInner() {
           return (
             <>
               {worldGenStatus === 'error' && (
-                <div style={{ marginBottom: 20, fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#c84a4a' }}>
+                <div style={{ marginBottom: 20, fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--color-danger)' }}>
                   World generation failed. Please go back and try again.
                 </div>
               )}
@@ -3147,7 +3179,7 @@ function InitWizardInner() {
           }}>Phase {phase + 1} of {STEP_NAMES.length}</span>
           {error && (
             <span style={{
-              fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c84a4a',
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--color-danger)',
             }}>{error}</span>
           )}
         </div>
@@ -3181,6 +3213,9 @@ function InitWizardInner() {
             background: 'var(--bg-main)',
             display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center',
+            '--font-alegreya': "'Alegreya', serif",
+            '--font-alegreya-sans': "'Alegreya Sans', sans-serif",
+            '--font-jetbrains': "'JetBrains Mono', monospace",
             opacity: transitionFading ? 0 : 1,
             transition: 'opacity 0.5s ease',
             pointerEvents: transitionFading ? 'none' : 'auto',
@@ -3212,8 +3247,8 @@ function InitWizardInner() {
 
             {/* Wordmark */}
             <div style={{ position: 'absolute', top: 22, left: 24, display: 'flex', alignItems: 'baseline', gap: 8, zIndex: 2 }}>
-              <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 900, color: '#c9a84c', letterSpacing: '0.06em' }}>CRUCIBLE</span>
-              <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.18em' }}>RPG</span>
+              <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 900, color: 'var(--accent-gold)', letterSpacing: '0.06em' }}>CRUCIBLE</span>
+              <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: 'var(--gold-muted)', letterSpacing: '0.18em' }}>RPG</span>
             </div>
 
             {/* Center content */}
@@ -3221,7 +3256,7 @@ function InitWizardInner() {
               {/* Phase label */}
               <div style={{
                 fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
-                color: '#c9a84c', letterSpacing: '0.18em', textTransform: 'uppercase',
+                color: 'var(--accent-gold)', letterSpacing: '0.18em', textTransform: 'uppercase',
                 marginBottom: 32,
               }}>{OVERLAY_LABELS[transitionPhase] || 'Adventure'}</div>
 
@@ -3242,7 +3277,7 @@ function InitWizardInner() {
               <div style={{ marginTop: 30, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span style={{
                   fontFamily: 'var(--font-alegreya)', fontSize: 24, fontStyle: 'italic',
-                  color: '#d0c098', fontWeight: 500,
+                  color: 'var(--text-heading)', fontWeight: 500,
                   opacity: loreFade ? 1 : 0,
                   transition: 'opacity 0.3s',
                 }}>
@@ -3253,7 +3288,7 @@ function InitWizardInner() {
               {/* Secondary description */}
               <p style={{
                 fontFamily: 'var(--font-alegreya-sans)', fontSize: 16,
-                color: '#7082a4', margin: '12px 0 0', textAlign: 'center',
+                color: 'var(--text-muted)', margin: '12px 0 0', textAlign: 'center',
                 maxWidth: 400,
               }}>{msg.secondary}</p>
             </div>

@@ -34,6 +34,13 @@
 
 ## Recent Work (This Session: 2026-04-05)
 
+### Init Wizard — Design System Variable Cleanup + Lexie Readable Support
+**Part 1:** Replaced ~20 hardcoded hex color values in inline styles with CSS variables: `#7082a4`→`var(--text-muted)`, `#6b83a3`→`var(--text-dim)`, `#b0b8cc`→`var(--text-stat-bright)`, `#8aba7a`→`var(--color-success)`, `#e8845a`→`var(--color-danger)`, `#c84a4a`→`var(--color-danger)` (style props only, not DIFFICULTIES array), `#9a8545`→`var(--gold-muted)`, `#c9a84c`→`var(--accent-gold)` (overlay wordmark/label only, not FIREFLY_EMBERS or particle dots), `#d0c098`→`var(--text-heading)`. Excluded: panel bg `#0d1120`, error/warning semantic colors, connection banner, deviation warning, stat bar gradients, ember data array.
+
+**Part 2:** Added Lexie Readable support. Reads `crucible_display_settings` from localStorage on mount, listens for `display-settings-changed` and `storage` events. When `font === 'lexie'`, overrides `--font-alegreya`, `--font-alegreya-sans`, `--font-jetbrains` on the page container. Transition overlay resets these variables to standard fonts so it's unaffected by Lexie.
+
+**Files modified:** `app/init/page.js`.
+
 ### Pricing Page — Polish Pass #2
 Hero tagline and sub-tagline copy updated. Removed all JetBrains Mono from the page: turn count lines now use Alegreya Sans, top-up card numbers now use Cinzel 700. Removed hover effects from pricing cards and top-up cards (non-interactive containers). btnSecondary hover state and base transition were already correct.
 
