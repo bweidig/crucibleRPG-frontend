@@ -18,7 +18,7 @@ function AsideCompassIcon() {
 const NarrativePanel = forwardRef(function NarrativePanel({
   turns, sessionRecap, worldBriefing, gameId, onTurnResponse,
   lastResolution, lastStateChanges, onMetaResponse,
-  glossaryTerms, onEntityClick,
+  glossaryTerms, onEntityClick, inventoryItems,
 }, ref) {
   const newTurnRef = useRef(null);
   const bottomRef = useRef(null);
@@ -90,6 +90,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
                   isNew={isNew}
                   glossaryTerms={glossaryTerms}
                   onEntityClick={onEntityClick}
+                  inventoryItems={inventoryItems}
                   ref={isLast && isNew ? newTurnRef : undefined}
                 />
               </div>

@@ -718,19 +718,20 @@ At least one of `selection` or `customText` required.
   "setting": "Sword & Soil",
   "settingDescription": null,
   "settingParameters": null,
-  "worldGenStatus": "complete",
-  "message": "Setting saved. World generation complete."
+  "worldGenStatus": "generating",
+  "message": "Setting saved. World generation started — poll /world-status for progress."
 }
 ```
+
+**AD-539:** Response returns immediately. World generation runs asynchronously in the background. Frontend must poll `GET /world-status` for progress. The `worldGenStatus` field is `"generating"` (not `"complete"`) — do NOT wait for it to finish in this response.
 
 **Status Codes:**
 | Code | Meaning |
 |------|---------|
-| 200 | Saved + world generated |
+| 200 | Settings saved, world gen kicked off |
 | 400 | Neither field provided, invalid setting, empty customText |
-| 500 | World generation failed minimum validation (details array included) |
 
-**Side Effects:** Inserts 3 factions, 6 locations (hierarchical), 2 routes, 5 NPCs, 2 causal anchors, 5 scarcity entries, 2 species. Only on first call — skipped if data already exists.
+**Side Effects:** Saves settings immediately, then asynchronously generates 4 factions, 6+ locations, 7 NPCs (with schedules/agendas), 2+ causal anchors, species, scarcity, magic domains. Only on first call — skipped if data already exists.
 
 ---
 
@@ -743,19 +744,40 @@ Poll world generation progress.
 **Response (200):**
 ```json
 {
+  "status": "generating",
+  "ready": false,
+  "phase": "locations"
+}
+```
+
+When complete:
+```json
+{
   "status": "complete",
   "ready": true,
+  "phase": null,
   "summary": {
-    "factions": 3,
+    "factions": 4,
     "locations": 6,
-    "npcs": 5,
+    "npcs": 7,
     "unresolvedHooks": 2
   },
   "worldName": "The Fraying Throne"
 }
 ```
 
-`status`: `"pending"` | `"generating"` | `"complete"`. `summary` and `worldName` only present when `complete`. `worldName` is `null` if world gen didn't produce one.
+When failed:
+```json
+{
+  "status": "failed",
+  "ready": false,
+  "phase": null,
+  "retryable": true,
+  "message": "World generation failed. Your choices are saved — please try again."
+}
+```
+
+`status` (AD-541): `"pending"` | `"generating_factions"` | `"generating_locations"` | `"generating_npcs"` | `"generating_anchors"` | `"complete"` | `"failed"`. The old `"generating"` value is no longer set — frontends should treat any `generating_*` value as "in progress." `phase`: derived from status — `"factions"` | `"locations"` | `"npcs"` | `"anchors"` | `null`. `summary` and `worldName` only present when `complete`.
 
 ---
 
@@ -1339,6 +1361,27 @@ Unified action endpoint — player choices, custom actions, and bracket commands
 - `resolution` is `null` when the turn involves no mechanical check (pure narrative turns, e.g. long rest).
 - `resolution.stat` is always lowercase (`"cha"`, `"str"`, etc.).
 - `stateChanges.stats` contains post-commit effective stats (base minus condition penalties) with lowercase keys. This is the authoritative stat snapshot after the turn resolves.
+- `stateChanges.conditions.added` entries include a `target` field: `"player"` for player conditions, or the NPC's display name (e.g. `"Enforcer"`) for enemy conditions. (AD-550)
+- `npcStates` (array, optional) — Present only on combat turns. Each entry: `{ name, npcId, woundState: "fresh"|"bloodied"|"staggering"|"incapacitated", defeated: boolean }`. (AD-550)
+- SSE path sends `npcStates` as a separate `turn:npc_states` event.
+
+**Condition entry shape (in `stateChanges.conditions.added`):**
+```json
+{ "name": "Side Laceration", "stat": "dex", "severity": -0.5, "penalty": -0.5, "target": "player" }
+```
+
+**npcStates shape (combat turns only):**
+```json
+{
+  "npcStates": [
+    { "name": "Aethelforge Enforcer", "npcId": 42, "woundState": "staggering", "defeated": false },
+    { "name": "Squad Leader", "npcId": 43, "woundState": "incapacitated", "defeated": true }
+  ]
+}
+```
+
+**New stateChange type — `item_description_update` (AD-551):**
+Updates an inventory item's text description and its glossary entry. Used when a player inspects or learns new details about an item. Fields: `itemName` (string), `description` (string, 1-3 sentences). On GM escalation turns, only `glossary` and `item_description_update` stateChanges are allowed; all other types are silently dropped.
 
 **Debug Data (AD-355):** When `X-Debug: true` header is sent by a playtester, all responses include a `_debug` object:
 ```json
@@ -2011,7 +2054,14 @@ Detailed game view with character snapshot, narrative log, and clock state.
     "storyteller": "Chronicler",
     "setting": "Sword & Soil",
     "difficulty": "Standard",
+    "characterName": "Jasper",
+    "turnCount": 12,
     "totalCost": 0.4812,
+    "initCost": 0.075,
+    "gameplayCost": 0.4002,
+    "gmCost": 0.006,
+    "gmCallCount": 3,
+    "costPerTurn": 0.0334,
     "createdAt": "2026-03-20T..."
   },
   "player": {

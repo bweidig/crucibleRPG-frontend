@@ -88,6 +88,26 @@ function PlayPage() {
   // ─── Entity Popup ───
   const [entityPopup, setEntityPopup] = useState(null);
 
+  // Enrich item entities with inventory mechanical data before opening popup.
+  // Narrative links only pass { term, type }, missing durability/damage/etc.
+  // This mirrors the pattern GlossaryTab uses, but centralized for all click sources.
+  const handleEntityClick = useCallback((entity) => {
+    if (entity && characterData && (entity.type || '').toLowerCase() === 'item' && !entity.equipmentCategory) {
+      const allItems = [
+        ...(characterData.inventory?.equipped || []),
+        ...(characterData.inventory?.carried || []),
+      ];
+      const match = allItems.find(i =>
+        (i.name || '').toLowerCase() === (entity.term || entity.name || '').toLowerCase()
+      );
+      if (match) {
+        setEntityPopup({ ...match, ...entity, term: entity.term || match.name, type: 'item' });
+        return;
+      }
+    }
+    setEntityPopup(entity);
+  }, [characterData]);
+
   // ─── Report Modal ───
   const [reportMode, setReportMode] = useState(null); // null | 'bug' | 'suggest'
 
@@ -650,7 +670,8 @@ function PlayPage() {
             lastStateChanges={lastStateChanges}
             onMetaResponse={handleMetaResponse}
             glossaryTerms={glossaryTerms}
-            onEntityClick={setEntityPopup}
+            onEntityClick={handleEntityClick}
+            inventoryItems={[...(characterData?.inventory?.equipped || []), ...(characterData?.inventory?.carried || [])]}
           />
           <ActionPanel
             actions={actions}
@@ -664,7 +685,7 @@ function PlayPage() {
             onEscalate={handleCompassEscalate}
             hintLoading={hintLoading}
             glossaryTerms={glossaryTerms}
-            onEntityClick={setEntityPopup}
+            onEntityClick={handleEntityClick}
           />
         </div>
         <Sidebar
@@ -678,7 +699,7 @@ function PlayPage() {
           notifications={notifications}
           onClearNotification={(tabId) => setNotifications(prev => ({ ...prev, [tabId]: 0 }))}
           onNotesChange={refetchNotes}
-          onEntityClick={setEntityPopup}
+          onEntityClick={handleEntityClick}
           onOpenReport={setReportMode}
           debugMode={debugMode}
           isDebugUser={!!api.getUser()?.isDebug}
@@ -723,7 +744,7 @@ function PlayPage() {
           gameId={gameId}
           onClose={() => setEntityPopup(null)}
           onNotesChange={refetchNotes}
-          onEntityClick={setEntityPopup}
+          onEntityClick={handleEntityClick}
         />
       )}
 
