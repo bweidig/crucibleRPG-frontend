@@ -72,7 +72,7 @@ export default function CTASection() {
 
             {!submitted ? (
               <>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div className={styles.emailRow} style={{ display: 'flex', gap: 8 }}>
                   <input
                     type="email"
                     value={email}
