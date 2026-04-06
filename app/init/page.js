@@ -183,9 +183,18 @@ const PHASE_TRANSITION_MESSAGES = {
   0: { primary: "Your narrator takes the stage...", secondary: "Locking in narrative voice" },
   1: { primary: "Your world takes shape...", secondary: "The engine is building geography, history, and power structures" },
   2: { primary: "The engine reads your story...", secondary: "Deriving stats, skills, and loadout from your backstory" },
-  3: { primary: "Calibrating the world's teeth...", secondary: "Setting encounter pressure and consequence severity" },
-  4: { primary: "Calibrating the world's teeth...", secondary: "Setting encounter pressure and consequence severity" },
+  3: { primary: "Your path is set...", secondary: "Locking in your attributes" },
+  4: { primary: "The world sharpens its edges...", secondary: "Tuning encounter pressure and consequence severity" },
   5: { primary: "The crucible awaits...", secondary: "Preparing your first scene" },
+};
+
+const OVERLAY_LABELS = {
+  0: 'SETTING THE VOICE',
+  1: 'BUILDING YOUR WORLD',
+  2: 'FORGING YOUR CHARACTER',
+  3: 'SETTING THE STAKES',
+  4: 'PREPARING THE CRUCIBLE',
+  5: 'INTO THE CRUCIBLE',
 };
 
 const FIREFLY_EMBERS = [
@@ -3214,7 +3223,7 @@ function InitWizardInner() {
                 fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
                 color: '#c9a84c', letterSpacing: '0.18em', textTransform: 'uppercase',
                 marginBottom: 32,
-              }}>{STEP_NAMES[transitionPhase + 1] || 'Adventure'}</div>
+              }}>{OVERLAY_LABELS[transitionPhase] || 'Adventure'}</div>
 
               {/* Firefly embers */}
               <div style={{ width: 160, height: 160, position: 'relative' }}>

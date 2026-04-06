@@ -34,6 +34,11 @@
 
 ## Recent Work (This Session: 2026-04-05)
 
+### Init Wizard — Transition Overlay Labels + Lore Text
+Updated PHASE_TRANSITION_MESSAGES to describe what's happening now (not what comes next). Phase 3 changed from "Calibrating the world's teeth" to "Your path is set…", phase 4 from duplicate of 3 to "The world sharpens its edges…". Gold phase label now uses OVERLAY_LABELS keyed to current transitionPhase instead of STEP_NAMES[transitionPhase + 1].
+
+**Files modified:** `app/init/page.js`.
+
 ### Character Sheet — Skill Subcategory Breakdown
 Foundational skills in CharacterTab now show subcategory scope and governing stat. Broad mundane: "(broad: Tracking & Hunting + Streetwise) WIS". Narrow mundane: "(narrow: Ranged Technique) DEX". Magic skills show scopeReference instead. Falls back to bare breadth label if taxonomy fields are missing.
 
