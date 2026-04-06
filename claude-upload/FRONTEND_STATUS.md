@@ -34,6 +34,11 @@
 
 ## Recent Work (This Session: 2026-04-05)
 
+### Init Wizard — Design System Color Audit (No Changes Needed)
+Audited all hardcoded hex values in `app/init/page.js` Phase 3/4 proposal review sections. All six info blocks (skills, innate traits, foundational skills, starting loadout, faction standings, inventory slots), stat bar container, stat bar tracks, and inner dividers already use the correct CSS variables (`var(--bg-card)`, `var(--border-primary)`, `var(--border-card-separator)`). Remaining hardcoded hex values are all in exclusion categories: `#0d1120` (panel bg), error/warning semantic colors, connection banner, transition overlay embers, and stat bar gradient.
+
+**Files modified:** None (already aligned).
+
 ### Init Wizard — Transition Overlay Labels + Lore Text
 Updated PHASE_TRANSITION_MESSAGES to describe what's happening now (not what comes next). Phase 3 changed from "Calibrating the world's teeth" to "Your path is set…", phase 4 from duplicate of 3 to "The world sharpens its edges…". Gold phase label now uses OVERLAY_LABELS keyed to current transitionPhase instead of STEP_NAMES[transitionPhase + 1].
 
