@@ -2412,6 +2412,7 @@ function InitWizardInner() {
 
   // --- API interaction state ---
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState('');
   const confirmBypassRef = useRef(false);
@@ -3068,7 +3069,8 @@ function InitWizardInner() {
   };
 
   const handleNext = async () => {
-    if (!canAdvance() || saving) return;
+    if (savingRef.current) return;
+    if (!canAdvance()) return;
 
     // Phases 1, 2, 3 require confirmation before proceeding
     if ((phase === 1 || phase === 2 || phase === 3) && !confirmBypassRef.current) {
@@ -3093,11 +3095,13 @@ function InitWizardInner() {
       return;
     }
 
-    // Phases that use the standard ember overlay (not phase 1 or 2 — those use background gen + combined overlay).
-    const useOverlay = phase === 0 || phase === 3 || phase === 4;
-
+    // Synchronous ref guard — prevents double-submission even within the same tick
+    savingRef.current = true;
     setSaving(true);
     setError(null);
+
+    // Phases that use the standard ember overlay (not phase 1 or 2 — those use background gen + combined overlay).
+    const useOverlay = phase === 0 || phase === 3 || phase === 4;
 
     if (useOverlay) {
       setTransitionPhase(phase);
@@ -3121,6 +3125,7 @@ function InitWizardInner() {
           // Gate on world gen status
           const wgStatus = worldGenStatusRef.current;
           if (wgStatus === 'error' || wgStatus === 'timeout') {
+            savingRef.current = false;
             setSaving(false);
             setContentFading(false);
             setError('World generation ran into a problem. Go back to try a different setting, or try again.');
@@ -3131,6 +3136,7 @@ function InitWizardInner() {
           proposalResultRef.current = { done: false, failed: false };
           setCharOverlayActive(true);
           setContentFading(false);
+          savingRef.current = false;
           setSaving(false);
           return;
         }
@@ -3159,6 +3165,7 @@ function InitWizardInner() {
           // Fade out init content, then navigate directly to /play
           await new Promise(r => setTimeout(r, 300));
           router.push(`/play?gameId=${gameId}`);
+          savingRef.current = false;
           return;
       }
 
@@ -3174,6 +3181,7 @@ function InitWizardInner() {
         setTimeout(() => {
           setTransitionPhase(null);
           setTransitionFading(false);
+          savingRef.current = false;
           setSaving(false);
         }, 500);
       } else {
@@ -3183,6 +3191,7 @@ function InitWizardInner() {
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             setContentFading(false);
+            savingRef.current = false;
             setSaving(false);
           });
         });
@@ -3191,6 +3200,7 @@ function InitWizardInner() {
       setTransitionPhase(null);
       setTransitionFading(false);
       setContentFading(false);
+      savingRef.current = false;
       setSaving(false);
       setError(err.message || 'Something went wrong. Please try again.');
     }
