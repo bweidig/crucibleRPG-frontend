@@ -115,6 +115,10 @@ function PlayPage() {
   const [compassOpen, setCompassOpen] = useState(false);
   const [hintLoading, setHintLoading] = useState(false);
 
+  // ─── Rewind ───
+  const [rewindAvailable, setRewindAvailable] = useState(false);
+  const [rewinding, setRewinding] = useState(false);
+
   // ─── Loading Overlay ───
   const [overlayDismissed, setOverlayDismissed] = useState(false);
   const [enterReady, setEnterReady] = useState(false);
@@ -266,6 +270,11 @@ function PlayPage() {
       return { ...prev, ...updates };
     });
 
+    // Update rewind availability from turn response
+    if (response.rewindAvailable != null) {
+      setRewindAvailable(response.rewindAvailable);
+    }
+
     if (response.stateChanges) {
       addNotifications(response.stateChanges);
       refetchCharacter();
@@ -313,6 +322,57 @@ function PlayPage() {
       timestamp: Date.now(),
     }]);
   }, []);
+
+  // ─── Rewind Handler ───
+  const handleRewind = useCallback(async () => {
+    if (!gameId || rewinding) return;
+    setRewinding(true);
+    setError(null);
+
+    try {
+      const res = await api.post(`/api/game/${gameId}/rewind`);
+
+      if (res.rewound) {
+        // Remove last real turn (skip trailing gm_aside entries)
+        setTurns(prev => {
+          const reversed = [...prev];
+          let cutIndex = reversed.length;
+          for (let i = reversed.length - 1; i >= 0; i--) {
+            cutIndex = i;
+            if (reversed[i].type !== 'gm_aside') break;
+          }
+          return reversed.slice(0, cutIndex);
+        });
+
+        // Update all state from the returned game state
+        const state = res.state || res;
+        if (state.narrative?.availableActions) {
+          setActions(state.narrative.availableActions);
+        }
+        if (state.world) {
+          setGameState(prev => prev ? { ...prev, world: state.world } : prev);
+        }
+        if (state.clock) {
+          setGameState(prev => prev ? { ...prev, clock: state.clock } : prev);
+        }
+        setRewindAvailable(false);
+
+        // Refetch character/glossary to pick up restored state
+        refetchCharacter();
+        refetchGlossary();
+      }
+    } catch (err) {
+      console.error('Rewind failed:', err);
+      if (err.status === 400) {
+        setError(err.message || 'No turn to rewind');
+        setRewindAvailable(false);
+      } else {
+        setError(err.message || 'Rewind failed. Please try again.');
+      }
+    } finally {
+      setRewinding(false);
+    }
+  }, [gameId, rewinding, refetchCharacter, refetchGlossary]);
 
   // ─── Compute lastResolution and lastStateChanges for TalkToGM contextual chip ───
   const lastResolutionTurn = turns.slice().reverse().find(t => t.resolution);
@@ -425,6 +485,9 @@ function PlayPage() {
           if (state?.world) {
             setGameState(prev => prev ? { ...prev, world: state.world } : prev);
           }
+          if (state?.rewindAvailable != null) {
+            setRewindAvailable(state.rewindAvailable);
+          }
         }).catch(err => console.error('Failed to load game state:', err));
 
         api.get(`/api/game/${gameId}/character`).then(data => {
@@ -509,6 +572,9 @@ function PlayPage() {
                   ...prev,
                   clock: { ...prev.clock, ...res.stateChanges.clock }
                 } : prev);
+              }
+              if (res.rewindAvailable != null) {
+                setRewindAvailable(res.rewindAvailable);
               }
             }
           } catch (err) {
@@ -686,6 +752,9 @@ function PlayPage() {
             hintLoading={hintLoading}
             glossaryTerms={glossaryTerms}
             onEntityClick={handleEntityClick}
+            rewindAvailable={rewindAvailable}
+            rewinding={rewinding}
+            onRewind={handleRewind}
           />
         </div>
         <Sidebar

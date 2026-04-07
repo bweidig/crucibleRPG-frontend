@@ -2,7 +2,7 @@
 
 > **This contract is verified against backend code as of 2026-03-17. The frontend uses this as its single source of truth. Do not change response shapes without updating this document.**
 
-**Last Updated:** 2026-04-04
+**Last Updated:** 2026-04-06
 
 Base URL: `https://<host>` (Railway production or `http://localhost:3000` local)
 
@@ -1260,6 +1260,7 @@ Full current game state snapshot.
 - `character.conditions[].stat` is lowercase.
 - `character.inventory.items[]` uses `entropy` (durability state string: "intact"/"worn"/"damaged"/"broken") and `readiness` (state string: "ready"/"compromised"), not raw numeric durability.
 - `narrative.availableActions.options[].id` values are `"A"`, `"B"`, `"C"` (mapped from stored option labels, D filtered out — use `custom` field instead).
+- `rewindAvailable` (boolean) — whether a single-turn rewind is available. `true` after any successful advancing turn, `false` initially and after rewind is consumed. (AD-553)
 
 **Status Codes:**
 | Code | Meaning |
@@ -1364,6 +1365,7 @@ Unified action endpoint — player choices, custom actions, and bracket commands
 - `stateChanges.conditions.added` entries include a `target` field: `"player"` for player conditions, or the NPC's display name (e.g. `"Enforcer"`) for enemy conditions. (AD-550)
 - `npcStates` (array, optional) — Present only on combat turns. Each entry: `{ name, npcId, woundState: "fresh"|"bloodied"|"staggering"|"incapacitated", defeated: boolean }`. (AD-550)
 - SSE path sends `npcStates` as a separate `turn:npc_states` event.
+- `rewindAvailable` (boolean) — `true` after any successful advancing turn. Frontend uses to enable/disable the Rewind button. (AD-553)
 
 **Condition entry shape (in `stateChanges.conditions.added`):**
 ```json
@@ -1415,6 +1417,47 @@ Updates an inventory item's text description and its glossary entry. Used when a
 | 429 | Rate limited (advancing actions only) |
 | 500 | Internal server error |
 | 503 | AI provider timeout or error |
+
+---
+
+### POST /api/game/:id/rewind
+
+Single-turn undo. Restores all game state to the moment before the most recent advancing turn. The rewound turn ceases to exist — narrative is deleted, the AI will never see it.
+
+**Rate Limiting:** Same pool as advancing actions (10 per 60s per user).
+
+**Request Body:** None.
+
+**Response (200):**
+```json
+{
+  "rewound": true,
+  "state": {
+    "game": { ... },
+    "character": { ... },
+    "narrative": { ... },
+    "world": { ... },
+    "rewindAvailable": false
+  }
+}
+```
+
+The `state` object has the same shape as `GET /api/game/:id/state`. `rewindAvailable` is `false` because the snapshot was just consumed. A new snapshot is created when the next turn commits.
+
+**Rules:**
+- Only one rewind slot — no history stack.
+- After rewinding, you cannot rewind again until a new turn completes.
+- Not available before Turn 1 (`rewindAvailable` starts as `false`).
+- Bracket commands (non-advancing) don't create snapshots.
+- The AI is never informed of the rewind.
+
+**Status Codes:**
+| Code | Meaning |
+|------|---------|
+| 200 | Success — state restored |
+| 400 | No turn to rewind (`rewindAvailable` is false), or game not active |
+| 429 | Rate limited |
+| 500 | Internal server error |
 
 ---
 

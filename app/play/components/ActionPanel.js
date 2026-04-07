@@ -112,8 +112,10 @@ export default function ActionPanel({
   actions, submitting, error, onSubmit,
   compassOpen, onToggleCompass, objectives, currentLocation, onEscalate, hintLoading,
   glossaryTerms, onEntityClick,
+  rewindAvailable, rewinding, onRewind,
 }) {
   const [customText, setCustomText] = useState('');
+  const [rewindConfirm, setRewindConfirm] = useState(false);
 
   const handleChoice = useCallback((id) => {
     onSubmit({ choice: id });
@@ -206,6 +208,37 @@ export default function ActionPanel({
                   title="Get your bearings"
                 >
                   <CompassIcon size={18} />
+                </button>
+                {onRewind && (
+                  <button
+                    className={styles.rewindButton}
+                    onClick={() => setRewindConfirm(true)}
+                    disabled={submitting || rewinding || !rewindAvailable}
+                    aria-label="Undo last turn"
+                    title="Undo last turn"
+                  >
+                    {'\u21A9'}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {rewindConfirm && (
+              <div className={styles.rewindConfirm}>
+                <span className={styles.rewindConfirmText}>Undo your last turn?</span>
+                <button
+                  className={styles.rewindConfirmYes}
+                  onClick={() => { setRewindConfirm(false); onRewind(); }}
+                  disabled={rewinding}
+                >
+                  {rewinding ? 'Rewinding...' : 'Confirm'}
+                </button>
+                <button
+                  className={styles.rewindConfirmNo}
+                  onClick={() => setRewindConfirm(false)}
+                  disabled={rewinding}
+                >
+                  Cancel
                 </button>
               </div>
             )}

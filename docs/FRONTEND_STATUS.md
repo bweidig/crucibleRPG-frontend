@@ -34,6 +34,11 @@
 
 ## Recent Work (This Session: 2026-04-06)
 
+### Rewind Feature — Undo Last Turn
+Added single-turn rewind to the gameplay UI. Compact rewind button (↩) in the action panel beside the compass button. Disabled when `rewindAvailable` is false (before first turn, after a rewind, etc.). Inline confirmation prompt on click ("Undo your last turn?" with Confirm/Cancel). On confirm, calls `POST /api/game/:id/rewind`, removes the last TurnBlock from narrative, updates character/inventory/clock from returned state, disables rewind button. On 400 error, shows error message and disables button. `rewindAvailable` read from turn responses, game state load, and first turn auto-trigger.
+
+**Files modified:** `app/play/page.js`, `app/play/components/ActionPanel.js`, `app/play/components/ActionPanel.module.css`
+
 ### NPC Wound State Display in TurnBlock
 Added `NpcWoundStates` component to render enemy health state badges on combat turns. Reads `npcStates` array from turn data. Defeated NPCs show with grey strikethrough styling, staggering shows warning in red, bloodied shows in amber. Fresh NPCs are hidden. Section labeled "Enemy Status" with Cinzel gold label, visually distinct from player conditions (orange) and enemy conditions (steel-blue). Renders nothing when `npcStates` is missing or empty. Resolves the backend gap flagged in the playtest fixes session below.
 
@@ -1346,6 +1351,7 @@ All pending rgba/color fixes from previous sessions have been completed.
 | `/api/game/:id/talk-to-gm/escalate` | POST | Wired (Phase 2 escalation, processes as turn response) |
 | `/api/game/:id/talk-to-gm/meta` | POST | Wired (My Story tab, non-advancing meta query) |
 | `/api/game/:id/talk-to-gm/meta/directive` | DELETE | Not wired (directive management UI deferred) |
+| `/api/game/:id/rewind` | POST | Wired (ActionPanel rewind button, inline confirm) |
 | `/api/game/:id/settings/storyteller` | PUT | Wired (Settings panel Game Settings tab) |
 | `/api/game/:id/settings/difficulty` | PUT | Wired (Settings panel Game Settings tab, presets + individual dials) |
 | `/api/game/:id/settings/ai-model` | GET/PUT | Wired (Settings panel AI Models section, playtester-only, graceful fallback if endpoint not deployed) |
