@@ -1361,94 +1361,100 @@ function Phase2({ selected, onSelect, settingAnswers, setSettingAnswers, selecte
         </SelectionCard>
       </div>
 
-      {/* Custom path */}
-      {selected === 'custom' && (
-        <div style={{ marginTop: 16 }}>
-          <textarea value={customWorldText} onChange={e => setCustomWorldText(e.target.value)} placeholder="Describe your world..." className={styles.wizardInput} style={{
-            width: '100%', minHeight: 110, background: 'var(--bg-main)', border: '1px solid var(--border-gold-faint)',
-            borderRadius: 8, padding: 16, fontFamily: 'var(--font-alegreya)', fontSize: 16,
-            color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
-          }} />
-        </div>
-      )}
-
-      {/* Your Worlds path */}
-      {selected === 'your-worlds' && (
-        <WorldSnapshotList
-          snapshots={worldSnapshots}
-          selectedSnapshot={selectedSnapshot}
-          setSelectedSnapshot={setSelectedSnapshot}
-          anythingElseText={anythingElseText}
-          setAnythingElseText={setAnythingElseText}
-        />
-      )}
-
-      {/* Era path: pre-built worlds + build your own */}
-      {isEra && (
-        <div style={{ marginTop: 24 }}>
-          {/* Pre-built world cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {eraWorlds.map(world => (
-              <div key={world.id}>
-                <PrebuiltWorldCard
-                  world={world}
-                  isSelected={selectedWorld === world.id}
-                  isExpanded={expandedWorld === world.id}
-                  onToggle={handleWorldToggle}
-                />
-                {/* "Anything else?" for selected pre-built world */}
-                {selectedWorld === world.id && (
-                  <div style={{ marginTop: 16 }}>
-                    <label style={{
-                      fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600,
-                      color: 'var(--text-secondary)', display: 'block', marginBottom: 10,
-                    }}>Anything else?</label>
-                    <textarea value={anythingElseText} onChange={e => setAnythingElseText(e.target.value)} placeholder="Any tweaks for this playthrough? Change the political situation, add a detail, shift the tone." className={styles.wizardInput} style={{
-                      width: '100%', minHeight: 80, background: 'var(--bg-main)', border: '1px solid var(--border-gold-subtle)',
-                      borderRadius: 8, padding: 16, fontFamily: 'var(--font-alegreya)', fontSize: 16,
-                      color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
-                    }} />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Divider */}
-          <SectionDivider text="or shape your own" />
-
-          {/* Build Your Own sub-questions */}
-          <SettingQuestions
-            settingId={selected}
-            answers={settingAnswers}
-            setAnswers={setSettingAnswers}
-            onInteract={handleSubQuestionInteract}
-            freeformText={anythingElseText}
-            setFreeformText={setAnythingElseText}
-          />
-        </div>
-      )}
-
-      {/* Tab bar: World / Advanced — only show when a setting is selected */}
+      {/* Tab bar: World / Advanced — show immediately after setting grid */}
       {selected && (
-        <>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 28, marginBottom: 4 }}>
-            {[{ id: 'world', label: 'World' }, { id: 'advanced', label: 'Advanced' }].map(tab => (
-              <button key={tab.id} onClick={() => setSettingTab(tab.id)} style={{
-                fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 600,
-                color: settingTab === tab.id ? 'var(--accent-gold)' : 'var(--text-muted)',
-                background: settingTab === tab.id ? 'var(--bg-gold-light)' : 'transparent',
-                border: `1px solid ${settingTab === tab.id ? 'var(--border-card)' : 'var(--border-primary)'}`,
-                borderRadius: 20, padding: '8px 20px', cursor: 'pointer',
-                letterSpacing: '0.08em', textTransform: 'uppercase', transition: 'all 0.2s',
-              }}>{tab.label}</button>
-            ))}
-          </div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 28, marginBottom: 4 }}>
+          {[{ id: 'world', label: 'World' }, { id: 'advanced', label: 'Advanced' }].map(tab => (
+            <button key={tab.id} onClick={() => setSettingTab(tab.id)} style={{
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 600,
+              color: settingTab === tab.id ? 'var(--accent-gold)' : 'var(--text-muted)',
+              background: settingTab === tab.id ? 'var(--bg-gold-light)' : 'transparent',
+              border: `1px solid ${settingTab === tab.id ? 'var(--border-card)' : 'var(--border-primary)'}`,
+              borderRadius: 20, padding: '8px 20px', cursor: 'pointer',
+              letterSpacing: '0.08em', textTransform: 'uppercase', transition: 'all 0.2s',
+            }}>{tab.label}</button>
+          ))}
+        </div>
+      )}
 
-          {settingTab === 'advanced' && (
-            <AdvancedSeedTab seedFactions={seedFactions} setSeedFactions={setSeedFactions} seedNpcs={seedNpcs} setSeedNpcs={setSeedNpcs} />
+      {/* World tab content */}
+      {selected && settingTab === 'world' && (
+        <>
+          {/* Custom path */}
+          {selected === 'custom' && (
+            <div style={{ marginTop: 16 }}>
+              <textarea value={customWorldText} onChange={e => setCustomWorldText(e.target.value)} placeholder="Describe your world..." className={styles.wizardInput} style={{
+                width: '100%', minHeight: 110, background: 'var(--bg-main)', border: '1px solid var(--border-gold-faint)',
+                borderRadius: 8, padding: 16, fontFamily: 'var(--font-alegreya)', fontSize: 16,
+                color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+              }} />
+            </div>
+          )}
+
+          {/* Your Worlds path */}
+          {selected === 'your-worlds' && (
+            <WorldSnapshotList
+              snapshots={worldSnapshots}
+              selectedSnapshot={selectedSnapshot}
+              setSelectedSnapshot={setSelectedSnapshot}
+              anythingElseText={anythingElseText}
+              setAnythingElseText={setAnythingElseText}
+            />
+          )}
+
+          {/* Era path: pre-built worlds + build your own */}
+          {isEra && (
+            <div style={{ marginTop: 24 }}>
+              {/* Pre-built world cards */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {eraWorlds.map(world => (
+                  <div key={world.id}>
+                    <PrebuiltWorldCard
+                      world={world}
+                      isSelected={selectedWorld === world.id}
+                      isExpanded={expandedWorld === world.id}
+                      onToggle={handleWorldToggle}
+                    />
+                    {/* "Anything else?" for selected pre-built world */}
+                    {selectedWorld === world.id && (
+                      <div style={{ marginTop: 16 }}>
+                        <label style={{
+                          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600,
+                          color: 'var(--text-secondary)', display: 'block', marginBottom: 10,
+                        }}>Anything else?</label>
+                        <textarea value={anythingElseText} onChange={e => setAnythingElseText(e.target.value)} placeholder="Any tweaks for this playthrough? Change the political situation, add a detail, shift the tone." className={styles.wizardInput} style={{
+                          width: '100%', minHeight: 80, background: 'var(--bg-main)', border: '1px solid var(--border-gold-subtle)',
+                          borderRadius: 8, padding: 16, fontFamily: 'var(--font-alegreya)', fontSize: 16,
+                          color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+                        }} />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Divider + Build Your Own — hide when a prebuilt world is selected */}
+              {!selectedWorld && (
+                <>
+                  <SectionDivider text="or shape your own" />
+                  <SettingQuestions
+                    settingId={selected}
+                    answers={settingAnswers}
+                    setAnswers={setSettingAnswers}
+                    onInteract={handleSubQuestionInteract}
+                    freeformText={anythingElseText}
+                    setFreeformText={setAnythingElseText}
+                  />
+                </>
+              )}
+            </div>
           )}
         </>
+      )}
+
+      {/* Advanced tab content */}
+      {selected && settingTab === 'advanced' && (
+        <AdvancedSeedTab seedFactions={seedFactions} setSeedFactions={setSeedFactions} seedNpcs={seedNpcs} setSeedNpcs={setSeedNpcs} />
       )}
     </div>
   );
@@ -1900,17 +1906,6 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
         </div>
       )}
 
-      {/* Backstory Skills */}
-      {skills && skills.length > 0 && (
-        <div style={{
-          background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '10px 16px',
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)', marginBottom: 10,
-        }}>
-          <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Skills: </span>
-          {skills.join(', ')}
-        </div>
-      )}
-
       {/* Innate Traits */}
       {innateTraits && innateTraits.length > 0 && (
         <div style={{
@@ -1941,13 +1936,13 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
         </div>
       )}
 
-      {/* Foundational Skills */}
+      {/* Skills */}
       {foundationalSkills && foundationalSkills.length > 0 && (
         <div style={{
           background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '10px 16px',
           fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)', marginBottom: 10,
         }}>
-          <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 6 }}>Foundational Skills</div>
+          <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 6 }}>Skills</div>
           {foundationalSkills.map((fs, i) => (
             <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '2px 0' }}>
               <span style={{ color: 'var(--text-heading)' }}>{fs.name || fs.scope}</span>

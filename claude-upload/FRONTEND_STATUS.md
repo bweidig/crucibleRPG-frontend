@@ -34,6 +34,17 @@
 
 ## Recent Work (This Session: 2026-04-06)
 
+### Init Wizard — Tab Visibility + Skills Redundancy Fixes
+**Bug 1a: Tab bar repositioned.** World/Advanced tab bar moved from below all setting content to directly after the setting grid (era cards + Custom + Your Worlds row). Now visible immediately after selecting a setting.
+
+**Bug 1b: Tab content toggling fixed.** Setting-specific content (custom textarea, Your Worlds list, era prebuilt cards, SettingQuestions) now wrapped in `settingTab === 'world'` condition. AdvancedSeedTab wrapped in `settingTab === 'advanced'`. Only the active tab's content renders.
+
+**Bug 1c: SettingQuestions hidden when prebuilt selected.** The "or shape your own" divider and SettingQuestions component now wrapped in `!selectedWorld` guard. When a prebuilt world is selected, only its "Anything else?" textarea shows.
+
+**Bug 2: Skills box redundancy removed.** Removed the comma-separated "Skills" box from Phase 4. Renamed "Foundational Skills" label to "Skills" since it's now the only skills display.
+
+**Files modified:** `app/init/page.js`
+
 ### Init Wizard — Background World Gen Overlay Fixes
 Two targeted fixes for the combined character→attributes overlay sequence:
 
