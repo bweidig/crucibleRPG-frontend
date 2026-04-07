@@ -34,6 +34,13 @@
 
 ## Recent Work (This Session: 2026-04-06)
 
+### Init Wizard — Summary Bar + Confirmation Dialogs
+**Summary bar replaces back button.** Bottom nav now shows progressive summary chips (Voice, World, Character, Difficulty) that appear as decisions are made. Each chip is a tiny uppercase label over a value in Cinzel. Character name renders in accent gold. World chip updates live when worldGenName populates from background polling. Back button removed entirely — no way to return to previous phases.
+
+**Confirmation dialogs on commitment phases.** Phases 1 (Setting), 2 (Character), and 3 (Attributes) now show an inline confirmation bar before proceeding. Phase 3 has a special variant warning about unsubmitted skill/gear requests when `requestsRegenerated` is false. "Go Back" dismisses the confirmation. "Confirm" proceeds with the save. Confirmation auto-dismisses when the user changes any input.
+
+**Files modified:** `app/init/page.js`
+
 ### Init Wizard — Tab Visibility + Skills Redundancy Fixes
 **Bug 1a: Tab bar repositioned.** World/Advanced tab bar moved from below all setting content to directly after the setting grid (era cards + Custom + Your Worlds row). Now visible immediately after selecting a setting.
 
