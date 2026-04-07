@@ -2,7 +2,7 @@
 
 > **This contract is verified against backend code as of 2026-03-17. The frontend uses this as its single source of truth. Do not change response shapes without updating this document.**
 
-**Last Updated:** 2026-04-06
+**Last Updated:** 2026-04-07
 
 Base URL: `https://<host>` (Railway production or `http://localhost:3000` local)
 
@@ -2375,6 +2375,96 @@ Set or update the announcement.
 Clear the announcement.
 
 **Response (200):** `{ "cleared": true }`
+
+### GET /api/admin/stats/aggregate
+
+Aggregate analytics dashboard. Single-pass SQL aggregations.
+
+**Response (200):**
+```json
+{
+  "gamePatterns": {
+    "topSettings": [{ "name": "Sword & Soil", "count": 35 }],
+    "topStorytellers": [{ "name": "Chronicler", "count": 42 }],
+    "statusBreakdown": {
+      "active": { "count": 18, "percentage": 30.0 },
+      "completed": { "count": 10, "percentage": 16.67 },
+      "paused": { "count": 5, "percentage": 8.33 },
+      "initializing": { "count": 27, "percentage": 45.0 }
+    },
+    "dropoffBuckets": { "0": 2, "1-3": 1, "4-10": 1, "11-20": 0, "20+": 1 }
+  },
+  "costAnalytics": {
+    "avgCostPerGame": 0.45,
+    "avgCostPerTurn": 0.02,
+    "avgInitCostPerGame": 0.15,
+    "avgGameplayCostPerGame": 0.28,
+    "avgGmCostPerGame": 0.02,
+    "costTrending": {
+      "recent50AvgCostPerTurn": 0.025,
+      "previous50AvgCostPerTurn": 0.019
+    },
+    "projectedMonthlyCostAt100Players": 45.0
+  },
+  "engagement": {
+    "avgTurnsPerGame": 12.5,
+    "avgTurnsCompleted": 25.0,
+    "avgTurnsAbandoned": 3.2,
+    "totalGmCalls": 150,
+    "avgGmCallsPerGame": 2.5,
+    "topGmQuestions": ["How does dual wield work?", "..."],
+    "significanceDistribution": { "1": 50, "2": 120, "3": 200, "4": 80, "5": 30 }
+  },
+  "timeBased": {
+    "gamesPerWeek": [{ "weekStart": "2026-03-31T...", "count": 5 }],
+    "costPerWeek": [{ "weekStart": "2026-03-31T...", "totalCost": 2.5 }]
+  }
+}
+```
+
+### POST /api/admin/reports/distill
+
+AI-powered clustering of bug reports/suggestions via Gemini Flash. Caps at 200 reports per call.
+
+**Request Body (all optional):**
+| Field | Type | Default | Notes |
+|-------|------|---------|-------|
+| scope | `"all"` \| `"filtered"` | `"all"` | Currently informational |
+| type | `"bug"` \| `"suggestion"` \| `"all"` | `"all"` | Filter by report type |
+| status | `"open"` \| `"resolved"` \| `"all"` | `"open"` | Filter by status |
+| afterDate | ISO 8601 string | — | Include reports after this date |
+| beforeDate | ISO 8601 string | — | Include reports before this date |
+
+**Response (200):**
+```json
+{
+  "id": 1,
+  "totalReports": 100,
+  "totalIncluded": 100,
+  "clusters": [
+    {
+      "title": "Combat resolution inconsistencies",
+      "summary": "Players report that damage calculations don't match what the rules panel shows",
+      "count": 30,
+      "severity": "high",
+      "reportIds": [12, 45, 67]
+    }
+  ],
+  "distilledAt": "2026-04-07T12:00:00Z"
+}
+```
+
+### POST /api/admin/reports/distill-gm
+
+Same as distill but clusters GM questions from `game_event_log` (event_type = 'gm_call'). Surfaces "what are players confused about?"
+
+**Request Body (all optional):**
+| Field | Type | Default | Notes |
+|-------|------|---------|-------|
+| afterDate | ISO 8601 string | — | Include events after this date |
+| beforeDate | ISO 8601 string | — | Include events before this date |
+
+**Response (200):** Same shape as `/reports/distill` but `reportIds` contains event IDs.
 
 ### GET /api/games/announcement
 

@@ -757,6 +757,13 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
                 </div>
               )}
 
+              {/* View Game Log */}
+              <div style={{ marginBottom: 24 }}>
+                <button className={styles.goldBtn} onClick={() => onViewGameLog?.(gameDetail.game?.id ?? selectedGame.id)}>
+                  View Game Log &rarr;
+                </button>
+              </div>
+
               {/* Narrative Log */}
               <div style={{ marginBottom: 24 }}>
                 <h4 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 700, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Narrative Log</h4>
@@ -773,13 +780,6 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
                     <div style={{ padding: 14, textAlign: 'center', fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>No narrative entries.</div>
                   )}
                 </div>
-              </div>
-
-              {/* View Game Log */}
-              <div style={{ marginBottom: 24 }}>
-                <button className={styles.goldBtn} onClick={() => onViewGameLog?.(gameDetail.game?.id ?? selectedGame.id)}>
-                  View Game Log &rarr;
-                </button>
               </div>
 
               {/* Delete */}

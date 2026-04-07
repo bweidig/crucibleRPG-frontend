@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-06
+**Last Updated:** 2026-04-07
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -32,7 +32,14 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-06)
+## Recent Work (This Session: 2026-04-07)
+
+### Admin — Move Game Log Button Above Narrative Log
+Moved "View Game Log →" button from below the Narrative Log section to above it, directly after the Character section in the GamesTab detail panel. Same styling and behavior, just repositioned for better visibility.
+
+**Files modified:** `app/admin/page.js`
+
+## Recent Work (Previous Session: 2026-04-06)
 
 ### Init Wizard — Summary Bar + Confirmation Modal
 **Summary bar below step indicator.** Progressive summary chips (Voice, World, Character, Difficulty) now render between the StepIndicator and phase content, not in the bottom nav. Each chip: tiny uppercase label (10px, #4a5a70) over a value (14px, Cinzel 600, #8a94a8). Character name in accent gold. Chips separated by 1px vertical borders, centered horizontally with top/bottom border lines. World chip updates live when worldGenName arrives from polling. Only renders when there are chips to show (phase 1+).
