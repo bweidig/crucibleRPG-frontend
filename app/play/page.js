@@ -232,6 +232,56 @@ function PlayPage() {
     }
   }, []);
 
+  // ─── Directive Handlers ───
+  // (Must be declared before handleTurnResponse which references them)
+  const refetchDirectiveState = useCallback(async () => {
+    if (!gameId) return;
+    try {
+      const state = await api.get(`/api/game/${gameId}/state`);
+      setDirectiveState(state.directives || state.directiveState || null);
+    } catch (err) {
+      console.error('Failed to refetch directive state:', err);
+    }
+  }, [gameId]);
+
+  const handleDeleteDirective = useCallback(async ({ lane, index }) => {
+    if (!gameId) return;
+    try {
+      const res = await api.del(`/api/game/${gameId}/talk-to-gm/meta/directive?lane=${lane}&index=${index}`);
+      setDirectiveState(res.directives || res);
+    } catch (err) {
+      console.error('Failed to remove directive:', err);
+    }
+  }, [gameId]);
+
+  const handleRestoreDirective = useCallback(async (text) => {
+    if (!gameId) return;
+    try {
+      await api.post(`/api/game/${gameId}/talk-to-gm/meta`, { question: `Please restore my directive: ${text}` });
+      refetchDirectiveState();
+    } catch (err) {
+      console.error('Failed to restore directive:', err);
+    }
+  }, [gameId, refetchDirectiveState]);
+
+  const addDirectiveToast = useCallback((removed) => {
+    const id = Date.now() + Math.random();
+    setDirectiveToasts(prev => [...prev, { id, ...removed }]);
+    setTimeout(() => {
+      setDirectiveToasts(prev => prev.map(t => t.id === id ? { ...t, fading: true } : t));
+      setTimeout(() => {
+        setDirectiveToasts(prev => prev.filter(t => t.id !== id));
+      }, 300);
+    }, 8000);
+  }, []);
+
+  const dismissDirectiveToast = useCallback((id) => {
+    setDirectiveToasts(prev => prev.map(t => t.id === id ? { ...t, fading: true } : t));
+    setTimeout(() => {
+      setDirectiveToasts(prev => prev.filter(t => t.id !== id));
+    }, 300);
+  }, []);
+
   // ─── Shared turn response handler (used by submitAction + TalkToGM escalation) ───
   const handleTurnResponse = useCallback((response, playerActionText = null) => {
     if (!response.turnAdvanced) return;
@@ -385,55 +435,6 @@ function PlayPage() {
       setRewinding(false);
     }
   }, [gameId, rewinding, refetchCharacter, refetchGlossary]);
-
-  // ─── Directive Handlers ───
-  const refetchDirectiveState = useCallback(async () => {
-    if (!gameId) return;
-    try {
-      const state = await api.get(`/api/game/${gameId}/state`);
-      setDirectiveState(state.directives || state.directiveState || null);
-    } catch (err) {
-      console.error('Failed to refetch directive state:', err);
-    }
-  }, [gameId]);
-
-  const handleDeleteDirective = useCallback(async ({ lane, index }) => {
-    if (!gameId) return;
-    try {
-      const res = await api.del(`/api/game/${gameId}/talk-to-gm/meta/directive?lane=${lane}&index=${index}`);
-      setDirectiveState(res.directives || res);
-    } catch (err) {
-      console.error('Failed to remove directive:', err);
-    }
-  }, [gameId]);
-
-  const handleRestoreDirective = useCallback(async (text) => {
-    if (!gameId) return;
-    try {
-      await api.post(`/api/game/${gameId}/talk-to-gm/meta`, { question: `Please restore my directive: ${text}` });
-      refetchDirectiveState();
-    } catch (err) {
-      console.error('Failed to restore directive:', err);
-    }
-  }, [gameId, refetchDirectiveState]);
-
-  const addDirectiveToast = useCallback((removed) => {
-    const id = Date.now() + Math.random();
-    setDirectiveToasts(prev => [...prev, { id, ...removed }]);
-    setTimeout(() => {
-      setDirectiveToasts(prev => prev.map(t => t.id === id ? { ...t, fading: true } : t));
-      setTimeout(() => {
-        setDirectiveToasts(prev => prev.filter(t => t.id !== id));
-      }, 300);
-    }, 8000);
-  }, []);
-
-  const dismissDirectiveToast = useCallback((id) => {
-    setDirectiveToasts(prev => prev.map(t => t.id === id ? { ...t, fading: true } : t));
-    setTimeout(() => {
-      setDirectiveToasts(prev => prev.filter(t => t.id !== id));
-    }, 300);
-  }, []);
 
   // ─── Compute lastResolution and lastStateChanges for TalkToGM contextual chip ───
   const lastResolutionTurn = turns.slice().reverse().find(t => t.resolution);
@@ -1026,6 +1027,14 @@ function PlayPage() {
                 {dataReady ? (isReturningGame ? 'Your story continues...' : 'Your story begins...') : LORE_FRAGMENTS[loreIndex]}
               </span>
             </div>
+
+            {/* Wait message */}
+            {!dataReady && (
+              <p style={{
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
+                color: 'var(--text-dim)', marginTop: 16,
+              }}>This may take a minute or two.</p>
+            )}
 
             {/* ENTER button */}
             <div style={{

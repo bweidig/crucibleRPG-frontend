@@ -39,6 +39,14 @@ Moved "View Game Log →" button from below the Narrative Log section to above i
 
 **Files modified:** `app/admin/page.js`
 
+### Init Wizard — Immediate /play Navigation + Wait Messages
+- Phase 5 (scenario confirm) now navigates to `/play` immediately without waiting for `saveScenario()` to complete — scenario save fires in the background
+- Removed the 300ms delay and content fade before navigation
+- Added "This may take a minute or two." static message to the character→attributes overlay (init page) below the cycling lore messages
+- Added same wait message to the `/play` loading overlay (PROLOGUE/WELCOME BACK screen), hidden once data is ready
+
+**Files modified:** `app/init/page.js`, `app/play/page.js`
+
 ## Recent Work (Previous Session: 2026-04-06)
 
 ### Init Wizard — Summary Bar + Confirmation Modal

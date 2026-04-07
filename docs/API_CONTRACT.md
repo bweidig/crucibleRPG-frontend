@@ -1914,6 +1914,59 @@ The `directives` field is added to the game state response:
 
 ---
 
+### POST /api/game/:id/secure-respite
+
+**Purpose:** Time-skip recovery loop. Simulates day-by-day rest until fully recovered or rations run out.
+
+**Auth:** Required (game owner)
+
+**Request Body:** None
+
+**Validation:**
+- Character must have at least one stat ≤ 0.0 (Abyss of Zero)
+- Game must be in `active` status
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "daysElapsed": 2,
+  "rationsConsumed": 2,
+  "waterConsumed": 2,
+  "abortedEarly": false,
+  "abortReason": null,
+  "clockAdvanced": 2880,
+  "message": "You rest for 2 days and awaken fully restored."
+}
+```
+
+**Aborted Response (200):**
+```json
+{
+  "success": true,
+  "daysElapsed": 1,
+  "rationsConsumed": 1,
+  "waterConsumed": 1,
+  "abortedEarly": true,
+  "abortReason": "insufficient_rations",
+  "clockAdvanced": 1440,
+  "message": "You rest for 1 day before running out of food."
+}
+```
+
+**Not Eligible (400):**
+```json
+{
+  "success": false,
+  "error": "secure_respite_not_available",
+  "reason": "Character is not in the Abyss of Zero"
+}
+```
+
+**Status Codes:** 200, 400 (not eligible / game not active), 401 (unauthenticated), 403 (not game owner).
+
+---
+
 ## Admin
 
 Mount: `/api/admin`

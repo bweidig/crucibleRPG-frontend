@@ -15,6 +15,7 @@ Read these before making changes (all in `docs/`):
 - `docs/API_CONTRACT.md` — Source of truth for all API integration. If a field name, value format, or response shape doesn't match this doc, the code is wrong. If it doesn't cover an endpoint you need, ask.
 - `docs/FRONTEND_STATUS.md` — Progress tracker. Update after completing work.
 - `docs/FRONTEND_TODO.md` — Task list. Read at the start of every session. When a task is completed during normal work, check it off (change `- [ ]` to `- [x]` and add the date).
+- `docs/FRONTEND_DEBUG.md` — Debug log for frontend bugs. Check before investigating a bug (to avoid repeating failed fixes). Update with findings and resolution after debugging.
 
 **Do not create or write to:** BUILD_PROGRESS.md, DESIGN_DECISIONS.md, DEBUG_LOG.md, TEST_LOG.md, or PROJECT_MAP.md. Those belong to the backend repo.
 

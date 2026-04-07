@@ -1,4 +1,4 @@
-// ═══ FILE: app/play/page.js ═══
+// FILE: app/play/page.js
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
@@ -231,6 +231,56 @@ function PlayPage() {
         return next;
       });
     }
+  }, []);
+
+  // ─── Directive Handlers ───
+  // (Must be declared before handleTurnResponse which references them)
+  const refetchDirectiveState = useCallback(async () => {
+    if (!gameId) return;
+    try {
+      const state = await api.get(`/api/game/${gameId}/state`);
+      setDirectiveState(state.directives || state.directiveState || null);
+    } catch (err) {
+      console.error('Failed to refetch directive state:', err);
+    }
+  }, [gameId]);
+
+  const handleDeleteDirective = useCallback(async ({ lane, index }) => {
+    if (!gameId) return;
+    try {
+      const res = await api.del(`/api/game/${gameId}/talk-to-gm/meta/directive?lane=${lane}&index=${index}`);
+      setDirectiveState(res.directives || res);
+    } catch (err) {
+      console.error('Failed to remove directive:', err);
+    }
+  }, [gameId]);
+
+  const handleRestoreDirective = useCallback(async (text) => {
+    if (!gameId) return;
+    try {
+      await api.post(`/api/game/${gameId}/talk-to-gm/meta`, { question: `Please restore my directive: ${text}` });
+      refetchDirectiveState();
+    } catch (err) {
+      console.error('Failed to restore directive:', err);
+    }
+  }, [gameId, refetchDirectiveState]);
+
+  const addDirectiveToast = useCallback((removed) => {
+    const id = Date.now() + Math.random();
+    setDirectiveToasts(prev => [...prev, { id, ...removed }]);
+    setTimeout(() => {
+      setDirectiveToasts(prev => prev.map(t => t.id === id ? { ...t, fading: true } : t));
+      setTimeout(() => {
+        setDirectiveToasts(prev => prev.filter(t => t.id !== id));
+      }, 300);
+    }, 8000);
+  }, []);
+
+  const dismissDirectiveToast = useCallback((id) => {
+    setDirectiveToasts(prev => prev.map(t => t.id === id ? { ...t, fading: true } : t));
+    setTimeout(() => {
+      setDirectiveToasts(prev => prev.filter(t => t.id !== id));
+    }, 300);
   }, []);
 
   // ─── Shared turn response handler (used by submitAction + TalkToGM escalation) ───
@@ -1028,6 +1078,14 @@ function PlayPage() {
               </span>
             </div>
 
+            {/* Wait message */}
+            {!dataReady && (
+              <p style={{
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
+                color: 'var(--text-dim)', marginTop: 16,
+              }}>This may take a minute or two.</p>
+            )}
+
             {/* ENTER button */}
             <div style={{
               marginTop: 36, height: 54,
@@ -1103,7 +1161,7 @@ export default function Page() {
   );
 }
 
-// ═══ FILE: app/play/components/ActionPanel.js ═══
+// FILE: app/play/components/ActionPanel.js
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './ActionPanel.module.css';
@@ -1355,7 +1413,7 @@ export default function ActionPanel({
   );
 }
 
-// ═══ FILE: app/play/components/CharacterTab.js ═══
+// FILE: app/play/components/CharacterTab.js
 import PanelSection from './PanelSection';
 import styles from './CharacterTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
@@ -1563,7 +1621,7 @@ export default function CharacterTab({ data, onEntityClick }) {
   );
 }
 
-// ═══ FILE: app/play/components/DebugPanel.js ═══
+// FILE: app/play/components/DebugPanel.js
 'use client';
 
 import React, { useState, useRef, useCallback } from 'react';
@@ -2512,7 +2570,7 @@ export default function DebugPanel({ entries, onClear }) {
   );
 }
 
-// ═══ FILE: app/play/components/EntityPopup.js ═══
+// FILE: app/play/components/EntityPopup.js
 import { useState, useEffect, useCallback } from 'react';
 import * as api from '@/lib/api';
 import { renderLinkedText } from '@/lib/renderLinkedText';
@@ -2692,7 +2750,7 @@ export default function EntityPopup({ entity, glossaryData, glossaryTerms, notes
   );
 }
 
-// ═══ FILE: app/play/components/GlossaryTab.js ═══
+// FILE: app/play/components/GlossaryTab.js
 import { useState, useMemo } from 'react';
 import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './GlossaryTab.module.css';
@@ -2809,7 +2867,7 @@ export default function GlossaryTab({ data, characterData, glossaryTerms, onEnti
   );
 }
 
-// ═══ FILE: app/play/components/InlineDicePanel.js ═══
+// FILE: app/play/components/InlineDicePanel.js
 import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './InlineDicePanel.module.css';
 
@@ -3186,7 +3244,7 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
   );
 }
 
-// ═══ FILE: app/play/components/InventoryTab.js ═══
+// FILE: app/play/components/InventoryTab.js
 import PanelSection from './PanelSection';
 import styles from './InventoryTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
@@ -3313,7 +3371,7 @@ export default function InventoryTab({ data, onEntityClick }) {
   );
 }
 
-// ═══ FILE: app/play/components/MapTab.js ═══
+// FILE: app/play/components/MapTab.js
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -4031,7 +4089,7 @@ export default function MapTab({ data: initialData, gameId, onEntityClick }) {
   );
 }
 
-// ═══ FILE: app/play/components/NarrativePanel.js ═══
+// FILE: app/play/components/NarrativePanel.js
 import { useRef, useEffect, forwardRef } from 'react';
 import TurnBlock from './TurnBlock';
 import TalkToGM from './TalkToGM';
@@ -4154,7 +4212,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
 
 export default NarrativePanel;
 
-// ═══ FILE: app/play/components/NotesTab.js ═══
+// FILE: app/play/components/NotesTab.js
 import { useState, useCallback } from 'react';
 import * as api from '@/lib/api';
 import styles from './NotesTab.module.css';
@@ -4287,7 +4345,7 @@ export default function NotesTab({ data, gameId, onNotesChange }) {
   );
 }
 
-// ═══ FILE: app/play/components/NPCTab.js ═══
+// FILE: app/play/components/NPCTab.js
 import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './NPCTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
@@ -4325,7 +4383,7 @@ export default function NPCTab({ glossaryData, glossaryTerms, onEntityClick }) {
   );
 }
 
-// ═══ FILE: app/play/components/PanelSection.js ═══
+// FILE: app/play/components/PanelSection.js
 import { useState } from 'react';
 import styles from './PanelSection.module.css';
 
@@ -4342,7 +4400,7 @@ export default function PanelSection({ title, children, defaultOpen = true }) {
   );
 }
 
-// ═══ FILE: app/play/components/ReflectionBlock.js ═══
+// FILE: app/play/components/ReflectionBlock.js
 import styles from './ReflectionBlock.module.css';
 import { renderNarrative } from '@/lib/renderLinkedText';
 
@@ -4430,7 +4488,7 @@ export default function ReflectionBlock({ reflection, glossaryTerms, onEntityCli
   );
 }
 
-// ═══ FILE: app/play/components/ReportModal.js ═══
+// FILE: app/play/components/ReportModal.js
 'use client';
 
 import { useState } from 'react';
@@ -4834,7 +4892,7 @@ export default function ReportModal({ mode, gameId, gameState, turns, characterD
   );
 }
 
-// ═══ FILE: app/play/components/ResolutionBlock.js ═══
+// FILE: app/play/components/ResolutionBlock.js
 import { useState } from 'react';
 import styles from './ResolutionBlock.module.css';
 
@@ -4954,7 +5012,7 @@ export default function ResolutionBlock({ resolution }) {
   );
 }
 
-// ═══ FILE: app/play/components/SettingsModal.js ═══
+// FILE: app/play/components/SettingsModal.js
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -6079,7 +6137,7 @@ export default function SettingsModal({ settings, onSave, onClose, gameId, gameS
   );
 }
 
-// ═══ FILE: app/play/components/Sidebar.js ═══
+// FILE: app/play/components/Sidebar.js
 import { useState, useCallback } from 'react';
 import CharacterTab from './CharacterTab';
 import InventoryTab from './InventoryTab';
@@ -6260,7 +6318,7 @@ export default function Sidebar({
   );
 }
 
-// ═══ FILE: app/play/components/TalkToGM.js ═══
+// FILE: app/play/components/TalkToGM.js
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as api from '@/lib/api';
 import { renderLinkedText } from '@/lib/renderLinkedText';
@@ -7104,7 +7162,7 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
   );
 }
 
-// ═══ FILE: app/play/components/TopBar.js ═══
+// FILE: app/play/components/TopBar.js
 import Link from 'next/link';
 import AuthAvatar from '@/components/AuthAvatar';
 import styles from './TopBar.module.css';
@@ -7217,7 +7275,7 @@ export default function TopBar({ setting, clock, sseConnected, sidebarOpen, onTo
   );
 }
 
-// ═══ FILE: app/play/components/TurnBlock.js ═══
+// FILE: app/play/components/TurnBlock.js
 import React, { useState, forwardRef } from 'react';
 import InlineDicePanel from './InlineDicePanel';
 import ResolutionBlock from './ResolutionBlock';

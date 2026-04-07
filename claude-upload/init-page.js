@@ -3106,7 +3106,7 @@ function InitWizardInner() {
     if (useOverlay) {
       setTransitionPhase(phase);
       setTransitionFading(false);
-    } else {
+    } else if (phase !== 5) {
       setContentFading(true);
     }
 
@@ -3147,7 +3147,6 @@ function InitWizardInner() {
           await saveDifficulty();
           break;
         case 5:
-          await saveScenario();
           try {
             const settingName = SETTINGS.find(s => s.id === setting)?.name || setting || null;
             const difficultyName = DIFFICULTIES.find(d => d.id === difficulty)?.name || difficulty || null;
@@ -3162,9 +3161,9 @@ function InitWizardInner() {
               difficulty: difficultyName,
             }));
           } catch { /* sessionStorage may be unavailable */ }
-          // Fade out init content, then navigate directly to /play
-          await new Promise(r => setTimeout(r, 300));
+          // Navigate immediately — save scenario in background
           router.push(`/play?gameId=${gameId}`);
+          saveScenario().catch(() => {});
           savingRef.current = false;
           return;
       }
@@ -3582,6 +3581,12 @@ function InitWizardInner() {
               color: 'var(--text-muted)', margin: '12px 0 0', textAlign: 'center',
               maxWidth: 400,
             }}>{overlaySecondary}</p>
+
+            {/* Wait message */}
+            <p style={{
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
+              color: 'var(--text-dim)', marginTop: 16,
+            }}>This may take a minute or two.</p>
           </div>
         </div>
       )}
