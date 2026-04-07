@@ -34,6 +34,11 @@
 
 ## Recent Work (This Session: 2026-04-06)
 
+### My Directives Tab + Fulfillment Toast + Restore Flow
+Added third tab "My Directives" to the Talk to GM panel for directive management. Two sections (Goals, Preferences) show active directives with dismiss buttons; "Recently Completed" shows fulfilled directives with line-through text, AI reason, and Restore link. Empty state guides players to use My Story tab. Directive data fetched from `GET /api/game/:id/state` (directives field). Delete calls `DELETE /api/game/:id/talk-to-gm/meta/directive?lane=...&index=...`. Restore sends a meta question and refetches state. Fulfillment toast appears when `directivesRemoved` arrives on a turn response — shows "Goal completed: [text]" with "Removed in error?" restore link, auto-dismisses after 8s with fade animation. Auto-detection depends on backend deployment; manual dismiss works immediately.
+
+**Files modified:** `app/play/page.js`, `app/play/play.module.css`, `app/play/components/TalkToGM.js`, `app/play/components/TalkToGM.module.css`, `app/play/components/NarrativePanel.js`
+
 ### Rewind Feature — Undo Last Turn
 Added single-turn rewind to the gameplay UI. Compact rewind button (↩) in the action panel beside the compass button. Disabled when `rewindAvailable` is false (before first turn, after a rewind, etc.). Inline confirmation prompt on click ("Undo your last turn?" with Confirm/Cancel). On confirm, calls `POST /api/game/:id/rewind`, removes the last TurnBlock from narrative, updates character/inventory/clock from returned state, disables rewind button. On 400 error, shows error message and disables button. `rewindAvailable` read from turn responses, game state load, and first turn auto-trigger.
 
@@ -1350,7 +1355,7 @@ All pending rgba/color fixes from previous sessions have been completed.
 | `/api/game/:id/talk-to-gm` | POST | Wired (Phase 1 free lookup, displays command/rulebook/no-match) |
 | `/api/game/:id/talk-to-gm/escalate` | POST | Wired (Phase 2 escalation, processes as turn response) |
 | `/api/game/:id/talk-to-gm/meta` | POST | Wired (My Story tab, non-advancing meta query) |
-| `/api/game/:id/talk-to-gm/meta/directive` | DELETE | Not wired (directive management UI deferred) |
+| `/api/game/:id/talk-to-gm/meta/directive` | DELETE | Wired (My Directives tab dismiss, query params lane+index) |
 | `/api/game/:id/rewind` | POST | Wired (ActionPanel rewind button, inline confirm) |
 | `/api/game/:id/settings/storyteller` | PUT | Wired (Settings panel Game Settings tab) |
 | `/api/game/:id/settings/difficulty` | PUT | Wired (Settings panel Game Settings tab, presets + individual dials) |

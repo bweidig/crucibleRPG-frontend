@@ -119,6 +119,10 @@ function PlayPage() {
   const [rewindAvailable, setRewindAvailable] = useState(false);
   const [rewinding, setRewinding] = useState(false);
 
+  // ─── Directives ───
+  const [directiveState, setDirectiveState] = useState(null);
+  const [directiveToasts, setDirectiveToasts] = useState([]);
+
   // ─── Loading Overlay ───
   const [overlayDismissed, setOverlayDismissed] = useState(false);
   const [enterReady, setEnterReady] = useState(false);
@@ -281,6 +285,14 @@ function PlayPage() {
       refetchGlossary();
     }
 
+    // Check for directive fulfillment
+    if (response.directivesRemoved && response.directivesRemoved.length > 0) {
+      for (const removed of response.directivesRemoved) {
+        addDirectiveToast(removed);
+      }
+      refetchDirectiveState();
+    }
+
     // Enrich latest debug entry with turn number
     if (response.turn?.number) {
       setDebugLog(prev => {
@@ -289,7 +301,7 @@ function PlayPage() {
         return [{ ...latest, turnNumber: response.turn.number }, ...rest];
       });
     }
-  }, [addNotifications, refetchCharacter, refetchGlossary, gameState]);
+  }, [addNotifications, refetchCharacter, refetchGlossary, gameState, addDirectiveToast, refetchDirectiveState]);
 
   // ─── Compass Escalation Handler ───
   const handleCompassEscalate = useCallback(async () => {
@@ -373,6 +385,55 @@ function PlayPage() {
       setRewinding(false);
     }
   }, [gameId, rewinding, refetchCharacter, refetchGlossary]);
+
+  // ─── Directive Handlers ───
+  const refetchDirectiveState = useCallback(async () => {
+    if (!gameId) return;
+    try {
+      const state = await api.get(`/api/game/${gameId}/state`);
+      setDirectiveState(state.directives || state.directiveState || null);
+    } catch (err) {
+      console.error('Failed to refetch directive state:', err);
+    }
+  }, [gameId]);
+
+  const handleDeleteDirective = useCallback(async ({ lane, index }) => {
+    if (!gameId) return;
+    try {
+      const res = await api.del(`/api/game/${gameId}/talk-to-gm/meta/directive?lane=${lane}&index=${index}`);
+      setDirectiveState(res.directives || res);
+    } catch (err) {
+      console.error('Failed to remove directive:', err);
+    }
+  }, [gameId]);
+
+  const handleRestoreDirective = useCallback(async (text) => {
+    if (!gameId) return;
+    try {
+      await api.post(`/api/game/${gameId}/talk-to-gm/meta`, { question: `Please restore my directive: ${text}` });
+      refetchDirectiveState();
+    } catch (err) {
+      console.error('Failed to restore directive:', err);
+    }
+  }, [gameId, refetchDirectiveState]);
+
+  const addDirectiveToast = useCallback((removed) => {
+    const id = Date.now() + Math.random();
+    setDirectiveToasts(prev => [...prev, { id, ...removed }]);
+    setTimeout(() => {
+      setDirectiveToasts(prev => prev.map(t => t.id === id ? { ...t, fading: true } : t));
+      setTimeout(() => {
+        setDirectiveToasts(prev => prev.filter(t => t.id !== id));
+      }, 300);
+    }, 8000);
+  }, []);
+
+  const dismissDirectiveToast = useCallback((id) => {
+    setDirectiveToasts(prev => prev.map(t => t.id === id ? { ...t, fading: true } : t));
+    setTimeout(() => {
+      setDirectiveToasts(prev => prev.filter(t => t.id !== id));
+    }, 300);
+  }, []);
 
   // ─── Compute lastResolution and lastStateChanges for TalkToGM contextual chip ───
   const lastResolutionTurn = turns.slice().reverse().find(t => t.resolution);
@@ -487,6 +548,9 @@ function PlayPage() {
           }
           if (state?.rewindAvailable != null) {
             setRewindAvailable(state.rewindAvailable);
+          }
+          if (state?.directives || state?.directiveState) {
+            setDirectiveState(state.directives || state.directiveState);
           }
         }).catch(err => console.error('Failed to load game state:', err));
 
@@ -738,6 +802,9 @@ function PlayPage() {
             glossaryTerms={glossaryTerms}
             onEntityClick={handleEntityClick}
             inventoryItems={[...(characterData?.inventory?.equipped || []), ...(characterData?.inventory?.carried || [])]}
+            directiveState={directiveState}
+            onDeleteDirective={handleDeleteDirective}
+            onRestoreDirective={handleRestoreDirective}
           />
           <ActionPanel
             actions={actions}
@@ -756,6 +823,26 @@ function PlayPage() {
             rewinding={rewinding}
             onRewind={handleRewind}
           />
+          {directiveToasts.length > 0 && (
+            <div className={styles.toastContainer}>
+              {directiveToasts.map(toast => (
+                <div key={toast.id} className={`${styles.directiveToast} ${toast.fading ? styles.directiveToastFading : ''}`}>
+                  <div className={styles.directiveToastContent}>
+                    <span className={styles.directiveToastText}>
+                      Goal completed: {toast.text}
+                    </span>
+                    <button
+                      className={styles.directiveToastRestore}
+                      onClick={() => { handleRestoreDirective(toast.text); dismissDirectiveToast(toast.id); }}
+                    >
+                      Removed in error?
+                    </button>
+                  </div>
+                  <button className={styles.directiveToastClose} onClick={() => dismissDirectiveToast(toast.id)}>&times;</button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <Sidebar
           collapsed={!sidebarOpen}

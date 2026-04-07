@@ -1261,6 +1261,7 @@ Full current game state snapshot.
 - `character.inventory.items[]` uses `entropy` (durability state string: "intact"/"worn"/"damaged"/"broken") and `readiness` (state string: "ready"/"compromised"), not raw numeric durability.
 - `narrative.availableActions.options[].id` values are `"A"`, `"B"`, `"C"` (mapped from stored option labels, D filtered out — use `custom` field instead).
 - `rewindAvailable` (boolean) — whether a single-turn rewind is available. `true` after any successful advancing turn, `false` initially and after rewind is consumed. (AD-553)
+- `directives.recentlyFulfilled` (array) — Auto-removed directives with text, lane, reason, and removedAtTurn. Max 5 entries, pruned after 20 turns. Frontend uses for "removed, restore?" UI. (AD-554)
 
 **Status Codes:**
 | Code | Meaning |
@@ -1366,6 +1367,7 @@ Unified action endpoint — player choices, custom actions, and bracket commands
 - `npcStates` (array, optional) — Present only on combat turns. Each entry: `{ name, npcId, woundState: "fresh"|"bloodied"|"staggering"|"incapacitated", defeated: boolean }`. (AD-550)
 - SSE path sends `npcStates` as a separate `turn:npc_states` event.
 - `rewindAvailable` (boolean) — `true` after any successful advancing turn. Frontend uses to enable/disable the Rewind button. (AD-553)
+- `directivesRemoved` (array or null) — Auto-fulfilled directives removed this turn. Each entry: `{ text, lane, reason }`. `null` when nothing was removed. Only present on advancing turns after Turn 6 (when summarization fires). (AD-554)
 
 **Condition entry shape (in `stateChanges.conditions.added`):**
 ```json

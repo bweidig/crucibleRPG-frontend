@@ -19,6 +19,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
   turns, sessionRecap, worldBriefing, gameId, onTurnResponse,
   lastResolution, lastStateChanges, onMetaResponse,
   glossaryTerms, onEntityClick, inventoryItems,
+  directiveState, onDeleteDirective, onRestoreDirective,
 }, ref) {
   const newTurnRef = useRef(null);
   const bottomRef = useRef(null);
@@ -109,6 +110,9 @@ const NarrativePanel = forwardRef(function NarrativePanel({
         onMetaResponse={onMetaResponse}
         glossaryTerms={glossaryTerms}
         onEntityClick={onEntityClick}
+        directiveState={directiveState}
+        onDeleteDirective={onDeleteDirective}
+        onRestoreDirective={onRestoreDirective}
       />
     </div>
   );
