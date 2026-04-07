@@ -2413,6 +2413,7 @@ function InitWizardInner() {
   // --- API interaction state ---
   const [saving, setSaving] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState('');
   const confirmBypassRef = useRef(false);
   const [error, setError] = useState(null);
   const [transitionPhase, setTransitionPhase] = useState(null);
@@ -3071,6 +3072,12 @@ function InitWizardInner() {
 
     // Phases 1, 2, 3 require confirmation before proceeding
     if ((phase === 1 || phase === 2 || phase === 3) && !confirmBypassRef.current) {
+      const msg = phase === 1 ? "Your setting can't be changed once confirmed. Continue?"
+        : phase === 2 ? "Your character's name and backstory are locked in after this step. Continue?"
+        : (skillRequests.trim() || gearRequests.trim()) && !requestsRegenerated
+          ? "You have unsubmitted skill or gear requests. Continue without applying them?"
+          : "Your stats and skills are locked in after this step. Continue?";
+      setConfirmMessage(msg);
       setConfirmVisible(true);
       return;
     }
@@ -3246,6 +3253,50 @@ function InitWizardInner() {
       }}>
         <StepIndicator steps={STEP_NAMES} current={phase} />
 
+        {/* Summary bar — progressive chips for previous selections */}
+        {(() => {
+          const chips = [];
+          const stName = storyteller ? (STORYTELLERS.find(s => s.id === storyteller)?.name || 'Custom') : null;
+          const prebuiltWorld = selectedWorld ? PREBUILT_WORLDS.find(w => w.id === selectedWorld) : null;
+          const worldLabel = worldGenName || (prebuiltWorld ? prebuiltWorld.name : null) || (setting ? (SETTINGS.find(s => s.id === setting)?.name || 'Custom') : null);
+          const charName = character?.name || null;
+          const diffName = difficulty ? (DIFFICULTIES.find(d => d.id === difficulty)?.name || difficulty) : null;
+
+          if (phase >= 1 && stName) chips.push({ label: 'Voice', value: stName });
+          if (phase >= 2 && worldLabel) chips.push({ label: 'World', value: worldLabel });
+          if (phase >= 3 && charName) chips.push({ label: 'Character', value: charName, gold: true });
+          if (phase >= 5 && diffName) chips.push({ label: 'Difficulty', value: diffName });
+
+          if (chips.length === 0) return null;
+          return (
+            <div style={{
+              display: 'flex', justifyContent: 'center', gap: 0,
+              borderTop: '1px solid #16181e', borderBottom: '1px solid #16181e',
+              padding: '12px 0', margin: '0 0 24px',
+            }}>
+              {chips.map((chip, i) => (
+                <div key={chip.label} style={{
+                  padding: '0 20px', textAlign: 'center',
+                  borderRight: i < chips.length - 1 ? '1px solid #1e2540' : 'none',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                }}>
+                  <div style={{
+                    fontFamily: 'var(--font-alegreya-sans)', fontSize: 10, fontWeight: 600,
+                    color: '#4a5a70', letterSpacing: '0.14em', textTransform: 'uppercase',
+                    lineHeight: 1.2,
+                  }}>{chip.label}</div>
+                  <div style={{
+                    fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600,
+                    color: chip.gold ? '#c9a84c' : '#8a94a8',
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    maxWidth: 140, lineHeight: 1.3,
+                  }}>{chip.value}</div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+
         {phase === 0 && <Phase1 selected={storyteller} onSelect={setStoryteller} customText={customStorytellerText} setCustomText={setCustomStorytellerText} />}
         {phase === 1 && (
           <Phase2
@@ -3370,118 +3421,69 @@ function InitWizardInner() {
       <div className={styles.scrollFade} style={{ opacity: scrollFadeVisible ? 1 : 0, bottom: bottomNavHeight }} />
 
       {/* Bottom Nav */}
-      {(() => {
-        // Build summary chips for previous selections
-        const chips = [];
-        const stName = storyteller ? (STORYTELLERS.find(s => s.id === storyteller)?.name || 'Custom') : null;
-        const prebuiltWorld = selectedWorld ? PREBUILT_WORLDS.find(w => w.id === selectedWorld) : null;
-        const worldLabel = worldGenName || (prebuiltWorld ? prebuiltWorld.name : null) || (setting ? (SETTINGS.find(s => s.id === setting)?.name || 'Custom') : null);
-        const charName = character?.name || null;
-        const diffName = difficulty ? (DIFFICULTIES.find(d => d.id === difficulty)?.name || difficulty) : null;
+      <div ref={bottomNavRef} className={styles.bottomNav} style={{
+        position: 'sticky', bottom: 0, width: '100%', padding: '18px 28px',
+        background: 'var(--bg-main)', backdropFilter: 'blur(8px)',
+        borderTop: '1px solid var(--border-gold-faint)',
+        display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 16,
+        boxSizing: 'border-box', zIndex: 6,
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+          <span style={{
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-dim)',
+          }}>Phase {phase + 1} of {STEP_NAMES.length}</span>
+          {error && (
+            <span style={{
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--color-danger)',
+            }}>{error}</span>
+          )}
+        </div>
+        <button
+          onClick={handleNext}
+          disabled={!buttonEnabled}
+          className={styles.btnPrimary}
+          style={{
+            fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
+            color: buttonEnabled ? 'var(--bg-main)' : 'var(--text-dim)',
+            background: buttonEnabled ? 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))' : 'var(--bg-gold-subtle)',
+            border: 'none', borderRadius: 5, padding: '12px 32px',
+            cursor: buttonEnabled ? 'pointer' : 'default',
+            letterSpacing: '0.08em', flexShrink: 0,
+          }}
+        >
+          {saving ? 'SAVING...' : phase === 5 ? 'BEGIN ADVENTURE' : 'CONTINUE'}
+        </button>
+      </div>
 
-        if (phase >= 1 && stName) chips.push({ label: 'Voice', value: stName });
-        if (phase >= 2 && worldLabel) chips.push({ label: 'World', value: worldLabel });
-        if (phase >= 3 && charName) chips.push({ label: 'Character', value: charName, gold: true });
-        if (phase >= 5 && diffName) chips.push({ label: 'Difficulty', value: diffName });
-
-        // Confirmation messages per phase
-        const confirmMsg = phase === 1 ? "Your setting can't be changed once confirmed."
-          : phase === 2 ? "Your character's name and backstory are locked in after this step."
-          : phase === 3 ? ((skillRequests.trim() || gearRequests.trim()) && !requestsRegenerated
-            ? "You have unsubmitted skill or gear requests. Continue without applying them?"
-            : "Your stats and skills are locked in after this step.")
-          : null;
-
-        return (
-          <div ref={bottomNavRef} className={styles.bottomNav} style={{
-            position: 'sticky', bottom: 0, width: '100%', padding: '14px 28px',
-            background: 'var(--bg-main)', backdropFilter: 'blur(8px)',
-            borderTop: '1px solid var(--border-gold-faint)',
-            display: 'flex', flexDirection: 'column', gap: 8,
-            boxSizing: 'border-box', zIndex: 6,
+      {/* Confirmation Modal */}
+      {confirmVisible && (
+        <div onClick={() => setConfirmVisible(false)} style={{
+          position: 'fixed', inset: 0, background: 'rgba(10,14,26,0.85)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#0d1120', border: '1px solid #3a3328', borderRadius: 10,
+            padding: '28px 32px', maxWidth: 400, width: 'calc(100% - 48px)', textAlign: 'center',
           }}>
-            {/* Confirmation bar */}
-            {confirmVisible && confirmMsg && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0',
-                borderBottom: '1px solid var(--border-gold-faint)',
-              }}>
-                <span style={{ flex: 1, fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                  {confirmMsg}
-                </span>
-                <button onClick={() => setConfirmVisible(false)} style={{
-                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--text-muted)',
-                  background: 'none', border: 'none', cursor: 'pointer', padding: '8px 12px',
-                  whiteSpace: 'nowrap',
-                }}>Go Back</button>
-                <button onClick={() => { setConfirmVisible(false); confirmBypassRef.current = true; handleNext(); }} style={{
-                  fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em',
-                  color: 'var(--bg-main)', background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
-                  border: 'none', borderRadius: 5, padding: '8px 20px', cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}>Confirm</button>
-              </div>
-            )}
-
-            {/* Main bar: chips + phase counter + continue */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {/* Summary chips */}
-              {chips.length > 0 && (
-                <div style={{ display: 'flex', flex: 1, overflow: 'hidden', marginRight: 16 }}>
-                  {chips.map((chip, i) => (
-                    <div key={chip.label} style={{
-                      padding: '0 14px',
-                      borderRight: i < chips.length - 1 ? '1px solid #1e2540' : 'none',
-                    }}>
-                      <div style={{
-                        fontFamily: 'var(--font-alegreya-sans)', fontSize: 10, fontWeight: 600,
-                        color: '#4a5a70', letterSpacing: '0.12em', textTransform: 'uppercase',
-                        lineHeight: 1.2,
-                      }}>{chip.label}</div>
-                      <div style={{
-                        fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 600,
-                        color: chip.gold ? '#c9a84c' : '#8a94a8',
-                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                        maxWidth: 140, lineHeight: 1.3,
-                      }}>{chip.value}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {chips.length === 0 && <div style={{ flex: 1 }} />}
-
-              {/* Phase counter + error */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                <span style={{
-                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-dim)',
-                }}>Phase {phase + 1} of {STEP_NAMES.length}</span>
-                {error && (
-                  <span style={{
-                    fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--color-danger)',
-                  }}>{error}</span>
-                )}
-              </div>
-
-              {/* Continue button */}
-              <button
-                onClick={handleNext}
-                disabled={!buttonEnabled}
-                className={styles.btnPrimary}
-                style={{
-                  fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
-                  color: buttonEnabled ? 'var(--bg-main)' : 'var(--text-dim)',
-                  background: buttonEnabled ? 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))' : 'var(--bg-gold-subtle)',
-                  border: 'none', borderRadius: 5, padding: '12px 32px',
-                  cursor: buttonEnabled ? 'pointer' : 'default',
-                  letterSpacing: '0.08em', flexShrink: 0,
-                }}
-              >
-                {saving ? 'SAVING...' : phase === 5 ? 'BEGIN ADVENTURE' : 'CONTINUE'}
-              </button>
+            <p style={{
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#c8c0b0',
+              lineHeight: 1.6, marginBottom: 24, margin: '0 0 24px',
+            }}>{confirmMessage}</p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
+              <button onClick={() => setConfirmVisible(false)} style={{
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4',
+                background: 'none', border: 'none', padding: '10px 20px', cursor: 'pointer',
+              }}>Go Back</button>
+              <button onClick={() => { setConfirmVisible(false); confirmBypassRef.current = true; handleNext(); }} style={{
+                fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700, letterSpacing: '0.06em',
+                textTransform: 'uppercase', color: '#0a0e1a',
+                background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
+                border: 'none', borderRadius: 5, padding: '10px 24px', cursor: 'pointer',
+              }}>Confirm</button>
             </div>
           </div>
-        );
-      })()}
+        </div>
+      )}
 
       <Footer variant="minimal" />
 

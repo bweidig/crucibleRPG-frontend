@@ -34,10 +34,12 @@
 
 ## Recent Work (This Session: 2026-04-06)
 
-### Init Wizard — Summary Bar + Confirmation Dialogs
-**Summary bar replaces back button.** Bottom nav now shows progressive summary chips (Voice, World, Character, Difficulty) that appear as decisions are made. Each chip is a tiny uppercase label over a value in Cinzel. Character name renders in accent gold. World chip updates live when worldGenName populates from background polling. Back button removed entirely — no way to return to previous phases.
+### Init Wizard — Summary Bar + Confirmation Modal
+**Summary bar below step indicator.** Progressive summary chips (Voice, World, Character, Difficulty) now render between the StepIndicator and phase content, not in the bottom nav. Each chip: tiny uppercase label (10px, #4a5a70) over a value (14px, Cinzel 600, #8a94a8). Character name in accent gold. Chips separated by 1px vertical borders, centered horizontally with top/bottom border lines. World chip updates live when worldGenName arrives from polling. Only renders when there are chips to show (phase 1+).
 
-**Confirmation dialogs on commitment phases.** Phases 1 (Setting), 2 (Character), and 3 (Attributes) now show an inline confirmation bar before proceeding. Phase 3 has a special variant warning about unsubmitted skill/gear requests when `requestsRegenerated` is false. "Go Back" dismisses the confirmation. "Confirm" proceeds with the save. Confirmation auto-dismisses when the user changes any input.
+**Confirmation modal on commitment phases.** Phases 1 (Setting), 2 (Character), and 3 (Attributes) show a centered modal overlay before proceeding. Phase-specific messages explain what's being locked in. Phase 3 variant warns about unsubmitted skill/gear requests when `requestsRegenerated` is false. "Go Back" dismisses. "Confirm" proceeds with save. Modal dismisses on backdrop click or input change. No confirmation on phases 0, 4, or 5.
+
+**Back button removed.** Bottom nav simplified to phase counter + Continue button, right-aligned. No back navigation anywhere in the wizard.
 
 **Files modified:** `app/init/page.js`
 
