@@ -3295,7 +3295,7 @@ function InitWizardInner() {
                     color: '#4a5a70', letterSpacing: '0.14em', textTransform: 'uppercase',
                     lineHeight: 1.2,
                   }}>{chip.label}</div>
-                  <div style={{
+                  <div title={chip.value} style={{
                     fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600,
                     color: chip.gold ? '#c9a84c' : '#8a94a8',
                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
