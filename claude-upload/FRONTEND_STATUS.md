@@ -34,6 +34,15 @@
 
 ## Recent Work (This Session: 2026-04-06)
 
+### Init Wizard — Background World Gen Overlay Fixes
+Two targeted fixes for the combined character→attributes overlay sequence:
+
+**Fix 1: Move saveCharacter() after world gen completes.** Previously `saveCharacter()` was called immediately when the overlay appeared, before world gen messages played. The backend rejects this if `world_gen_status` isn't `'complete'` yet. Moved to after the world gen completion wait loop, right before the proposal phase transition. Error handling fades the overlay and surfaces the error message.
+
+**Fix 2: Double-submission guard verified.** `handleNext` already has `if (!canAdvance() || saving) return;` as its very first line, and the Continue button uses `disabled={!buttonEnabled}` where `buttonEnabled = canAdvance() && !saving`. Both the handler guard and the HTML disabled attribute prevent double-clicks. No code change needed — guard was already correct.
+
+**Files modified:** `app/init/page.js`
+
 ### My Directives Tab + Fulfillment Toast + Restore Flow
 Added third tab "My Directives" to the Talk to GM panel for directive management. Two sections (Goals, Preferences) show active directives with dismiss buttons; "Recently Completed" shows fulfilled directives with line-through text, AI reason, and Restore link. Empty state guides players to use My Story tab. Directive data fetched from `GET /api/game/:id/state` (directives field). Delete calls `DELETE /api/game/:id/talk-to-gm/meta/directive?lane=...&index=...`. Restore sends a meta question and refetches state. Fulfillment toast appears when `directivesRemoved` arrives on a turn response — shows "Goal completed: [text]" with "Removed in error?" restore link, auto-dismisses after 8s with fade animation. Auto-detection depends on backend deployment; manual dismiss works immediately.
 

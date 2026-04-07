@@ -2605,17 +2605,6 @@ function InitWizardInner() {
     };
 
     const run = async () => {
-      // --- Immediately save character ---
-      try {
-        await saveCharacter();
-      } catch (err) {
-        if (cancelled) return;
-        setCharOverlayActive(false);
-        setError(err.message || 'Failed to save character.');
-        return;
-      }
-      if (cancelled) return;
-
       // --- World Gen Messages ---
       setOverlayLabel('YOUR WORLD');
       setOverlaySecondary('The engine is building geography, history, and power structures');
@@ -2707,6 +2696,20 @@ function InitWizardInner() {
         }
         await safeSleep(500);
       }
+
+      // --- Save character (requires world gen complete) ---
+      try {
+        await saveCharacter();
+      } catch (err) {
+        if (cancelled) return;
+        setCharOverlayFading(true);
+        await safeSleep(500);
+        setCharOverlayActive(false);
+        setCharOverlayFading(false);
+        setError(err.message || 'Failed to save character.');
+        return;
+      }
+      if (cancelled) return;
 
       // --- Transition to Proposal Phase ---
       setOverlayLabel('ATTRIBUTES');
