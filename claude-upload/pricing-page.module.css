@@ -31,7 +31,17 @@
 .priceCard {}
 
 /* Top-up card */
-.topupCard {}
+.topupCard {
+  background: var(--bg-gold-faint);
+  border: 1px solid var(--border-gold-subtle);
+  cursor: pointer;
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+
+.topupCard:hover {
+  border-color: var(--border-card-hover);
+  background: var(--bg-gold-subtle);
+}
 
 /* Page container */
 .pageContainer {

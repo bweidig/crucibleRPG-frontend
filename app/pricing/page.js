@@ -268,8 +268,6 @@ export default function PricingPage() {
           {PRICING.topups.map((pack, i) => (
             <ScrollReveal key={i} delay={i * 0.1}>
               <div className={styles.topupCard} style={{
-                background: 'var(--bg-gold-faint)',
-                border: '1px solid var(--border-gold-subtle)',
                 borderRadius: 8, padding: '20px 24px',
                 textAlign: 'center', flex: '1 1 160px', maxWidth: 190,
               }}>
