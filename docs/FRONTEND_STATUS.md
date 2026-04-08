@@ -34,6 +34,11 @@
 
 ## Recent Work (This Session: 2026-04-08)
 
+### Pricing Page — Equal Height Cards
+Added `alignItems: 'stretch'` to the pricing cards flex container and `height: '100%'` to each ScrollReveal wrapper and card div. CTA buttons now align at the same vertical position on both cards.
+
+- **Files modified:** `app/pricing/page.js`
+
 ### Mobile-Responsive /play Layout
 Full mobile responsiveness pass for the game screen. The majority of players are on mobile phones.
 

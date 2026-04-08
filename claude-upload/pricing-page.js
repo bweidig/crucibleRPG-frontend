@@ -127,18 +127,19 @@ export default function PricingPage() {
 
       {/* Pricing cards */}
       <div style={{
-        display: 'flex', justifyContent: 'center', gap: 24,
+        display: 'flex', justifyContent: 'center', alignItems: 'stretch', gap: 24,
         padding: '48px 24px 32px', flexWrap: 'wrap',
         position: 'relative', zIndex: 1,
       }}>
 
         {/* Free Trial */}
-        <ScrollReveal delay={0}>
+        <ScrollReveal delay={0} style={{ height: '100%' }}>
         <div className={styles.priceCard} style={{
           background: 'var(--bg-gold-faint)',
           border: '1px solid var(--border-gold-subtle)',
           borderRadius: 10, padding: '36px 32px',
           width: 300, maxWidth: '100%', display: 'flex', flexDirection: 'column',
+          height: '100%',
         }}>
           <div style={{
             fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
@@ -183,12 +184,13 @@ export default function PricingPage() {
         </ScrollReveal>
 
         {/* Subscription */}
-        <ScrollReveal delay={0.1}>
+        <ScrollReveal delay={0.1} style={{ height: '100%' }}>
         <div className={styles.priceCard} style={{
           background: 'var(--bg-gold-subtle)',
           border: '1px solid var(--border-card-separator)',
           borderRadius: 10, padding: '36px 32px',
           width: 300, maxWidth: '100%', display: 'flex', flexDirection: 'column',
+          height: '100%',
         }}>
           <div style={{
             fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
