@@ -2418,13 +2418,19 @@ function PhaseModal({ children, bottomNav, header }) {
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
+          position: 'relative',
         }}>
+          {/* Particle background */}
+          <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden', borderRadius: 'inherit' }}>
+            <ParticleField />
+          </div>
           {/* Pinned header */}
           {header && (
             <div style={{
               flexShrink: 0,
               padding: '24px 36px 0',
               background: 'var(--bg-main)',
+              position: 'relative', zIndex: 1,
             }}>
               {header}
             </div>
@@ -2436,6 +2442,7 @@ function PhaseModal({ children, bottomNav, header }) {
             overscrollBehavior: 'contain',
             padding: '40px 36px 32px',
             minHeight: 0,
+            position: 'relative', zIndex: 1,
           }}>
             {children}
           </div>
@@ -2446,6 +2453,7 @@ function PhaseModal({ children, bottomNav, header }) {
               padding: '16px 28px',
               background: 'var(--bg-main)',
               flexShrink: 0,
+              position: 'relative', zIndex: 1,
             }}>
               {bottomNav}
             </div>
@@ -2496,7 +2504,12 @@ function FieldModal({ title, children, onClose, footer }) {
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
+          position: 'relative',
         }}>
+          {/* Particle background */}
+          <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden', borderRadius: 'inherit' }}>
+            <ParticleField />
+          </div>
           {/* Title bar */}
           {title && (
             <div style={{
@@ -2504,6 +2517,7 @@ function FieldModal({ title, children, onClose, footer }) {
               padding: '20px 28px 16px',
               borderBottom: '1px solid var(--border-gold-faint)',
               flexShrink: 0,
+              position: 'relative', zIndex: 1,
             }}>
               <span style={{
                 fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700,
@@ -2522,6 +2536,7 @@ function FieldModal({ title, children, onClose, footer }) {
             overscrollBehavior: 'contain',
             padding: '24px 28px 28px',
             minHeight: 0,
+            position: 'relative', zIndex: 1,
           }}>
             {children}
           </div>
@@ -2532,6 +2547,7 @@ function FieldModal({ title, children, onClose, footer }) {
               padding: '14px 28px',
               background: 'var(--bg-main)',
               flexShrink: 0,
+              position: 'relative', zIndex: 1,
             }}>
               {footer}
             </div>
@@ -3412,7 +3428,6 @@ function InitWizardInner() {
       display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 72,
       ...lexieVars,
     }}>
-      <ParticleField />
       <div style={{ width: '100%' }}><NavBar /></div>
 
       {/* Phase Modal */}
@@ -3450,26 +3465,27 @@ function InitWizardInner() {
             {/* Summary chips */}
             {chips.length > 0 && (
               <div className={styles.summaryChips} style={{
-                display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 0,
+                display: 'flex', justifyContent: 'center', gap: 0,
                 borderTop: '1px solid #16181e', borderBottom: '1px solid #16181e',
-                padding: '10px 0', margin: '0 0 4px',
+                padding: '12px 0', margin: '0 0 24px',
+                flexWrap: 'wrap',
               }}>
-                {chips.map((chip, i) => (
+                {chips.map((chip) => (
                   <div key={chip.label} className={styles.summaryChip} style={{
-                    padding: '0 20px', textAlign: 'center',
-                    borderRight: i < chips.length - 1 ? '1px solid #1e2540' : 'none',
+                    padding: '4px 16px', textAlign: 'center',
                     display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    flexShrink: 1, minWidth: 0,
                   }}>
                     <div className={styles.chipLabel} style={{
                       fontFamily: 'var(--font-alegreya-sans)', fontSize: 10, fontWeight: 600,
                       color: '#4a5a70', letterSpacing: '0.14em', textTransform: 'uppercase',
                       lineHeight: 1.2,
                     }}>{chip.label}</div>
-                    <div title={chip.value} className={styles.chipValue} style={{
-                      fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600,
+                    <div className={styles.chipValue} style={{
+                      fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 600,
                       color: chip.gold ? '#c9a84c' : '#8a94a8',
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      maxWidth: 140, lineHeight: 1.3,
+                      lineHeight: 1.3,
+                      textAlign: 'center',
                     }}>{chip.value}</div>
                   </div>
                 ))}

@@ -34,6 +34,14 @@
 
 ## Recent Work (This Session: 2026-04-08)
 
+### ParticleField Inside Modals + Summary Chip Truncation Fix
+Two visual fixes for the init wizard:
+
+- **ParticleField moved into modals.** Removed the page-level `<ParticleField />` (hidden behind the opaque PhaseModal backdrop, wasting resources). Added ParticleField as an absolute-positioned background layer inside both PhaseModal and FieldModal cards. All content sections get `position: relative; z-index: 1` to render above the particles. Particle wrapper uses `border-radius: inherit` to stay contained within rounded corners.
+- **Summary chip truncation removed.** Chips no longer truncate long names with ellipsis (`maxWidth: 140` removed). Text wraps naturally. Chip container uses `flexWrap: wrap` for graceful multi-row layout on narrow screens. Removed per-chip `borderRight` dividers and `title` tooltip attribute.
+
+- **Files modified:** `app/init/page.js`, `docs/FRONTEND_STATUS.md`
+
 ### Init Wizard — Three Character/Save Fixes
 Three bundled fixes for Phase 2 and the save logic:
 
