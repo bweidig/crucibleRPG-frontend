@@ -34,6 +34,11 @@
 
 ## Recent Work (This Session: 2026-04-08)
 
+### Right Sidebar Default Width Increase
+Increased the default sidebar width on `/play` from 340px to 380px so glossary entries are readable without manual resizing.
+
+- **Files modified:** `app/play/components/Sidebar.js`, `docs/FRONTEND_STATUS.md`
+
 ### ParticleField Inside Modals + Summary Chip Truncation Fix
 Two visual fixes for the init wizard:
 
