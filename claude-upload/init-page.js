@@ -2994,6 +2994,7 @@ function InitWizardInner() {
       body = {
         selection: 'Custom',
         customText: customWorldText || null,
+        answers: Object.keys(settingAnswers).length > 0 ? settingAnswers : null,
       };
     } else if (setting === 'your-worlds') {
       body = {

@@ -34,6 +34,11 @@
 
 ## Recent Work (This Session: 2026-04-08)
 
+### Fix: Custom World Setting Answers Not Sent to Backend
+The Custom path in `saveSetting()` was dropping `settingAnswers` — Technology and Supernatural Elements guided questions were collected but never included in the API payload. Added `answers: settingAnswers` to the Custom body, matching the era path pattern.
+
+- **Files modified:** `app/init/page.js`, `docs/FRONTEND_STATUS.md`
+
 ### Init Wizard — Phase 3 (Attributes) Restructure + Supernatural Powers Field
 Two bundled changes: a new "Powers Beyond the Ordinary?" field in character creation, and a full restructure of Phase 3 (Attributes/Proposal) into a read-only summary with popup actions.
 
