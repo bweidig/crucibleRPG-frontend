@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import CharacterTab from './CharacterTab';
 import InventoryTab from './InventoryTab';
 import NPCTab from './NPCTab';
@@ -57,6 +57,7 @@ const TABS = [
 
 export default function Sidebar({
   collapsed,
+  onToggleSidebar,
   characterData,
   glossaryData,
   glossaryTerms,
@@ -74,6 +75,16 @@ export default function Sidebar({
 }) {
   const [activeTab, setActiveTab] = useState('character');
   const [width, setWidth] = useState(340);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Track mobile breakpoint
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 768px)');
+    setIsMobile(mql.matches);
+    const handler = (e) => setIsMobile(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
 
   const handleTabClick = useCallback((tabId) => {
     setActiveTab(tabId);
@@ -100,7 +111,8 @@ export default function Sidebar({
     document.addEventListener('mouseup', onUp);
   }, [width]);
 
-  if (collapsed) return null;
+  // On mobile, collapsed means drawer is closed — don't render at all on desktop when collapsed
+  if (collapsed && !isMobile) return null;
 
   const renderContent = () => {
     switch (activeTab) {
@@ -121,6 +133,76 @@ export default function Sidebar({
     }
   };
 
+  // Mobile: render as a slide-over drawer
+  if (isMobile) {
+    return (
+      <div
+        className={`${styles.drawerOverlay} ${!collapsed ? styles.drawerOverlayOpen : ''}`}
+        onClick={onToggleSidebar}
+      >
+        <div
+          className={`${styles.drawer} ${!collapsed ? styles.drawerOpen : ''}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button className={styles.drawerClose} onClick={onToggleSidebar} aria-label="Close sidebar">
+            &times;
+          </button>
+          <div className={styles.tabBar}>
+            {TABS.map(tab => (
+              <button
+                key={tab.id}
+                className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ''}`}
+                onClick={() => handleTabClick(tab.id)}
+                title={tab.label}
+                aria-label={tab.label}
+              >
+                {TabIcons[tab.id](activeTab === tab.id ? '#c9a84c' : '#7082a4')}
+                {notifications?.[tab.id] > 0 && (
+                  <span className={styles.badge}>{notifications[tab.id]}</span>
+                )}
+              </button>
+            ))}
+          </div>
+          <div className={styles.tabContent}>
+            {renderContent()}
+          </div>
+          {(onOpenReport || isDebugUser) && (
+            <div className={styles.sidebarFooter}>
+              {onOpenReport && (
+                <>
+                  <button className={styles.footerIconBtn} onClick={() => onOpenReport('bug')} aria-label="Report a bug" data-tooltip="Report a bug">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="8" y="6" width="8" height="14" rx="4" /><path d="M19 10h2" /><path d="M3 10h2" />
+                      <path d="M19 14h2" /><path d="M3 14h2" /><path d="M19 18h2" /><path d="M3 18h2" />
+                      <path d="M16 2l-2 4" /><path d="M8 2l2 4" />
+                    </svg>
+                  </button>
+                  <button className={styles.footerIconBtn} onClick={() => onOpenReport('suggest')} aria-label="Share a suggestion" data-tooltip="Share a suggestion">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 18h6" /><path d="M10 22h4" />
+                      <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
+                    </svg>
+                  </button>
+                </>
+              )}
+              {isDebugUser && onToggleDebug && (
+                <button className={styles.footerBtn} onClick={onToggleDebug}
+                  style={{ color: debugMode ? '#c9a84c' : undefined, borderColor: debugMode ? '#c9a84c33' : undefined }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" />
+                  </svg>
+                  Debug {debugMode ? 'ON' : 'OFF'}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop: render inline as before
   return (
     <div className={styles.sidebar} style={{ width }}>
       <div className={styles.resizeHandle} onMouseDown={handleMouseDown} />

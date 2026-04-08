@@ -90,6 +90,7 @@ html, body {
   font-family: var(--body-font);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: contain;
 }
 
 /* Animations */

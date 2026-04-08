@@ -747,7 +747,14 @@ function PlayPage() {
 
   function handleEnterWorld() {
     setOverlayFading(true);
-    setTimeout(() => setOverlayDismissed(true), 600);
+    window.scrollTo(0, 0);
+    setTimeout(() => {
+      setOverlayDismissed(true);
+      // Scroll narrative to top for new games so player reads the prologue
+      if (!isReturningGame && narrativeRef.current) {
+        narrativeRef.current.scrollTo(0, 0);
+      }
+    }, 600);
   }
 
   // Read summary from sessionStorage
@@ -847,6 +854,7 @@ function PlayPage() {
         </div>
         <Sidebar
           collapsed={!sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen(prev => !prev)}
           characterData={characterData}
           glossaryData={glossaryData}
           glossaryTerms={glossaryTerms}

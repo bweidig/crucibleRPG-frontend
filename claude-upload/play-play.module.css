@@ -9,6 +9,7 @@
   background: var(--bg-main);
   overflow: hidden;
   font-family: var(--body-font);
+  overscroll-behavior: contain;
 }
 
 .mainContent {
@@ -193,4 +194,29 @@
 
 .directiveToastClose:hover {
   color: var(--text-secondary);
+}
+
+/* ─── Mobile Responsive ─── */
+
+@media (max-width: 768px) {
+  .mainContent {
+    flex-direction: column;
+  }
+
+  .narrativeColumn {
+    width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .narrativeExpanded {
+    max-width: none;
+  }
+
+  .toastContainer {
+    bottom: 70px;
+    width: 95%;
+  }
 }

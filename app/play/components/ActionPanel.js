@@ -147,14 +147,17 @@ export default function ActionPanel({
         {error && <div className={styles.errorText}>{error}</div>}
 
         {compassOpen && (
-          <CompassPopover
-            objectives={objectives}
-            currentLocation={currentLocation}
-            onEscalate={onEscalate}
-            onClose={onToggleCompass}
-            glossaryTerms={glossaryTerms}
-            onEntityClick={onEntityClick}
-          />
+          <>
+            <div className={styles.compassBackdrop} onClick={onToggleCompass} />
+            <CompassPopover
+              objectives={objectives}
+              currentLocation={currentLocation}
+              onEscalate={onEscalate}
+              onClose={onToggleCompass}
+              glossaryTerms={glossaryTerms}
+              onEntityClick={onEntityClick}
+            />
+          </>
         )}
 
         {submitting ? (

@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-07
+**Last Updated:** 2026-04-08
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -32,7 +32,32 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-07)
+## Recent Work (This Session: 2026-04-08)
+
+### Mobile-Responsive /play Layout
+Full mobile responsiveness pass for the game screen. The majority of players are on mobile phones.
+
+- **Sidebar → drawer on mobile:** At ≤768px the sidebar renders as a full-screen slide-over drawer (position: fixed, slides from right) instead of inline. Close button (✕) in top-right. Backdrop overlay locks body scroll. `overscroll-behavior: contain` on drawer content.
+- **TopBar responsive:** Setting name and clock hidden on mobile to save space. Icon buttons enlarged to 44×44px tap targets. Wordmark font sizes reduced.
+- **Overscroll-behavior: contain:** Added to `html`/`body` in globals.css, plus `pageContainer`, `narrativeScroll`, sidebar `tabContent`, and action panel `options` container. Prevents pull-to-refresh from hijacking scroll on mobile.
+- **Narrative fills screen:** On mobile, `.mainContent` becomes a single column. Narrative column takes full width. ActionPanel remains pinned at bottom via `flex-shrink: 0`.
+- **Scroll-to-top on enter:** `handleEnterWorld` now calls `window.scrollTo(0, 0)` and scrolls the narrative panel to top for new games.
+- **Action options scroll:** On mobile, `.options` container gets `max-height: 40vh; overflow-y: auto` so options scroll independently while custom input row stays visible.
+- **Compass → bottom sheet:** On mobile the compass popover becomes `position: fixed; bottom: 0` with full-width bottom-sheet styling and a backdrop overlay.
+- **Touch-friendly targets:** All interactive elements audited for 44px min tap targets. Custom input set to `font-size: 16px` to prevent iOS auto-zoom.
+
+- **Files modified:** `app/globals.css`, `app/play/page.js`, `app/play/play.module.css`, `app/play/components/Sidebar.js`, `app/play/components/Sidebar.module.css`, `app/play/components/TopBar.module.css`, `app/play/components/NarrativePanel.module.css`, `app/play/components/ActionPanel.js`, `app/play/components/ActionPanel.module.css`
+
+---
+
+## Previous Work (2026-04-07)
+
+### Fix: Play Page Crash — TDZ Variable Ordering (FE-3)
+Fixed a temporal dead zone (TDZ) error that crashed the entire /play page. The `handleTurnResponse` callback referenced `addDirectiveToast` and `refetchDirectiveState` in its dependency array before those `const` declarations appeared in the file. In production builds, the minifier renamed one of these to `ez`, surfacing as `ReferenceError: can't access lexical declaration 'ez' before initialization`. Fix: moved all directive handler declarations above `handleTurnResponse`. Also logged FE-2 (world snapshots 404 console message) — confirmed it originates from /init, not /play, and is already handled gracefully.
+
+- **Key changes:** Reordered directive handler declarations (`refetchDirectiveState`, `handleDeleteDirective`, `handleRestoreDirective`, `addDirectiveToast`, `dismissDirectiveToast`) to appear before `handleTurnResponse`
+- **Files modified:** `app/play/page.js`
+- **Bugs logged:** FE-2 (non-issue), FE-3 (fixed)
 
 ### Admin — Move Game Log Button Above Narrative Log
 Moved "View Game Log →" button from below the Narrative Log section to above it, directly after the Character section in the GamesTab detail panel. Same styling and behavior, just repositioned for better visibility.
@@ -1319,6 +1344,8 @@ All pending rgba/color fixes from previous sessions have been completed.
 | ID | Description | Page/Component | Severity | Status | Fixed In |
 |----|-------------|----------------|----------|--------|----------|
 | FE-1 | Play page only reads `?gameId=` param, ignores `?id=` from menu navigation -- causes silent redirect to /menu when resuming games | `/play` page.js | Blocking | Fixed | 2026-03-30 |
+| FE-2 | World snapshots 404 console message on /play — actually originates from /init page; persists in console across navigation. Not a /play bug. | `/init` page.js | Non-issue | N/A | init already catches gracefully |
+| FE-3 | `ez` ReferenceError crashes play page — TDZ violation from directive handlers (`addDirectiveToast`, `refetchDirectiveState`) referenced in `handleTurnResponse` dependency array before their `const` declarations | `/play` page.js | Blocking | Fixed | 2026-04-07 |
 
 **Severity levels:**
 - **Blocking** — Prevents playtesting or core functionality. Fix before launch.

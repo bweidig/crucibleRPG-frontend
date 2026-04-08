@@ -1700,6 +1700,13 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
   const [editingStatName, setEditingStatName] = useState(null);
   const [editInputValue, setEditInputValue] = useState('');
 
+  // Re-sync internal stats when proposal data arrives (e.g. after retry)
+  useEffect(() => {
+    if (initialStats.length > 0) {
+      setStats(initialStats);
+    }
+  }, [initialStats]);
+
   const hasDeviation = stats.some((s, i) => Math.abs(s.value - initialStats[i].value) > 2.0);
 
   const applyStatUpdate = (next) => {
@@ -2456,6 +2463,11 @@ function InitWizardInner() {
 
   // Keep worldGenStatusRef in sync with state so polling promises can read it
   useEffect(() => { worldGenStatusRef.current = worldGenStatus; }, [worldGenStatus]);
+
+  // Scroll to top whenever the wizard phase changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [phase]);
 
   // --- Scroll fade indicator ---
   useEffect(() => {

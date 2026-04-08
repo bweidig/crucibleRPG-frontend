@@ -1,4 +1,4 @@
-// FILE: app/play/page.js
+// ===== FILE: app/play/page.js =====
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
@@ -437,55 +437,6 @@ function PlayPage() {
     }
   }, [gameId, rewinding, refetchCharacter, refetchGlossary]);
 
-  // ─── Directive Handlers ───
-  const refetchDirectiveState = useCallback(async () => {
-    if (!gameId) return;
-    try {
-      const state = await api.get(`/api/game/${gameId}/state`);
-      setDirectiveState(state.directives || state.directiveState || null);
-    } catch (err) {
-      console.error('Failed to refetch directive state:', err);
-    }
-  }, [gameId]);
-
-  const handleDeleteDirective = useCallback(async ({ lane, index }) => {
-    if (!gameId) return;
-    try {
-      const res = await api.del(`/api/game/${gameId}/talk-to-gm/meta/directive?lane=${lane}&index=${index}`);
-      setDirectiveState(res.directives || res);
-    } catch (err) {
-      console.error('Failed to remove directive:', err);
-    }
-  }, [gameId]);
-
-  const handleRestoreDirective = useCallback(async (text) => {
-    if (!gameId) return;
-    try {
-      await api.post(`/api/game/${gameId}/talk-to-gm/meta`, { question: `Please restore my directive: ${text}` });
-      refetchDirectiveState();
-    } catch (err) {
-      console.error('Failed to restore directive:', err);
-    }
-  }, [gameId, refetchDirectiveState]);
-
-  const addDirectiveToast = useCallback((removed) => {
-    const id = Date.now() + Math.random();
-    setDirectiveToasts(prev => [...prev, { id, ...removed }]);
-    setTimeout(() => {
-      setDirectiveToasts(prev => prev.map(t => t.id === id ? { ...t, fading: true } : t));
-      setTimeout(() => {
-        setDirectiveToasts(prev => prev.filter(t => t.id !== id));
-      }, 300);
-    }, 8000);
-  }, []);
-
-  const dismissDirectiveToast = useCallback((id) => {
-    setDirectiveToasts(prev => prev.map(t => t.id === id ? { ...t, fading: true } : t));
-    setTimeout(() => {
-      setDirectiveToasts(prev => prev.filter(t => t.id !== id));
-    }, 300);
-  }, []);
-
   // ─── Compute lastResolution and lastStateChanges for TalkToGM contextual chip ───
   const lastResolutionTurn = turns.slice().reverse().find(t => t.resolution);
   const lastResolution = lastResolutionTurn?.resolution || null;
@@ -797,7 +748,14 @@ function PlayPage() {
 
   function handleEnterWorld() {
     setOverlayFading(true);
-    setTimeout(() => setOverlayDismissed(true), 600);
+    window.scrollTo(0, 0);
+    setTimeout(() => {
+      setOverlayDismissed(true);
+      // Scroll narrative to top for new games so player reads the prologue
+      if (!isReturningGame && narrativeRef.current) {
+        narrativeRef.current.scrollTo(0, 0);
+      }
+    }, 600);
   }
 
   // Read summary from sessionStorage
@@ -897,6 +855,7 @@ function PlayPage() {
         </div>
         <Sidebar
           collapsed={!sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen(prev => !prev)}
           characterData={characterData}
           glossaryData={glossaryData}
           glossaryTerms={glossaryTerms}
@@ -1161,7 +1120,8 @@ export default function Page() {
   );
 }
 
-// FILE: app/play/components/ActionPanel.js
+
+// ===== FILE: app/play/components/ActionPanel.js =====
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './ActionPanel.module.css';
@@ -1311,14 +1271,17 @@ export default function ActionPanel({
         {error && <div className={styles.errorText}>{error}</div>}
 
         {compassOpen && (
-          <CompassPopover
-            objectives={objectives}
-            currentLocation={currentLocation}
-            onEscalate={onEscalate}
-            onClose={onToggleCompass}
-            glossaryTerms={glossaryTerms}
-            onEntityClick={onEntityClick}
-          />
+          <>
+            <div className={styles.compassBackdrop} onClick={onToggleCompass} />
+            <CompassPopover
+              objectives={objectives}
+              currentLocation={currentLocation}
+              onEscalate={onEscalate}
+              onClose={onToggleCompass}
+              glossaryTerms={glossaryTerms}
+              onEntityClick={onEntityClick}
+            />
+          </>
         )}
 
         {submitting ? (
@@ -1413,7 +1376,8 @@ export default function ActionPanel({
   );
 }
 
-// FILE: app/play/components/CharacterTab.js
+
+// ===== FILE: app/play/components/CharacterTab.js =====
 import PanelSection from './PanelSection';
 import styles from './CharacterTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
@@ -1621,7 +1585,8 @@ export default function CharacterTab({ data, onEntityClick }) {
   );
 }
 
-// FILE: app/play/components/DebugPanel.js
+
+// ===== FILE: app/play/components/DebugPanel.js =====
 'use client';
 
 import React, { useState, useRef, useCallback } from 'react';
@@ -2570,7 +2535,8 @@ export default function DebugPanel({ entries, onClear }) {
   );
 }
 
-// FILE: app/play/components/EntityPopup.js
+
+// ===== FILE: app/play/components/EntityPopup.js =====
 import { useState, useEffect, useCallback } from 'react';
 import * as api from '@/lib/api';
 import { renderLinkedText } from '@/lib/renderLinkedText';
@@ -2750,7 +2716,8 @@ export default function EntityPopup({ entity, glossaryData, glossaryTerms, notes
   );
 }
 
-// FILE: app/play/components/GlossaryTab.js
+
+// ===== FILE: app/play/components/GlossaryTab.js =====
 import { useState, useMemo } from 'react';
 import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './GlossaryTab.module.css';
@@ -2867,7 +2834,8 @@ export default function GlossaryTab({ data, characterData, glossaryTerms, onEnti
   );
 }
 
-// FILE: app/play/components/InlineDicePanel.js
+
+// ===== FILE: app/play/components/InlineDicePanel.js =====
 import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './InlineDicePanel.module.css';
 
@@ -3244,7 +3212,8 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
   );
 }
 
-// FILE: app/play/components/InventoryTab.js
+
+// ===== FILE: app/play/components/InventoryTab.js =====
 import PanelSection from './PanelSection';
 import styles from './InventoryTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
@@ -3371,7 +3340,8 @@ export default function InventoryTab({ data, onEntityClick }) {
   );
 }
 
-// FILE: app/play/components/MapTab.js
+
+// ===== FILE: app/play/components/MapTab.js =====
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -4089,7 +4059,8 @@ export default function MapTab({ data: initialData, gameId, onEntityClick }) {
   );
 }
 
-// FILE: app/play/components/NarrativePanel.js
+
+// ===== FILE: app/play/components/NarrativePanel.js =====
 import { useRef, useEffect, forwardRef } from 'react';
 import TurnBlock from './TurnBlock';
 import TalkToGM from './TalkToGM';
@@ -4212,7 +4183,8 @@ const NarrativePanel = forwardRef(function NarrativePanel({
 
 export default NarrativePanel;
 
-// FILE: app/play/components/NotesTab.js
+
+// ===== FILE: app/play/components/NotesTab.js =====
 import { useState, useCallback } from 'react';
 import * as api from '@/lib/api';
 import styles from './NotesTab.module.css';
@@ -4345,7 +4317,8 @@ export default function NotesTab({ data, gameId, onNotesChange }) {
   );
 }
 
-// FILE: app/play/components/NPCTab.js
+
+// ===== FILE: app/play/components/NPCTab.js =====
 import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './NPCTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
@@ -4383,7 +4356,8 @@ export default function NPCTab({ glossaryData, glossaryTerms, onEntityClick }) {
   );
 }
 
-// FILE: app/play/components/PanelSection.js
+
+// ===== FILE: app/play/components/PanelSection.js =====
 import { useState } from 'react';
 import styles from './PanelSection.module.css';
 
@@ -4400,7 +4374,8 @@ export default function PanelSection({ title, children, defaultOpen = true }) {
   );
 }
 
-// FILE: app/play/components/ReflectionBlock.js
+
+// ===== FILE: app/play/components/ReflectionBlock.js =====
 import styles from './ReflectionBlock.module.css';
 import { renderNarrative } from '@/lib/renderLinkedText';
 
@@ -4488,7 +4463,8 @@ export default function ReflectionBlock({ reflection, glossaryTerms, onEntityCli
   );
 }
 
-// FILE: app/play/components/ReportModal.js
+
+// ===== FILE: app/play/components/ReportModal.js =====
 'use client';
 
 import { useState } from 'react';
@@ -4892,7 +4868,8 @@ export default function ReportModal({ mode, gameId, gameState, turns, characterD
   );
 }
 
-// FILE: app/play/components/ResolutionBlock.js
+
+// ===== FILE: app/play/components/ResolutionBlock.js =====
 import { useState } from 'react';
 import styles from './ResolutionBlock.module.css';
 
@@ -5012,7 +4989,8 @@ export default function ResolutionBlock({ resolution }) {
   );
 }
 
-// FILE: app/play/components/SettingsModal.js
+
+// ===== FILE: app/play/components/SettingsModal.js =====
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -6137,8 +6115,9 @@ export default function SettingsModal({ settings, onSave, onClose, gameId, gameS
   );
 }
 
-// FILE: app/play/components/Sidebar.js
-import { useState, useCallback } from 'react';
+
+// ===== FILE: app/play/components/Sidebar.js =====
+import { useState, useCallback, useEffect } from 'react';
 import CharacterTab from './CharacterTab';
 import InventoryTab from './InventoryTab';
 import NPCTab from './NPCTab';
@@ -6197,6 +6176,7 @@ const TABS = [
 
 export default function Sidebar({
   collapsed,
+  onToggleSidebar,
   characterData,
   glossaryData,
   glossaryTerms,
@@ -6214,6 +6194,16 @@ export default function Sidebar({
 }) {
   const [activeTab, setActiveTab] = useState('character');
   const [width, setWidth] = useState(340);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Track mobile breakpoint
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 768px)');
+    setIsMobile(mql.matches);
+    const handler = (e) => setIsMobile(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
 
   const handleTabClick = useCallback((tabId) => {
     setActiveTab(tabId);
@@ -6240,7 +6230,8 @@ export default function Sidebar({
     document.addEventListener('mouseup', onUp);
   }, [width]);
 
-  if (collapsed) return null;
+  // On mobile, collapsed means drawer is closed — don't render at all on desktop when collapsed
+  if (collapsed && !isMobile) return null;
 
   const renderContent = () => {
     switch (activeTab) {
@@ -6261,6 +6252,76 @@ export default function Sidebar({
     }
   };
 
+  // Mobile: render as a slide-over drawer
+  if (isMobile) {
+    return (
+      <div
+        className={`${styles.drawerOverlay} ${!collapsed ? styles.drawerOverlayOpen : ''}`}
+        onClick={onToggleSidebar}
+      >
+        <div
+          className={`${styles.drawer} ${!collapsed ? styles.drawerOpen : ''}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button className={styles.drawerClose} onClick={onToggleSidebar} aria-label="Close sidebar">
+            &times;
+          </button>
+          <div className={styles.tabBar}>
+            {TABS.map(tab => (
+              <button
+                key={tab.id}
+                className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ''}`}
+                onClick={() => handleTabClick(tab.id)}
+                title={tab.label}
+                aria-label={tab.label}
+              >
+                {TabIcons[tab.id](activeTab === tab.id ? '#c9a84c' : '#7082a4')}
+                {notifications?.[tab.id] > 0 && (
+                  <span className={styles.badge}>{notifications[tab.id]}</span>
+                )}
+              </button>
+            ))}
+          </div>
+          <div className={styles.tabContent}>
+            {renderContent()}
+          </div>
+          {(onOpenReport || isDebugUser) && (
+            <div className={styles.sidebarFooter}>
+              {onOpenReport && (
+                <>
+                  <button className={styles.footerIconBtn} onClick={() => onOpenReport('bug')} aria-label="Report a bug" data-tooltip="Report a bug">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="8" y="6" width="8" height="14" rx="4" /><path d="M19 10h2" /><path d="M3 10h2" />
+                      <path d="M19 14h2" /><path d="M3 14h2" /><path d="M19 18h2" /><path d="M3 18h2" />
+                      <path d="M16 2l-2 4" /><path d="M8 2l2 4" />
+                    </svg>
+                  </button>
+                  <button className={styles.footerIconBtn} onClick={() => onOpenReport('suggest')} aria-label="Share a suggestion" data-tooltip="Share a suggestion">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 18h6" /><path d="M10 22h4" />
+                      <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
+                    </svg>
+                  </button>
+                </>
+              )}
+              {isDebugUser && onToggleDebug && (
+                <button className={styles.footerBtn} onClick={onToggleDebug}
+                  style={{ color: debugMode ? '#c9a84c' : undefined, borderColor: debugMode ? '#c9a84c33' : undefined }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" />
+                  </svg>
+                  Debug {debugMode ? 'ON' : 'OFF'}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop: render inline as before
   return (
     <div className={styles.sidebar} style={{ width }}>
       <div className={styles.resizeHandle} onMouseDown={handleMouseDown} />
@@ -6318,7 +6379,8 @@ export default function Sidebar({
   );
 }
 
-// FILE: app/play/components/TalkToGM.js
+
+// ===== FILE: app/play/components/TalkToGM.js =====
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as api from '@/lib/api';
 import { renderLinkedText } from '@/lib/renderLinkedText';
@@ -7162,7 +7224,8 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
   );
 }
 
-// FILE: app/play/components/TopBar.js
+
+// ===== FILE: app/play/components/TopBar.js =====
 import Link from 'next/link';
 import AuthAvatar from '@/components/AuthAvatar';
 import styles from './TopBar.module.css';
@@ -7275,7 +7338,8 @@ export default function TopBar({ setting, clock, sseConnected, sidebarOpen, onTo
   );
 }
 
-// FILE: app/play/components/TurnBlock.js
+
+// ===== FILE: app/play/components/TurnBlock.js =====
 import React, { useState, forwardRef } from 'react';
 import InlineDicePanel from './InlineDicePanel';
 import ResolutionBlock from './ResolutionBlock';
@@ -7565,3 +7629,5 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
 });
 
 export default TurnBlock;
+
+
