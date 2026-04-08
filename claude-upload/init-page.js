@@ -1478,6 +1478,44 @@ function CharacterForm({ character, onChange }) {
       </div>
 
       <div>
+        <label style={labelStyle}>Powers Beyond the Ordinary? {optionalTag}</label>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {[
+            { value: 'no', label: 'No', desc: 'Grounded in skill and experience' },
+            { value: 'yes', label: 'Yes', desc: 'Magic, psionics, divine gifts, or something stranger' },
+          ].map(opt => {
+            const isActive = character.powersFlag === opt.value;
+            return (
+              <button key={opt.value}
+                onClick={() => onChange('powersFlag', isActive ? '' : opt.value)}
+                className={styles.optionToggle}
+                style={{
+                  flex: 1, minWidth: 140, padding: '12px 16px', textAlign: 'left',
+                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 400,
+                  color: isActive ? 'var(--accent-gold)' : 'var(--text-muted)',
+                  background: isActive ? 'var(--bg-gold-light)' : 'var(--bg-main)',
+                  border: `1px solid ${isActive ? 'var(--border-card-hover)' : 'var(--border-gold-faint)'}`,
+                  borderRadius: 6, display: 'flex', flexDirection: 'column', gap: 4,
+                }}>
+                <span style={{ fontWeight: 600, fontSize: 15 }}>{opt.label}</span>
+                <span style={{ fontSize: 13, color: isActive ? 'var(--accent-gold)' : 'var(--text-dim)', lineHeight: 1.4 }}>{opt.desc}</span>
+              </button>
+            );
+          })}
+        </div>
+        {character.powersFlag === 'yes' && (
+          <textarea
+            value={character.powersDescription || ''}
+            onChange={e => onChange('powersDescription', e.target.value)}
+            placeholder="Describe it however you want — a sentence is enough. Fire magic, divine healing, psychic visions, cybernetic augments..."
+            rows={2}
+            className={styles.wizardInput}
+            style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6, marginTop: 10 }}
+          />
+        )}
+      </div>
+
+      <div>
         <label style={labelStyle}>Personality {optionalTag}</label>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
           {personalityTraits.map(trait => {
@@ -1663,13 +1701,11 @@ function Phase3({ characterMode, hasArchetypes, selectedArchetype, availableArch
   );
 }
 
-function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills, startingLoadout, factionStandings, innateTraits, softWarnings, hardErrors, onHardErrorsClear, skillRequests, onSkillRequestsChange, gearRequests, onGearRequestsChange, onRegenerate, regenerating }) {
-  const [editing, setEditing] = useState(false);
+function StatEditor({ stats: initialStats, onStatsChange, onHardErrorsClear }) {
   const [stats, setStats] = useState(initialStats);
   const [editingStatName, setEditingStatName] = useState(null);
   const [editInputValue, setEditInputValue] = useState('');
 
-  // Re-sync internal stats when proposal data arrives (e.g. after retry)
   useEffect(() => {
     if (initialStats.length > 0) {
       setStats(initialStats);
@@ -1710,10 +1746,6 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
     setEditingStatName(null);
   };
 
-  const formatTraitName = (trait) => {
-    return trait.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-  };
-
   const getTier = (val) => {
     if (val >= 21) return 'Ascendant';
     if (val >= 16) return 'Peak Mortal';
@@ -1727,27 +1759,16 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
 
   return (
     <div>
-      <PhaseTitle title="Your Attributes" subtitle="Derived from your backstory. These are who you are." />
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div style={{
-          fontFamily: 'var(--font-jetbrains)', fontSize: 13,
-          color: 'var(--text-muted)',
-        }}>
-          Total: <span style={{ color: 'var(--text-heading)', fontWeight: 500 }}>{statTotal.toFixed(1)}</span>
-        </div>
-        <button onClick={() => setEditing(!editing)} className={styles.adjustBtn} style={{
-          fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 700,
-          color: editing ? 'var(--bg-main)' : 'var(--text-secondary)', letterSpacing: '0.08em',
-          background: editing ? 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))' : 'transparent',
-          border: `1px solid ${editing ? 'transparent' : 'var(--border-primary)'}`,
-          borderRadius: 5, padding: '9px 24px',
-        }}>{editing ? 'LOCK' : 'ADJUST'}</button>
+      <div style={{
+        fontFamily: 'var(--font-jetbrains)', fontSize: 13,
+        color: 'var(--text-muted)', marginBottom: 16,
+      }}>
+        Total: <span style={{ color: 'var(--text-heading)', fontWeight: 500 }}>{statTotal.toFixed(1)}</span>
       </div>
 
       <div style={{
         background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 0',
-        marginBottom: 20,
+        marginBottom: 16,
       }}>
         {stats.map((s, i) => {
           const pct = (s.value / 20) * 100;
@@ -1769,67 +1790,60 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
                   color: 'var(--text-muted)', fontStyle: 'italic', marginRight: 8,
                 }}>{getTier(s.value)}</span>
 
-                {editing ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 0, width: 168, flexShrink: 0, justifyContent: 'flex-end' }}>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <button onClick={() => handleStatChange(s.name, -0.5)} className={styles.statStepBtn} style={{
-                        width: 32, height: 32, borderRadius: '6px 0 0 6px',
-                        background: '#0d1120', border: '1px solid var(--border-primary)',
-                        color: 'var(--text-secondary)', fontSize: 18, fontWeight: 700,
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>{'\u2212'}</button>
-                      {editingStatName === s.name ? (
-                        <input
-                          type="text"
-                          value={editInputValue}
-                          onChange={e => setEditInputValue(e.target.value)}
-                          onBlur={() => handleStatDirectEdit(s.name, editInputValue)}
-                          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleStatDirectEdit(s.name, editInputValue); } if (e.key === 'Escape') setEditingStatName(null); }}
-                          autoFocus
-                          style={{
-                            width: 56, height: 32, textAlign: 'center',
-                            background: 'var(--bg-main)', borderTop: '1px solid var(--accent-gold)', borderBottom: '1px solid var(--accent-gold)',
-                            borderLeft: 'none', borderRight: 'none', outline: 'none',
-                            fontFamily: 'var(--font-jetbrains)', fontSize: 15, fontWeight: 500,
-                            color: 'var(--accent-gold)', boxSizing: 'border-box',
-                          }}
-                        />
-                      ) : (
-                        <div
-                          onClick={() => { setEditingStatName(s.name); setEditInputValue(s.value.toFixed(1)); }}
-                          style={{
-                            width: 56, height: 32,
-                            background: 'var(--bg-main)', borderTop: '1px solid var(--border-primary)', borderBottom: '1px solid var(--border-primary)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontFamily: 'var(--font-jetbrains)', fontSize: 15, fontWeight: 500,
-                            color: changed ? 'var(--accent-gold)' : 'var(--text-heading)',
-                            cursor: 'text',
-                          }}>{s.value.toFixed(1)}</div>
-                      )}
-                      <button onClick={() => handleStatChange(s.name, 0.5)} className={styles.statStepBtn} style={{
-                        width: 32, height: 32, borderRadius: '0 6px 6px 0',
-                        background: '#0d1120', border: '1px solid var(--border-primary)',
-                        color: 'var(--text-secondary)', fontSize: 18, fontWeight: 700,
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>+</button>
-                    </div>
-                    <span style={{
-                      fontFamily: 'var(--font-jetbrains)', fontSize: 11,
-                      color: delta > 0 ? 'var(--color-success)' : 'var(--color-danger)',
-                      width: 44, textAlign: 'right',
-                      visibility: changed ? 'visible' : 'hidden',
-                    }}>{delta > 0 ? '+' : ''}{delta.toFixed(1)}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 0, width: 168, flexShrink: 0, justifyContent: 'flex-end' }}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <button onClick={() => handleStatChange(s.name, -0.5)} className={styles.statStepBtn} style={{
+                      width: 32, height: 32, borderRadius: '6px 0 0 6px',
+                      background: '#0d1120', border: '1px solid var(--border-primary)',
+                      color: 'var(--text-secondary)', fontSize: 18, fontWeight: 700,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>{'\u2212'}</button>
+                    {editingStatName === s.name ? (
+                      <input
+                        type="text"
+                        value={editInputValue}
+                        onChange={e => setEditInputValue(e.target.value)}
+                        onBlur={() => handleStatDirectEdit(s.name, editInputValue)}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleStatDirectEdit(s.name, editInputValue); } if (e.key === 'Escape') setEditingStatName(null); }}
+                        autoFocus
+                        style={{
+                          width: 56, height: 32, textAlign: 'center',
+                          background: 'var(--bg-main)', borderTop: '1px solid var(--accent-gold)', borderBottom: '1px solid var(--accent-gold)',
+                          borderLeft: 'none', borderRight: 'none', outline: 'none',
+                          fontFamily: 'var(--font-jetbrains)', fontSize: 15, fontWeight: 500,
+                          color: 'var(--accent-gold)', boxSizing: 'border-box',
+                        }}
+                      />
+                    ) : (
+                      <div
+                        onClick={() => { setEditingStatName(s.name); setEditInputValue(s.value.toFixed(1)); }}
+                        style={{
+                          width: 56, height: 32,
+                          background: 'var(--bg-main)', borderTop: '1px solid var(--border-primary)', borderBottom: '1px solid var(--border-primary)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontFamily: 'var(--font-jetbrains)', fontSize: 15, fontWeight: 500,
+                          color: changed ? 'var(--accent-gold)' : 'var(--text-heading)',
+                          cursor: 'text',
+                        }}>{s.value.toFixed(1)}</div>
+                    )}
+                    <button onClick={() => handleStatChange(s.name, 0.5)} className={styles.statStepBtn} style={{
+                      width: 32, height: 32, borderRadius: '0 6px 6px 0',
+                      background: '#0d1120', border: '1px solid var(--border-primary)',
+                      color: 'var(--text-secondary)', fontSize: 18, fontWeight: 700,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>+</button>
                   </div>
-                ) : (
                   <span style={{
-                    fontFamily: 'var(--font-jetbrains)', fontSize: 17, fontWeight: 500,
-                    color: 'var(--text-heading)', minWidth: 40, textAlign: 'right',
-                  }}>{s.value.toFixed(1)}</span>
-                )}
+                    fontFamily: 'var(--font-jetbrains)', fontSize: 11,
+                    color: delta > 0 ? 'var(--color-success)' : 'var(--color-danger)',
+                    width: 44, textAlign: 'right',
+                    visibility: changed ? 'visible' : 'hidden',
+                  }}>{delta > 0 ? '+' : ''}{delta.toFixed(1)}</span>
+                </div>
               </div>
 
               <div style={{ height: 8, background: 'var(--bg-main)', borderRadius: 4, overflow: 'hidden', marginLeft: 34 }}>
-                {editing && changed ? (
+                {changed ? (
                   <div style={{ position: 'relative', height: '100%' }}>
                     <div style={{
                       position: 'absolute', top: 0, left: 0,
@@ -1855,6 +1869,108 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
           );
         })}
       </div>
+
+      {hasDeviation && (
+        <div style={{
+          padding: '14px 18px',
+          background: '#17171d',
+          border: '1px solid #362b24',
+          borderRadius: 8,
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#e8a04a',
+          lineHeight: 1.6, marginBottom: 12,
+        }}>
+          Some stats have changed significantly from what your backstory suggests. The engine may ask you to adjust your backstory to match, or it will adapt the stats to fit.
+        </div>
+      )}
+
+      {!hasDeviation && (
+        <p style={{
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-muted)',
+          lineHeight: 1.6, margin: 0,
+        }}>
+          Use +/- buttons or click a value to type directly. Stats must be between 1.0 and 20.0. Inventory slots update with Strength.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Phase4({ stats, initialStats, skills, foundationalSkills, startingLoadout, factionStandings, innateTraits, softWarnings, hardErrors, inventorySlots, onOpenStats, onOpenRequests, skillRequests, gearRequests, requestsRegenerated }) {
+  const formatTraitName = (trait) => {
+    return trait.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  };
+
+  const getTier = (val) => {
+    if (val >= 21) return 'Ascendant';
+    if (val >= 16) return 'Peak Mortal';
+    if (val >= 11) return 'Elite';
+    if (val >= 6) return 'Professional';
+    if (val >= 3) return 'Gifted Beginner';
+    return 'Novice';
+  };
+
+  const statTotal = stats.reduce((sum, s) => sum + s.value, 0);
+  const hasUnsubmittedRequests = (skillRequests?.trim() || gearRequests?.trim()) && !requestsRegenerated;
+
+  return (
+    <div>
+      <PhaseTitle title="Your Attributes" subtitle="Derived from your backstory. Review your build, then adjust or request changes." />
+
+      {/* Read-only stats card */}
+      <div style={{
+        background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10, padding: '4px 0',
+        marginBottom: 16,
+      }}>
+        {stats.map((s, i) => {
+          const pct = (s.value / 20) * 100;
+          return (
+            <div key={s.name} style={{
+              padding: '12px 20px',
+              borderBottom: i < stats.length - 1 ? '1px solid var(--border-primary)' : 'none',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{s.emoji}</span>
+                <span style={{
+                  fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 700,
+                  color: 'var(--text-heading)', flex: 1,
+                }}>{s.name}</span>
+                <span style={{
+                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 12,
+                  color: 'var(--text-muted)', fontStyle: 'italic', marginRight: 8,
+                }}>{getTier(s.value)}</span>
+                <span style={{
+                  fontFamily: 'var(--font-jetbrains)', fontSize: 16, fontWeight: 500,
+                  color: 'var(--text-heading)', minWidth: 40, textAlign: 'right',
+                }}>{s.value.toFixed(1)}</span>
+              </div>
+              <div style={{ height: 8, background: 'var(--bg-main)', borderRadius: 4, overflow: 'hidden', marginLeft: 34 }}>
+                <div style={{
+                  height: '100%', width: `${pct}%`, borderRadius: 4,
+                  background: 'linear-gradient(90deg, #7082a4, #c9a84c)',
+                  transition: 'width 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                }} />
+              </div>
+            </div>
+          );
+        })}
+        {/* Stat total footer */}
+        <div style={{
+          fontFamily: 'var(--font-jetbrains)', fontSize: 12, color: 'var(--text-dim)',
+          textAlign: 'right', padding: '8px 20px',
+          borderTop: '1px solid var(--border-primary)',
+        }}>
+          Total: {statTotal.toFixed(1)}
+        </div>
+      </div>
+
+      {/* Adjust Stats button */}
+      <button onClick={onOpenStats} className={styles.adjustBtn} style={{
+        width: '100%', padding: 12, borderRadius: 8,
+        background: 'transparent', border: '1px solid var(--border-card)',
+        color: 'var(--text-secondary)',
+        fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em',
+        cursor: 'pointer', marginBottom: 24,
+      }}>ADJUST STATS</button>
 
       {/* Hard Errors */}
       {hardErrors && hardErrors.length > 0 && (
@@ -1975,100 +2091,25 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
       {/* Inventory Slots */}
       <div style={{
         background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '10px 16px',
-        fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)',
+        fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)', marginBottom: 24,
       }}>
         <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Inventory Slots: </span>
-        {(stats.find(s => s.name === 'Strength')?.value || 6.5) + 5} (STR {stats.find(s => s.name === 'Strength')?.value.toFixed(1)} + 5)
+        {inventorySlots} (STR {stats.find(s => s.name === 'Strength')?.value.toFixed(1)} + 5)
       </div>
 
-      {editing && hasDeviation && (
-        <div style={{
-          marginTop: 16, padding: '14px 18px',
-          background: '#17171d',
-          border: '1px solid #362b24',
-          borderRadius: 8,
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#e8a04a',
-          lineHeight: 1.6,
-        }}>
-          Some stats have changed significantly from what your backstory suggests. The engine may ask you to adjust your backstory to match, or it will adapt the stats to fit.
-        </div>
-      )}
-
-      {editing && !hasDeviation && (
-        <p style={{
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-muted)',
-          marginTop: 16, lineHeight: 1.6,
-        }}>
-          Use +/- buttons or click a value to type directly. Stats must be between 1.0 and 20.0. Inventory slots update with Strength.
-        </p>
-      )}
-
-      <div style={{
-        marginTop: 28, padding: '24px 24px 20px',
-        background: 'var(--bg-gold-faint)',
-        border: '1px solid var(--border-gold-faint)',
-        borderRadius: 10,
+      {/* Request Changes button */}
+      <button onClick={onOpenRequests} className={styles.adjustBtn} style={{
+        width: '100%', padding: 12, borderRadius: 8,
+        background: 'transparent', border: '1px solid var(--border-card)',
+        color: 'var(--text-secondary)',
+        fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em',
+        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
       }}>
-        <h3 style={{
-          fontFamily: 'var(--font-cinzel)', fontSize: 19, fontWeight: 700,
-          color: 'var(--text-heading)', marginBottom: 6,
-        }}>Requests</h3>
-        <p style={{
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)',
-          margin: '0 0 20px 0', lineHeight: 1.5,
-        }}>Optional. Describe what you'd like, then regenerate to get an updated proposal.</p>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div>
-            <label style={{
-              fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600,
-              color: 'var(--text-secondary)', display: 'block', marginBottom: 8,
-            }}>Skills</label>
-            <textarea value={skillRequests} onChange={e => onSkillRequestsChange(e.target.value)} placeholder='Any skills you want to start with? e.g. "I want to be good with a bow" or "Some kind of healing ability"' rows={2} className={styles.wizardInput} style={{
-              width: '100%', background: 'var(--bg-main)', border: '1px solid var(--border-gold-subtle)',
-              borderRadius: 8, padding: 14, fontFamily: 'var(--font-alegreya)', fontSize: 16,
-              color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6,
-            }} />
-          </div>
-          <div>
-            <label style={{
-              fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600,
-              color: 'var(--text-secondary)', display: 'block', marginBottom: 8,
-            }}>Starting Gear</label>
-            <textarea value={gearRequests} onChange={e => onGearRequestsChange(e.target.value)} placeholder='Anything specific you want to carry? e.g. "An old family sword" or "A leather journal with strange symbols"' rows={2} className={styles.wizardInput} style={{
-              width: '100%', background: 'var(--bg-main)', border: '1px solid var(--border-gold-subtle)',
-              borderRadius: 8, padding: 14, fontFamily: 'var(--font-alegreya)', fontSize: 16,
-              color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6,
-            }} />
-          </div>
-        </div>
-
-        <button
-          onClick={onRegenerate}
-          disabled={regenerating || (!skillRequests.trim() && !gearRequests.trim())}
-          className={styles.adjustBtn}
-          style={{
-            marginTop: 18, width: '100%', padding: '12px 24px',
-            fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
-            letterSpacing: '0.08em',
-            color: regenerating || (!skillRequests.trim() && !gearRequests.trim()) ? 'var(--text-dim)' : 'var(--accent-gold)',
-            background: 'transparent',
-            border: `1px solid ${regenerating || (!skillRequests.trim() && !gearRequests.trim()) ? 'var(--border-gold-faint)' : 'var(--border-card)'}`,
-            borderRadius: 5,
-            cursor: regenerating || (!skillRequests.trim() && !gearRequests.trim()) ? 'default' : 'pointer',
-          }}
-        >
-          {regenerating ? (
-            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-              <svg width="16" height="16" viewBox="0 0 16 16" style={{ animation: 'spin 0.9s linear infinite' }}>
-                <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.3" />
-                <path d="M8 2 A6 6 0 0 1 14 8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-              REGENERATING...
-            </span>
-          ) : 'REGENERATE PROPOSAL'}
-        </button>
-      </div>
+        {hasUnsubmittedRequests && (
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#e8a04a', flexShrink: 0 }} />
+        )}
+        REQUEST CHANGES
+      </button>
     </div>
   );
 }
@@ -2542,11 +2583,12 @@ function InitWizardInner() {
   const [fieldModalOpen, setFieldModalOpen] = useState(null); // null | 'era' | 'custom' | 'your-worlds' | 'advanced'
   const [seedFactions, setSeedFactions] = useState([]);
   const [seedNpcs, setSeedNpcs] = useState([]);
-  const [archetypeChar, setArchetypeChar] = useState({ name: '', backstory: '', personality: '', personalityCustom: '', appearance: '', pronouns: '', customPronouns: '', genderIdentity: '' });
-  const [customChar, setCustomChar] = useState({ name: '', backstory: '', personality: '', personalityCustom: '', appearance: '', pronouns: '', customPronouns: '', genderIdentity: '' });
+  const [archetypeChar, setArchetypeChar] = useState({ name: '', backstory: '', personality: '', personalityCustom: '', appearance: '', pronouns: '', customPronouns: '', genderIdentity: '', powersFlag: '', powersDescription: '' });
+  const [customChar, setCustomChar] = useState({ name: '', backstory: '', personality: '', personalityCustom: '', appearance: '', pronouns: '', customPronouns: '', genderIdentity: '', powersFlag: '', powersDescription: '' });
   const [selectedArchetype, setSelectedArchetype] = useState(null);
   const [characterMode, setCharacterMode] = useState('archetype');
   const [charFieldModal, setCharFieldModal] = useState(null); // null | 'archetype' | 'custom'
+  const [attrFieldModal, setAttrFieldModal] = useState(null); // null | 'stats' | 'requests'
 
   // Derived: available archetypes for current setting
   const archetypeEra = setting === 'custom' ? null
@@ -2620,6 +2662,13 @@ function InitWizardInner() {
       setCharFieldModal('custom');
     }
   }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-close Requests FieldModal after successful regeneration
+  useEffect(() => {
+    if (!proposalLoading && attrFieldModal === 'requests' && requestsRegenerated) {
+      setAttrFieldModal(null);
+    }
+  }, [proposalLoading, requestsRegenerated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Connection state ---
   const [connectionFailed, setConnectionFailed] = useState(false);
@@ -3018,6 +3067,8 @@ function InitWizardInner() {
       gender: char.customPronouns || char.pronouns || null,
       customPronouns: char.customPronouns || null,
       archetypeId: characterMode === 'archetype' ? selectedArchetype : null,
+      powersFlag: char.powersFlag || null,
+      powersDescription: char.powersDescription || null,
     });
   };
 
@@ -3313,6 +3364,7 @@ function InitWizardInner() {
       setModalFading(true);
       setFieldModalOpen(null);
       setCharFieldModal(null);
+      setAttrFieldModal(null);
       await new Promise(r => setTimeout(r, 150));
       if (phase < 5) setPhase(phase + 1);
       requestAnimationFrame(() => {
@@ -3529,8 +3581,8 @@ function InitWizardInner() {
               </div>
             ) : (
               <Phase4
-                stats={proposal?.stats || (!gameId ? SAMPLE_STATS : [])}
-                onStatsChange={setAdjustedStats}
+                stats={adjustedStats || proposal?.stats || (!gameId ? SAMPLE_STATS : [])}
+                initialStats={proposal?.stats || (!gameId ? SAMPLE_STATS : [])}
                 skills={proposal?.skills}
                 foundationalSkills={proposal?.foundationalSkills}
                 startingLoadout={proposal?.startingLoadout}
@@ -3538,13 +3590,12 @@ function InitWizardInner() {
                 innateTraits={proposal?.innateTraits}
                 softWarnings={proposalValidation.softWarnings}
                 hardErrors={proposalValidation.hardErrors}
-                onHardErrorsClear={() => setProposalValidation(prev => ({ ...prev, hardErrors: [] }))}
+                inventorySlots={((adjustedStats || proposal?.stats || []).find(s => s.name === 'Strength')?.value || 6.5) + 5}
+                onOpenStats={() => setAttrFieldModal('stats')}
+                onOpenRequests={() => setAttrFieldModal('requests')}
                 skillRequests={skillRequests}
-                onSkillRequestsChange={(val) => { setSkillRequests(val); setRequestsRegenerated(false); }}
                 gearRequests={gearRequests}
-                onGearRequestsChange={(val) => { setGearRequests(val); setRequestsRegenerated(false); }}
-                onRegenerate={generateProposal}
-                regenerating={proposalLoading}
+                requestsRegenerated={requestsRegenerated}
               />
             )
           )}
@@ -3777,6 +3828,85 @@ function InitWizardInner() {
             character={customChar}
             onChange={(key, val) => { setConfirmVisible(false); setCustomChar(prev => ({ ...prev, [key]: val })); }}
           />
+        </FieldModal>
+      )}
+
+      {/* Attributes FieldModals */}
+      {attrFieldModal === 'stats' && (
+        <FieldModal title="Adjust Stats" onClose={() => setAttrFieldModal(null)} footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button onClick={() => setAttrFieldModal(null)} style={{
+              fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
+              color: 'var(--bg-main)', letterSpacing: '0.08em',
+              background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
+              border: 'none', borderRadius: 5, padding: '10px 28px', cursor: 'pointer',
+            }}>DONE</button>
+          </div>
+        }>
+          <StatEditor
+            stats={adjustedStats || proposal?.stats || (!gameId ? SAMPLE_STATS : [])}
+            initialStats={proposal?.stats || (!gameId ? SAMPLE_STATS : [])}
+            onStatsChange={setAdjustedStats}
+            onHardErrorsClear={() => setProposalValidation(prev => ({ ...prev, hardErrors: [] }))}
+          />
+        </FieldModal>
+      )}
+
+      {attrFieldModal === 'requests' && (
+        <FieldModal title="Request Changes" onClose={() => setAttrFieldModal(null)} footer={
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', width: '100%' }}>
+            <button onClick={() => setAttrFieldModal(null)} style={{
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--text-muted)',
+              background: 'none', border: 'none', padding: '10px 20px', cursor: 'pointer',
+            }}>Done</button>
+            <button
+              onClick={generateProposal}
+              disabled={proposalLoading || (!skillRequests.trim() && !gearRequests.trim())}
+              className={styles.adjustBtn}
+              style={{
+                padding: '10px 24px',
+                fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
+                letterSpacing: '0.08em',
+                color: proposalLoading || (!skillRequests.trim() && !gearRequests.trim()) ? 'var(--text-dim)' : 'var(--accent-gold)',
+                background: 'transparent',
+                border: `1px solid ${proposalLoading || (!skillRequests.trim() && !gearRequests.trim()) ? 'var(--border-gold-faint)' : 'var(--border-card)'}`,
+                borderRadius: 5,
+                cursor: proposalLoading || (!skillRequests.trim() && !gearRequests.trim()) ? 'default' : 'pointer',
+              }}
+            >
+              {proposalLoading ? 'REGENERATING...' : 'REGENERATE'}
+            </button>
+          </div>
+        }>
+          <p style={{
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)',
+            margin: '0 0 20px 0', lineHeight: 1.5,
+          }}>Optional. Describe what you'd like, then regenerate to get an updated proposal.</p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div>
+              <label style={{
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600,
+                color: 'var(--text-secondary)', display: 'block', marginBottom: 8,
+              }}>Skills</label>
+              <textarea value={skillRequests} onChange={e => { setSkillRequests(e.target.value); setRequestsRegenerated(false); }} placeholder='Any skills you want to start with? e.g. "I want to be good with a bow" or "Some kind of healing ability"' rows={2} className={styles.wizardInput} style={{
+                width: '100%', background: 'var(--bg-main)', border: '1px solid var(--border-gold-subtle)',
+                borderRadius: 8, padding: 14, fontFamily: 'var(--font-alegreya)', fontSize: 16,
+                color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6,
+              }} />
+            </div>
+            <div>
+              <label style={{
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600,
+                color: 'var(--text-secondary)', display: 'block', marginBottom: 8,
+              }}>Starting Gear</label>
+              <textarea value={gearRequests} onChange={e => { setGearRequests(e.target.value); setRequestsRegenerated(false); }} placeholder='Anything specific you want to carry? e.g. "An old family sword" or "A leather journal with strange symbols"' rows={2} className={styles.wizardInput} style={{
+                width: '100%', background: 'var(--bg-main)', border: '1px solid var(--border-gold-subtle)',
+                borderRadius: 8, padding: 14, fontFamily: 'var(--font-alegreya)', fontSize: 16,
+                color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6,
+              }} />
+            </div>
+          </div>
         </FieldModal>
       )}
 

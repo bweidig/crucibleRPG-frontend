@@ -34,6 +34,24 @@
 
 ## Recent Work (This Session: 2026-04-08)
 
+### Init Wizard — Phase 3 (Attributes) Restructure + Supernatural Powers Field
+Two bundled changes: a new "Powers Beyond the Ordinary?" field in character creation, and a full restructure of Phase 3 (Attributes/Proposal) into a read-only summary with popup actions.
+
+**Part A — Supernatural Powers Field:**
+- **New CharacterForm field:** "Powers Beyond the Ordinary?" toggle (Yes/No) inserted after Backstory, before Personality. Selecting "Yes" reveals a freeform textarea for describing the character's powers.
+- **State:** `powersFlag` and `powersDescription` added to both `archetypeChar` and `customChar` state objects.
+- **Save payload:** `saveCharacter` now sends `powersFlag` and `powersDescription` to the backend. Backend can use these to shape POT stat and supernatural skills in proposal generation. Fields are ignored until backend work is done — no breakage.
+- **Archetype behavior:** Archetype selection does NOT pre-fill powers — always a manual player choice.
+
+**Part B — Attributes Restructure:**
+- **Read-only Phase4 summary:** Stats display as a clean read-only card (emoji + name + tier + value + bar) with a stat total footer. Innate traits, skills, loadout, factions, inventory slots shown as info cards below.
+- **StatEditor component:** Extracted the full stat editing UI (steppers, direct edit, deviation warning) into a standalone `StatEditor` component rendered inside a "Adjust Stats" FieldModal.
+- **Requests FieldModal:** Skill and gear request textareas moved into a "Request Changes" FieldModal. Regenerate button in the footer. Auto-closes after successful regeneration.
+- **Action buttons:** "ADJUST STATS" and "REQUEST CHANGES" buttons on the summary view open their respective FieldModals. Request Changes button shows an amber dot when there are unsubmitted requests.
+- **`attrFieldModal` state:** New state (`null | 'stats' | 'requests'`) tracks which attributes FieldModal is open. Cleaned up on phase transitions.
+
+- **Files modified:** `app/init/page.js`, `docs/FRONTEND_STATUS.md`
+
 ### Init Wizard — Phase 2 (Character) Restructure
 Restructured Phase 2 (Character) of the init wizard to use the FieldModal popup pattern from Phase 1. The PhaseModal now shows two clean path cards (Archetype and Full Custom), each opening a focused FieldModal for its flow.
 
