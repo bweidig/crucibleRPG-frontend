@@ -1298,6 +1298,39 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab, onViewStuckGame }) {
         </div>
       )}
 
+      {/* Fallback Games */}
+      {fallbacks.recentGames?.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <h4 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 700, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+            Games Using Fallback Provider
+          </h4>
+          <div className={styles.tableCard}>
+            {fallbacks.recentGames.map((g, i) => (
+              <div key={i} className={styles.clickableRow} onClick={() => onViewStuckGame?.(g.gameId || g.id)} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '10px 16px', borderBottom: '1px solid #2a2622',
+              }}>
+                <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0' }}>
+                  #{g.gameId || g.id} &middot; {g.characterName || 'Unnamed'} &middot; {g.playerName || 'Unknown'}
+                </span>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                  {g.phase && (
+                    <span style={{
+                      fontFamily: 'var(--font-cinzel)', fontSize: 9, fontWeight: 700,
+                      color: '#e8c45a', background: '#1a1a12', border: '1px solid #e8c45a33',
+                      borderRadius: 3, padding: '2px 8px', textTransform: 'uppercase', letterSpacing: '0.06em',
+                    }}>{g.phase.replace(/_/g, ' ')}</span>
+                  )}
+                  {g.createdAt && (
+                    <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{timeAgo(g.createdAt)}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Recent Errors */}
       {showErrors && errors.recent?.length > 0 && (
         <div style={{ marginBottom: 24 }}>
