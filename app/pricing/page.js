@@ -127,18 +127,19 @@ export default function PricingPage() {
 
       {/* Pricing cards */}
       <div style={{
-        display: 'flex', justifyContent: 'center', alignItems: 'stretch', gap: 24,
-        padding: '48px 24px 32px', flexWrap: 'wrap',
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 360px))',
+        justifyContent: 'center', gap: 24,
+        padding: '48px 24px 32px',
         position: 'relative', zIndex: 1,
       }}>
 
         {/* Free Trial */}
-        <ScrollReveal delay={0} style={{ height: '100%' }}>
+        <ScrollReveal delay={0}>
         <div className={styles.priceCard} style={{
           background: 'var(--bg-gold-faint)',
           border: '1px solid var(--border-gold-subtle)',
           borderRadius: 10, padding: '36px 32px',
-          width: 300, maxWidth: '100%', display: 'flex', flexDirection: 'column',
+          display: 'flex', flexDirection: 'column',
           height: '100%',
         }}>
           <div style={{
@@ -183,12 +184,12 @@ export default function PricingPage() {
         </ScrollReveal>
 
         {/* Subscription */}
-        <ScrollReveal delay={0.1} style={{ height: '100%' }}>
+        <ScrollReveal delay={0.1}>
         <div className={styles.priceCard} style={{
           background: 'var(--bg-gold-subtle)',
           border: '1px solid var(--border-card-separator)',
           borderRadius: 10, padding: '36px 32px',
-          width: 300, maxWidth: '100%', display: 'flex', flexDirection: 'column',
+          display: 'flex', flexDirection: 'column',
           height: '100%',
         }}>
           <div style={{
