@@ -1056,7 +1056,7 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab, onViewStuckGame }) {
   const db = h.database || {};
   const counts = h.counts || {};
   const errors = h.errors || {};
-  const fallbacks = h.fallbacks;
+  const fallbacks = h.fallbacks || {};
   const stuck = (h.stuckGames || []).filter(g => !localStuckRemoved.includes(g.id));
   const reports = h.reports || {};
   const storytellers = h.storytellerPopularity || [];
@@ -1092,15 +1092,13 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab, onViewStuckGame }) {
               : undefined
           }
         />
-        {fallbacks && (
-          <StatCard
-            label="AI Fallbacks"
-            value={fallbacks.last24h ?? 0}
-            valueColor={(fallbacks.last24h || 0) > 0 ? '#e8c45a' : '#8aba7a'}
-            accent={(fallbacks.last24h || 0) > 0 ? '#e8c45a' : '#8aba7a'}
-            sub={`${fallbacks.last7d ?? 0} this week \u00B7 ${fallbacks.total ?? 0} all time`}
-          />
-        )}
+        <StatCard
+          label="AI Fallbacks"
+          value={fallbacks.last24h ?? 0}
+          valueColor={(fallbacks.last24h || 0) > 0 ? '#e8c45a' : '#8aba7a'}
+          accent={(fallbacks.last24h || 0) > 0 ? '#e8c45a' : '#8aba7a'}
+          sub={`${fallbacks.last7d ?? 0} this week \u00B7 ${fallbacks.total ?? 0} all time`}
+        />
         <StatCard
           label="Stuck Games"
           value={stuck.length}
