@@ -34,6 +34,19 @@
 
 ## Recent Work (This Session: 2026-04-08)
 
+### Init Wizard — Phase 2 (Character) Restructure
+Restructured Phase 2 (Character) of the init wizard to use the FieldModal popup pattern from Phase 1. The PhaseModal now shows two clean path cards (Archetype and Full Custom), each opening a focused FieldModal for its flow.
+
+- **Dual character state:** Split single `character` state into independent `archetypeChar` and `customChar` objects. Switching between paths no longer leaks data — each path preserves its own name, backstory, personality, appearance, and pronouns independently.
+- **Two-card layout:** Phase3 component replaced inline mode toggle, archetype grid, and character form with two tappable path cards. Each shows a summary line (archetype name + character name, or just custom name) when configured.
+- **Archetype FieldModal:** Opens with the archetype grid (2-column). Selecting an archetype pre-fills backstory and personality into the archetype form while preserving any name/appearance/pronouns already entered. Character form appears below a separator once an archetype is chosen.
+- **Custom FieldModal:** Opens with a blank CharacterForm for freeform character creation.
+- **Auto-open:** When no archetypes are available (e.g., Custom world), the Custom FieldModal auto-opens on Phase 2 entry, skipping the single-card screen.
+- **Phase transition cleanup:** Both FieldModals auto-close on phase advance. The character→attributes overlay also closes the charFieldModal before activating.
+- **Save logic:** `saveCharacter` now reads from the active path's state and only sends `archetypeId` when in archetype mode.
+
+- **Files modified:** `app/init/page.js`, `docs/FRONTEND_STATUS.md`
+
 ### Init Wizard — Phase 1 Polish (4 fixes)
 Four targeted polish fixes for the Phase 1 settings wizard:
 

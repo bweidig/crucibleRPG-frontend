@@ -1586,71 +1586,79 @@ function ArchetypeCard({ archetype, isSelected, onSelect }) {
   );
 }
 
-function Phase3({ character, onChange, hasArchetypes, availableArchetypes, characterMode, setCharacterMode, selectedArchetype, setSelectedArchetype }) {
-  const effectiveMode = hasArchetypes ? characterMode : 'custom';
-
-  const handleArchetypeSelect = (archetypeId) => {
-    if (selectedArchetype === archetypeId) {
-      setSelectedArchetype(null);
-      return;
-    }
-    const arch = availableArchetypes.find(a => a.id === archetypeId);
-    if (arch) {
-      setSelectedArchetype(archetypeId);
-      onChange('backstory', arch.backstory);
-      onChange('personality', arch.personality.join(','));
-    }
-  };
+function Phase3({ characterMode, hasArchetypes, selectedArchetype, availableArchetypes, archetypeChar, customChar, onCardTap }) {
+  const selectedArch = selectedArchetype ? availableArchetypes.find(a => a.id === selectedArchetype) : null;
 
   return (
     <div>
-      <PhaseTitle title="Create Your Character" subtitle="Write as much or as little as you want. The engine builds your stats, skills, and gear from what you give it." />
+      <PhaseTitle
+        title="Create Your Character"
+        subtitle={hasArchetypes
+          ? "Choose a template to start from, or build entirely your own."
+          : "Describe your character and the engine builds the rest."}
+      />
 
-      {/* Mode selector */}
-      {hasArchetypes ? (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-          {[
-            { id: 'archetype', label: 'Archetype' },
-            { id: 'custom', label: 'Full Custom' },
-          ].map(mode => {
-            const isActive = effectiveMode === mode.id;
-            return (
-              <button key={mode.id} onClick={() => setCharacterMode(mode.id)} className={styles.optionToggle} style={{
-                flex: 1, padding: '11px 0', textAlign: 'center',
-                fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600,
-                color: isActive ? 'var(--accent-gold)' : 'var(--text-muted)',
-                background: isActive ? 'var(--bg-gold-light)' : 'var(--bg-main)',
-                border: `1px solid ${isActive ? 'var(--border-card-hover)' : 'var(--border-gold-faint)'}`,
-                borderRadius: 6,
-              }}>{mode.label}</button>
-            );
-          })}
-        </div>
-      ) : (
-        <p style={{
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
-          color: 'var(--text-dim)', margin: '-16px 0 24px',
-        }}>Custom settings use the full character form.</p>
-      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Archetype Path Card */}
+        {hasArchetypes && (
+          <button
+            onClick={() => onCardTap('archetype')}
+            style={{
+              width: '100%', textAlign: 'left', cursor: 'pointer',
+              background: characterMode === 'archetype' ? 'var(--bg-gold-subtle)' : 'var(--bg-card)',
+              border: `1px solid ${characterMode === 'archetype' ? 'var(--border-card-hover)' : 'var(--border-gold-faint)'}`,
+              borderRadius: 8, padding: '20px 24px',
+              display: 'flex', alignItems: 'flex-start', gap: 16,
+              transition: 'border-color 0.2s, background 0.2s',
+            }}
+          >
+            <div style={{ flexShrink: 0, color: characterMode === 'archetype' ? 'var(--accent-gold)' : 'var(--text-muted)', marginTop: 2 }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2l2 7h7l-5.5 4 2 7L12 16l-5.5 4 2-7L3 9h7z" />
+              </svg>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 17, fontWeight: 700, color: 'var(--text-heading)', marginBottom: 4 }}>Choose an Archetype</div>
+              <div style={{ fontFamily: 'var(--font-alegreya)', fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.5 }}>Pre-built characters shaped for this era. Customize the details.</div>
+              {selectedArch && (
+                <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--accent-gold)', marginTop: 8 }}>
+                  {archetypeChar.name ? `${selectedArch.name} · ${archetypeChar.name}` : selectedArch.name}
+                </div>
+              )}
+            </div>
+            <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 18, color: 'var(--text-dim)', flexShrink: 0, marginTop: 2 }}>&rsaquo;</span>
+          </button>
+        )}
 
-      {/* Archetype grid */}
-      {effectiveMode === 'archetype' && hasArchetypes && (
-        <div style={{ marginBottom: 32 }}>
-          <div className={styles.twoColGrid} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            {availableArchetypes.map(arch => (
-              <ArchetypeCard
-                key={arch.id}
-                archetype={arch}
-                isSelected={selectedArchetype === arch.id}
-                onSelect={handleArchetypeSelect}
-              />
-            ))}
+        {/* Full Custom Card */}
+        <button
+          onClick={() => onCardTap('custom')}
+          style={{
+            width: '100%', textAlign: 'left', cursor: 'pointer',
+            background: (characterMode === 'custom' || !hasArchetypes) ? 'var(--bg-gold-subtle)' : 'var(--bg-card)',
+            border: `1px solid ${(characterMode === 'custom' || !hasArchetypes) ? 'var(--border-card-hover)' : 'var(--border-gold-faint)'}`,
+            borderRadius: 8, padding: '20px 24px',
+            display: 'flex', alignItems: 'flex-start', gap: 16,
+            transition: 'border-color 0.2s, background 0.2s',
+          }}
+        >
+          <div style={{ flexShrink: 0, color: (characterMode === 'custom' || !hasArchetypes) ? 'var(--accent-gold)' : 'var(--text-muted)', marginTop: 2 }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+            </svg>
           </div>
-        </div>
-      )}
-
-      {/* Character form */}
-      <CharacterForm character={character} onChange={onChange} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 17, fontWeight: 700, color: 'var(--text-heading)', marginBottom: 4 }}>{hasArchetypes ? 'Full Custom' : 'Create Your Character'}</div>
+            <div style={{ fontFamily: 'var(--font-alegreya)', fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.5 }}>Start from a blank slate. Write as much or as little as you want.</div>
+            {customChar.name && (
+              <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--accent-gold)', marginTop: 8 }}>
+                {customChar.name}
+              </div>
+            )}
+          </div>
+          <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 18, color: 'var(--text-dim)', flexShrink: 0, marginTop: 2 }}>&rsaquo;</span>
+        </button>
+      </div>
     </div>
   );
 }
@@ -2534,9 +2542,19 @@ function InitWizardInner() {
   const [fieldModalOpen, setFieldModalOpen] = useState(null); // null | 'era' | 'custom' | 'your-worlds' | 'advanced'
   const [seedFactions, setSeedFactions] = useState([]);
   const [seedNpcs, setSeedNpcs] = useState([]);
-  const [character, setCharacter] = useState({ name: '', backstory: '', personality: '', personalityCustom: '', appearance: '', pronouns: '', customPronouns: '', genderIdentity: '' });
+  const [archetypeChar, setArchetypeChar] = useState({ name: '', backstory: '', personality: '', personalityCustom: '', appearance: '', pronouns: '', customPronouns: '', genderIdentity: '' });
+  const [customChar, setCustomChar] = useState({ name: '', backstory: '', personality: '', personalityCustom: '', appearance: '', pronouns: '', customPronouns: '', genderIdentity: '' });
   const [selectedArchetype, setSelectedArchetype] = useState(null);
   const [characterMode, setCharacterMode] = useState('archetype');
+  const [charFieldModal, setCharFieldModal] = useState(null); // null | 'archetype' | 'custom'
+
+  // Derived: available archetypes for current setting
+  const archetypeEra = setting === 'custom' ? null
+    : setting === 'your-worlds' ? (selectedSnapshot ? worldSnapshots.find(s => s.id === selectedSnapshot)?.settingType : null)
+    : setting;
+  const availableArchetypes = archetypeEra ? (ARCHETYPES[archetypeEra] || []) : [];
+  const hasArchetypes = availableArchetypes.length > 0;
+
   const [difficulty, setDifficulty] = useState(null);
   const [difficultyTab, setDifficultyTab] = useState('difficulty');
   const [dialOverrides, setDialOverrides] = useState(null);
@@ -2595,6 +2613,13 @@ function InitWizardInner() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [phase]);
 
+  // Auto-open Custom FieldModal when entering Phase 2 with no archetypes
+  useEffect(() => {
+    if (phase === 2 && !hasArchetypes) {
+      setCharacterMode('custom');
+      setCharFieldModal('custom');
+    }
+  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Connection state ---
   const [connectionFailed, setConnectionFailed] = useState(false);
@@ -2665,7 +2690,7 @@ function InitWizardInner() {
   // --- Clear error on phase change or input ---
   useEffect(() => {
     setError(null);
-  }, [phase, storyteller, setting, settingAnswers, selectedWorld, selectedSnapshot, character, difficulty, scenario]);
+  }, [phase, storyteller, setting, settingAnswers, selectedWorld, selectedSnapshot, archetypeChar, customChar, difficulty, scenario]);
 
   // --- Cleanup world gen polling on unmount ---
   useEffect(() => {
@@ -2983,15 +3008,16 @@ function InitWizardInner() {
   };
 
   const saveCharacter = async () => {
+    const char = characterMode === 'archetype' ? archetypeChar : customChar;
     await api.post(`/api/init/${gameId}/character`, {
-      name: character.name.trim(),
-      backstory: character.backstory || null,
-      personality: character.personality || null,
-      personalityCustom: character.personalityCustom || null,
-      appearance: character.appearance || null,
-      gender: character.customPronouns || character.pronouns || null,
-      customPronouns: character.customPronouns || null,
-      archetypeId: selectedArchetype || null,
+      name: char.name.trim(),
+      backstory: char.backstory || null,
+      personality: char.personality || null,
+      personalityCustom: char.personalityCustom || null,
+      appearance: char.appearance || null,
+      gender: char.customPronouns || char.pronouns || null,
+      customPronouns: char.customPronouns || null,
+      archetypeId: characterMode === 'archetype' ? selectedArchetype : null,
     });
   };
 
@@ -3184,7 +3210,10 @@ function InitWizardInner() {
     switch (phase) {
       case 0: return !!storyteller;
       case 1: return !!setting;
-      case 2: return character.name.trim().length > 0;
+      case 2: {
+        const char = characterMode === 'archetype' ? archetypeChar : customChar;
+        return char.name.trim().length > 0;
+      }
       case 3: return !proposalLoading && !proposalFailed && !!proposal?.stats?.length && !(proposalValidation.hardErrors.length > 0);
       case 4: return !!difficulty;
       case 5: return !!scenario && !scenariosLoading && !scenariosFailed;
@@ -3244,6 +3273,7 @@ function InitWizardInner() {
             return;
           }
           // Activate the combined overlay — it handles saveCharacter, generateProposal, and phase advance
+          setCharFieldModal(null);
           charOverlayAbortRef.current = false;
           proposalResultRef.current = { done: false, failed: false };
           setCharOverlayActive(true);
@@ -3264,7 +3294,7 @@ function InitWizardInner() {
             const stName = storyteller ? storyteller.charAt(0).toUpperCase() + storyteller.slice(1) : null;
             const prebuiltWorld = selectedWorld ? PREBUILT_WORLDS.find(w => w.id === selectedWorld) : null;
             sessionStorage.setItem('crucible_loading_summary', JSON.stringify({
-              characterName: character?.name || null,
+              characterName: (characterMode === 'archetype' ? archetypeChar : customChar)?.name || null,
               worldName: prebuiltWorld ? prebuiltWorld.name : (worldGenName || settingName),
               settingArchetype: settingName,
               isPrebuilt: !!prebuiltWorld,
@@ -3281,6 +3311,8 @@ function InitWizardInner() {
 
       // Modal content fade: out → advance → in
       setModalFading(true);
+      setFieldModalOpen(null);
+      setCharFieldModal(null);
       await new Promise(r => setTimeout(r, 150));
       if (phase < 5) setPhase(phase + 1);
       requestAnimationFrame(() => {
@@ -3298,10 +3330,14 @@ function InitWizardInner() {
     }
   };
 
-  const handleCharChange = (key, val) => { setConfirmVisible(false); setCharacter(prev => ({ ...prev, [key]: val })); };
+  const handleCharChange = (key, val) => {
+    setConfirmVisible(false);
+    const setter = characterMode === 'archetype' ? setArchetypeChar : setCustomChar;
+    setter(prev => ({ ...prev, [key]: val }));
+  };
 
   // Dismiss confirmation when user changes inputs
-  useEffect(() => { setConfirmVisible(false); }, [setting, settingAnswers, selectedWorld, customWorldText, character, skillRequests, gearRequests, difficulty]);
+  useEffect(() => { setConfirmVisible(false); }, [setting, settingAnswers, selectedWorld, customWorldText, archetypeChar, customChar, skillRequests, gearRequests, difficulty]);
 
   const buttonEnabled = canAdvance() && !saving;
 
@@ -3320,7 +3356,8 @@ function InitWizardInner() {
         const stName = storyteller ? (STORYTELLERS.find(s => s.id === storyteller)?.name || 'Custom') : null;
         const prebuiltWorld = selectedWorld ? PREBUILT_WORLDS.find(w => w.id === selectedWorld) : null;
         const worldLabel = worldGenName || (prebuiltWorld ? prebuiltWorld.name : null) || (setting ? (SETTINGS.find(s => s.id === setting)?.name || 'Custom') : null);
-        const charName = character?.name || null;
+        const activeChar = characterMode === 'archetype' ? archetypeChar : customChar;
+        const charName = activeChar?.name || null;
         const diffName = difficulty ? (DIFFICULTIES.find(d => d.id === difficulty)?.name || difficulty) : null;
 
         if (phase >= 1 && stName) chips.push({ label: 'Voice', value: stName });
@@ -3462,27 +3499,17 @@ function InitWizardInner() {
               onCardTap={setFieldModalOpen}
             />
           )}
-          {phase === 2 && (() => {
-            const archetypeEra = setting === 'custom' ? null
-              : setting === 'your-worlds' ? (selectedSnapshot ? worldSnapshots.find(s => s.id === selectedSnapshot)?.settingType : null)
-              : setting;
-            const availableArchetypes = archetypeEra ? (ARCHETYPES[archetypeEra] || []) : [];
-            const hasArchetypes = availableArchetypes.length > 0;
-            return (
-              <>
-                <Phase3
-                  character={character}
-                  onChange={handleCharChange}
-                  hasArchetypes={hasArchetypes}
-                  availableArchetypes={availableArchetypes}
-                  characterMode={characterMode}
-                  setCharacterMode={setCharacterMode}
-                  selectedArchetype={selectedArchetype}
-                  setSelectedArchetype={setSelectedArchetype}
-                />
-              </>
-            );
-          })()}
+          {phase === 2 && (
+            <Phase3
+              characterMode={characterMode}
+              hasArchetypes={hasArchetypes}
+              selectedArchetype={selectedArchetype}
+              availableArchetypes={availableArchetypes}
+              archetypeChar={archetypeChar}
+              customChar={customChar}
+              onCardTap={(mode) => { setCharacterMode(mode); setCharFieldModal(mode); }}
+            />
+          )}
           {phase === 3 && (
             proposalFailed ? (
               <div style={{ textAlign: 'center', padding: '60px 24px' }}>
@@ -3673,6 +3700,83 @@ function InitWizardInner() {
       {fieldModalOpen === 'advanced' && (
         <FieldModal title="Factions &amp; NPCs" onClose={() => setFieldModalOpen(null)}>
           <AdvancedSeedTab seedFactions={seedFactions} setSeedFactions={setSeedFactions} seedNpcs={seedNpcs} setSeedNpcs={setSeedNpcs} />
+        </FieldModal>
+      )}
+
+      {/* Character FieldModals */}
+      {charFieldModal === 'archetype' && (() => {
+        const handleArchetypeSelect = (archetypeId) => {
+          if (selectedArchetype === archetypeId) {
+            setSelectedArchetype(null);
+            return;
+          }
+          const arch = availableArchetypes.find(a => a.id === archetypeId);
+          if (arch) {
+            setSelectedArchetype(archetypeId);
+            setArchetypeChar(prev => ({
+              ...prev,
+              backstory: arch.backstory,
+              personality: arch.personality.join(','),
+            }));
+          }
+        };
+        return (
+          <FieldModal title="Choose an Archetype" onClose={() => setCharFieldModal(null)} footer={
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setCharFieldModal(null)} style={{
+                fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
+                color: 'var(--bg-main)', letterSpacing: '0.08em',
+                background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
+                border: 'none', borderRadius: 5, padding: '10px 28px', cursor: 'pointer',
+              }}>DONE</button>
+            </div>
+          }>
+            {/* Archetype grid */}
+            <div className={styles.twoColGrid} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {availableArchetypes.map(arch => (
+                <ArchetypeCard
+                  key={arch.id}
+                  archetype={arch}
+                  isSelected={selectedArchetype === arch.id}
+                  onSelect={handleArchetypeSelect}
+                />
+              ))}
+            </div>
+
+            {/* Character form appears when archetype selected */}
+            {selectedArchetype ? (
+              <>
+                <div style={{ borderTop: '1px solid var(--border-gold-faint)', margin: '24px 0' }} />
+                <CharacterForm
+                  character={archetypeChar}
+                  onChange={(key, val) => { setConfirmVisible(false); setArchetypeChar(prev => ({ ...prev, [key]: val })); }}
+                />
+              </>
+            ) : (
+              <p style={{
+                fontFamily: 'var(--font-alegreya)', fontSize: 15, fontStyle: 'italic',
+                color: 'var(--text-muted)', textAlign: 'center', padding: '32px 0',
+              }}>Pick an archetype above to start building your character.</p>
+            )}
+          </FieldModal>
+        );
+      })()}
+
+      {charFieldModal === 'custom' && (
+        <FieldModal title="Create Your Character" onClose={() => setCharFieldModal(null)} footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button onClick={() => setCharFieldModal(null)} style={{
+              fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
+              color: 'var(--bg-main)', letterSpacing: '0.08em',
+              background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
+              border: 'none', borderRadius: 5, padding: '10px 28px', cursor: 'pointer',
+            }}>DONE</button>
+          </div>
+        }>
+          <CharacterForm
+            character={customChar}
+            onChange={(key, val) => { setConfirmVisible(false); setCustomChar(prev => ({ ...prev, [key]: val })); }}
+          />
         </FieldModal>
       )}
 
