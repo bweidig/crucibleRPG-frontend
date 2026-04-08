@@ -34,6 +34,16 @@
 
 ## Recent Work (This Session: 2026-04-08)
 
+### Init Wizard — Phase 1 Polish (4 fixes)
+Four targeted polish fixes for the Phase 1 settings wizard:
+
+- **Fix 1: "Anything else?" moved inside expanded template** — textarea now renders inside the gold-bordered expanded section of prebuilt world cards (after subTags), instead of below the card where it looked detached. PrebuiltWorldCard now accepts anythingElseText/onAnythingElseChange props.
+- **Fix 2: Footer removed** — `<Footer variant="minimal" />` and its import removed from init page entirely. The copyright line was bleeding above the PhaseModal. The modal has its own bottom nav so no page footer is needed.
+- **Fix 3: Advanced button made visible** — replaced invisible text link with a bordered card-style button. Includes gear icon, "Factions & NPCs" heading, subtitle, seed count badge, and chevron. Uses selectionCard CSS for hover states. 44px min tap target.
+- **Fix 4: Custom world guided questions** — Custom FieldModal now shows Technology (6 options) and Supernatural Elements (4 options) toggle pills above the freeform textarea. Stored in settingAnswers state (same pattern as era questions). Toggles deselect on re-tap.
+
+- **Files modified:** `app/init/page.js`
+
 ### Init Wizard — Phase 1 Restructure + FieldModal Foundation
 Major restructure of the init wizard layout and Phase 1 (Settings). PhaseModal now serves as the hub with stacked sub-popups (FieldModals) for configuration.
 

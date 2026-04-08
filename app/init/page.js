@@ -5,7 +5,6 @@ import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import * as api from '@/lib/api';
 import NavBar from '@/components/NavBar';
-import Footer from '@/components/Footer';
 import ParticleField from '@/components/ParticleField';
 import styles from './page.module.css';
 
@@ -957,7 +956,7 @@ function SettingQuestions({ settingId, answers, setAnswers, onInteract, freeform
   );
 }
 
-function PrebuiltWorldCard({ world, isSelected, isExpanded, onToggle }) {
+function PrebuiltWorldCard({ world, isSelected, isExpanded, onToggle, anythingElseText, onAnythingElseChange }) {
   return (
     <div>
       <button
@@ -1004,6 +1003,16 @@ function PrebuiltWorldCard({ world, isSelected, isExpanded, onToggle }) {
               }}>{tag.label}: {tag.value}</span>
             ))}
           </div>
+          {isSelected && onAnythingElseChange && (
+            <div style={{ marginTop: 16 }}>
+              <label style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 10 }}>Anything else?</label>
+              <textarea value={anythingElseText || ''} onChange={e => onAnythingElseChange(e.target.value)} placeholder="Any tweaks for this playthrough? Change the political situation, add a detail, shift the tone." className={styles.wizardInput} style={{
+                width: '100%', minHeight: 80, background: 'var(--bg-main)', border: '1px solid var(--border-gold-subtle)',
+                borderRadius: 8, padding: 16, fontFamily: 'var(--font-alegreya)', fontSize: 16,
+                color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+              }} />
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1389,23 +1398,25 @@ function Phase2({ selected, onSelect, selectedWorld, customWorldText, selectedSn
       </div>
 
       {/* Advanced: Factions & NPCs */}
-      <div style={{ textAlign: 'center', marginTop: 24 }}>
-        <button onClick={() => onCardTap('advanced')} style={{
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
-          color: 'var(--text-muted)', background: 'none', border: 'none',
-          cursor: 'pointer', padding: '8px 4px',
-          borderBottom: '1px solid transparent',
-          transition: 'border-color 0.2s',
-        }} onMouseEnter={e => e.currentTarget.style.borderBottomColor = 'var(--text-muted)'}
-           onMouseLeave={e => e.currentTarget.style.borderBottomColor = 'transparent'}>
-          Advanced: Factions &amp; NPCs
-          {seedCount > 0 && (
-            <span style={{ color: 'var(--text-dim)', marginLeft: 6 }}>
-              ({seedFactions.length} faction{seedFactions.length !== 1 ? 's' : ''}{seedNpcs.length > 0 ? `, ${seedNpcs.length} NPC${seedNpcs.length !== 1 ? 's' : ''}` : ''})
-            </span>
-          )}
-        </button>
-      </div>
+      <button onClick={() => onCardTap('advanced')} className={styles.selectionCard} style={{
+        width: '100%', marginTop: 16, padding: '14px 20px',
+        display: 'flex', alignItems: 'center', gap: 14,
+        background: 'transparent', border: '1px solid var(--border-gold-faint)',
+        borderRadius: 8, cursor: 'pointer', minHeight: 44,
+        transition: 'border-color 0.3s',
+      }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: 'var(--text-muted)' }}>
+          <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+        <div style={{ flex: 1, textAlign: 'left' }}>
+          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 700, color: 'var(--text-heading)' }}>Factions &amp; NPCs</div>
+          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>Seed your world with specific characters and organizations</div>
+        </div>
+        {seedCount > 0 && (
+          <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: 'var(--accent-gold)', flexShrink: 0 }}>{seedCount} added</span>
+        )}
+        <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 18, color: 'var(--text-dim)', flexShrink: 0 }}>&rsaquo;</span>
+      </button>
     </div>
   );
 }
@@ -3559,17 +3570,7 @@ function InitWizardInner() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {eraWorlds.map(world => (
                 <div key={world.id}>
-                  <PrebuiltWorldCard world={world} isSelected={selectedWorld === world.id} isExpanded={expandedWorld === world.id} onToggle={handleWorldToggle} />
-                  {selectedWorld === world.id && (
-                    <div style={{ marginTop: 16 }}>
-                      <label style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 10 }}>Anything else?</label>
-                      <textarea value={anythingElseText} onChange={e => setAnythingElseText(e.target.value)} placeholder="Any tweaks for this playthrough? Change the political situation, add a detail, shift the tone." className={styles.wizardInput} style={{
-                        width: '100%', minHeight: 80, background: 'var(--bg-main)', border: '1px solid var(--border-gold-subtle)',
-                        borderRadius: 8, padding: 16, fontFamily: 'var(--font-alegreya)', fontSize: 16,
-                        color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
-                      }} />
-                    </div>
-                  )}
+                  <PrebuiltWorldCard world={world} isSelected={selectedWorld === world.id} isExpanded={expandedWorld === world.id} onToggle={handleWorldToggle} anythingElseText={anythingElseText} onAnythingElseChange={setAnythingElseText} />
                 </div>
               ))}
             </div>
@@ -3595,19 +3596,62 @@ function InitWizardInner() {
             }}>DONE</button>
           </div>
         }>
+          {/* Guided questions */}
+          <div style={{
+            padding: '28px 28px 24px', background: 'var(--bg-gold-faint)',
+            border: '1px solid var(--border-gold-faint)', borderRadius: 10, marginBottom: 20,
+          }}>
+            <div style={{ marginBottom: 24 }}>
+              <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 19, fontWeight: 700, color: 'var(--text-heading)', marginBottom: 6 }}>Shape Your World</h3>
+              <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>All optional. Pick what matters — the engine fills in the rest.</p>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+              <div>
+                <label style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.04em', display: 'block', marginBottom: 10 }}>Technology</label>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {['Stone Age', 'Medieval', 'Industrial', 'Modern', 'Future', 'Mixed'].map(opt => {
+                    const isActive = settingAnswers['Technology'] === opt;
+                    return (
+                      <button key={opt} onClick={() => setSettingAnswers(prev => ({ ...prev, Technology: prev.Technology === opt ? null : opt }))} className={styles.optionToggle} style={{
+                        padding: '10px 18px',
+                        fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: isActive ? 500 : 400,
+                        color: isActive ? 'var(--accent-gold)' : 'var(--text-secondary)',
+                        background: isActive ? 'var(--bg-gold-light)' : 'var(--bg-main)',
+                        border: `1px solid ${isActive ? 'var(--border-card-hover)' : 'var(--border-gold-subtle)'}`,
+                        borderRadius: 6,
+                      }}>{opt}</button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <label style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.04em', display: 'block', marginBottom: 10 }}>Supernatural Elements</label>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {['None', 'Rare & Hidden', 'Present & Known', 'Pervasive'].map(opt => {
+                    const isActive = settingAnswers['Supernatural Elements'] === opt;
+                    return (
+                      <button key={opt} onClick={() => setSettingAnswers(prev => ({ ...prev, 'Supernatural Elements': prev['Supernatural Elements'] === opt ? null : opt }))} className={styles.optionToggle} style={{
+                        padding: '10px 18px',
+                        fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: isActive ? 500 : 400,
+                        color: isActive ? 'var(--accent-gold)' : 'var(--text-secondary)',
+                        background: isActive ? 'var(--bg-gold-light)' : 'var(--bg-main)',
+                        border: `1px solid ${isActive ? 'var(--border-card-hover)' : 'var(--border-gold-subtle)'}`,
+                        borderRadius: 6,
+                      }}>{opt}</button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Freeform description */}
+          <label style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 10 }}>Describe Your World</label>
           <textarea value={customWorldText} onChange={e => setCustomWorldText(e.target.value)} placeholder="Describe your world..." className={styles.wizardInput} style={{
             width: '100%', minHeight: 110, background: 'var(--bg-main)', border: '1px solid var(--border-gold-faint)',
             borderRadius: 8, padding: 16, fontFamily: 'var(--font-alegreya)', fontSize: 16,
             color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
           }} />
-          <div style={{ marginTop: 20 }}>
-            <label style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 10 }}>Anything else?</label>
-            <textarea value={anythingElseText} onChange={e => setAnythingElseText(e.target.value)} placeholder="Tone, themes, or specific details you want included." className={styles.wizardInput} style={{
-              width: '100%', minHeight: 80, background: 'var(--bg-main)', border: '1px solid var(--border-gold-subtle)',
-              borderRadius: 8, padding: 16, fontFamily: 'var(--font-alegreya)', fontSize: 16,
-              color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
-            }} />
-          </div>
         </FieldModal>
       )}
 
@@ -3662,7 +3706,6 @@ function InitWizardInner() {
         </div>
       )}
 
-      <Footer variant="minimal" />
 
       {/* Combined character→attributes overlay */}
       {charOverlayActive && (
