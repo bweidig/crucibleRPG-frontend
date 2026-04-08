@@ -2984,7 +2984,13 @@ function InitWizardInner() {
     });
   };
 
+  const proposalInFlight = useRef(false);
+
   const generateProposal = async (isRetry = false) => {
+    if (!isRetry) {
+      if (proposalInFlight.current) return;
+      proposalInFlight.current = true;
+    }
     const STAT_META = {
       STR: { name: 'Strength', emoji: '\u{1F4AA}' },
       DEX: { name: 'Dexterity', emoji: '\u{1F3C3}' },
@@ -3060,11 +3066,13 @@ function InitWizardInner() {
       if (!isRetry) {
         // Auto-retry once after 3s
         await new Promise(r => setTimeout(r, 3000));
-        return generateProposal(true);
+        await generateProposal(true);
+        return;
       }
       setProposalFailed(true);
     } finally {
       setProposalLoading(false);
+      if (!isRetry) proposalInFlight.current = false;
     }
   };
 

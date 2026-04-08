@@ -52,6 +52,13 @@ Each card on the grid shows a brief gold summary when configured (prebuilt name,
 - **Files modified:** `app/init/page.js`, `app/init/page.module.css`
 - **New components:** `PhaseModal` (header prop added), `FieldModal`
 
+### Fix: Duplicate Proposal Calls During Init (FE-5)
+Added `proposalInFlight` ref guard to `generateProposal()`. The function had no synchronous in-flight check — `proposalLoading` state is async so concurrent calls weren't blocked. Changed catch-block retry from `return generateProposal(true)` to `await generateProposal(true)` so the ref flag stays true through the entire retry chain.
+
+- **Root cause:** No ref guard + async state + built-in auto-retries (empty stats retry + catch retry) = up to 4 API calls per invocation, doubled if called concurrently
+- **Files modified:** `app/init/page.js`
+- **Bug logged:** FE-5 (fixed)
+
 ### Admin Health: AI Fallbacks Card
 Added "AI Fallbacks" StatCard to Health tab, positioned after Errors and before Stuck Games. Shows last24h count as the value, with "X this week · Y all time" sub text. Green when 0, amber when > 0. Skipped entirely if backend doesn't return `fallbacks` (backward compat).
 
@@ -1417,6 +1424,7 @@ All pending rgba/color fixes from previous sessions have been completed.
 | FE-2 | World snapshots 404 console message on /play — actually originates from /init page; persists in console across navigation. Not a /play bug. | `/init` page.js | Non-issue | N/A | init already catches gracefully |
 | FE-3 | `ez` ReferenceError crashes play page — TDZ violation from directive handlers (`addDirectiveToast`, `refetchDirectiveState`) referenced in `handleTurnResponse` dependency array before their `const` declarations | `/play` page.js | Blocking | Fixed | 2026-04-07 |
 | FE-4 | `setContentFading is not defined` ReferenceError when world gen fails on Phase 2 (character phase) — stale reference left behind when `contentFading` was renamed to `modalFading` during modal overlay conversion. Crashes init wizard on retry/continue after world gen error. | `/init` page.js | Blocking | Fixed | 2026-04-08 |
+| FE-5 | `generate-proposal` endpoint called 5+ times for a single game during init. `generateProposal()` had no in-flight guard — `proposalLoading` state is async so concurrent calls weren't blocked. Built-in auto-retries (empty stats + catch) compound the issue. Fix: added `proposalInFlight` ref guard, changed catch retry from `return` to `await` so flag stays true through retry chain. | `/init` page.js | Annoying | Fixed | 2026-04-08 |
 
 **Severity levels:**
 - **Blocking** — Prevents playtesting or core functionality. Fix before launch.
