@@ -174,8 +174,7 @@ export default function PricingPage() {
             className={styles.btnSecondary}
             style={{
               fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
-              color: 'var(--accent-gold)', letterSpacing: '0.1em',
-              background: 'transparent', border: '1px solid var(--border-card)',
+              letterSpacing: '0.1em',
               borderRadius: 5, padding: '14px 24px', width: '100%',
               marginTop: 24,
             }}
@@ -233,9 +232,8 @@ export default function PricingPage() {
             className={styles.btnPrimary}
             style={{
               fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
-              color: 'var(--bg-main)', letterSpacing: '0.1em',
-              background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
-              border: 'none', borderRadius: 5, padding: '14px 24px', width: '100%',
+              letterSpacing: '0.1em',
+              borderRadius: 5, padding: '14px 24px', width: '100%',
               marginTop: 24,
             }}
           >SUBSCRIBE</button>
@@ -347,9 +345,8 @@ export default function PricingPage() {
           className={styles.btnPrimary}
           style={{
             fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 700,
-            color: 'var(--bg-main)', letterSpacing: '0.1em',
-            background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
-            border: 'none', borderRadius: 6, padding: '16px 44px',
+            letterSpacing: '0.1em',
+            borderRadius: 6, padding: '16px 44px',
             position: 'relative',
           }}
         >START YOUR ADVENTURE</button>

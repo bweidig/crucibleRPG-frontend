@@ -34,6 +34,16 @@
 
 ## Recent Work (This Session: 2026-04-08)
 
+### Admin: Analytics Tab + Report Distiller + GM Costs
+Added Analytics tab, Report Distiller, and GM cost display to the admin dashboard.
+
+- **Analytics tab:** New tab with three sections — Game Patterns (StatCards, drop-off bucket bars, top settings/templates ranked lists), Cost Analytics (avg costs, cost trend arrows, monthly projection callout, init/gameplay/GM ratio bar), Engagement (avg turns, significance distribution bar chart, weekly trends with warming indicators).
+- **Report Distiller:** Added to top of Reports tab. "Distill Reports" and "Distill GM Questions" buttons with optional filter controls (type, status, date range). Results display as cluster cards with severity badges, report counts, summaries, and "Show reports" links that filter the report list below.
+- **GM costs in Costs tab:** Extended the init/gameplay cost breakdown line to show GM costs when present.
+- **API wrappers:** Added `getAdminAnalytics`, `distillReports`, `distillGmQuestions` to adminApi.js.
+
+- **Files modified:** `app/admin/page.js`, `lib/adminApi.js`
+
 ### Init Wizard — Modal Overlay Layout
 Converted the init wizard from a vertically-scrolling page layout to a modal overlay pattern. Each phase's content now renders inside a centered card overlay on a dimmed background (desktop), or a full-screen sheet (mobile). The step indicator and summary bar render behind the modal as dimmed context on desktop.
 
@@ -46,10 +56,20 @@ Converted the init wizard from a vertically-scrolling page layout to a modal ove
 
 - **Files modified:** `app/init/page.js`, `app/init/page.module.css`
 
+### Fix: Init Wizard Crash — setContentFading Not Defined (FE-4)
+Fixed a `ReferenceError: setContentFading is not defined` crash in the init wizard. When the modal overlay layout was added, the `contentFading` state was renamed to `modalFading`, but one reference in the world-gen error handler (Phase 2, `handleContinue`) was missed. Hitting "Continue" after a world gen failure crashed the page. Replaced with `setModalFading(false)`.
+
+- **Files modified:** `app/init/page.js`
+
 ### Pricing Page — Equal Height Cards
 Added `alignItems: 'stretch'` to the pricing cards flex container and `height: '100%'` to each ScrollReveal wrapper and card div. CTA buttons now align at the same vertical position on both cards.
 
 - **Files modified:** `app/pricing/page.js`
+
+### Pricing Page — Button Hover States
+Moved inline `background`, `border`, and `color` styles from all three CTA buttons into the CSS module base rules (`.btnPrimary`, `.btnSecondary`). Inline styles override CSS `:hover` rules due to specificity, so the "Try It Free" ghost button had no visible hover state. Now both button classes own their hover-relevant properties in CSS where `:hover` can override them.
+
+- **Files modified:** `app/pricing/page.js`, `app/pricing/page.module.css`
 
 ### Mobile-Responsive /play Layout
 Full mobile responsiveness pass for the game screen. The majority of players are on mobile phones.
@@ -1363,6 +1383,7 @@ All pending rgba/color fixes from previous sessions have been completed.
 | FE-1 | Play page only reads `?gameId=` param, ignores `?id=` from menu navigation -- causes silent redirect to /menu when resuming games | `/play` page.js | Blocking | Fixed | 2026-03-30 |
 | FE-2 | World snapshots 404 console message on /play — actually originates from /init page; persists in console across navigation. Not a /play bug. | `/init` page.js | Non-issue | N/A | init already catches gracefully |
 | FE-3 | `ez` ReferenceError crashes play page — TDZ violation from directive handlers (`addDirectiveToast`, `refetchDirectiveState`) referenced in `handleTurnResponse` dependency array before their `const` declarations | `/play` page.js | Blocking | Fixed | 2026-04-07 |
+| FE-4 | `setContentFading is not defined` ReferenceError when world gen fails on Phase 2 (character phase) — stale reference left behind when `contentFading` was renamed to `modalFading` during modal overlay conversion. Crashes init wizard on retry/continue after world gen error. | `/init` page.js | Blocking | Fixed | 2026-04-08 |
 
 **Severity levels:**
 - **Blocking** — Prevents playtesting or core functionality. Fix before launch.

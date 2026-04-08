@@ -3104,7 +3104,7 @@ function InitWizardInner() {
           if (wgStatus === 'error' || wgStatus === 'timeout') {
             savingRef.current = false;
             setSaving(false);
-            setContentFading(false);
+            setModalFading(false);
             setError('World generation ran into a problem. Go back to try a different setting, or try again.');
             return;
           }

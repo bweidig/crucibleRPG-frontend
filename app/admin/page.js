@@ -8,6 +8,7 @@ import {
   getAdminGames, getAdminGameDetail, deleteAdminGame, getAdminGameNarrative,
   getAdminCosts, getAdminHealth,
   getAdminReports, updateReport,
+  getAdminAnalytics, distillReports, distillGmQuestions,
   getInviteCode, updateInviteCode,
   getAnnouncement as getAdminAnnouncement, setAnnouncement as setAdminAnnouncement, clearAnnouncement as clearAdminAnnouncement,
   getGameLog, getGameLogSnapshot, getGameLogSnapshots,
@@ -1000,6 +1001,9 @@ function CostsTab({ data, loading, onRefresh, onViewGame }) {
       {(costs.totalInitCost != null || costs.totalGameplayCost != null) && (
         <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4', marginBottom: 28 }}>
           Init costs: {formatCost(costs.totalInitCost)} &middot; Gameplay costs: {formatCost(costs.totalGameplayCost)}
+          {(costs.totalGmSpend > 0 || costs.totalGmCalls > 0) && (
+            <> &middot; GM costs: {formatCost(costs.totalGmSpend)} ({costs.totalGmCalls ?? 0} calls)</>
+          )}
         </p>
       )}
       {costs.totalInitCost == null && costs.totalGameplayCost == null && <div style={{ marginBottom: 28 }} />}
@@ -1485,15 +1489,31 @@ function ReportsTab({ data, loading, onRefresh, onViewGame, onReportCountChange 
   const [statusFilter, setStatusFilter] = useState('open');
   const [reports, setReports] = useState([]);
 
+  // Distiller state
+  const [distillResult, setDistillResult] = useState(null);
+  const [gmDistillResult, setGmDistillResult] = useState(null);
+  const [distilling, setDistilling] = useState(false);
+  const [gmDistilling, setGmDistilling] = useState(false);
+  const [showDistillFilters, setShowDistillFilters] = useState(false);
+  const [distillType, setDistillType] = useState('all');
+  const [distillStatus, setDistillStatus] = useState('open');
+  const [distillFrom, setDistillFrom] = useState('');
+  const [distillTo, setDistillTo] = useState('');
+  const [focusedCluster, setFocusedCluster] = useState(null);
+
   useEffect(() => { if (data?.reports) setReports(data.reports); }, [data]);
 
   const visibleReports = useMemo(() => {
     return (reports || []).filter(r => {
+      if (focusedCluster) {
+        const ids = focusedCluster.reportIds || [];
+        if (!ids.includes(r.id)) return false;
+      }
       if (typeFilter !== 'all' && r.type !== typeFilter) return false;
       if (statusFilter !== 'all' && (r.status || 'open') !== statusFilter) return false;
       return true;
     });
-  }, [reports, typeFilter, statusFilter]);
+  }, [reports, typeFilter, statusFilter, focusedCluster]);
 
   async function handleStatusChange(reportId, newStatus) {
     const oldReport = reports.find(r => r.id === reportId);
@@ -1527,6 +1547,178 @@ function ReportsTab({ data, loading, onRefresh, onViewGame, onReportCountChange 
         </div>
         <button className={styles.refreshBtn} onClick={onRefresh}>Refresh</button>
       </div>
+
+      {/* ─── Distiller ─── */}
+      <div style={{ marginBottom: 20, padding: 16, border: '1px solid #2a2622', borderRadius: 8, background: '#0d1120' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            className={styles.goldBtn}
+            disabled={distilling}
+            onClick={async () => {
+              setDistilling(true);
+              try {
+                const opts = {};
+                if (distillType !== 'all') opts.type = distillType;
+                if (distillStatus !== 'all') opts.status = distillStatus;
+                if (distillFrom) opts.afterDate = distillFrom;
+                if (distillTo) opts.beforeDate = distillTo;
+                const res = await distillReports(opts);
+                setDistillResult(res);
+              } catch { setDistillResult({ error: true }); }
+              setDistilling(false);
+            }}
+            style={distilling ? { opacity: 0.6 } : undefined}
+          >
+            {distilling ? 'Distilling...' : 'Distill Reports'}
+          </button>
+          <button
+            className={styles.ghostBtn}
+            disabled={gmDistilling}
+            onClick={async () => {
+              setGmDistilling(true);
+              try {
+                const opts = {};
+                if (distillFrom) opts.afterDate = distillFrom;
+                if (distillTo) opts.beforeDate = distillTo;
+                const res = await distillGmQuestions(opts);
+                setGmDistillResult(res);
+              } catch { setGmDistillResult({ error: true }); }
+              setGmDistilling(false);
+            }}
+            style={gmDistilling ? { opacity: 0.6 } : undefined}
+          >
+            {gmDistilling ? 'Distilling...' : 'Distill GM Questions'}
+          </button>
+          <button
+            onClick={() => setShowDistillFilters(!showDistillFilters)}
+            style={{
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4',
+              background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px',
+            }}
+          >
+            Filter {showDistillFilters ? '\u25B2' : '\u25BC'}
+          </button>
+        </div>
+
+        {showDistillFilters && (
+          <div style={{ display: 'flex', gap: 16, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4' }}>Type:</span>
+              {['all', 'bug', 'suggestion'].map(t => (
+                <button key={t} className={distillType === t ? styles.filterPillActive : styles.filterPill}
+                  onClick={() => setDistillType(t)}>
+                  {t === 'all' ? 'All' : t === 'bug' ? 'Bugs' : 'Suggestions'}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4' }}>Status:</span>
+              {['all', 'open', 'resolved'].map(s => (
+                <button key={s} className={distillStatus === s ? styles.filterPillActive : styles.filterPill}
+                  onClick={() => setDistillStatus(s)}>
+                  {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4' }}>From:</span>
+              <input type="date" value={distillFrom} onChange={e => setDistillFrom(e.target.value)}
+                style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#c8c0b0', background: '#0a0e1a', border: '1px solid #1e2540', borderRadius: 4, padding: '4px 8px' }} />
+              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4' }}>To:</span>
+              <input type="date" value={distillTo} onChange={e => setDistillTo(e.target.value)}
+                style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#c8c0b0', background: '#0a0e1a', border: '1px solid #1e2540', borderRadius: 4, padding: '4px 8px' }} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ─── Distill Results ─── */}
+      {distillResult && !distillResult.error && (
+        <div style={{ marginBottom: 20 }}>
+          {(distillResult.clusters || []).map((cluster, i) => (
+            <div key={i} className={styles.tableCard} style={{ marginBottom: 10, padding: '14px 18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700, color: '#c9a84c' }}>{cluster.title || `Cluster ${i + 1}`}</span>
+                {cluster.severity && (
+                  <span style={{
+                    fontFamily: 'var(--font-cinzel)', fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
+                    letterSpacing: '0.06em', padding: '2px 8px', borderRadius: 3,
+                    color: cluster.severity === 'high' ? '#e85a5a' : cluster.severity === 'medium' ? '#e8c45a' : '#7082a4',
+                    background: cluster.severity === 'high' ? '#201416' : cluster.severity === 'medium' ? '#1a1a12' : '#161a20',
+                    border: `1px solid ${cluster.severity === 'high' ? '#e85a5a33' : cluster.severity === 'medium' ? '#e8c45a33' : '#7082a433'}`,
+                  }}>{cluster.severity}</span>
+                )}
+                <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, fontWeight: 600, color: '#d0c098', marginLeft: 'auto' }}>
+                  {cluster.count ?? (cluster.reportIds || []).length} reports
+                </span>
+              </div>
+              {cluster.summary && (
+                <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#8a94a8', lineHeight: 1.5, margin: '0 0 8px' }}>{cluster.summary}</p>
+              )}
+              {cluster.reportIds && cluster.reportIds.length > 0 && (
+                <button
+                  onClick={() => setFocusedCluster(focusedCluster === cluster ? null : cluster)}
+                  style={{
+                    fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#c9a84c',
+                    background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                  }}
+                >
+                  {focusedCluster === cluster ? 'Clear filter' : `Show reports \u2192`}
+                </button>
+              )}
+            </div>
+          ))}
+          {distillResult.distilledAt && (
+            <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4', marginTop: 4 }}>
+              Distilled at {new Date(distillResult.distilledAt).toLocaleString()}
+            </p>
+          )}
+        </div>
+      )}
+
+      {gmDistillResult && !gmDistillResult.error && (
+        <div style={{ marginBottom: 20 }}>
+          {(gmDistillResult.clusters || []).map((cluster, i) => (
+            <div key={i} className={styles.tableCard} style={{ marginBottom: 10, padding: '14px 18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700, color: '#c9a84c' }}>{cluster.title || `Cluster ${i + 1}`}</span>
+                {cluster.severity && (
+                  <span style={{
+                    fontFamily: 'var(--font-cinzel)', fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
+                    letterSpacing: '0.06em', padding: '2px 8px', borderRadius: 3,
+                    color: cluster.severity === 'high' ? '#e85a5a' : cluster.severity === 'medium' ? '#e8c45a' : '#7082a4',
+                    background: cluster.severity === 'high' ? '#201416' : cluster.severity === 'medium' ? '#1a1a12' : '#161a20',
+                    border: `1px solid ${cluster.severity === 'high' ? '#e85a5a33' : cluster.severity === 'medium' ? '#e8c45a33' : '#7082a433'}`,
+                  }}>{cluster.severity}</span>
+                )}
+                <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, fontWeight: 600, color: '#d0c098', marginLeft: 'auto' }}>
+                  {cluster.count ?? 0} questions
+                </span>
+              </div>
+              {cluster.summary && (
+                <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#8a94a8', lineHeight: 1.5, margin: 0 }}>{cluster.summary}</p>
+              )}
+            </div>
+          ))}
+          {gmDistillResult.distilledAt && (
+            <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4', marginTop: 4 }}>
+              Distilled at {new Date(gmDistillResult.distilledAt).toLocaleString()}
+            </p>
+          )}
+        </div>
+      )}
+
+      {focusedCluster && (
+        <div style={{ marginBottom: 12 }}>
+          <button onClick={() => setFocusedCluster(null)} style={{
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#c9a84c',
+            background: '#1a1814', border: '1px solid #3a3328', borderRadius: 4,
+            padding: '4px 12px', cursor: 'pointer',
+          }}>
+            Clear filter &mdash; showing {visibleReports.length} of {reports.length}
+          </button>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 20, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
@@ -2224,10 +2416,314 @@ function CollapsibleSection({ title, children }) {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
+// ANALYTICS TAB
+// ═════════════════════════════════════════════════════════════════════════════
+
+function SectionHeader({ children }) {
+  return (
+    <h3 style={{
+      fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
+      color: '#c9a84c', letterSpacing: '0.12em', textTransform: 'uppercase',
+      marginBottom: 14, marginTop: 32,
+    }}>{children}</h3>
+  );
+}
+
+function DropoffBar({ label, count, max, color }) {
+  const pct = max > 0 ? (count / max) * 100 : 0;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+      <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#8a94a8', minWidth: 70, textAlign: 'right' }}>{label}</span>
+      <div style={{ flex: 1, height: 18, background: '#0a0e1a', borderRadius: 3, overflow: 'hidden', position: 'relative' }}>
+        <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 3, transition: 'width 0.3s ease', minWidth: count > 0 ? 2 : 0 }} />
+      </div>
+      <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#d0c098', minWidth: 36, textAlign: 'right' }}>{count}</span>
+    </div>
+  );
+}
+
+function RankedRow({ rank, name, count, max }) {
+  const pct = max > 0 ? (count / max) * 100 : 0;
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      padding: '8px 16px', borderBottom: '1px solid #2a2622',
+      position: 'relative',
+    }}>
+      <div style={{
+        position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`,
+        background: 'rgba(201, 168, 76, 0.06)', transition: 'width 0.3s ease',
+      }} />
+      <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4', minWidth: 20, textAlign: 'right', position: 'relative' }}>{rank}</span>
+      <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0', flex: 1, position: 'relative' }}>{name}</span>
+      <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, fontWeight: 600, color: '#c9a84c', position: 'relative' }}>{count}</span>
+    </div>
+  );
+}
+
+function AnalyticsTab({ data, loading, onRefresh }) {
+  if (loading) return <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 40 }}>Loading...</p>;
+
+  const d = data || {};
+  const noData = Object.keys(d).length === 0;
+
+  if (noData) return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 18, fontWeight: 700, color: '#d0c098', margin: 0 }}>Analytics</h2>
+        <button className={styles.refreshBtn} onClick={onRefresh}>Refresh</button>
+      </div>
+      <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 40 }}>No data yet.</p>
+    </div>
+  );
+
+  // Game Patterns
+  const totalGames = d.totalGames ?? 0;
+  const activeGames = d.activeGames ?? 0;
+  const completedGames = d.completedGames ?? 0;
+  const abandonedGames = d.abandonedGames ?? 0;
+  const pct = (n) => totalGames > 0 ? `${((n / totalGames) * 100).toFixed(1)}%` : '—';
+
+  const dropoff = d.dropoffBuckets || {};
+  const dropoffEntries = [
+    { label: '0 turns', key: 'zero', color: '#e85a5a' },
+    { label: '1–3', key: 'oneToThree', color: '#e8845a' },
+    { label: '4–10', key: 'fourToTen', color: '#e8b45a' },
+    { label: '11–20', key: 'elevenToTwenty', color: '#e8c45a' },
+    { label: '20+', key: 'twentyPlus', color: '#c9a84c' },
+  ];
+  const maxDropoff = Math.max(1, ...dropoffEntries.map(e => dropoff[e.key] ?? 0));
+
+  const topSettings = d.topSettings || [];
+  const topTemplates = d.topTemplates || [];
+  const maxSettingCount = topSettings.length > 0 ? topSettings[0].count : 1;
+  const maxTemplateCount = topTemplates.length > 0 ? topTemplates[0].count : 1;
+
+  // Cost Analytics
+  const avgCostPerGame = d.avgCostPerGame;
+  const avgInitCost = d.avgInitCost;
+  const avgGameplayCost = d.avgGameplayCost;
+  const avgGmCost = d.avgGmCost;
+  const recentAvgPerTurn = d.recentAvgCostPerTurn;
+  const previousAvgPerTurn = d.previousAvgCostPerTurn;
+  const projected = d.projectedMonthlyCost100Players;
+
+  const totalInitCost = d.totalInitCost ?? 0;
+  const totalGameplayCost = d.totalGameplayCost ?? 0;
+  const totalGmCost = d.totalGmCost ?? 0;
+  const costSum = totalInitCost + totalGameplayCost + totalGmCost;
+  const initPct = costSum > 0 ? (totalInitCost / costSum) * 100 : 0;
+  const gameplayPct = costSum > 0 ? (totalGameplayCost / costSum) * 100 : 0;
+  const gmPct = costSum > 0 ? (totalGmCost / costSum) * 100 : 0;
+
+  // Engagement
+  const avgTurns = d.avgTurnsPerGame;
+  const avgTurnsCompleted = d.avgTurnsCompleted;
+  const avgTurnsAbandoned = d.avgTurnsAbandoned;
+  const avgGmCalls = d.avgGmCallsPerGame;
+  const sigDist = d.significanceDistribution;
+  const weeklyGames = d.weeklyGamesCreated || [];
+  const weeklyCosts = d.weeklyCostPerWeek || [];
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 18, fontWeight: 700, color: '#d0c098', margin: 0 }}>Analytics</h2>
+        <button className={styles.refreshBtn} onClick={onRefresh}>Refresh</button>
+      </div>
+
+      {/* ─── Game Patterns ─── */}
+      <SectionHeader>Game Patterns</SectionHeader>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 20 }}>
+        <StatCard label="Total Games" value={totalGames} />
+        <StatCard label="Active" value={activeGames} sub={pct(activeGames)} valueColor="#8aba7a" />
+        <StatCard label="Completed" value={completedGames} sub={pct(completedGames)} />
+        <StatCard label="Abandoned" value={abandonedGames} sub={pct(abandonedGames)} valueColor={abandonedGames > 0 ? '#e8845a' : undefined} />
+      </div>
+
+      {Object.keys(dropoff).length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+            Abandoned Drop-off
+          </div>
+          {dropoffEntries.map(e => (
+            <DropoffBar key={e.key} label={e.label} count={dropoff[e.key] ?? 0} max={maxDropoff} color={e.color} />
+          ))}
+        </div>
+      )}
+
+      {topSettings.length > 0 && (
+        <div className={styles.tableCard} style={{ marginBottom: 16 }}>
+          <div style={{ padding: '10px 16px', borderBottom: '1px solid #2a2622' }}>
+            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Top Settings</span>
+          </div>
+          {topSettings.slice(0, 10).map((s, i) => (
+            <RankedRow key={i} rank={i + 1} name={s.name || s.setting || 'Unknown'} count={s.count} max={maxSettingCount} />
+          ))}
+        </div>
+      )}
+
+      {topTemplates.length > 0 && (
+        <div className={styles.tableCard} style={{ marginBottom: 16 }}>
+          <div style={{ padding: '10px 16px', borderBottom: '1px solid #2a2622' }}>
+            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Top Templates</span>
+          </div>
+          {topTemplates.slice(0, 10).map((t, i) => (
+            <RankedRow key={i} rank={i + 1} name={t.name || t.template || 'Unknown'} count={t.count} max={maxTemplateCount} />
+          ))}
+        </div>
+      )}
+
+      {/* ─── Cost Analytics ─── */}
+      <SectionHeader>Cost Analytics</SectionHeader>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 20 }}>
+        <StatCard label="Avg Cost/Game" value={formatCost(avgCostPerGame)} />
+        <StatCard label="Avg Init Cost" value={formatCost(avgInitCost)} />
+        <StatCard label="Avg Gameplay Cost" value={formatCost(avgGameplayCost)} />
+        <StatCard label="Avg GM Cost" value={formatCost(avgGmCost)} />
+      </div>
+
+      {(recentAvgPerTurn != null || previousAvgPerTurn != null) && (
+        <div style={{ display: 'flex', gap: 24, marginBottom: 20, alignItems: 'center' }}>
+          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Cost Trend</div>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'baseline' }}>
+            <div>
+              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>Recent 50 avg/turn: </span>
+              <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 14, fontWeight: 600, color: '#d0c098' }}>{formatCost(recentAvgPerTurn)}</span>
+            </div>
+            {previousAvgPerTurn != null && (
+              <>
+                <span style={{
+                  fontSize: 16,
+                  color: recentAvgPerTurn <= previousAvgPerTurn ? '#8aba7a' : '#e85a5a',
+                }}>{recentAvgPerTurn <= previousAvgPerTurn ? '\u2193' : '\u2191'}</span>
+                <div>
+                  <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>Previous 50: </span>
+                  <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 14, fontWeight: 600, color: '#7082a4' }}>{formatCost(previousAvgPerTurn)}</span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {projected != null && (
+        <div style={{
+          background: '#111528', border: '2px solid #3a3328', borderRadius: 8,
+          padding: '20px 24px', marginBottom: 24, textAlign: 'center',
+        }}>
+          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
+            Projected Monthly Cost at 100 Players
+          </div>
+          <div style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 32, fontWeight: 700, color: '#c9a84c' }}>
+            {formatCostShort(projected)}
+          </div>
+        </div>
+      )}
+
+      {costSum > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+            Cost Ratio
+          </div>
+          <div style={{ display: 'flex', height: 24, borderRadius: 4, overflow: 'hidden', marginBottom: 6 }}>
+            {initPct > 0 && <div style={{ width: `${initPct}%`, background: '#7ab4e8', transition: 'width 0.3s' }} />}
+            {gameplayPct > 0 && <div style={{ width: `${gameplayPct}%`, background: '#c9a84c', transition: 'width 0.3s' }} />}
+            {gmPct > 0 && <div style={{ width: `${gmPct}%`, background: '#8aba7a', transition: 'width 0.3s' }} />}
+          </div>
+          <div style={{ display: 'flex', gap: 20, fontFamily: 'var(--font-alegreya-sans)', fontSize: 12 }}>
+            <span><span style={{ color: '#7ab4e8' }}>{'\u25A0'}</span> Init {initPct.toFixed(1)}%</span>
+            <span><span style={{ color: '#c9a84c' }}>{'\u25A0'}</span> Gameplay {gameplayPct.toFixed(1)}%</span>
+            <span><span style={{ color: '#8aba7a' }}>{'\u25A0'}</span> GM {gmPct.toFixed(1)}%</span>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Engagement ─── */}
+      <SectionHeader>Engagement</SectionHeader>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 20 }}>
+        <StatCard label="Avg Turns/Game" value={avgTurns != null ? avgTurns.toFixed(1) : '—'} />
+        <StatCard label="Avg (Completed)" value={avgTurnsCompleted != null ? avgTurnsCompleted.toFixed(1) : '—'} />
+        <StatCard label="Avg (Abandoned)" value={avgTurnsAbandoned != null ? avgTurnsAbandoned.toFixed(1) : '—'} />
+        <StatCard label="Avg GM Calls" value={avgGmCalls != null ? avgGmCalls.toFixed(1) : '—'} />
+      </div>
+
+      {sigDist && Object.keys(sigDist).length > 0 && (() => {
+        const scores = [1, 2, 3, 4, 5];
+        const maxSig = Math.max(1, ...scores.map(s => sigDist[s] ?? 0));
+        return (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+              Significance Distribution
+            </div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 100 }}>
+              {scores.map(s => {
+                const count = sigDist[s] ?? 0;
+                const h = maxSig > 0 ? (count / maxSig) * 100 : 0;
+                return (
+                  <div key={s} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                    <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11, color: '#8a94a8' }}>{count}</span>
+                    <div style={{ width: '100%', maxWidth: 48, height: `${h}%`, minHeight: count > 0 ? 4 : 0, background: '#c9a84c', borderRadius: '3px 3px 0 0', transition: 'height 0.3s' }} />
+                    <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>{s}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
+      {(weeklyGames.length > 0 || weeklyCosts.length > 0) && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+            Weekly Trends
+          </div>
+          {weeklyGames.length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4', marginRight: 8 }}>Games:</span>
+              {weeklyGames.slice(-8).map((w, i) => (
+                <span key={i} style={{
+                  fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#d0c098',
+                  marginRight: 12,
+                }}>
+                  <span style={{ fontSize: 10, color: '#7082a4' }}>{w.week || ''} </span>{w.count ?? 0}
+                </span>
+              ))}
+            </div>
+          )}
+          {weeklyCosts.length > 0 && (
+            <div>
+              <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4', marginRight: 8 }}>Cost:</span>
+              {weeklyCosts.slice(-8).map((w, i, arr) => {
+                const prev = i > 0 ? (arr[i - 1].cost ?? 0) : null;
+                const curr = w.cost ?? 0;
+                const warming = prev != null && curr > prev;
+                return (
+                  <span key={i} style={{
+                    fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12,
+                    color: warming ? '#e8845a' : '#d0c098',
+                    marginRight: 12,
+                  }}>
+                    <span style={{ fontSize: 10, color: '#7082a4' }}>{w.week || ''} </span>{formatCostShort(curr)}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
 // MAIN ADMIN PAGE
 // ═════════════════════════════════════════════════════════════════════════════
 
-const TABS = ['Users', 'Games', 'Game Log', 'Costs', 'Health', 'Reports', 'Settings'];
+const TABS = ['Users', 'Games', 'Game Log', 'Costs', 'Analytics', 'Health', 'Reports', 'Settings'];
 
 export default function AdminPage() {
   const router = useRouter();
@@ -2241,6 +2737,7 @@ export default function AdminPage() {
   const [healthData, setHealthData] = useState(null);
   const [reportsData, setReportsData] = useState(null);
   const [settingsData, setSettingsData] = useState(null);
+  const [analyticsData, setAnalyticsData] = useState(null);
 
   const [usersLoading, setUsersLoading] = useState(false);
   const [gamesLoading, setGamesLoading] = useState(false);
@@ -2248,6 +2745,7 @@ export default function AdminPage() {
   const [healthLoading, setHealthLoading] = useState(false);
   const [reportsLoading, setReportsLoading] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(false);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
   const [openReportCount, setOpenReportCount] = useState(0);
   const [pendingGameDetail, setPendingGameDetail] = useState(null);
@@ -2295,6 +2793,10 @@ export default function AdminPage() {
       setReportsLoading(true);
       try { setReportsData(await getAdminReports({})); } catch { /* keep stale */ }
       setReportsLoading(false);
+    } else if (tab === 'Analytics') {
+      setAnalyticsLoading(true);
+      try { setAnalyticsData(await getAdminAnalytics()); } catch { /* keep stale */ }
+      setAnalyticsLoading(false);
     } else if (tab === 'Settings') {
       setSettingsLoading(true);
       try {
@@ -2402,6 +2904,12 @@ export default function AdminPage() {
             data={costsData} loading={costsLoading}
             onRefresh={() => fetchTab('Costs', true)}
             onViewGame={(gid) => { setPendingGameDetail(gid); setActiveTab('Games'); }}
+          />
+        )}
+        {activeTab === 'Analytics' && (
+          <AnalyticsTab
+            data={analyticsData} loading={analyticsLoading}
+            onRefresh={() => fetchTab('Analytics', true)}
           />
         )}
         {activeTab === 'Health' && (

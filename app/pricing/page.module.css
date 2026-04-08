@@ -8,6 +8,9 @@
   overflow: hidden;
   transition: all 0.3s ease;
   cursor: pointer;
+  background: linear-gradient(135deg, var(--accent-gold), var(--accent-bright));
+  border: none;
+  color: var(--bg-main);
 }
 
 .btnPrimary:hover {
@@ -19,6 +22,9 @@
 .btnSecondary {
   transition: all 0.3s ease;
   cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--border-card);
+  color: var(--accent-gold);
 }
 
 .btnSecondary:hover {
