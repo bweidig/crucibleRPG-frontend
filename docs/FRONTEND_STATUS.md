@@ -50,7 +50,7 @@ Two bundled changes: a new "Powers Beyond the Ordinary?" field in character crea
 - **Action buttons:** "ADJUST STATS" and "REQUEST CHANGES" buttons on the summary view open their respective FieldModals. Request Changes button shows an amber dot when there are unsubmitted requests.
 - **`attrFieldModal` state:** New state (`null | 'stats' | 'requests'`) tracks which attributes FieldModal is open. Cleaned up on phase transitions.
 
-- **Files modified:** `app/init/page.js`, `docs/FRONTEND_STATUS.md`
+- **Files modified:** `app/init/page.js`, `app/init/page.module.css`, `docs/FRONTEND_STATUS.md`
 
 ### Init Wizard — Phase 2 (Character) Restructure
 Restructured Phase 2 (Character) of the init wizard to use the FieldModal popup pattern from Phase 1. The PhaseModal now shows two clean path cards (Archetype and Full Custom), each opening a focused FieldModal for its flow.

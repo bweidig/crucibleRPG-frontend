@@ -835,6 +835,8 @@ Create or update the character. **Idempotent** — updates existing character on
 | `appearance` | string | no | Must be string if provided |
 | `gender` | string | no | Must be string if provided |
 | `species` | string | no | Species name; "human" or empty → stored as null |
+| `powersFlag` | string | no | `'yes'`, `'no'`, or null. Player's supernatural intent — controls POT stat and magic skills in proposal |
+| `powersDescription` | string | no | Freeform description of powers (max 500 chars). Only stored when `powersFlag` is `'yes'` |
 
 **Response (201 new / 200 update):**
 ```json
@@ -846,7 +848,9 @@ Create or update the character. **Idempotent** — updates existing character on
     "personality": "Quiet and observant",
     "appearance": "Tall, dark hair",
     "gender": "male",
-    "species": "Thornkin"
+    "species": "Thornkin",
+    "powersFlag": "yes",
+    "powersDescription": "Elemental fire magic inherited from dragon ancestry"
   },
   "message": "Character created. Proceed to Phase 4 (proposal generation)."
 }

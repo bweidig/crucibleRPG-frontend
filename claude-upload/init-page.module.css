@@ -68,6 +68,7 @@
 
 .adjustBtn:hover {
   border-color: var(--border-card-hover);
+  color: var(--accent-gold);
 }
 
 /* Stat +/- step buttons */
