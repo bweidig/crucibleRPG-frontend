@@ -95,6 +95,27 @@
   max-height: 85vh;
 }
 
+/* Step indicator: desktop full bar, mobile compact label */
+.stepIndicatorDesktop { display: block; }
+.stepIndicatorMobile { display: none; }
+
+/* Summary chips */
+.summaryChips {}
+.summaryChip {}
+.chipLabel {}
+.chipValue {}
+
+/* ===== FIELD MODAL ===== */
+
+.fieldModalCard {
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  max-width: 640px;
+  max-height: 80vh;
+}
+
+.fieldModalPosition {}
+
 /* ===== MOBILE RESPONSIVE ===== */
 
 @media (max-width: 767px) {
@@ -149,5 +170,43 @@
     height: 100% !important;
     border-radius: 0 !important;
     border: none !important;
+  }
+
+  .stepIndicatorDesktop { display: none; }
+  .stepIndicatorMobile {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+
+  .summaryChips {
+    flex-wrap: wrap !important;
+  }
+
+  .summaryChip {
+    flex: 0 0 auto;
+  }
+
+  .chipLabel {
+    font-size: 9px !important;
+  }
+
+  .chipValue {
+    font-size: 12px !important;
+    max-width: 100px !important;
+  }
+
+  /* FieldModal — mobile bottom sheet */
+  .fieldModalPosition {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  .fieldModalCard {
+    max-width: 100% !important;
+    max-height: 85vh !important;
+    border-radius: 16px 16px 0 0 !important;
+    border-bottom: none !important;
   }
 }

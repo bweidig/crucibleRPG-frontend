@@ -34,6 +34,24 @@
 
 ## Recent Work (This Session: 2026-04-08)
 
+### Init Wizard — Phase 1 Restructure + FieldModal Foundation
+Major restructure of the init wizard layout and Phase 1 (Settings). PhaseModal now serves as the hub with stacked sub-popups (FieldModals) for configuration.
+
+**PhaseModal header:** StepIndicator and summary chips moved from behind the modal backdrop into a pinned header slot inside the modal card. On mobile (<=768px), the full 6-step bar collapses to a compact "Step X of 6" label. Summary chips use smaller fonts on mobile.
+
+**FieldModal component:** New reusable stacked popup for sub-content. Portal-rendered to `document.body` at z-index 20 (above PhaseModal 10/11, below confirmation modal 60). Title bar with close X, scrollable content, optional footer. On mobile, renders as a bottom sheet (anchored to bottom, rounded top corners, max-height 85vh). Backdrop click closes.
+
+**Phase 2 (Settings) restructure:** Phase2 component simplified to just the era grid + Custom/Your Worlds row + Advanced button. All sub-content moved into four FieldModal instances:
+- **Era FieldModal:** Prebuilt template cards + "Shape Your Own" SettingQuestions + "Anything else?" textarea
+- **Custom FieldModal:** Freeform world description textarea + "Anything else?"
+- **Your Worlds FieldModal:** WorldSnapshotList with saved worlds
+- **Advanced FieldModal:** AdvancedSeedTab (factions + NPCs)
+
+Each card on the grid shows a brief gold summary when configured (prebuilt name, custom text preview, snapshot name). "Advanced: Factions & NPCs" button below grid shows seed count badge. FieldModals have "Done" footer buttons.
+
+- **Files modified:** `app/init/page.js`, `app/init/page.module.css`
+- **New components:** `PhaseModal` (header prop added), `FieldModal`
+
 ### Admin Health: AI Fallbacks Card
 Added "AI Fallbacks" StatCard to Health tab, positioned after Errors and before Stuck Games. Shows last24h count as the value, with "X this week · Y all time" sub text. Green when 0, amber when > 0. Skipped entirely if backend doesn't return `fallbacks` (backward compat).
 

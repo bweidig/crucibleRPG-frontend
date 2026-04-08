@@ -1296,29 +1296,43 @@ function AdvancedSeedTab({ seedFactions, setSeedFactions, seedNpcs, setSeedNpcs 
   );
 }
 
-function Phase2({ selected, onSelect, settingAnswers, setSettingAnswers, selectedWorld, setSelectedWorld, expandedWorld, setExpandedWorld, worldSnapshots, selectedSnapshot, setSelectedSnapshot, customWorldText, setCustomWorldText, anythingElseText, setAnythingElseText, settingTab, setSettingTab, seedFactions, setSeedFactions, seedNpcs, setSeedNpcs }) {
+function Phase2({ selected, onSelect, selectedWorld, customWorldText, selectedSnapshot, worldSnapshots, seedFactions, seedNpcs, onCardTap }) {
   const mainSettings = SETTINGS.filter(s => s.id !== 'custom');
   const customSetting = SETTINGS.find(s => s.id === 'custom');
   const yourWorldsItem = { id: 'your-worlds', name: 'Your Worlds' };
 
-  const isEra = selected && selected !== 'custom' && selected !== 'your-worlds';
-  const eraWorlds = isEra ? PREBUILT_WORLDS.filter(w => w.era === selected) : [];
-
-  const handleWorldToggle = (worldId) => {
-    if (selectedWorld === worldId) {
-      setSelectedWorld(null);
-      setExpandedWorld(null);
-    } else {
-      setSelectedWorld(worldId);
-      setExpandedWorld(worldId);
-      setSettingAnswers({});
+  // Summary text for configured cards
+  const getCardSummary = (settingId) => {
+    if (settingId === 'custom') {
+      if (customWorldText) return customWorldText.length > 40 ? customWorldText.slice(0, 40) + '...' : customWorldText;
+      return null;
     }
+    if (settingId === 'your-worlds') {
+      if (selectedSnapshot) {
+        const snap = worldSnapshots.find(s => s.id === selectedSnapshot);
+        return snap?.name || 'Selected';
+      }
+      return null;
+    }
+    // Era
+    if (selected === settingId) {
+      if (selectedWorld) {
+        const pw = PREBUILT_WORLDS.find(w => w.id === selectedWorld);
+        return pw?.name || 'Template selected';
+      }
+      return null;
+    }
+    return null;
   };
 
-  const handleSubQuestionInteract = () => {
-    setSelectedWorld(null);
-    setExpandedWorld(null);
+  const handleCardTap = (id) => {
+    onSelect(id);
+    if (id === 'custom') onCardTap('custom');
+    else if (id === 'your-worlds') onCardTap('your-worlds');
+    else onCardTap('era');
   };
+
+  const seedCount = seedFactions.length + seedNpcs.length;
 
   return (
     <div>
@@ -1326,30 +1340,39 @@ function Phase2({ selected, onSelect, settingAnswers, setSettingAnswers, selecte
 
       {/* Era grid */}
       <div className={styles.twoColGrid} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        {mainSettings.map(s => (
-          <SelectionCard key={s.id} item={s} selected={selected} onSelect={onSelect}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
-              <IconBox name={s.icon} color={selected === s.id ? 'var(--accent-gold)' : 'var(--text-muted)'} />
-              <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 17, fontWeight: 700, color: 'var(--text-heading)' }}>{s.name}</span>
-            </div>
-            <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>{s.desc}</p>
-          </SelectionCard>
-        ))}
+        {mainSettings.map(s => {
+          const summary = selected === s.id ? getCardSummary(s.id) : null;
+          return (
+            <SelectionCard key={s.id} item={s} selected={selected} onSelect={handleCardTap}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
+                <IconBox name={s.icon} color={selected === s.id ? 'var(--accent-gold)' : 'var(--text-muted)'} />
+                <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 17, fontWeight: 700, color: 'var(--text-heading)' }}>{s.name}</span>
+              </div>
+              <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>{s.desc}</p>
+              {summary && (
+                <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: 'var(--accent-gold)', marginTop: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{summary}</div>
+              )}
+            </SelectionCard>
+          );
+        })}
       </div>
 
       {/* Custom + Your Worlds row */}
       <div className={styles.twoColGrid} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
-        <SelectionCard item={customSetting} selected={selected} onSelect={onSelect}>
+        <SelectionCard item={customSetting} selected={selected} onSelect={handleCardTap}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <IconBox name={customSetting.icon} color={selected === 'custom' ? 'var(--accent-gold)' : 'var(--text-muted)'} />
             <div>
               <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 17, fontWeight: 700, color: 'var(--text-heading)' }}>{customSetting.name}</span>
               <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 15, color: 'var(--text-muted)', margin: '6px 0 0' }}>{customSetting.desc}</p>
+              {selected === 'custom' && getCardSummary('custom') && (
+                <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: 'var(--accent-gold)', marginTop: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{getCardSummary('custom')}</div>
+              )}
             </div>
           </div>
         </SelectionCard>
 
-        <SelectionCard item={yourWorldsItem} selected={selected} onSelect={onSelect}>
+        <SelectionCard item={yourWorldsItem} selected={selected} onSelect={handleCardTap}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <IconBox name="your_worlds" color={selected === 'your-worlds' ? 'var(--accent-gold)' : 'var(--text-muted)'} />
             <div>
@@ -1357,106 +1380,32 @@ function Phase2({ selected, onSelect, settingAnswers, setSettingAnswers, selecte
               <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 15, color: 'var(--text-muted)', margin: '6px 0 0' }}>
                 {worldSnapshots.length > 0 ? `${worldSnapshots.length} saved` : 'No saved worlds yet'}
               </p>
+              {selected === 'your-worlds' && getCardSummary('your-worlds') && (
+                <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: 'var(--accent-gold)', marginTop: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{getCardSummary('your-worlds')}</div>
+              )}
             </div>
           </div>
         </SelectionCard>
       </div>
 
-      {/* Tab bar: World / Advanced — show immediately after setting grid */}
-      {selected && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 28, marginBottom: 4 }}>
-          {[{ id: 'world', label: 'World' }, { id: 'advanced', label: 'Advanced' }].map(tab => (
-            <button key={tab.id} onClick={() => setSettingTab(tab.id)} style={{
-              fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 600,
-              color: settingTab === tab.id ? 'var(--accent-gold)' : 'var(--text-muted)',
-              background: settingTab === tab.id ? 'var(--bg-gold-light)' : 'transparent',
-              border: `1px solid ${settingTab === tab.id ? 'var(--border-card)' : 'var(--border-primary)'}`,
-              borderRadius: 20, padding: '8px 20px', cursor: 'pointer',
-              letterSpacing: '0.08em', textTransform: 'uppercase', transition: 'all 0.2s',
-            }}>{tab.label}</button>
-          ))}
-        </div>
-      )}
-
-      {/* World tab content */}
-      {selected && settingTab === 'world' && (
-        <>
-          {/* Custom path */}
-          {selected === 'custom' && (
-            <div style={{ marginTop: 16 }}>
-              <textarea value={customWorldText} onChange={e => setCustomWorldText(e.target.value)} placeholder="Describe your world..." className={styles.wizardInput} style={{
-                width: '100%', minHeight: 110, background: 'var(--bg-main)', border: '1px solid var(--border-gold-faint)',
-                borderRadius: 8, padding: 16, fontFamily: 'var(--font-alegreya)', fontSize: 16,
-                color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
-              }} />
-            </div>
+      {/* Advanced: Factions & NPCs */}
+      <div style={{ textAlign: 'center', marginTop: 24 }}>
+        <button onClick={() => onCardTap('advanced')} style={{
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
+          color: 'var(--text-muted)', background: 'none', border: 'none',
+          cursor: 'pointer', padding: '8px 4px',
+          borderBottom: '1px solid transparent',
+          transition: 'border-color 0.2s',
+        }} onMouseEnter={e => e.currentTarget.style.borderBottomColor = 'var(--text-muted)'}
+           onMouseLeave={e => e.currentTarget.style.borderBottomColor = 'transparent'}>
+          Advanced: Factions &amp; NPCs
+          {seedCount > 0 && (
+            <span style={{ color: 'var(--text-dim)', marginLeft: 6 }}>
+              ({seedFactions.length} faction{seedFactions.length !== 1 ? 's' : ''}{seedNpcs.length > 0 ? `, ${seedNpcs.length} NPC${seedNpcs.length !== 1 ? 's' : ''}` : ''})
+            </span>
           )}
-
-          {/* Your Worlds path */}
-          {selected === 'your-worlds' && (
-            <WorldSnapshotList
-              snapshots={worldSnapshots}
-              selectedSnapshot={selectedSnapshot}
-              setSelectedSnapshot={setSelectedSnapshot}
-              anythingElseText={anythingElseText}
-              setAnythingElseText={setAnythingElseText}
-            />
-          )}
-
-          {/* Era path: pre-built worlds + build your own */}
-          {isEra && (
-            <div style={{ marginTop: 24 }}>
-              {/* Pre-built world cards */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {eraWorlds.map(world => (
-                  <div key={world.id}>
-                    <PrebuiltWorldCard
-                      world={world}
-                      isSelected={selectedWorld === world.id}
-                      isExpanded={expandedWorld === world.id}
-                      onToggle={handleWorldToggle}
-                    />
-                    {/* "Anything else?" for selected pre-built world */}
-                    {selectedWorld === world.id && (
-                      <div style={{ marginTop: 16 }}>
-                        <label style={{
-                          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600,
-                          color: 'var(--text-secondary)', display: 'block', marginBottom: 10,
-                        }}>Anything else?</label>
-                        <textarea value={anythingElseText} onChange={e => setAnythingElseText(e.target.value)} placeholder="Any tweaks for this playthrough? Change the political situation, add a detail, shift the tone." className={styles.wizardInput} style={{
-                          width: '100%', minHeight: 80, background: 'var(--bg-main)', border: '1px solid var(--border-gold-subtle)',
-                          borderRadius: 8, padding: 16, fontFamily: 'var(--font-alegreya)', fontSize: 16,
-                          color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
-                        }} />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Divider + Build Your Own — hide when a prebuilt world is selected */}
-              {!selectedWorld && (
-                <>
-                  <SectionDivider text="or shape your own" />
-                  <SettingQuestions
-                    settingId={selected}
-                    answers={settingAnswers}
-                    setAnswers={setSettingAnswers}
-                    onInteract={handleSubQuestionInteract}
-                    freeformText={anythingElseText}
-                    setFreeformText={setAnythingElseText}
-                  />
-                </>
-              )}
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Advanced tab content */}
-      {selected && settingTab === 'advanced' && (
-        <AdvancedSeedTab seedFactions={seedFactions} setSeedFactions={setSeedFactions} seedNpcs={seedNpcs} setSeedNpcs={setSeedNpcs} />
-      )}
+        </button>
+      </div>
     </div>
   );
 }
@@ -2359,7 +2308,7 @@ function Phase6({ scenario, setScenario, customStartText, setCustomStartText, sc
 
 // --- PHASE MODAL ---
 
-function PhaseModal({ children, bottomNav }) {
+function PhaseModal({ children, bottomNav, header }) {
   const scrollRef = useRef(null);
   const [mounted, setMounted] = useState(false);
 
@@ -2400,6 +2349,16 @@ function PhaseModal({ children, bottomNav }) {
           flexDirection: 'column',
           overflow: 'hidden',
         }}>
+          {/* Pinned header */}
+          {header && (
+            <div style={{
+              flexShrink: 0,
+              padding: '24px 36px 0',
+              background: 'var(--bg-main)',
+            }}>
+              {header}
+            </div>
+          )}
           {/* Scrollable content */}
           <div ref={scrollRef} style={{
             flex: 1,
@@ -2424,6 +2383,92 @@ function PhaseModal({ children, bottomNav }) {
         </div>
       </div>
     </>,
+    document.body
+  );
+}
+
+// --- FIELD MODAL ---
+
+function FieldModal({ title, children, onClose, footer }) {
+  const scrollRef = useRef(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  if (!mounted) return null;
+
+  return createPortal(
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 20,
+      opacity: mounted ? 1 : 0,
+      transition: 'opacity 150ms ease',
+    }}>
+      {/* Backdrop — click to close */}
+      <div onClick={onClose} style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'rgba(10, 14, 26, 0.7)',
+      }} />
+      {/* Centering container */}
+      <div className={styles.fieldModalPosition} style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 20px',
+        pointerEvents: 'none',
+      }}>
+        <div className={styles.fieldModalCard} style={{
+          pointerEvents: 'auto',
+          background: 'var(--bg-main)',
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}>
+          {/* Title bar */}
+          {title && (
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '20px 28px 16px',
+              borderBottom: '1px solid var(--border-gold-faint)',
+              flexShrink: 0,
+            }}>
+              <span style={{
+                fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700,
+                color: 'var(--text-heading)',
+              }}>{title}</span>
+              <button onClick={onClose} style={{
+                background: 'none', border: 'none', padding: 8, cursor: 'pointer',
+                color: 'var(--text-muted)', fontSize: 18, lineHeight: 1,
+              }}>{'\u2715'}</button>
+            </div>
+          )}
+          {/* Scrollable content */}
+          <div ref={scrollRef} style={{
+            flex: 1,
+            overflowY: 'auto',
+            overscrollBehavior: 'contain',
+            padding: '24px 28px 28px',
+            minHeight: 0,
+          }}>
+            {children}
+          </div>
+          {/* Optional footer */}
+          {footer && (
+            <div style={{
+              borderTop: '1px solid var(--border-gold-faint)',
+              padding: '14px 28px',
+              background: 'var(--bg-main)',
+              flexShrink: 0,
+            }}>
+              {footer}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>,
     document.body
   );
 }
@@ -2475,6 +2520,7 @@ function InitWizardInner() {
   const [customWorldText, setCustomWorldText] = useState('');
   const [anythingElseText, setAnythingElseText] = useState('');
   const [settingTab, setSettingTab] = useState('world');
+  const [fieldModalOpen, setFieldModalOpen] = useState(null); // null | 'era' | 'custom' | 'your-worlds' | 'advanced'
   const [seedFactions, setSeedFactions] = useState([]);
   const [seedNpcs, setSeedNpcs] = useState([]);
   const [character, setCharacter] = useState({ name: '', backstory: '', personality: '', personalityCustom: '', appearance: '', pronouns: '', customPronouns: '', genderIdentity: '' });
@@ -3249,57 +3295,68 @@ function InitWizardInner() {
       <ParticleField />
       <div style={{ width: '100%' }}><NavBar /></div>
 
-      {/* Behind-modal context: step indicator + summary bar (dimmed on desktop, hidden on mobile) */}
-      <div style={{ width: '100%', maxWidth: 740, padding: '44px 28px 0', boxSizing: 'border-box' }}>
-        <StepIndicator steps={STEP_NAMES} current={phase} />
-
-        {/* Summary bar — progressive chips for previous selections */}
-        {(() => {
-          const chips = [];
-          const stName = storyteller ? (STORYTELLERS.find(s => s.id === storyteller)?.name || 'Custom') : null;
-          const prebuiltWorld = selectedWorld ? PREBUILT_WORLDS.find(w => w.id === selectedWorld) : null;
-          const worldLabel = worldGenName || (prebuiltWorld ? prebuiltWorld.name : null) || (setting ? (SETTINGS.find(s => s.id === setting)?.name || 'Custom') : null);
-          const charName = character?.name || null;
-          const diffName = difficulty ? (DIFFICULTIES.find(d => d.id === difficulty)?.name || difficulty) : null;
-
-          if (phase >= 1 && stName) chips.push({ label: 'Voice', value: stName });
-          if (phase >= 2 && worldLabel) chips.push({ label: 'World', value: worldLabel });
-          if (phase >= 3 && charName) chips.push({ label: 'Character', value: charName, gold: true });
-          if (phase >= 5 && diffName) chips.push({ label: 'Difficulty', value: diffName });
-
-          if (chips.length === 0) return null;
-          return (
-            <div style={{
-              display: 'flex', justifyContent: 'center', gap: 0,
-              borderTop: '1px solid #16181e', borderBottom: '1px solid #16181e',
-              padding: '12px 0', margin: '0 0 24px',
-            }}>
-              {chips.map((chip, i) => (
-                <div key={chip.label} style={{
-                  padding: '0 20px', textAlign: 'center',
-                  borderRight: i < chips.length - 1 ? '1px solid #1e2540' : 'none',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                }}>
-                  <div style={{
-                    fontFamily: 'var(--font-alegreya-sans)', fontSize: 10, fontWeight: 600,
-                    color: '#4a5a70', letterSpacing: '0.14em', textTransform: 'uppercase',
-                    lineHeight: 1.2,
-                  }}>{chip.label}</div>
-                  <div title={chip.value} style={{
-                    fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600,
-                    color: chip.gold ? '#c9a84c' : '#8a94a8',
-                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                    maxWidth: 140, lineHeight: 1.3,
-                  }}>{chip.value}</div>
-                </div>
-              ))}
-            </div>
-          );
-        })()}
-      </div>
-
       {/* Phase Modal */}
-      <PhaseModal bottomNav={
+      <PhaseModal header={(() => {
+        const chips = [];
+        const stName = storyteller ? (STORYTELLERS.find(s => s.id === storyteller)?.name || 'Custom') : null;
+        const prebuiltWorld = selectedWorld ? PREBUILT_WORLDS.find(w => w.id === selectedWorld) : null;
+        const worldLabel = worldGenName || (prebuiltWorld ? prebuiltWorld.name : null) || (setting ? (SETTINGS.find(s => s.id === setting)?.name || 'Custom') : null);
+        const charName = character?.name || null;
+        const diffName = difficulty ? (DIFFICULTIES.find(d => d.id === difficulty)?.name || difficulty) : null;
+
+        if (phase >= 1 && stName) chips.push({ label: 'Voice', value: stName });
+        if (phase >= 2 && worldLabel) chips.push({ label: 'World', value: worldLabel });
+        if (phase >= 3 && charName) chips.push({ label: 'Character', value: charName, gold: true });
+        if (phase >= 5 && diffName) chips.push({ label: 'Difficulty', value: diffName });
+
+        return (
+          <>
+            {/* Desktop: full step indicator */}
+            <div className={styles.stepIndicatorDesktop}>
+              <StepIndicator steps={STEP_NAMES} current={phase} />
+            </div>
+            {/* Mobile: compact phase label */}
+            <div className={styles.stepIndicatorMobile}>
+              <span style={{
+                fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
+                color: 'var(--accent-gold)',
+              }}>{STEP_NAMES[phase]}</span>
+              <span style={{
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 12,
+                color: 'var(--text-dim)', marginLeft: 10,
+              }}>Step {phase + 1} of {STEP_NAMES.length}</span>
+            </div>
+            {/* Summary chips */}
+            {chips.length > 0 && (
+              <div className={styles.summaryChips} style={{
+                display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 0,
+                borderTop: '1px solid #16181e', borderBottom: '1px solid #16181e',
+                padding: '10px 0', margin: '0 0 4px',
+              }}>
+                {chips.map((chip, i) => (
+                  <div key={chip.label} className={styles.summaryChip} style={{
+                    padding: '0 20px', textAlign: 'center',
+                    borderRight: i < chips.length - 1 ? '1px solid #1e2540' : 'none',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  }}>
+                    <div className={styles.chipLabel} style={{
+                      fontFamily: 'var(--font-alegreya-sans)', fontSize: 10, fontWeight: 600,
+                      color: '#4a5a70', letterSpacing: '0.14em', textTransform: 'uppercase',
+                      lineHeight: 1.2,
+                    }}>{chip.label}</div>
+                    <div title={chip.value} className={styles.chipValue} style={{
+                      fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600,
+                      color: chip.gold ? '#c9a84c' : '#8a94a8',
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      maxWidth: 140, lineHeight: 1.3,
+                    }}>{chip.value}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        );
+      })()} bottomNav={
         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 16 }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
             <span style={{
@@ -3366,6 +3423,7 @@ function InitWizardInner() {
               selected={setting}
               onSelect={(id) => {
                 if (id !== setting) {
+                  setFieldModalOpen(null);
                   setSetting(id);
                   setSettingAnswers({});
                   setSelectedWorld(null);
@@ -3376,25 +3434,13 @@ function InitWizardInner() {
                   setCustomWorldText('');
                 }
               }}
-              settingAnswers={settingAnswers}
-              setSettingAnswers={setSettingAnswers}
               selectedWorld={selectedWorld}
-              setSelectedWorld={setSelectedWorld}
-              expandedWorld={expandedWorld}
-              setExpandedWorld={setExpandedWorld}
-              worldSnapshots={worldSnapshots}
-              selectedSnapshot={selectedSnapshot}
-              setSelectedSnapshot={setSelectedSnapshot}
               customWorldText={customWorldText}
-              setCustomWorldText={setCustomWorldText}
-              anythingElseText={anythingElseText}
-              setAnythingElseText={setAnythingElseText}
-              settingTab={settingTab}
-              setSettingTab={setSettingTab}
+              selectedSnapshot={selectedSnapshot}
+              worldSnapshots={worldSnapshots}
               seedFactions={seedFactions}
-              setSeedFactions={setSeedFactions}
               seedNpcs={seedNpcs}
-              setSeedNpcs={setSeedNpcs}
+              onCardTap={setFieldModalOpen}
             />
           )}
           {phase === 2 && (() => {
@@ -3480,6 +3526,103 @@ function InitWizardInner() {
           )}
         </div>
       </PhaseModal>
+
+      {/* Setting FieldModals — render at top level, not inside Phase2 */}
+      {fieldModalOpen === 'era' && setting && setting !== 'custom' && setting !== 'your-worlds' && (() => {
+        const eraWorlds = PREBUILT_WORLDS.filter(w => w.era === setting);
+        const eraName = SETTINGS.find(s => s.id === setting)?.name || 'Setting';
+        const handleWorldToggle = (worldId) => {
+          if (selectedWorld === worldId) { setSelectedWorld(null); setExpandedWorld(null); }
+          else { setSelectedWorld(worldId); setExpandedWorld(worldId); setSettingAnswers({}); }
+        };
+        const handleSubQuestionInteract = () => { setSelectedWorld(null); setExpandedWorld(null); };
+        return (
+          <FieldModal title={eraName} onClose={() => setFieldModalOpen(null)} footer={
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setFieldModalOpen(null)} style={{
+                fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
+                color: 'var(--bg-main)', letterSpacing: '0.08em',
+                background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
+                border: 'none', borderRadius: 5, padding: '10px 28px', cursor: 'pointer',
+              }}>DONE</button>
+            </div>
+          }>
+            {/* Pre-built world cards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {eraWorlds.map(world => (
+                <div key={world.id}>
+                  <PrebuiltWorldCard world={world} isSelected={selectedWorld === world.id} isExpanded={expandedWorld === world.id} onToggle={handleWorldToggle} />
+                  {selectedWorld === world.id && (
+                    <div style={{ marginTop: 16 }}>
+                      <label style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 10 }}>Anything else?</label>
+                      <textarea value={anythingElseText} onChange={e => setAnythingElseText(e.target.value)} placeholder="Any tweaks for this playthrough? Change the political situation, add a detail, shift the tone." className={styles.wizardInput} style={{
+                        width: '100%', minHeight: 80, background: 'var(--bg-main)', border: '1px solid var(--border-gold-subtle)',
+                        borderRadius: 8, padding: 16, fontFamily: 'var(--font-alegreya)', fontSize: 16,
+                        color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+                      }} />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            {/* Build Your Own — hide when a prebuilt world is selected */}
+            {!selectedWorld && (
+              <>
+                {eraWorlds.length > 0 && <SectionDivider text="or shape your own" />}
+                <SettingQuestions settingId={setting} answers={settingAnswers} setAnswers={setSettingAnswers} onInteract={handleSubQuestionInteract} freeformText={anythingElseText} setFreeformText={setAnythingElseText} />
+              </>
+            )}
+          </FieldModal>
+        );
+      })()}
+
+      {fieldModalOpen === 'custom' && (
+        <FieldModal title="Create Your World" onClose={() => setFieldModalOpen(null)} footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button onClick={() => setFieldModalOpen(null)} style={{
+              fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
+              color: 'var(--bg-main)', letterSpacing: '0.08em',
+              background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
+              border: 'none', borderRadius: 5, padding: '10px 28px', cursor: 'pointer',
+            }}>DONE</button>
+          </div>
+        }>
+          <textarea value={customWorldText} onChange={e => setCustomWorldText(e.target.value)} placeholder="Describe your world..." className={styles.wizardInput} style={{
+            width: '100%', minHeight: 110, background: 'var(--bg-main)', border: '1px solid var(--border-gold-faint)',
+            borderRadius: 8, padding: 16, fontFamily: 'var(--font-alegreya)', fontSize: 16,
+            color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+          }} />
+          <div style={{ marginTop: 20 }}>
+            <label style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 10 }}>Anything else?</label>
+            <textarea value={anythingElseText} onChange={e => setAnythingElseText(e.target.value)} placeholder="Tone, themes, or specific details you want included." className={styles.wizardInput} style={{
+              width: '100%', minHeight: 80, background: 'var(--bg-main)', border: '1px solid var(--border-gold-subtle)',
+              borderRadius: 8, padding: 16, fontFamily: 'var(--font-alegreya)', fontSize: 16,
+              color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+            }} />
+          </div>
+        </FieldModal>
+      )}
+
+      {fieldModalOpen === 'your-worlds' && (
+        <FieldModal title="Your Worlds" onClose={() => setFieldModalOpen(null)} footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button onClick={() => setFieldModalOpen(null)} style={{
+              fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
+              color: 'var(--bg-main)', letterSpacing: '0.08em',
+              background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
+              border: 'none', borderRadius: 5, padding: '10px 28px', cursor: 'pointer',
+            }}>DONE</button>
+          </div>
+        }>
+          <WorldSnapshotList snapshots={worldSnapshots} selectedSnapshot={selectedSnapshot} setSelectedSnapshot={setSelectedSnapshot} anythingElseText={anythingElseText} setAnythingElseText={setAnythingElseText} />
+        </FieldModal>
+      )}
+
+      {fieldModalOpen === 'advanced' && (
+        <FieldModal title="Factions &amp; NPCs" onClose={() => setFieldModalOpen(null)}>
+          <AdvancedSeedTab seedFactions={seedFactions} setSeedFactions={setSeedFactions} seedNpcs={seedNpcs} setSeedNpcs={setSeedNpcs} />
+        </FieldModal>
+      )}
 
       {/* Confirmation Modal */}
       {confirmVisible && (
