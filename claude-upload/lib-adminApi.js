@@ -111,6 +111,19 @@ export function distillGmQuestions({ afterDate, beforeDate } = {}) {
   return post('/api/admin/reports/distill-gm', body);
 }
 
+// ─── GM Questions ───
+
+export function getAdminGmQuestions({ limit, offset, gameId, afterDate, beforeDate } = {}) {
+  const params = new URLSearchParams();
+  if (limit) params.set('limit', limit);
+  if (offset) params.set('offset', offset);
+  if (gameId) params.set('gameId', gameId);
+  if (afterDate) params.set('afterDate', afterDate);
+  if (beforeDate) params.set('beforeDate', beforeDate);
+  const qs = params.toString();
+  return get(`/api/admin/gm-questions${qs ? `?${qs}` : ''}`);
+}
+
 // ─── Announcement ───
 
 export function getAnnouncement() {

@@ -144,6 +144,17 @@
   text-align: right;
 }
 
+/* Equipped group labels */
+.equipGroup {
+  font-family: var(--font-alegreya-sans);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 8px 4px 2px;
+}
+
 /* Column headers */
 .columnHeaders {
   display: flex;

@@ -34,11 +34,25 @@
 
 ## Recent Work (This Session: 2026-04-08)
 
-### Admin: Analytics Tab + Report Distiller + GM Costs
-Added Analytics tab, Report Distiller, and GM cost display to the admin dashboard.
+### Admin Health: AI Fallbacks Card
+Added "AI Fallbacks" StatCard to Health tab, positioned after Errors and before Stuck Games. Shows last24h count as the value, with "X this week · Y all time" sub text. Green when 0, amber when > 0. Skipped entirely if backend doesn't return `fallbacks` (backward compat).
+
+- **Files modified:** `app/admin/page.js`
+
+### Inventory: Group Equipped Items by Category
+Equipped items in the sidebar Inventory tab are now organized by equipment category instead of a flat list. Groups display in HUD order: Weapons → Armor → Clothing → Gear → Other. Empty groups are hidden. Supports the new backend `clothing` equipment category (worn under armor, zero mechanical effect).
+
+- **Grouping logic:** `EQUIP_GROUPS` constant defines category order with match functions. `groupEquipped()` sorts items into groups; unmatched items fall into "Other" catch-all.
+- **Group labels:** Subtle uppercase labels (`equipGroup` CSS class) separate each category.
+- **Backwards compatible:** Existing characters without clothing data simply won't show that group.
+- **Files modified:** `app/play/components/InventoryTab.js`, `app/play/components/InventoryTab.module.css`
+
+### Admin: Analytics Tab + Report Distiller + GM Questions Browser + GM Costs
+Added Analytics tab, Report Distiller, GM Questions Browser, and GM cost display to the admin dashboard.
 
 - **Analytics tab:** New tab with three sections — Game Patterns (StatCards, drop-off bucket bars, top settings/templates ranked lists), Cost Analytics (avg costs, cost trend arrows, monthly projection callout, init/gameplay/GM ratio bar), Engagement (avg turns, significance distribution bar chart, weekly trends with warming indicators).
 - **Report Distiller:** Added to top of Reports tab. "Distill Reports" and "Distill GM Questions" buttons with optional filter controls (type, status, date range). Results display as cluster cards with severity badges, report counts, summaries, and "Show reports" links that filter the report list below.
+- **GM Questions Browser:** Collapsible section in Reports tab. Shows recent GM questions with game ID (clickable), character/player info, gold-bordered question text, truncatable response, turn/cost/timestamp footer, and refinement badges. Load-more pagination.
 - **GM costs in Costs tab:** Extended the init/gameplay cost breakdown line to show GM costs when present.
 - **API wrappers:** Added `getAdminAnalytics`, `distillReports`, `distillGmQuestions` to adminApi.js.
 

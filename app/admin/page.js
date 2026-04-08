@@ -8,7 +8,7 @@ import {
   getAdminGames, getAdminGameDetail, deleteAdminGame, getAdminGameNarrative,
   getAdminCosts, getAdminHealth,
   getAdminReports, updateReport,
-  getAdminAnalytics, distillReports, distillGmQuestions,
+  getAdminAnalytics, distillReports, distillGmQuestions, getAdminGmQuestions,
   getInviteCode, updateInviteCode,
   getAnnouncement as getAdminAnnouncement, setAnnouncement as setAdminAnnouncement, clearAnnouncement as clearAdminAnnouncement,
   getGameLog, getGameLogSnapshot, getGameLogSnapshots,
@@ -1056,6 +1056,7 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab, onViewStuckGame }) {
   const db = h.database || {};
   const counts = h.counts || {};
   const errors = h.errors || {};
+  const fallbacks = h.fallbacks;
   const stuck = (h.stuckGames || []).filter(g => !localStuckRemoved.includes(g.id));
   const reports = h.reports || {};
   const storytellers = h.storytellerPopularity || [];
@@ -1091,6 +1092,15 @@ function HealthTab({ data, loading, onRefresh, onSwitchTab, onViewStuckGame }) {
               : undefined
           }
         />
+        {fallbacks && (
+          <StatCard
+            label="AI Fallbacks"
+            value={fallbacks.last24h ?? 0}
+            valueColor={(fallbacks.last24h || 0) > 0 ? '#e8c45a' : '#8aba7a'}
+            accent={(fallbacks.last24h || 0) > 0 ? '#e8c45a' : '#8aba7a'}
+            sub={`${fallbacks.last7d ?? 0} this week \u00B7 ${fallbacks.total ?? 0} all time`}
+          />
+        )}
         <StatCard
           label="Stuck Games"
           value={stuck.length}
@@ -1501,6 +1511,24 @@ function ReportsTab({ data, loading, onRefresh, onViewGame, onReportCountChange 
   const [distillTo, setDistillTo] = useState('');
   const [focusedCluster, setFocusedCluster] = useState(null);
 
+  // GM Questions browser state
+  const [gmQuestionsOpen, setGmQuestionsOpen] = useState(false);
+  const [gmQuestions, setGmQuestions] = useState([]);
+  const [gmQuestionsTotal, setGmQuestionsTotal] = useState(0);
+  const [gmQuestionsLoading, setGmQuestionsLoading] = useState(false);
+  const [gmQuestionsExpanded, setGmQuestionsExpanded] = useState({});
+
+  const fetchGmQuestions = useCallback(async (append = false) => {
+    setGmQuestionsLoading(true);
+    try {
+      const res = await getAdminGmQuestions({ limit: 50, offset: append ? gmQuestions.length : 0 });
+      const items = res.questions || res.items || [];
+      setGmQuestions(prev => append ? [...prev, ...items] : items);
+      setGmQuestionsTotal(res.total ?? items.length);
+    } catch { /* keep stale */ }
+    setGmQuestionsLoading(false);
+  }, [gmQuestions.length]);
+
   useEffect(() => { if (data?.reports) setReports(data.reports); }, [data]);
 
   const visibleReports = useMemo(() => {
@@ -1715,10 +1743,114 @@ function ReportsTab({ data, loading, onRefresh, onViewGame, onReportCountChange 
             background: '#1a1814', border: '1px solid #3a3328', borderRadius: 4,
             padding: '4px 12px', cursor: 'pointer',
           }}>
-            Clear filter &mdash; showing {visibleReports.length} of {reports.length}
+            Clear filter &times; &mdash; showing {visibleReports.length} of {reports.length}
           </button>
         </div>
       )}
+
+      {/* ─── GM Questions Browser ─── */}
+      <div style={{ marginBottom: 20 }}>
+        <button
+          onClick={() => { setGmQuestionsOpen(o => !o); if (!gmQuestionsOpen && gmQuestions.length === 0) fetchGmQuestions(); }}
+          style={{
+            fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
+            color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase',
+            background: 'none', border: 'none', cursor: 'pointer', padding: '8px 0',
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}
+        >
+          <span style={{ fontSize: 10 }}>{gmQuestionsOpen ? '\u25BC' : '\u25B6'}</span>
+          Recent GM Questions
+          {gmQuestionsLoading && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>Loading...</span>}
+        </button>
+
+        {gmQuestionsOpen && (
+          <div style={{ marginTop: 8 }}>
+            {gmQuestions.length === 0 && !gmQuestionsLoading && (
+              <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', padding: '12px 0' }}>No GM questions found.</p>
+            )}
+            {gmQuestions.map((q, i) => {
+              const expanded = gmQuestionsExpanded[i];
+              return (
+                <div key={q.id || i} style={{
+                  background: '#111528', border: '1px solid #2a2622', borderRadius: 6,
+                  padding: '12px 16px', marginBottom: 8,
+                }}>
+                  {/* Header */}
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+                    <span
+                      onClick={() => q.gameId && onViewGame?.(q.gameId)}
+                      style={{
+                        fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11, color: '#7082a4',
+                        cursor: q.gameId ? 'pointer' : 'default',
+                      }}
+                      className={q.gameId ? styles.nameLink : undefined}
+                    >
+                      #{q.gameId || '?'}
+                    </span>
+                    {q.characterName && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#c8c0b0' }}>{q.characterName}</span>}
+                    {q.playerName && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>{q.playerName}</span>}
+                    {q.setting && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4' }}>&middot; {q.setting}</span>}
+                    {q.callType === 'refinement' && (
+                      <span style={{
+                        fontFamily: 'var(--font-cinzel)', fontSize: 9, fontWeight: 700,
+                        color: '#e8c45a', background: '#1a1a12', border: '1px solid #e8c45a33',
+                        borderRadius: 3, padding: '1px 6px', textTransform: 'uppercase', letterSpacing: '0.06em',
+                      }}>refinement</span>
+                    )}
+                  </div>
+                  {/* Question */}
+                  {q.question && (
+                    <div style={{
+                      borderLeft: '3px solid #c9a84c', paddingLeft: 12, marginBottom: 8,
+                      fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#d0c098', lineHeight: 1.5,
+                    }}>
+                      {q.question}
+                    </div>
+                  )}
+                  {/* Response */}
+                  {q.response && (
+                    <div style={{
+                      fontFamily: 'var(--font-alegreya)', fontSize: 13, fontStyle: 'italic',
+                      color: '#7082a4', lineHeight: 1.5,
+                      ...(!expanded ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}),
+                    }}>
+                      {q.response}
+                    </div>
+                  )}
+                  {q.response && q.response.length > 120 && (
+                    <button
+                      onClick={() => setGmQuestionsExpanded(prev => ({ ...prev, [i]: !prev[i] }))}
+                      style={{
+                        fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#c9a84c',
+                        background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0 0',
+                      }}
+                    >
+                      {expanded ? 'Show less' : 'Show more'}
+                    </button>
+                  )}
+                  {/* Footer */}
+                  <div style={{ display: 'flex', gap: 12, marginTop: 6, alignItems: 'center' }}>
+                    {q.turnNumber != null && <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11, color: '#7082a4' }}>Turn {q.turnNumber}</span>}
+                    {q.cost != null && <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11, color: '#7082a4' }}>{formatCost(q.cost)}</span>}
+                    {q.createdAt && <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4' }}>{timeAgo(q.createdAt)}</span>}
+                  </div>
+                </div>
+              );
+            })}
+            {gmQuestionsTotal > gmQuestions.length && (
+              <button
+                onClick={() => fetchGmQuestions(true)}
+                disabled={gmQuestionsLoading}
+                className={styles.ghostBtn}
+                style={{ width: '100%', marginTop: 4 }}
+              >
+                {gmQuestionsLoading ? 'Loading...' : 'Load more'}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
       <div style={{ display: 'flex', gap: 20, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>

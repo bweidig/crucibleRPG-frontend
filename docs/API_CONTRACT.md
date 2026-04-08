@@ -2519,6 +2519,46 @@ Same as distill but clusters GM questions from `game_event_log` (event_type = 'g
 
 **Response (200):** Same shape as `/reports/distill` but `reportIds` contains event IDs.
 
+### GET /api/admin/gm-questions
+
+Browse all Talk to GM interactions across games. Reverse chronological order.
+
+**Query Parameters (all optional):**
+| Param | Type | Default | Notes |
+|-------|------|---------|-------|
+| limit | integer | 50 | Max 200 |
+| offset | integer | 0 | For pagination |
+| gameId | integer | — | Filter to a specific game |
+| afterDate | ISO 8601 string | — | Include events on or after this date |
+| beforeDate | ISO 8601 string | — | Include events on or before this date |
+
+**Response (200):**
+```json
+{
+  "questions": [
+    {
+      "id": 123,
+      "gameId": 101,
+      "turnNumber": 5,
+      "question": "Can I use my grappling hook to swing across?",
+      "response": "Your grappling hook can reach...",
+      "model": "gemini-2.0-flash",
+      "inputTokens": 1200,
+      "outputTokens": 350,
+      "cost": 0.0012,
+      "callType": "refinement",
+      "characterName": "Dex",
+      "playerName": "Destrega",
+      "setting": "Custom",
+      "createdAt": "2026-04-07T12:00:00Z"
+    }
+  ],
+  "total": 89
+}
+```
+
+`total` reflects the count matching filters (date/game) but ignoring limit/offset — for "showing 50 of 89" UI. `callType` is `"refinement"` (rulebook answer) or `"meta"` (free-form GM question). `turnNumber` is null for non-turn-scoped GM calls.
+
 ### GET /api/games/announcement
 
 **Auth:** JWT required (any user, not admin-only).

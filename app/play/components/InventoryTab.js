@@ -69,6 +69,26 @@ function ItemRow({ item, isEquipped, onEntityClick }) {
   );
 }
 
+// Equipped item grouping — order matches HUD: Weapons → Armor → Clothing → Gear → catch-all
+const EQUIP_GROUPS = [
+  { key: 'weapons', label: 'Weapons', test: c => c === 'weapon' || c === 'implement' },
+  { key: 'armor', label: 'Armor', test: c => c === 'armor' || c === 'shield' },
+  { key: 'clothing', label: 'Clothing', test: c => c === 'clothing' },
+  { key: 'gear', label: 'Gear', test: c => c === 'general' },
+];
+
+function groupEquipped(items) {
+  const groups = EQUIP_GROUPS.map(g => ({ ...g, items: [] }));
+  const other = [];
+  for (const item of items) {
+    const group = groups.find(g => g.test(item.equipmentCategory));
+    if (group) group.items.push(item);
+    else other.push(item);
+  }
+  if (other.length) groups.push({ key: 'other', label: 'Other', items: other });
+  return groups.filter(g => g.items.length > 0);
+}
+
 export default function InventoryTab({ data, onEntityClick }) {
   if (!data) {
     return <div className={sidebarStyles.loadingState}>Loading inventory...</div>;
@@ -105,7 +125,12 @@ export default function InventoryTab({ data, onEntityClick }) {
         ) : (
           <>
             <ColumnHeaders items={equipped} />
-            {equipped.map(item => <ItemRow key={item.id || item.name} item={item} isEquipped onEntityClick={onEntityClick} />)}
+            {groupEquipped(equipped).map(group => (
+              <div key={group.key}>
+                <div className={styles.equipGroup}>{group.label}</div>
+                {group.items.map(item => <ItemRow key={item.id || item.name} item={item} isEquipped onEntityClick={onEntityClick} />)}
+              </div>
+            ))}
           </>
         )}
       </PanelSection>
