@@ -44,15 +44,16 @@ Added Analytics tab, Report Distiller, and GM cost display to the admin dashboar
 
 - **Files modified:** `app/admin/page.js`, `lib/adminApi.js`
 
-### Init Wizard — Modal Overlay Layout
-Converted the init wizard from a vertically-scrolling page layout to a modal overlay pattern. Each phase's content now renders inside a centered card overlay on a dimmed background (desktop), or a full-screen sheet (mobile). The step indicator and summary bar render behind the modal as dimmed context on desktop.
+### Init Wizard — Modal Overlay Layout (Redo)
+Rebuilt the init wizard modal as a proper `position: fixed` overlay using a `PhaseModal` wrapper component (defined inside `page.js`). The previous attempt used CSS module classes that were not producing a floating overlay in production.
 
-- **PhaseModal structure:** Fixed overlay with centered card (max-width 720px, max-height 85vh, scrollable). On mobile (<=768px), becomes a full-screen sheet with fixed bottom nav.
-- **Bottom nav inside modal:** Continue button + phase counter now render inside the modal card, pinned to bottom. On mobile, fixed to viewport bottom with 100px scroll padding.
-- **Phase transition fade:** 150ms opacity fade out/in when advancing between phases, replacing the old ember overlay for quick saves (phases 0, 3, 4) and the crossfade for phase 1. The character generation combined overlay (phase 2->3) is preserved.
-- **Scroll reset:** Modal scroll container resets to top on phase change.
-- **Confirmation modals:** Z-index raised to 60 (above PhaseModal at 10, below heavy-work overlays at 100).
-- **Behind-modal context:** NavBar, step indicator, summary bar, and ParticleField render behind the dimmed backdrop on desktop. Hidden on mobile (solid background).
+- **PhaseModal component:** Renders two fixed layers — a backdrop (z-index 10) and a centering container (z-index 11) with `pointerEvents: 'none'`. The card inside gets `pointerEvents: 'auto'`. Accepts `children` (phase content) and `bottomNav` (pinned Continue button). Has its own scroll ref with auto-scroll-to-top via `useEffect([children])`.
+- **Card:** Inline styles for layout (`width: 100%`, flex column, overflow hidden). `className={styles.phaseModalCard}` provides `border`, `border-radius`, `max-width: 720px`, `max-height: 85vh` — the properties the mobile media query needs to override.
+- **Mobile (<=768px):** CSS override with `!important` makes card full-screen (`max-width: 100%`, `max-height: 100%`, `height: 100%`, no border/radius).
+- **Bottom nav:** Phase counter + Continue button moved into `bottomNav` prop, pinned at bottom of card via `flexShrink: 0`.
+- **Fade transition:** 150ms opacity wrapper around children preserved inside PhaseModal.
+- **Removed:** `modalScrollRef` (PhaseModal manages its own scroll ref), unused CSS rules (`phaseModalBackdrop`, `phaseModalScroll`, `phaseModalNav`, `scrollFade`).
+- **Preserved:** Confirmation modal (z-index 60), character overlay (z-index 100), step indicator + summary bar behind backdrop.
 
 - **Files modified:** `app/init/page.js`, `app/init/page.module.css`
 
@@ -61,8 +62,8 @@ Fixed a `ReferenceError: setContentFading is not defined` crash in the init wiza
 
 - **Files modified:** `app/init/page.js`
 
-### Pricing Page — Equal Height Cards
-Added `alignItems: 'stretch'` to the pricing cards flex container and `height: '100%'` to each ScrollReveal wrapper and card div. CTA buttons now align at the same vertical position on both cards.
+### Pricing Page — Equal Height Cards (Fix)
+Added `display: 'flex'` to the ScrollReveal wrapper `style` prop on both pricing cards. The previous fix (`alignItems: 'stretch'` on the parent + `height: '100%'` on wrappers and cards) didn't work because the ScrollReveal wrapper div wasn't a flex container — the card inside couldn't fill the stretched height. Now both cards match height and CTA buttons align.
 
 - **Files modified:** `app/pricing/page.js`
 

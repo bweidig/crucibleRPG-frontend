@@ -86,65 +86,13 @@
   box-shadow: 0 0 12px rgba(201, 168, 76, 0.06);
 }
 
-/* Scroll fade indicator */
-.scrollFade {
-  position: fixed;
-  left: 0;
-  right: 0;
-  height: 60px;
-  background: linear-gradient(to bottom, transparent, #0a0e1a);
-  pointer-events: none;
-  z-index: 5;
-  transition: opacity 300ms;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .scrollFade {
-    transition: none;
-  }
-}
-
 /* ===== PHASE MODAL OVERLAY ===== */
 
-.phaseModalBackdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(10, 14, 26, 0.85);
-}
-
 .phaseModalCard {
-  background: var(--bg-main);
   border: 1px solid var(--border-card);
   border-radius: 12px;
   max-width: 720px;
-  width: 90%;
   max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.phaseModalScroll {
-  flex: 1;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 40px 36px 32px;
-  min-height: 0;
-}
-
-.phaseModalNav {
-  border-top: 1px solid var(--border-gold-faint);
-  padding: 18px 28px;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 16px;
-  flex-shrink: 0;
-  background: var(--bg-main);
 }
 
 /* ===== MOBILE RESPONSIVE ===== */
@@ -195,29 +143,11 @@
 
 /* Phase modal — mobile full-screen sheet */
 @media (max-width: 768px) {
-  .phaseModalBackdrop {
-    background: var(--bg-main);
-  }
-
   .phaseModalCard {
-    border: none;
-    border-radius: 0;
-    width: 100%;
-    height: 100%;
-    max-width: none;
-    max-height: none;
-  }
-
-  .phaseModalScroll {
-    padding: 24px 20px 100px;
-  }
-
-  .phaseModalNav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 11;
-    padding: 14px 20px;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    border: none !important;
   }
 }

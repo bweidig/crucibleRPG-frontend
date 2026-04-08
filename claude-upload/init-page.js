@@ -2356,6 +2356,71 @@ function Phase6({ scenario, setScenario, customStartText, setCustomStartText, sc
   );
 }
 
+// --- PHASE MODAL ---
+
+function PhaseModal({ children, bottomNav }) {
+  const scrollRef = useRef(null);
+
+  // Scroll to top whenever children change
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [children]);
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 10,
+        background: 'rgba(10, 14, 26, 0.85)',
+      }} />
+      {/* Modal card */}
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 11,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 20px',
+        pointerEvents: 'none',
+      }}>
+        <div className={styles.phaseModalCard} style={{
+          pointerEvents: 'auto',
+          background: 'var(--bg-main)',
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}>
+          {/* Scrollable content */}
+          <div ref={scrollRef} style={{
+            flex: 1,
+            overflowY: 'auto',
+            overscrollBehavior: 'contain',
+            padding: '40px 36px 32px',
+            minHeight: 0,
+          }}>
+            {children}
+          </div>
+          {/* Pinned bottom nav */}
+          {bottomNav && (
+            <div style={{
+              borderTop: '1px solid var(--border-gold-faint)',
+              padding: '16px 28px',
+              background: 'var(--bg-main)',
+              flexShrink: 0,
+            }}>
+              {bottomNav}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 // --- MAIN ---
 
 function InitWizardInner() {
@@ -2447,7 +2512,6 @@ function InitWizardInner() {
   const worldPollCount = useRef(0);
   const worldPollRef = useRef(null);
   const worldGenStatusRef = useRef(null);
-  const modalScrollRef = useRef(null);
 
   // --- Character→Attributes combined overlay ---
   const [charOverlayActive, setCharOverlayActive] = useState(false);
@@ -2465,7 +2529,6 @@ function InitWizardInner() {
   // Scroll to top whenever the wizard phase changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
-    if (modalScrollRef.current) modalScrollRef.current.scrollTop = 0;
   }, [phase]);
 
 
@@ -3104,7 +3167,7 @@ function InitWizardInner() {
           if (wgStatus === 'error' || wgStatus === 'timeout') {
             savingRef.current = false;
             setSaving(false);
-            setContentFading(false);
+            setModalFading(false);
             setError('World generation ran into a problem. Go back to try a different setting, or try again.');
             return;
           }
@@ -3148,7 +3211,6 @@ function InitWizardInner() {
       setModalFading(true);
       await new Promise(r => setTimeout(r, 150));
       if (phase < 5) setPhase(phase + 1);
-      if (modalScrollRef.current) modalScrollRef.current.scrollTop = 0;
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setModalFading(false);
@@ -3230,194 +3292,187 @@ function InitWizardInner() {
       </div>
 
       {/* Phase Modal */}
-      <div className={styles.phaseModalBackdrop}>
-        <div className={styles.phaseModalCard}>
-          <div
-            ref={modalScrollRef}
-            className={styles.phaseModalScroll}
+      <PhaseModal bottomNav={
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <span style={{
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-dim)',
+            }}>Phase {phase + 1} of {STEP_NAMES.length}</span>
+            {error && (
+              <span style={{
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--color-danger)',
+              }}>{error}</span>
+            )}
+          </div>
+          <button
+            onClick={handleNext}
+            disabled={!buttonEnabled}
+            className={styles.btnPrimary}
             style={{
-              opacity: modalFading ? 0 : 1,
-              transition: 'opacity 150ms ease',
+              fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
+              color: buttonEnabled ? 'var(--bg-main)' : 'var(--text-dim)',
+              background: buttonEnabled ? 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))' : 'var(--bg-gold-subtle)',
+              border: 'none', borderRadius: 5, padding: '12px 32px',
+              cursor: buttonEnabled ? 'pointer' : 'default',
+              letterSpacing: '0.08em', flexShrink: 0,
             }}
           >
-            {/* Offline banner */}
-            {connectionFailed && !gameId && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
-                background: '#1a1610', border: '1px solid #3d3322', borderRadius: 6,
-                fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#d4a84b',
-                marginBottom: 24,
-              }}>
-                <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>&#9888;</span>
-                <span style={{ flex: 1 }}>
-                  Unable to connect to the server. Your progress won't be saved. Check your connection and refresh to try again.
-                </span>
-                <button
-                  onClick={retryConnection}
-                  disabled={retrying}
-                  style={{
-                    fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600,
-                    color: retrying ? 'var(--text-dim)' : '#d4a84b',
-                    background: 'transparent', border: '1px solid #3d3322', borderRadius: 4,
-                    padding: '6px 14px', cursor: retrying ? 'default' : 'pointer',
-                    letterSpacing: '0.04em', whiteSpace: 'nowrap', flexShrink: 0,
-                  }}
-                >
-                  {retrying ? 'RETRYING...' : 'RETRY CONNECTION'}
-                </button>
-              </div>
-            )}
-
-        {phase === 0 && <Phase1 selected={storyteller} onSelect={setStoryteller} customText={customStorytellerText} setCustomText={setCustomStorytellerText} />}
-        {phase === 1 && (
-          <Phase2
-            selected={setting}
-            onSelect={(id) => {
-              if (id !== setting) {
-                setSetting(id);
-                setSettingAnswers({});
-                setSelectedWorld(null);
-                setExpandedWorld(null);
-                setSelectedSnapshot(null);
-                setSelectedArchetype(null);
-                setAnythingElseText('');
-                setCustomWorldText('');
-              }
-            }}
-            settingAnswers={settingAnswers}
-            setSettingAnswers={setSettingAnswers}
-            selectedWorld={selectedWorld}
-            setSelectedWorld={setSelectedWorld}
-            expandedWorld={expandedWorld}
-            setExpandedWorld={setExpandedWorld}
-            worldSnapshots={worldSnapshots}
-            selectedSnapshot={selectedSnapshot}
-            setSelectedSnapshot={setSelectedSnapshot}
-            customWorldText={customWorldText}
-            setCustomWorldText={setCustomWorldText}
-            anythingElseText={anythingElseText}
-            setAnythingElseText={setAnythingElseText}
-            settingTab={settingTab}
-            setSettingTab={setSettingTab}
-            seedFactions={seedFactions}
-            setSeedFactions={setSeedFactions}
-            seedNpcs={seedNpcs}
-            setSeedNpcs={setSeedNpcs}
-          />
-        )}
-        {phase === 2 && (() => {
-          const archetypeEra = setting === 'custom' ? null
-            : setting === 'your-worlds' ? (selectedSnapshot ? worldSnapshots.find(s => s.id === selectedSnapshot)?.settingType : null)
-            : setting;
-          const availableArchetypes = archetypeEra ? (ARCHETYPES[archetypeEra] || []) : [];
-          const hasArchetypes = availableArchetypes.length > 0;
-          return (
-            <>
-              <Phase3
-                character={character}
-                onChange={handleCharChange}
-                hasArchetypes={hasArchetypes}
-                availableArchetypes={availableArchetypes}
-                characterMode={characterMode}
-                setCharacterMode={setCharacterMode}
-                selectedArchetype={selectedArchetype}
-                setSelectedArchetype={setSelectedArchetype}
-              />
-            </>
-          );
-        })()}
-        {phase === 3 && (
-          proposalFailed ? (
-            <div style={{ textAlign: 'center', padding: '60px 24px' }}>
-              <div style={{ fontFamily: 'var(--font-alegreya)', fontSize: 20, fontStyle: 'italic', color: 'var(--accent-gold)', marginBottom: 12 }}>
-                Character generation hit a snag.
-              </div>
-              <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 400, margin: '0 auto 24px' }}>
-                Your world and backstory are safe. Tap below to try again.
-              </div>
-              <button onClick={() => generateProposal()} disabled={proposalLoading} style={{
-                fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
-                color: proposalLoading ? 'var(--text-dim)' : 'var(--bg-main)',
-                background: proposalLoading ? 'var(--bg-gold-subtle)' : 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
-                border: 'none', borderRadius: 6, padding: '14px 32px', cursor: proposalLoading ? 'default' : 'pointer',
-                letterSpacing: '0.08em',
-              }}>{proposalLoading ? 'Trying...' : 'Try Again'}</button>
-            </div>
-          ) : (
-            <Phase4
-              stats={proposal?.stats || (!gameId ? SAMPLE_STATS : [])}
-              onStatsChange={setAdjustedStats}
-              skills={proposal?.skills}
-              foundationalSkills={proposal?.foundationalSkills}
-              startingLoadout={proposal?.startingLoadout}
-              factionStandings={proposal?.factionStandings}
-              innateTraits={proposal?.innateTraits}
-              softWarnings={proposalValidation.softWarnings}
-              hardErrors={proposalValidation.hardErrors}
-              onHardErrorsClear={() => setProposalValidation(prev => ({ ...prev, hardErrors: [] }))}
-              skillRequests={skillRequests}
-              onSkillRequestsChange={(val) => { setSkillRequests(val); setRequestsRegenerated(false); }}
-              gearRequests={gearRequests}
-              onGearRequestsChange={(val) => { setGearRequests(val); setRequestsRegenerated(false); }}
-              onRegenerate={generateProposal}
-              regenerating={proposalLoading}
-            />
-          )
-        )}
-        {phase === 4 && <Phase5 selected={difficulty} onSelect={(id) => { setDifficulty(id); setDialOverrides(null); }} difficultyTab={difficultyTab} setDifficultyTab={setDifficultyTab} dialOverrides={dialOverrides} setDialOverrides={setDialOverrides} />}
-        {phase === 5 && (
-          scenariosFailed && !scenariosLoading ? (
-            <div style={{ textAlign: 'center', padding: '60px 24px' }}>
-              <div style={{ fontFamily: 'var(--font-alegreya)', fontSize: 20, fontStyle: 'italic', color: 'var(--accent-gold)', marginBottom: 12 }}>
-                The threads of fate are tangled.
-              </div>
-              <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 400, margin: '0 auto 24px' }}>
-                Scenario generation failed. Your world is ready. Tap below to try again.
-              </div>
-              <button onClick={() => fetchScenarios('standard')} disabled={scenariosLoading} style={{
-                fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
-                color: scenariosLoading ? 'var(--text-dim)' : 'var(--bg-main)',
-                background: scenariosLoading ? 'var(--bg-gold-subtle)' : 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
-                border: 'none', borderRadius: 6, padding: '14px 32px', cursor: scenariosLoading ? 'default' : 'pointer',
-                letterSpacing: '0.08em',
-              }}>{scenariosLoading ? 'Trying...' : 'Try Again'}</button>
-            </div>
-          ) : (
-            <Phase6 scenario={scenario} setScenario={setScenario} customStartText={customStartText} setCustomStartText={setCustomStartText} scenariosLoading={scenariosLoading} displayScenarios={scenarioCache['default'] || (gameId ? [] : SCENARIOS)} scenarioAlts={scenarioAlts} scenarioView={scenarioView} setScenarioView={setScenarioView} refreshingScenario={refreshingScenario} onRefreshScenario={handleRefreshScenario} />
-          )
-        )}
-          </div>
-
-          {/* Bottom nav — inside modal */}
-          <div className={styles.phaseModalNav}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-              <span style={{
-                fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-dim)',
-              }}>Phase {phase + 1} of {STEP_NAMES.length}</span>
-              {error && (
-                <span style={{
-                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--color-danger)',
-                }}>{error}</span>
-              )}
-            </div>
-            <button
-              onClick={handleNext}
-              disabled={!buttonEnabled}
-              className={styles.btnPrimary}
-              style={{
-                fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
-                color: buttonEnabled ? 'var(--bg-main)' : 'var(--text-dim)',
-                background: buttonEnabled ? 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))' : 'var(--bg-gold-subtle)',
-                border: 'none', borderRadius: 5, padding: '12px 32px',
-                cursor: buttonEnabled ? 'pointer' : 'default',
-                letterSpacing: '0.08em', flexShrink: 0,
-              }}
-            >
-              {saving ? 'SAVING...' : phase === 5 ? 'BEGIN ADVENTURE' : 'CONTINUE'}
-            </button>
-          </div>
+            {saving ? 'SAVING...' : phase === 5 ? 'BEGIN ADVENTURE' : 'CONTINUE'}
+          </button>
         </div>
-      </div>
+      }>
+        <div style={{
+          opacity: modalFading ? 0 : 1,
+          transition: 'opacity 150ms ease',
+        }}>
+          {/* Offline banner */}
+          {connectionFailed && !gameId && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+              background: '#1a1610', border: '1px solid #3d3322', borderRadius: 6,
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#d4a84b',
+              marginBottom: 24,
+            }}>
+              <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>&#9888;</span>
+              <span style={{ flex: 1 }}>
+                Unable to connect to the server. Your progress won't be saved. Check your connection and refresh to try again.
+              </span>
+              <button
+                onClick={retryConnection}
+                disabled={retrying}
+                style={{
+                  fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600,
+                  color: retrying ? 'var(--text-dim)' : '#d4a84b',
+                  background: 'transparent', border: '1px solid #3d3322', borderRadius: 4,
+                  padding: '6px 14px', cursor: retrying ? 'default' : 'pointer',
+                  letterSpacing: '0.04em', whiteSpace: 'nowrap', flexShrink: 0,
+                }}
+              >
+                {retrying ? 'RETRYING...' : 'RETRY CONNECTION'}
+              </button>
+            </div>
+          )}
+
+          {phase === 0 && <Phase1 selected={storyteller} onSelect={setStoryteller} customText={customStorytellerText} setCustomText={setCustomStorytellerText} />}
+          {phase === 1 && (
+            <Phase2
+              selected={setting}
+              onSelect={(id) => {
+                if (id !== setting) {
+                  setSetting(id);
+                  setSettingAnswers({});
+                  setSelectedWorld(null);
+                  setExpandedWorld(null);
+                  setSelectedSnapshot(null);
+                  setSelectedArchetype(null);
+                  setAnythingElseText('');
+                  setCustomWorldText('');
+                }
+              }}
+              settingAnswers={settingAnswers}
+              setSettingAnswers={setSettingAnswers}
+              selectedWorld={selectedWorld}
+              setSelectedWorld={setSelectedWorld}
+              expandedWorld={expandedWorld}
+              setExpandedWorld={setExpandedWorld}
+              worldSnapshots={worldSnapshots}
+              selectedSnapshot={selectedSnapshot}
+              setSelectedSnapshot={setSelectedSnapshot}
+              customWorldText={customWorldText}
+              setCustomWorldText={setCustomWorldText}
+              anythingElseText={anythingElseText}
+              setAnythingElseText={setAnythingElseText}
+              settingTab={settingTab}
+              setSettingTab={setSettingTab}
+              seedFactions={seedFactions}
+              setSeedFactions={setSeedFactions}
+              seedNpcs={seedNpcs}
+              setSeedNpcs={setSeedNpcs}
+            />
+          )}
+          {phase === 2 && (() => {
+            const archetypeEra = setting === 'custom' ? null
+              : setting === 'your-worlds' ? (selectedSnapshot ? worldSnapshots.find(s => s.id === selectedSnapshot)?.settingType : null)
+              : setting;
+            const availableArchetypes = archetypeEra ? (ARCHETYPES[archetypeEra] || []) : [];
+            const hasArchetypes = availableArchetypes.length > 0;
+            return (
+              <>
+                <Phase3
+                  character={character}
+                  onChange={handleCharChange}
+                  hasArchetypes={hasArchetypes}
+                  availableArchetypes={availableArchetypes}
+                  characterMode={characterMode}
+                  setCharacterMode={setCharacterMode}
+                  selectedArchetype={selectedArchetype}
+                  setSelectedArchetype={setSelectedArchetype}
+                />
+              </>
+            );
+          })()}
+          {phase === 3 && (
+            proposalFailed ? (
+              <div style={{ textAlign: 'center', padding: '60px 24px' }}>
+                <div style={{ fontFamily: 'var(--font-alegreya)', fontSize: 20, fontStyle: 'italic', color: 'var(--accent-gold)', marginBottom: 12 }}>
+                  Character generation hit a snag.
+                </div>
+                <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 400, margin: '0 auto 24px' }}>
+                  Your world and backstory are safe. Tap below to try again.
+                </div>
+                <button onClick={() => generateProposal()} disabled={proposalLoading} style={{
+                  fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
+                  color: proposalLoading ? 'var(--text-dim)' : 'var(--bg-main)',
+                  background: proposalLoading ? 'var(--bg-gold-subtle)' : 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
+                  border: 'none', borderRadius: 6, padding: '14px 32px', cursor: proposalLoading ? 'default' : 'pointer',
+                  letterSpacing: '0.08em',
+                }}>{proposalLoading ? 'Trying...' : 'Try Again'}</button>
+              </div>
+            ) : (
+              <Phase4
+                stats={proposal?.stats || (!gameId ? SAMPLE_STATS : [])}
+                onStatsChange={setAdjustedStats}
+                skills={proposal?.skills}
+                foundationalSkills={proposal?.foundationalSkills}
+                startingLoadout={proposal?.startingLoadout}
+                factionStandings={proposal?.factionStandings}
+                innateTraits={proposal?.innateTraits}
+                softWarnings={proposalValidation.softWarnings}
+                hardErrors={proposalValidation.hardErrors}
+                onHardErrorsClear={() => setProposalValidation(prev => ({ ...prev, hardErrors: [] }))}
+                skillRequests={skillRequests}
+                onSkillRequestsChange={(val) => { setSkillRequests(val); setRequestsRegenerated(false); }}
+                gearRequests={gearRequests}
+                onGearRequestsChange={(val) => { setGearRequests(val); setRequestsRegenerated(false); }}
+                onRegenerate={generateProposal}
+                regenerating={proposalLoading}
+              />
+            )
+          )}
+          {phase === 4 && <Phase5 selected={difficulty} onSelect={(id) => { setDifficulty(id); setDialOverrides(null); }} difficultyTab={difficultyTab} setDifficultyTab={setDifficultyTab} dialOverrides={dialOverrides} setDialOverrides={setDialOverrides} />}
+          {phase === 5 && (
+            scenariosFailed && !scenariosLoading ? (
+              <div style={{ textAlign: 'center', padding: '60px 24px' }}>
+                <div style={{ fontFamily: 'var(--font-alegreya)', fontSize: 20, fontStyle: 'italic', color: 'var(--accent-gold)', marginBottom: 12 }}>
+                  The threads of fate are tangled.
+                </div>
+                <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 400, margin: '0 auto 24px' }}>
+                  Scenario generation failed. Your world is ready. Tap below to try again.
+                </div>
+                <button onClick={() => fetchScenarios('standard')} disabled={scenariosLoading} style={{
+                  fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
+                  color: scenariosLoading ? 'var(--text-dim)' : 'var(--bg-main)',
+                  background: scenariosLoading ? 'var(--bg-gold-subtle)' : 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
+                  border: 'none', borderRadius: 6, padding: '14px 32px', cursor: scenariosLoading ? 'default' : 'pointer',
+                  letterSpacing: '0.08em',
+                }}>{scenariosLoading ? 'Trying...' : 'Try Again'}</button>
+              </div>
+            ) : (
+              <Phase6 scenario={scenario} setScenario={setScenario} customStartText={customStartText} setCustomStartText={setCustomStartText} scenariosLoading={scenariosLoading} displayScenarios={scenarioCache['default'] || (gameId ? [] : SCENARIOS)} scenarioAlts={scenarioAlts} scenarioView={scenarioView} setScenarioView={setScenarioView} refreshingScenario={refreshingScenario} onRefreshScenario={handleRefreshScenario} />
+            )
+          )}
+        </div>
+      </PhaseModal>
 
       {/* Confirmation Modal */}
       {confirmVisible && (
