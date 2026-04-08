@@ -8,6 +8,18 @@ import Footer from '@/components/Footer';
 import ParticleField from '@/components/ParticleField';
 import styles from './page.module.css';
 
+// --- DISPLAY SETTINGS (Lexie Readable support) ---
+const DISPLAY_SETTINGS_KEY = 'crucible_display_settings';
+
+function loadDisplayFont() {
+  if (typeof window === 'undefined') return 'alegreya';
+  try {
+    const raw = localStorage.getItem(DISPLAY_SETTINGS_KEY);
+    if (raw) return JSON.parse(raw).font || 'alegreya';
+  } catch {}
+  return 'alegreya';
+}
+
 // --- SVG ICONS ---
 
 const Icons = {
@@ -162,6 +174,13 @@ const DIFFICULTIES = [
   { id: 'brutal', name: 'Brutal', color: '#c84a4a', desc: 'Near-lethal. Every fight is a risk. Death is a real and constant possibility.' },
 ];
 
+const PRESET_DIALS = {
+  forgiving: { dcOffset: -2, fateDc: 8, survivalEnabled: false, durabilityEnabled: false, progressionSpeed: 1, encounterPressure: 'low', fortunesBalanceEnabled: true, simplifiedOutcomes: false },
+  standard: { dcOffset: 0, fateDc: 12, survivalEnabled: true, durabilityEnabled: true, progressionSpeed: 1, encounterPressure: 'standard', fortunesBalanceEnabled: true, simplifiedOutcomes: false },
+  harsh: { dcOffset: 2, fateDc: 16, survivalEnabled: true, durabilityEnabled: true, progressionSpeed: 1, encounterPressure: 'high', fortunesBalanceEnabled: true, simplifiedOutcomes: false },
+  brutal: { dcOffset: 4, fateDc: 18, survivalEnabled: true, durabilityEnabled: true, progressionSpeed: 1, encounterPressure: 'high', fortunesBalanceEnabled: true, simplifiedOutcomes: false },
+};
+
 const SCENARIOS = [
   { key: 'A', name: 'Slow Burn', icon: 'long_road', desc: 'You arrive somewhere. Nothing is trying to kill you yet. There\'s a place to explore, people to talk to, and a thread to find when you\'re ready.' },
   { key: 'B', name: 'Turning Point', icon: 'subtle_hook', desc: 'Something is already in motion. A deal gone wrong, a stranger with a warning, a door that shouldn\'t be open. You\'re not in danger yet, but the window is closing.' },
@@ -174,12 +193,31 @@ const PACING_MAP = { A: 'slow_burn', B: 'turning_point', C: 'into_the_fire', D: 
 // --- PHASE TRANSITION MESSAGES ---
 const PHASE_TRANSITION_MESSAGES = {
   0: { primary: "Your narrator takes the stage...", secondary: "Locking in narrative voice" },
-  1: { primary: "Your world takes shape...", secondary: "The engine is building geography, history, and power structures" },
-  2: { primary: "The engine reads your story...", secondary: "Deriving stats, skills, and loadout from your backstory" },
-  3: { primary: "Calibrating the world's teeth...", secondary: "Setting encounter pressure and consequence severity" },
-  4: { primary: "Calibrating the world's teeth...", secondary: "Setting encounter pressure and consequence severity" },
+  3: { primary: "Your path is set...", secondary: "Locking in your attributes" },
+  4: { primary: "The world sharpens its edges...", secondary: "Tuning encounter pressure and consequence severity" },
   5: { primary: "The crucible awaits...", secondary: "Preparing your first scene" },
 };
+
+const OVERLAY_LABELS = {
+  0: 'SETTING THE VOICE',
+  3: 'SETTING THE STAKES',
+  4: 'PREPARING THE CRUCIBLE',
+  5: 'INTO THE CRUCIBLE',
+};
+
+const WORLD_GEN_MESSAGES = [
+  { phase: 'generating_factions', text: 'Forging alliances and rivalries...' },
+  { phase: 'generating_locations', text: 'Carving the landscape...' },
+  { phase: 'generating_npcs', text: 'Breathing life into the world...' },
+  { phase: 'generating_anchors', text: 'Seeding conflict and opportunity...' },
+];
+
+const PROPOSAL_OVERLAY_MESSAGES = [
+  'The engine reads your story...',
+  'Deriving stats from your backstory...',
+  'Assembling your skills and gear...',
+  'Calibrating your starting position...',
+];
 
 const FIREFLY_EMBERS = [
   { x: 60, y: 40, size: 4, anim: 'ember0', dur: 17, delay: 0, color: '#c9a84c', glow: 11 },
@@ -828,7 +866,7 @@ function Phase1({ selected, onSelect, customText, setCustomText }) {
               }}>
                 <p style={{
                   fontFamily: 'var(--font-alegreya)', fontSize: 15.5, fontStyle: 'italic',
-                  color: '#b0b8cc', lineHeight: 1.8, margin: 0,
+                  color: 'var(--text-stat-bright)', lineHeight: 1.8, margin: 0,
                 }}>{s.preview}</p>
               </div>
             )}
@@ -953,13 +991,13 @@ function PrebuiltWorldCard({ world, isSelected, isExpanded, onToggle }) {
         }}>
           <p style={{
             fontFamily: 'var(--font-alegreya)', fontSize: 15.5, fontStyle: 'italic',
-            color: '#b0b8cc', lineHeight: 1.8, margin: '0 0 18px 0',
+            color: 'var(--text-stat-bright)', lineHeight: 1.8, margin: '0 0 18px 0',
           }}>{world.expandedFlavor}</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {world.subTags.map(tag => (
               <span key={tag.label} style={{
                 fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
-                color: '#7082a4', background: 'var(--bg-card)',
+                color: 'var(--text-muted)', background: 'var(--bg-card)',
                 border: '1px solid var(--border-primary)', borderRadius: 4,
                 padding: '5px 12px',
               }}>{tag.label}: {tag.value}</span>
@@ -1032,7 +1070,7 @@ function WorldSnapshotList({ snapshots, selectedSnapshot, setSelectedSnapshot, a
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <span style={{
-                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4',
+                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: 'var(--text-muted)',
                 }}>{snap.snapshotType}</span>
               </div>
               <div style={{
@@ -1048,7 +1086,7 @@ function WorldSnapshotList({ snapshots, selectedSnapshot, setSelectedSnapshot, a
                     {snap.tags.map(tag => (
                       <span key={tag.label} style={{
                         fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
-                        color: '#7082a4', background: 'var(--bg-card)',
+                        color: 'var(--text-muted)', background: 'var(--bg-card)',
                         border: '1px solid var(--border-primary)', borderRadius: 4,
                         padding: '5px 12px',
                       }}>{tag.label}: {tag.value}</span>
@@ -1323,94 +1361,100 @@ function Phase2({ selected, onSelect, settingAnswers, setSettingAnswers, selecte
         </SelectionCard>
       </div>
 
-      {/* Custom path */}
-      {selected === 'custom' && (
-        <div style={{ marginTop: 16 }}>
-          <textarea value={customWorldText} onChange={e => setCustomWorldText(e.target.value)} placeholder="Describe your world..." className={styles.wizardInput} style={{
-            width: '100%', minHeight: 110, background: 'var(--bg-main)', border: '1px solid var(--border-gold-faint)',
-            borderRadius: 8, padding: 16, fontFamily: 'var(--font-alegreya)', fontSize: 16,
-            color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
-          }} />
-        </div>
-      )}
-
-      {/* Your Worlds path */}
-      {selected === 'your-worlds' && (
-        <WorldSnapshotList
-          snapshots={worldSnapshots}
-          selectedSnapshot={selectedSnapshot}
-          setSelectedSnapshot={setSelectedSnapshot}
-          anythingElseText={anythingElseText}
-          setAnythingElseText={setAnythingElseText}
-        />
-      )}
-
-      {/* Era path: pre-built worlds + build your own */}
-      {isEra && (
-        <div style={{ marginTop: 24 }}>
-          {/* Pre-built world cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {eraWorlds.map(world => (
-              <div key={world.id}>
-                <PrebuiltWorldCard
-                  world={world}
-                  isSelected={selectedWorld === world.id}
-                  isExpanded={expandedWorld === world.id}
-                  onToggle={handleWorldToggle}
-                />
-                {/* "Anything else?" for selected pre-built world */}
-                {selectedWorld === world.id && (
-                  <div style={{ marginTop: 16 }}>
-                    <label style={{
-                      fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600,
-                      color: 'var(--text-secondary)', display: 'block', marginBottom: 10,
-                    }}>Anything else?</label>
-                    <textarea value={anythingElseText} onChange={e => setAnythingElseText(e.target.value)} placeholder="Any tweaks for this playthrough? Change the political situation, add a detail, shift the tone." className={styles.wizardInput} style={{
-                      width: '100%', minHeight: 80, background: 'var(--bg-main)', border: '1px solid var(--border-gold-subtle)',
-                      borderRadius: 8, padding: 16, fontFamily: 'var(--font-alegreya)', fontSize: 16,
-                      color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
-                    }} />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Divider */}
-          <SectionDivider text="or shape your own" />
-
-          {/* Build Your Own sub-questions */}
-          <SettingQuestions
-            settingId={selected}
-            answers={settingAnswers}
-            setAnswers={setSettingAnswers}
-            onInteract={handleSubQuestionInteract}
-            freeformText={anythingElseText}
-            setFreeformText={setAnythingElseText}
-          />
-        </div>
-      )}
-
-      {/* Tab bar: World / Advanced — only show when a setting is selected */}
+      {/* Tab bar: World / Advanced — show immediately after setting grid */}
       {selected && (
-        <>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 28, marginBottom: 4 }}>
-            {[{ id: 'world', label: 'World' }, { id: 'advanced', label: 'Advanced' }].map(tab => (
-              <button key={tab.id} onClick={() => setSettingTab(tab.id)} style={{
-                fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 600,
-                color: settingTab === tab.id ? 'var(--accent-gold)' : 'var(--text-muted)',
-                background: settingTab === tab.id ? 'var(--bg-gold-light)' : 'transparent',
-                border: `1px solid ${settingTab === tab.id ? 'var(--border-card)' : 'var(--border-primary)'}`,
-                borderRadius: 20, padding: '8px 20px', cursor: 'pointer',
-                letterSpacing: '0.08em', textTransform: 'uppercase', transition: 'all 0.2s',
-              }}>{tab.label}</button>
-            ))}
-          </div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 28, marginBottom: 4 }}>
+          {[{ id: 'world', label: 'World' }, { id: 'advanced', label: 'Advanced' }].map(tab => (
+            <button key={tab.id} onClick={() => setSettingTab(tab.id)} style={{
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 600,
+              color: settingTab === tab.id ? 'var(--accent-gold)' : 'var(--text-muted)',
+              background: settingTab === tab.id ? 'var(--bg-gold-light)' : 'transparent',
+              border: `1px solid ${settingTab === tab.id ? 'var(--border-card)' : 'var(--border-primary)'}`,
+              borderRadius: 20, padding: '8px 20px', cursor: 'pointer',
+              letterSpacing: '0.08em', textTransform: 'uppercase', transition: 'all 0.2s',
+            }}>{tab.label}</button>
+          ))}
+        </div>
+      )}
 
-          {settingTab === 'advanced' && (
-            <AdvancedSeedTab seedFactions={seedFactions} setSeedFactions={setSeedFactions} seedNpcs={seedNpcs} setSeedNpcs={setSeedNpcs} />
+      {/* World tab content */}
+      {selected && settingTab === 'world' && (
+        <>
+          {/* Custom path */}
+          {selected === 'custom' && (
+            <div style={{ marginTop: 16 }}>
+              <textarea value={customWorldText} onChange={e => setCustomWorldText(e.target.value)} placeholder="Describe your world..." className={styles.wizardInput} style={{
+                width: '100%', minHeight: 110, background: 'var(--bg-main)', border: '1px solid var(--border-gold-faint)',
+                borderRadius: 8, padding: 16, fontFamily: 'var(--font-alegreya)', fontSize: 16,
+                color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+              }} />
+            </div>
+          )}
+
+          {/* Your Worlds path */}
+          {selected === 'your-worlds' && (
+            <WorldSnapshotList
+              snapshots={worldSnapshots}
+              selectedSnapshot={selectedSnapshot}
+              setSelectedSnapshot={setSelectedSnapshot}
+              anythingElseText={anythingElseText}
+              setAnythingElseText={setAnythingElseText}
+            />
+          )}
+
+          {/* Era path: pre-built worlds + build your own */}
+          {isEra && (
+            <div style={{ marginTop: 24 }}>
+              {/* Pre-built world cards */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {eraWorlds.map(world => (
+                  <div key={world.id}>
+                    <PrebuiltWorldCard
+                      world={world}
+                      isSelected={selectedWorld === world.id}
+                      isExpanded={expandedWorld === world.id}
+                      onToggle={handleWorldToggle}
+                    />
+                    {/* "Anything else?" for selected pre-built world */}
+                    {selectedWorld === world.id && (
+                      <div style={{ marginTop: 16 }}>
+                        <label style={{
+                          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, fontWeight: 600,
+                          color: 'var(--text-secondary)', display: 'block', marginBottom: 10,
+                        }}>Anything else?</label>
+                        <textarea value={anythingElseText} onChange={e => setAnythingElseText(e.target.value)} placeholder="Any tweaks for this playthrough? Change the political situation, add a detail, shift the tone." className={styles.wizardInput} style={{
+                          width: '100%', minHeight: 80, background: 'var(--bg-main)', border: '1px solid var(--border-gold-subtle)',
+                          borderRadius: 8, padding: 16, fontFamily: 'var(--font-alegreya)', fontSize: 16,
+                          color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+                        }} />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Divider + Build Your Own — hide when a prebuilt world is selected */}
+              {!selectedWorld && (
+                <>
+                  <SectionDivider text="or shape your own" />
+                  <SettingQuestions
+                    settingId={selected}
+                    answers={settingAnswers}
+                    setAnswers={setSettingAnswers}
+                    onInteract={handleSubQuestionInteract}
+                    freeformText={anythingElseText}
+                    setFreeformText={setAnythingElseText}
+                  />
+                </>
+              )}
+            </div>
           )}
         </>
+      )}
+
+      {/* Advanced tab content */}
+      {selected && settingTab === 'advanced' && (
+        <AdvancedSeedTab seedFactions={seedFactions} setSeedFactions={setSeedFactions} seedNpcs={seedNpcs} setSeedNpcs={setSeedNpcs} />
       )}
     </div>
   );
@@ -1567,7 +1611,7 @@ function ArchetypeCard({ archetype, isSelected, onSelect }) {
         {archetype.personality.map(trait => (
           <span key={trait} style={{
             fontFamily: 'var(--font-alegreya-sans)', fontSize: 12,
-            color: '#7082a4', background: 'var(--bg-card)',
+            color: 'var(--text-muted)', background: 'var(--bg-card)',
             border: '1px solid var(--border-primary)', borderRadius: 4,
             padding: '4px 10px',
           }}>{trait}</span>
@@ -1656,6 +1700,13 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
   const [editingStatName, setEditingStatName] = useState(null);
   const [editInputValue, setEditInputValue] = useState('');
 
+  // Re-sync internal stats when proposal data arrives (e.g. after retry)
+  useEffect(() => {
+    if (initialStats.length > 0) {
+      setStats(initialStats);
+    }
+  }, [initialStats]);
+
   const hasDeviation = stats.some((s, i) => Math.abs(s.value - initialStats[i].value) > 2.0);
 
   const applyStatUpdate = (next) => {
@@ -1712,7 +1763,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div style={{
           fontFamily: 'var(--font-jetbrains)', fontSize: 13,
-          color: '#7082a4',
+          color: 'var(--text-muted)',
         }}>
           Total: <span style={{ color: 'var(--text-heading)', fontWeight: 500 }}>{statTotal.toFixed(1)}</span>
         </div>
@@ -1746,7 +1797,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
                 }}>{s.name}</span>
                 <span style={{
                   fontFamily: 'var(--font-alegreya-sans)', fontSize: 12,
-                  color: '#7082a4', fontStyle: 'italic', marginRight: 8,
+                  color: 'var(--text-muted)', fontStyle: 'italic', marginRight: 8,
                 }}>{getTier(s.value)}</span>
 
                 {editing ? (
@@ -1795,7 +1846,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
                     </div>
                     <span style={{
                       fontFamily: 'var(--font-jetbrains)', fontSize: 11,
-                      color: delta > 0 ? '#8aba7a' : '#e8845a',
+                      color: delta > 0 ? 'var(--color-success)' : 'var(--color-danger)',
                       width: 44, textAlign: 'right',
                       visibility: changed ? 'visible' : 'hidden',
                     }}>{delta > 0 ? '+' : ''}{delta.toFixed(1)}</span>
@@ -1862,22 +1913,11 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
         </div>
       )}
 
-      {/* Backstory Skills */}
-      {skills && skills.length > 0 && (
-        <div style={{
-          background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '10px 16px',
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4', marginBottom: 10,
-        }}>
-          <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Skills: </span>
-          {skills.join(', ')}
-        </div>
-      )}
-
       {/* Innate Traits */}
       {innateTraits && innateTraits.length > 0 && (
         <div style={{
           background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '10px 16px',
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4', marginBottom: 10,
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)', marginBottom: 10,
         }}>
           <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 6 }}>Innate Traits</div>
           {innateTraits.map((t, i) => {
@@ -1887,10 +1927,10 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
               <div key={i} style={{ padding: '4px 0', borderBottom: i < innateTraits.length - 1 ? '1px solid var(--border-card-separator)' : 'none' }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <span style={{ color: hasPenalty ? '#e8a04a' : 'var(--text-heading)', fontWeight: 500 }}>{formatTraitName(t.trait)}</span>
-                  <span style={{ color: '#6b83a3', fontSize: 12, fontStyle: 'italic' }}>{t.source}</span>
+                  <span style={{ color: 'var(--text-dim)', fontSize: 12, fontStyle: 'italic' }}>{t.source}</span>
                 </div>
                 {hasDetail && (
-                  <div style={{ fontSize: 13, color: hasPenalty ? '#e8a04a' : '#6b83a3', marginTop: 2, paddingLeft: 2 }}>
+                  <div style={{ fontSize: 13, color: hasPenalty ? '#e8a04a' : 'var(--text-dim)', marginTop: 2, paddingLeft: 2 }}>
                     {t.effect && <span>{t.effect.replace(/_/g, ' ')}</span>}
                     {t.value != null && <span>{t.effect ? ': ' : ''}{t.value > 0 ? '+' : ''}{t.value}</span>}
                     {hasPenalty && <span>{t.effect ? ': ' : ''}{t.penalty}</span>}
@@ -1903,20 +1943,20 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
         </div>
       )}
 
-      {/* Foundational Skills */}
+      {/* Skills */}
       {foundationalSkills && foundationalSkills.length > 0 && (
         <div style={{
           background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '10px 16px',
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4', marginBottom: 10,
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)', marginBottom: 10,
         }}>
-          <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 6 }}>Foundational Skills</div>
+          <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 6 }}>Skills</div>
           {foundationalSkills.map((fs, i) => (
             <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '2px 0' }}>
               <span style={{ color: 'var(--text-heading)' }}>{fs.name || fs.scope}</span>
               {fs.modifier != null && (
                 <span style={{ color: 'var(--accent-gold)', fontSize: 14, fontFamily: 'var(--font-jetbrains)', fontWeight: 600 }}>+{Number(fs.modifier).toFixed(1)}</span>
               )}
-              <span style={{ color: '#7082a4', fontSize: 12 }}>({fs.breadthCategory})</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>({fs.breadthCategory})</span>
               <span style={{ color: 'var(--accent-gold)', fontSize: 12, fontFamily: 'var(--font-jetbrains)' }}>{fs.stat}</span>
             </div>
           ))}
@@ -1927,15 +1967,15 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
       {startingLoadout && startingLoadout.length > 0 && (
         <div style={{
           background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '10px 16px',
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4', marginBottom: 10,
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)', marginBottom: 10,
         }}>
           <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 6 }}>Starting Loadout</div>
           {startingLoadout.map((item, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 0' }}>
               <span style={{ color: 'var(--text-heading)' }}>{item.name}</span>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 12, color: '#7082a4' }}>{item.slotCost} slots</span>
-                <span style={{ fontSize: 12, color: '#6b83a3', fontStyle: 'italic' }}>{item.materialQuality}</span>
+                <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 12, color: 'var(--text-muted)' }}>{item.slotCost} slots</span>
+                <span style={{ fontSize: 12, color: 'var(--text-dim)', fontStyle: 'italic' }}>{item.materialQuality}</span>
               </div>
             </div>
           ))}
@@ -1946,7 +1986,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
       {factionStandings && factionStandings.length > 0 && (
         <div style={{
           background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '10px 16px',
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4', marginBottom: 10,
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)', marginBottom: 10,
         }}>
           <div style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 6 }}>Faction Standings</div>
           {factionStandings.map((fs, i) => (
@@ -1954,7 +1994,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
               <span style={{ color: 'var(--text-heading)' }}>{fs.factionName}</span>
               <span style={{
                 fontFamily: 'var(--font-jetbrains)', fontSize: 13,
-                color: fs.standing > 0 ? '#8aba7a' : fs.standing < 0 ? '#e8845a' : '#8a94a8',
+                color: fs.standing > 0 ? 'var(--color-success)' : fs.standing < 0 ? 'var(--color-danger)' : 'var(--text-secondary)',
               }}>
                 {fs.standing > 0 ? '+' : ''}{fs.standing}
               </span>
@@ -1966,7 +2006,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
       {/* Inventory Slots */}
       <div style={{
         background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '10px 16px',
-        fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#7082a4',
+        fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--text-muted)',
       }}>
         <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Inventory Slots: </span>
         {(stats.find(s => s.name === 'Strength')?.value || 6.5) + 5} (STR {stats.find(s => s.name === 'Strength')?.value.toFixed(1)} + 5)
@@ -1987,7 +2027,7 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
 
       {editing && !hasDeviation && (
         <p style={{
-          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4',
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-muted)',
           marginTop: 16, lineHeight: 1.6,
         }}>
           Use +/- buttons or click a value to type directly. Stats must be between 1.0 and 20.0. Inventory slots update with Strength.
@@ -2064,26 +2104,162 @@ function Phase4({ stats: initialStats, onStatsChange, skills, foundationalSkills
   );
 }
 
-function Phase5({ selected, onSelect }) {
+// ─── Difficulty Dial Controls (local to init page) ───
+
+function SliderDial({ label, description, value, min, max, step, format, onChange }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+        <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)' }}>{label}</span>
+        <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 14, color: 'var(--accent-gold)' }}>{format(value)}</span>
+      </div>
+      <input type="range" min={min} max={max} step={step} value={value} onChange={e => onChange(Number(e.target.value))}
+        style={{ width: '100%', accentColor: 'var(--accent-gold)', cursor: 'pointer' }} />
+      <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--text-dim)', marginTop: 4 }}>{description}</div>
+    </div>
+  );
+}
+
+function ToggleDial({ label, description, checked, onChange }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, minHeight: 44 }}>
+      <button onClick={() => onChange(!checked)} aria-pressed={checked} style={{
+        width: 36, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer', padding: 0,
+        background: checked ? 'var(--accent-gold)' : 'var(--border-primary)',
+        position: 'relative', flexShrink: 0, transition: 'background 0.2s',
+      }}>
+        <span style={{
+          position: 'absolute', top: 2, left: checked ? 18 : 2,
+          width: 16, height: 16, borderRadius: '50%', background: '#fff',
+          transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+        }} />
+      </button>
+      <div style={{ flex: 1 }}>
+        <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)' }}>{label}</span>
+        <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--text-dim)', marginLeft: 8 }}>{description}</span>
+      </div>
+    </div>
+  );
+}
+
+function SelectorDial({ label, description, options, value, onChange }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>{label}</div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {options.map(opt => (
+          <button key={opt.value} onClick={() => onChange(opt.value)} style={{
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, fontWeight: 600,
+            color: value === opt.value ? 'var(--accent-gold)' : 'var(--text-muted)',
+            background: value === opt.value ? 'var(--bg-gold-light)' : 'transparent',
+            border: `1px solid ${value === opt.value ? 'var(--border-card)' : 'var(--border-primary)'}`,
+            borderRadius: 20, padding: '8px 18px', cursor: 'pointer',
+            letterSpacing: '0.06em', textTransform: 'uppercase', transition: 'all 0.2s',
+            minHeight: 44,
+          }}>{opt.label}</button>
+        ))}
+      </div>
+      <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--text-dim)', marginTop: 6 }}>{description}</div>
+    </div>
+  );
+}
+
+function Phase5({ selected, onSelect, difficultyTab, setDifficultyTab, dialOverrides, setDialOverrides }) {
+  // Get current dial values: overrides if set, else preset defaults, else standard
+  const currentDials = dialOverrides || PRESET_DIALS[selected] || PRESET_DIALS.standard;
+
+  const handleDialChange = (key, value) => {
+    const base = dialOverrides || { ...(PRESET_DIALS[selected] || PRESET_DIALS.standard) };
+    setDialOverrides({ ...base, [key]: value });
+  };
+
+  // Check if overrides match any preset
+  const isCustom = dialOverrides !== null;
+
   return (
     <div>
       <PhaseTitle title="Select Difficulty" subtitle="How hard should the world push back?" />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {DIFFICULTIES.map(d => (
-          <SelectionCard key={d.id} item={d} selected={selected} onSelect={onSelect}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-              <div style={{
-                width: 12, height: 12, borderRadius: '50%', background: d.color,
-                marginTop: 6, flexShrink: 0, boxShadow: `0 0 8px ${d.color}44`,
-              }} />
-              <div style={{ flex: 1 }}>
-                <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 19, fontWeight: 700, color: 'var(--text-heading)', display: 'block', marginBottom: 4 }}>{d.name}</span>
-                <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>{d.desc}</p>
-              </div>
-            </div>
-          </SelectionCard>
+
+      {/* Tab bar — same pill style as Phase 2 */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
+        {[{ id: 'difficulty', label: 'Difficulty' }, { id: 'advanced', label: 'Advanced' }].map(tab => (
+          <button key={tab.id} onClick={() => setDifficultyTab(tab.id)} style={{
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 600,
+            color: difficultyTab === tab.id ? 'var(--accent-gold)' : 'var(--text-muted)',
+            background: difficultyTab === tab.id ? 'var(--bg-gold-light)' : 'transparent',
+            border: `1px solid ${difficultyTab === tab.id ? 'var(--border-card)' : 'var(--border-primary)'}`,
+            borderRadius: 20, padding: '8px 20px', cursor: 'pointer',
+            letterSpacing: '0.08em', textTransform: 'uppercase', transition: 'all 0.2s',
+          }}>{tab.label}</button>
         ))}
       </div>
+
+      {/* Difficulty tab — preset cards */}
+      {difficultyTab === 'difficulty' && (
+        <div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {DIFFICULTIES.map(d => (
+              <SelectionCard key={d.id} item={d} selected={isCustom ? null : selected} onSelect={onSelect}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                  <div style={{
+                    width: 12, height: 12, borderRadius: '50%', background: d.color,
+                    marginTop: 6, flexShrink: 0, boxShadow: `0 0 8px ${d.color}44`,
+                  }} />
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 19, fontWeight: 700, color: 'var(--text-heading)', display: 'block', marginBottom: 4 }}>{d.name}</span>
+                    <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 16, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>{d.desc}</p>
+                  </div>
+                </div>
+              </SelectionCard>
+            ))}
+          </div>
+          {isCustom && (
+            <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 14, fontStyle: 'italic', color: 'var(--text-dim)', textAlign: 'center', marginTop: 12 }}>
+              Custom settings active — select a preset to reset
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Advanced tab — individual dials */}
+      {difficultyTab === 'advanced' && (
+        <div>
+          <p style={{ fontFamily: 'var(--font-alegreya)', fontSize: 16, fontStyle: 'italic', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 24 }}>
+            These settings are pre-configured by your difficulty preset. Adjust individual dials here if you want finer control. You can also change these at any time during play.
+          </p>
+
+          <SliderDial label="DC Offset" description="Flat modifier applied to all difficulty checks"
+            value={currentDials.dcOffset} min={-4} max={6} step={1}
+            format={v => v >= 0 ? `+${v}` : `${v}`}
+            onChange={v => handleDialChange('dcOffset', v)} />
+
+          <SliderDial label="Progression Speed" description="Multiplier on stat and skill gains"
+            value={currentDials.progressionSpeed} min={0.25} max={3} step={0.25}
+            format={v => `${v}x`}
+            onChange={v => handleDialChange('progressionSpeed', v)} />
+
+          <SelectorDial label="Encounter Pressure" description="Frequency and tension of encounters"
+            options={[{ value: 'low', label: 'Low' }, { value: 'standard', label: 'Standard' }, { value: 'high', label: 'High' }]}
+            value={currentDials.encounterPressure}
+            onChange={v => handleDialChange('encounterPressure', v)} />
+
+          <ToggleDial label="Survival" description="Track rations, water, and malnourishment"
+            checked={currentDials.survivalEnabled}
+            onChange={v => handleDialChange('survivalEnabled', v)} />
+
+          <ToggleDial label="Durability" description="Items degrade with use and need repair"
+            checked={currentDials.durabilityEnabled}
+            onChange={v => handleDialChange('durabilityEnabled', v)} />
+
+          <ToggleDial label="Fortune's Balance" description="Outmatched/Matched/Dominant dice selection"
+            checked={currentDials.fortunesBalanceEnabled}
+            onChange={v => handleDialChange('fortunesBalanceEnabled', v)} />
+
+          <ToggleDial label="Simplified Outcomes" description="Binary pass/fail instead of 6-tier results"
+            checked={currentDials.simplifiedOutcomes}
+            onChange={v => handleDialChange('simplifiedOutcomes', v)} />
+        </div>
+      )}
     </div>
   );
 }
@@ -2138,7 +2314,7 @@ function Phase6({ scenario, setScenario, customStartText, setCustomStartText, sc
                         <button onClick={(e) => { e.stopPropagation(); onRefreshScenario(s.key); }} style={{
                           fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--text-dim)',
                           background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s',
-                        }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-muted)'; }} onMouseLeave={e => { e.currentTarget.style.color = ''; }}>
+                        }} onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent-gold)'; }} onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; }}>
                           {'\u21BB'} try another
                         </button>
                       </div>
@@ -2195,6 +2371,25 @@ function InitWizardInner() {
     if (user && !user.isPlaytester) router.replace('/');
   }, [router]);
 
+  // --- Lexie Readable ---
+  const [displayFont, setDisplayFont] = useState('alegreya');
+  useEffect(() => {
+    setDisplayFont(loadDisplayFont());
+    const handleChange = () => setDisplayFont(loadDisplayFont());
+    window.addEventListener('display-settings-changed', handleChange);
+    window.addEventListener('storage', (e) => { if (e.key === DISPLAY_SETTINGS_KEY) handleChange(); });
+    return () => {
+      window.removeEventListener('display-settings-changed', handleChange);
+      window.removeEventListener('storage', handleChange);
+    };
+  }, []);
+  const isLexie = displayFont === 'lexie';
+  const lexieVars = isLexie ? {
+    '--font-alegreya': "'Lexie Readable', sans-serif",
+    '--font-alegreya-sans': "'Lexie Readable', sans-serif",
+    '--font-jetbrains': "'Lexie Readable', sans-serif",
+  } : {};
+
   // --- Core wizard state ---
   const [phase, setPhase] = useState(0);
   const [storyteller, setStoryteller] = useState(null);
@@ -2214,6 +2409,8 @@ function InitWizardInner() {
   const [selectedArchetype, setSelectedArchetype] = useState(null);
   const [characterMode, setCharacterMode] = useState('archetype');
   const [difficulty, setDifficulty] = useState(null);
+  const [difficultyTab, setDifficultyTab] = useState('difficulty');
+  const [dialOverrides, setDialOverrides] = useState(null);
   const [scenario, setScenario] = useState(null);
   const [customStartText, setCustomStartText] = useState('');
   const [scenarioAlts, setScenarioAlts] = useState({});
@@ -2222,14 +2419,20 @@ function InitWizardInner() {
 
   // --- API interaction state ---
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState('');
+  const confirmBypassRef = useRef(false);
   const [error, setError] = useState(null);
   const [transitionPhase, setTransitionPhase] = useState(null);
   const [transitionFading, setTransitionFading] = useState(false);
-  const [contentFading, setContentFading] = useState(false);
+  const [modalFading, setModalFading] = useState(false);
   const [loreIndex, setLoreIndex] = useState(0);
   const [loreFade, setLoreFade] = useState(true);
-  const [worldGenStatus, setWorldGenStatus] = useState(null); // null, 'generating', 'complete', 'error'
+  const [worldGenStatus, setWorldGenStatus] = useState(null); // null, 'generating', 'complete', 'error', 'timeout'
   const [worldGenName, setWorldGenName] = useState(null);
+  const [worldGenPhase, setWorldGenPhase] = useState(null); // e.g. 'generating_factions'
+  const worldGenTimestamps = useRef({});
   const [proposalLoading, setProposalLoading] = useState(false);
   const [proposal, setProposal] = useState(null);
   const [adjustedStats, setAdjustedStats] = useState(null);
@@ -2244,35 +2447,27 @@ function InitWizardInner() {
   const worldPollCount = useRef(0);
   const worldPollRef = useRef(null);
   const worldGenStatusRef = useRef(null);
-  const bottomNavRef = useRef(null);
-  const [scrollFadeVisible, setScrollFadeVisible] = useState(false);
-  const [bottomNavHeight, setBottomNavHeight] = useState(0);
+  const modalScrollRef = useRef(null);
+
+  // --- Character→Attributes combined overlay ---
+  const [charOverlayActive, setCharOverlayActive] = useState(false);
+  const [charOverlayFading, setCharOverlayFading] = useState(false);
+  const [overlayLabel, setOverlayLabel] = useState('YOUR WORLD');
+  const [overlaySecondary, setOverlaySecondary] = useState('');
+  const [overlayLore, setOverlayLore] = useState('');
+  const [overlayLoreFade, setOverlayLoreFade] = useState(true);
+  const charOverlayAbortRef = useRef(false);
+  const proposalResultRef = useRef({ done: false, failed: false });
 
   // Keep worldGenStatusRef in sync with state so polling promises can read it
   useEffect(() => { worldGenStatusRef.current = worldGenStatus; }, [worldGenStatus]);
 
-  // --- Scroll fade indicator ---
+  // Scroll to top whenever the wizard phase changes
   useEffect(() => {
-    const measure = () => {
-      if (bottomNavRef.current) setBottomNavHeight(bottomNavRef.current.offsetHeight);
-    };
-    const check = () => {
-      measure();
-      const { scrollY, innerHeight } = window;
-      const { scrollHeight } = document.documentElement;
-      const atBottom = scrollY + innerHeight >= scrollHeight - 20;
-      const hasScroll = scrollHeight > innerHeight + 20;
-      setScrollFadeVisible(hasScroll && !atBottom);
-    };
-    const raf = requestAnimationFrame(check);
-    window.addEventListener('scroll', check, { passive: true });
-    window.addEventListener('resize', check, { passive: true });
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('scroll', check);
-      window.removeEventListener('resize', check);
-    };
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    if (modalScrollRef.current) modalScrollRef.current.scrollTop = 0;
   }, [phase]);
+
 
   // --- Connection state ---
   const [connectionFailed, setConnectionFailed] = useState(false);
@@ -2331,12 +2526,7 @@ function InitWizardInner() {
   // If the game is already past certain phases, skip ahead to the appropriate phase
   // For now, always start at phase 0
 
-  // --- Generate proposal when entering Phase 4 (attributes) ---
-  useEffect(() => {
-    if (phase === 3 && !proposal && !proposalLoading && gameId) {
-      generateProposal();
-    }
-  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   // --- Fetch scenarios when entering Phase 6 ---
   useEffect(() => {
@@ -2371,6 +2561,214 @@ function InitWizardInner() {
     }, 4000);
     return () => clearInterval(interval);
   }, [transitionPhase]);
+
+  // --- Combined overlay sequence (Character → Attributes) ---
+  useEffect(() => {
+    if (!charOverlayActive) return;
+    let cancelled = false;
+    charOverlayAbortRef.current = false;
+
+    const sleep = (ms) => new Promise(resolve => {
+      const id = setTimeout(resolve, ms);
+      const check = setInterval(() => {
+        if (charOverlayAbortRef.current) { clearTimeout(id); clearInterval(check); resolve(); }
+      }, 200);
+      // Clean up interval when sleep resolves naturally
+      const orig = resolve;
+      resolve = (...args) => { clearInterval(check); orig(...args); };
+    });
+
+    // Cancellation-safe sleep
+    const safeSleep = (ms) => new Promise(r => {
+      const id = setTimeout(r, ms);
+      if (cancelled) { clearTimeout(id); r(); }
+    });
+
+    const fadeMessage = async (text) => {
+      setOverlayLoreFade(false);
+      await safeSleep(300);
+      if (cancelled) return;
+      setOverlayLore(text);
+      setOverlayLoreFade(true);
+    };
+
+    const run = async () => {
+      // --- World Gen Messages ---
+      setOverlayLabel('YOUR WORLD');
+      setOverlaySecondary('The engine is building geography, history, and power structures');
+      setOverlayLore(WORLD_GEN_MESSAGES[0].text);
+      setOverlayLoreFade(true);
+
+      const ts = worldGenTimestamps.current;
+      const phases = WORLD_GEN_MESSAGES.map(m => m.phase);
+      const isWorldComplete = () => worldGenStatusRef.current === 'complete';
+      const isWorldError = () => worldGenStatusRef.current === 'error' || worldGenStatusRef.current === 'timeout';
+
+      for (let i = 0; i < WORLD_GEN_MESSAGES.length; i++) {
+        if (cancelled) return;
+        if (isWorldError()) {
+          // Abort overlay, show error
+          setCharOverlayFading(true);
+          await safeSleep(500);
+          setCharOverlayActive(false);
+          setCharOverlayFading(false);
+          setError('World generation ran into a problem. Go back to try a different setting, or try again.');
+          return;
+        }
+
+        const msg = WORLD_GEN_MESSAGES[i];
+        if (i > 0) await fadeMessage(msg.text);
+        if (cancelled) return;
+
+        // Calculate display duration
+        const nextPhase = phases[i + 1] || 'complete';
+        const thisPhaseTs = ts[msg.phase];
+        const nextPhaseTs = ts[nextPhase];
+
+        if (thisPhaseTs && nextPhaseTs) {
+          // Phase already completed — proportional pacing
+          const firstTs = ts[phases[0]] || thisPhaseTs;
+          const completeTs = ts.complete || nextPhaseTs;
+          const totalTime = completeTs - firstTs;
+          const phaseDuration = nextPhaseTs - thisPhaseTs;
+          const proportion = totalTime > 0 ? phaseDuration / totalTime : 0.25;
+          const targetTotal = 22000;
+          let displayMs = proportion * targetTotal;
+          displayMs *= 0.8 + Math.random() * 0.4; // ±20%
+          displayMs = Math.max(displayMs, 4000);
+          await safeSleep(displayMs);
+        } else if (thisPhaseTs && !nextPhaseTs) {
+          // Phase in progress — hold until next phase appears, minimum 6s
+          const startedAt = Date.now();
+          while (!ts[nextPhase] && !isWorldError()) {
+            if (cancelled) return;
+            await safeSleep(500);
+          }
+          if (isWorldError()) continue; // Loop will catch error at top
+          const elapsed = Date.now() - startedAt;
+          if (elapsed < 6000) await safeSleep(6000 - elapsed);
+        } else {
+          // Phase not yet reached — wait for it to start, then wait for next
+          while (!ts[msg.phase] && !isWorldComplete() && !isWorldError()) {
+            if (cancelled) return;
+            await safeSleep(500);
+          }
+          if (isWorldError()) continue;
+          // If world completed while waiting, show for minimum 4s
+          if (isWorldComplete() && !ts[msg.phase]) {
+            await safeSleep(4000);
+          } else {
+            // Wait for next phase
+            const startedAt = Date.now();
+            while (!ts[nextPhase] && !isWorldError()) {
+              if (cancelled) return;
+              await safeSleep(500);
+            }
+            const elapsed = Date.now() - startedAt;
+            if (elapsed < 6000) await safeSleep(6000 - elapsed);
+          }
+        }
+        if (cancelled) return;
+      }
+
+      // --- Wait for world gen to complete before generating proposal ---
+      while (!isWorldComplete()) {
+        if (cancelled) return;
+        if (isWorldError()) {
+          setCharOverlayFading(true);
+          await safeSleep(500);
+          setCharOverlayActive(false);
+          setCharOverlayFading(false);
+          setError('World generation ran into a problem. Go back to try a different setting, or try again.');
+          return;
+        }
+        await safeSleep(500);
+      }
+
+      // --- Save character (requires world gen complete) ---
+      try {
+        await saveCharacter();
+      } catch (err) {
+        if (cancelled) return;
+        setCharOverlayFading(true);
+        await safeSleep(500);
+        setCharOverlayActive(false);
+        setCharOverlayFading(false);
+        setError(err.message || 'Failed to save character.');
+        return;
+      }
+      if (cancelled) return;
+
+      // --- Transition to Proposal Phase ---
+      setOverlayLabel('ATTRIBUTES');
+      setOverlaySecondary('Deriving stats, skills, and gear from your backstory');
+
+      // Fire off proposal generation
+      proposalResultRef.current = { done: false, failed: false };
+      generateProposal().then(() => {
+        proposalResultRef.current.done = true;
+      }).catch(() => {
+        proposalResultRef.current.failed = true;
+      });
+
+      // --- Proposal Messages ---
+      for (let i = 0; i < PROPOSAL_OVERLAY_MESSAGES.length; i++) {
+        if (cancelled) return;
+        await fadeMessage(PROPOSAL_OVERLAY_MESSAGES[i]);
+        if (cancelled) return;
+
+        const duration = 6000 + Math.random() * 3000; // 6-9 seconds
+        const msgStart = Date.now();
+
+        // Wait for duration, but check for completion
+        while (Date.now() - msgStart < duration) {
+          if (cancelled) return;
+          if (proposalResultRef.current.failed) {
+            // Proposal failed — fade out overlay, let Phase 3 proposalFailed UI handle it
+            setCharOverlayFading(true);
+            await safeSleep(500);
+            setPhase(3);
+            setCharOverlayActive(false);
+            setCharOverlayFading(false);
+            return;
+          }
+          await safeSleep(200);
+        }
+
+        // After this message's duration, if proposal is done and this isn't the last message,
+        // we can end early (show at least the current message fully)
+        if (proposalResultRef.current.done && i < PROPOSAL_OVERLAY_MESSAGES.length - 1) {
+          break; // Skip remaining messages
+        }
+      }
+
+      // If all 4 messages shown but proposal not done, hold on last message
+      while (!proposalResultRef.current.done && !proposalResultRef.current.failed) {
+        if (cancelled) return;
+        await safeSleep(500);
+      }
+
+      if (proposalResultRef.current.failed) {
+        setCharOverlayFading(true);
+        await safeSleep(500);
+        setPhase(3);
+        setCharOverlayActive(false);
+        setCharOverlayFading(false);
+        return;
+      }
+
+      // --- Success: advance to Phase 3 and fade out ---
+      if (cancelled) return;
+      setPhase(3);
+      setCharOverlayFading(true);
+      await safeSleep(500);
+      setCharOverlayActive(false);
+      setCharOverlayFading(false);
+    };
+
+    run();
+    return () => { cancelled = true; charOverlayAbortRef.current = true; };
+  }, [charOverlayActive]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- API save functions ---
 
@@ -2428,7 +2826,23 @@ function InitWizardInner() {
       if (res.status === 'complete') {
         setWorldGenStatus('complete');
         setWorldGenName(res.worldName || null);
+        if (!worldGenTimestamps.current.complete) {
+          worldGenTimestamps.current.complete = Date.now();
+        }
         return;
+      }
+      if (res.status === 'failed') {
+        setWorldGenStatus('error');
+        return;
+      }
+      // Handle generating_* statuses
+      const status = res.status || '';
+      if (status.startsWith('generating')) {
+        setWorldGenStatus('generating');
+        setWorldGenPhase(status);
+        if (!worldGenTimestamps.current[status]) {
+          worldGenTimestamps.current[status] = Date.now();
+        }
       }
       worldPollCount.current += 1;
       if (worldPollCount.current >= 60) {
@@ -2553,10 +2967,10 @@ function InitWizardInner() {
   };
 
   const saveDifficulty = async () => {
-    // TODO: Use API presets when available, fall back to DIFFICULTIES
-    await api.post(`/api/init/${gameId}/difficulty`, {
-      preset: difficulty,
-    });
+    const body = dialOverrides
+      ? { preset: difficulty, overrides: dialOverrides }
+      : { preset: difficulty };
+    await api.post(`/api/init/${gameId}/difficulty`, body);
   };
 
   const fetchScenarios = async (intensityId, isRetry = false) => {
@@ -2635,7 +3049,7 @@ function InitWizardInner() {
     switch (phase) {
       case 0: return !!storyteller;
       case 1: return !!setting;
-      case 2: return character.name.trim().length > 0 && (!gameId || worldGenStatus === 'complete') && worldGenStatus !== 'timeout';
+      case 2: return character.name.trim().length > 0;
       case 3: return !proposalLoading && !proposalFailed && !!proposal?.stats?.length && !(proposalValidation.hardErrors.length > 0);
       case 4: return !!difficulty;
       case 5: return !!scenario && !scenariosLoading && !scenariosFailed;
@@ -2644,15 +3058,21 @@ function InitWizardInner() {
   };
 
   const handleNext = async () => {
-    if (!canAdvance() || saving) return;
+    if (savingRef.current) return;
+    if (!canAdvance()) return;
 
-    // Warn if user has unregenerated requests on the attributes phase
-    if (phase === 3 && (skillRequests.trim() || gearRequests.trim()) && !requestsRegenerated) {
-      const proceed = window.confirm(
-        'You have skill or gear requests that haven\'t been regenerated. Continue without applying them?'
-      );
-      if (!proceed) return;
+    // Phases 1, 2, 3 require confirmation before proceeding
+    if ((phase === 1 || phase === 2 || phase === 3) && !confirmBypassRef.current) {
+      const msg = phase === 1 ? "Your setting can't be changed once confirmed. Continue?"
+        : phase === 2 ? "Your character's name and backstory are locked in after this step. Continue?"
+        : (skillRequests.trim() || gearRequests.trim()) && !requestsRegenerated
+          ? "You have unsubmitted skill or gear requests. Continue without applying them?"
+          : "Your stats and skills are locked in after this step. Continue?";
+      setConfirmMessage(msg);
+      setConfirmVisible(true);
+      return;
     }
+    confirmBypassRef.current = false;
 
     // If no gameId yet (creation pending or failed), advance locally without overlay
     if (!gameId) {
@@ -2664,20 +3084,10 @@ function InitWizardInner() {
       return;
     }
 
-    // Phase 1 (world gen) and Phase 2 (character save + proposal) use full ember overlay.
-    const useOverlay = phase === 1 || phase === 2;
-
+    // Synchronous ref guard — prevents double-submission even within the same tick
+    savingRef.current = true;
     setSaving(true);
     setError(null);
-
-    if (useOverlay) {
-      setTransitionPhase(phase);
-      setTransitionFading(false);
-    } else {
-      setContentFading(true);
-    }
-
-    const transitionStart = Date.now();
 
     try {
       switch (phase) {
@@ -2686,21 +3096,26 @@ function InitWizardInner() {
           break;
         case 1:
           await saveSetting();
-          // Wait for world gen to finish (polling is already running via saveSetting)
-          await new Promise((resolve) => {
-            const check = setInterval(() => {
-              const status = worldGenStatusRef.current;
-              if (status === 'complete' || status === 'error' || status === 'timeout') {
-                clearInterval(check);
-                resolve();
-              }
-            }, 500);
-          });
+          // World gen polls in background — advance immediately
           break;
-        case 2:
-          await saveCharacter();
-          await generateProposal();
-          break;
+        case 2: {
+          // Gate on world gen status
+          const wgStatus = worldGenStatusRef.current;
+          if (wgStatus === 'error' || wgStatus === 'timeout') {
+            savingRef.current = false;
+            setSaving(false);
+            setContentFading(false);
+            setError('World generation ran into a problem. Go back to try a different setting, or try again.');
+            return;
+          }
+          // Activate the combined overlay — it handles saveCharacter, generateProposal, and phase advance
+          charOverlayAbortRef.current = false;
+          proposalResultRef.current = { done: false, failed: false };
+          setCharOverlayActive(true);
+          savingRef.current = false;
+          setSaving(false);
+          return;
+        }
         case 3:
           await saveAttributes();
           break;
@@ -2708,7 +3123,6 @@ function InitWizardInner() {
           await saveDifficulty();
           break;
         case 5:
-          await saveScenario();
           try {
             const settingName = SETTINGS.find(s => s.id === setting)?.name || setting || null;
             const difficultyName = DIFFICULTIES.find(d => d.id === difficulty)?.name || difficulty || null;
@@ -2723,98 +3137,136 @@ function InitWizardInner() {
               difficulty: difficultyName,
             }));
           } catch { /* sessionStorage may be unavailable */ }
-          // Fade out init content, then navigate directly to /play
-          await new Promise(r => setTimeout(r, 300));
+          // Navigate immediately — save scenario in background
           router.push(`/play?gameId=${gameId}`);
+          saveScenario().catch(() => {});
+          savingRef.current = false;
           return;
       }
 
-      if (useOverlay) {
-        // Ensure overlay shows for at least 2s for generation transitions
-        const elapsed = Date.now() - transitionStart;
-        const minDisplay = 2000;
-        if (elapsed < minDisplay) {
-          await new Promise(r => setTimeout(r, minDisplay - elapsed));
-        }
-        if (phase < 5) setPhase(phase + 1);
-        setTransitionFading(true);
-        setTimeout(() => {
-          setTransitionPhase(null);
-          setTransitionFading(false);
-          setSaving(false);
-        }, 500);
-      } else {
-        // Crossfade: wait for fade-out, advance phase, then fade in
-        await new Promise(r => setTimeout(r, 300));
-        if (phase < 5) setPhase(phase + 1);
+      // Modal content fade: out → advance → in
+      setModalFading(true);
+      await new Promise(r => setTimeout(r, 150));
+      if (phase < 5) setPhase(phase + 1);
+      if (modalScrollRef.current) modalScrollRef.current.scrollTop = 0;
+      requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            setContentFading(false);
-            setSaving(false);
-          });
+          setModalFading(false);
+          savingRef.current = false;
+          setSaving(false);
         });
-      }
+      });
     } catch (err) {
-      setTransitionPhase(null);
-      setTransitionFading(false);
-      setContentFading(false);
+      setModalFading(false);
+      savingRef.current = false;
       setSaving(false);
       setError(err.message || 'Something went wrong. Please try again.');
     }
   };
 
-  const handleCharChange = (key, val) => setCharacter(prev => ({ ...prev, [key]: val }));
+  const handleCharChange = (key, val) => { setConfirmVisible(false); setCharacter(prev => ({ ...prev, [key]: val })); };
+
+  // Dismiss confirmation when user changes inputs
+  useEffect(() => { setConfirmVisible(false); }, [setting, settingAnswers, selectedWorld, customWorldText, character, skillRequests, gearRequests, difficulty]);
 
   const buttonEnabled = canAdvance() && !saving;
 
   return (
     <div className={styles.pageContainer} style={{
       minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)',
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 72,
+      ...lexieVars,
     }}>
       <ParticleField />
       <div style={{ width: '100%' }}><NavBar /></div>
 
-      {/* Offline banner */}
-      {connectionFailed && !gameId && (
-        <div style={{
-          width: '100%', maxWidth: 740, margin: '0 auto', padding: '12px 28px 0',
-          boxSizing: 'border-box',
-        }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
-            background: '#1a1610', border: '1px solid #3d3322', borderRadius: 6,
-            fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#d4a84b',
-          }}>
-            <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>&#9888;</span>
-            <span style={{ flex: 1 }}>
-              Unable to connect to the server. Your progress won't be saved. Check your connection and refresh to try again.
-            </span>
-            <button
-              onClick={retryConnection}
-              disabled={retrying}
-              style={{
-                fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600,
-                color: retrying ? 'var(--text-dim)' : '#d4a84b',
-                background: 'transparent', border: '1px solid #3d3322', borderRadius: 4,
-                padding: '6px 14px', cursor: retrying ? 'default' : 'pointer',
-                letterSpacing: '0.04em', whiteSpace: 'nowrap', flexShrink: 0,
-              }}
-            >
-              {retrying ? 'RETRYING...' : 'RETRY CONNECTION'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Content */}
-      <div style={{
-        width: '100%', maxWidth: 740, padding: '44px 28px 100px', flex: 1, boxSizing: 'border-box',
-        opacity: contentFading ? 0 : 1,
-        transform: contentFading ? 'translateY(-15px)' : 'translateY(0)',
-        transition: 'opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-      }}>
+      {/* Behind-modal context: step indicator + summary bar (dimmed on desktop, hidden on mobile) */}
+      <div style={{ width: '100%', maxWidth: 740, padding: '44px 28px 0', boxSizing: 'border-box' }}>
         <StepIndicator steps={STEP_NAMES} current={phase} />
+
+        {/* Summary bar — progressive chips for previous selections */}
+        {(() => {
+          const chips = [];
+          const stName = storyteller ? (STORYTELLERS.find(s => s.id === storyteller)?.name || 'Custom') : null;
+          const prebuiltWorld = selectedWorld ? PREBUILT_WORLDS.find(w => w.id === selectedWorld) : null;
+          const worldLabel = worldGenName || (prebuiltWorld ? prebuiltWorld.name : null) || (setting ? (SETTINGS.find(s => s.id === setting)?.name || 'Custom') : null);
+          const charName = character?.name || null;
+          const diffName = difficulty ? (DIFFICULTIES.find(d => d.id === difficulty)?.name || difficulty) : null;
+
+          if (phase >= 1 && stName) chips.push({ label: 'Voice', value: stName });
+          if (phase >= 2 && worldLabel) chips.push({ label: 'World', value: worldLabel });
+          if (phase >= 3 && charName) chips.push({ label: 'Character', value: charName, gold: true });
+          if (phase >= 5 && diffName) chips.push({ label: 'Difficulty', value: diffName });
+
+          if (chips.length === 0) return null;
+          return (
+            <div style={{
+              display: 'flex', justifyContent: 'center', gap: 0,
+              borderTop: '1px solid #16181e', borderBottom: '1px solid #16181e',
+              padding: '12px 0', margin: '0 0 24px',
+            }}>
+              {chips.map((chip, i) => (
+                <div key={chip.label} style={{
+                  padding: '0 20px', textAlign: 'center',
+                  borderRight: i < chips.length - 1 ? '1px solid #1e2540' : 'none',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                }}>
+                  <div style={{
+                    fontFamily: 'var(--font-alegreya-sans)', fontSize: 10, fontWeight: 600,
+                    color: '#4a5a70', letterSpacing: '0.14em', textTransform: 'uppercase',
+                    lineHeight: 1.2,
+                  }}>{chip.label}</div>
+                  <div title={chip.value} style={{
+                    fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600,
+                    color: chip.gold ? '#c9a84c' : '#8a94a8',
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    maxWidth: 140, lineHeight: 1.3,
+                  }}>{chip.value}</div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* Phase Modal */}
+      <div className={styles.phaseModalBackdrop}>
+        <div className={styles.phaseModalCard}>
+          <div
+            ref={modalScrollRef}
+            className={styles.phaseModalScroll}
+            style={{
+              opacity: modalFading ? 0 : 1,
+              transition: 'opacity 150ms ease',
+            }}
+          >
+            {/* Offline banner */}
+            {connectionFailed && !gameId && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+                background: '#1a1610', border: '1px solid #3d3322', borderRadius: 6,
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#d4a84b',
+                marginBottom: 24,
+              }}>
+                <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>&#9888;</span>
+                <span style={{ flex: 1 }}>
+                  Unable to connect to the server. Your progress won't be saved. Check your connection and refresh to try again.
+                </span>
+                <button
+                  onClick={retryConnection}
+                  disabled={retrying}
+                  style={{
+                    fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600,
+                    color: retrying ? 'var(--text-dim)' : '#d4a84b',
+                    background: 'transparent', border: '1px solid #3d3322', borderRadius: 4,
+                    padding: '6px 14px', cursor: retrying ? 'default' : 'pointer',
+                    letterSpacing: '0.04em', whiteSpace: 'nowrap', flexShrink: 0,
+                  }}
+                >
+                  {retrying ? 'RETRYING...' : 'RETRY CONNECTION'}
+                </button>
+              </div>
+            )}
 
         {phase === 0 && <Phase1 selected={storyteller} onSelect={setStoryteller} customText={customStorytellerText} setCustomText={setCustomStorytellerText} />}
         {phase === 1 && (
@@ -2861,24 +3313,6 @@ function InitWizardInner() {
           const hasArchetypes = availableArchetypes.length > 0;
           return (
             <>
-              {worldGenStatus === 'error' && (
-                <div style={{ marginBottom: 20, fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#c84a4a' }}>
-                  World generation failed. Please go back and try again.
-                </div>
-              )}
-              {worldGenStatus === 'timeout' && (
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: 'var(--accent-gold)', marginBottom: 8 }}>
-                    World generation is taking longer than expected. This can happen with custom settings.
-                  </div>
-                  <button onClick={() => { worldPollCount.current = 0; setWorldGenStatus('generating'); pollWorldStatus(); }} style={{
-                    fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
-                    color: 'var(--accent-gold)', background: 'transparent',
-                    border: '1px solid var(--border-card)', borderRadius: 4,
-                    padding: '8px 18px', cursor: 'pointer', letterSpacing: '0.06em',
-                  }}>Check Again</button>
-                </div>
-              )}
               <Phase3
                 character={character}
                 onChange={handleCharChange}
@@ -2893,16 +3327,7 @@ function InitWizardInner() {
           );
         })()}
         {phase === 3 && (
-          proposalLoading && !proposal ? (
-            <div style={{ textAlign: 'center', padding: '80px 0' }}>
-              <div style={{ fontFamily: 'var(--font-alegreya)', fontSize: 20, fontStyle: 'italic', color: 'var(--accent-gold)', marginBottom: 8 }}>
-                Forging your character...
-              </div>
-              <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-dim)' }}>
-                Deriving stats, skills, and gear from your backstory
-              </div>
-            </div>
-          ) : proposalFailed ? (
+          proposalFailed ? (
             <div style={{ textAlign: 'center', padding: '60px 24px' }}>
               <div style={{ fontFamily: 'var(--font-alegreya)', fontSize: 20, fontStyle: 'italic', color: 'var(--accent-gold)', marginBottom: 12 }}>
                 Character generation hit a snag.
@@ -2939,7 +3364,7 @@ function InitWizardInner() {
             />
           )
         )}
-        {phase === 4 && <Phase5 selected={difficulty} onSelect={setDifficulty} />}
+        {phase === 4 && <Phase5 selected={difficulty} onSelect={(id) => { setDifficulty(id); setDialOverrides(null); }} difficultyTab={difficultyTab} setDifficultyTab={setDifficultyTab} dialOverrides={dialOverrides} setDialOverrides={setDialOverrides} />}
         {phase === 5 && (
           scenariosFailed && !scenariosLoading ? (
             <div style={{ textAlign: 'center', padding: '60px 24px' }}>
@@ -2961,61 +3386,165 @@ function InitWizardInner() {
             <Phase6 scenario={scenario} setScenario={setScenario} customStartText={customStartText} setCustomStartText={setCustomStartText} scenariosLoading={scenariosLoading} displayScenarios={scenarioCache['default'] || (gameId ? [] : SCENARIOS)} scenarioAlts={scenarioAlts} scenarioView={scenarioView} setScenarioView={setScenarioView} refreshingScenario={refreshingScenario} onRefreshScenario={handleRefreshScenario} />
           )
         )}
-      </div>
+          </div>
 
-      {/* Scroll fade indicator */}
-      <div className={styles.scrollFade} style={{ opacity: scrollFadeVisible ? 1 : 0, bottom: bottomNavHeight }} />
-
-      {/* Bottom Nav */}
-      <div ref={bottomNavRef} className={styles.bottomNav} style={{
-        position: 'sticky', bottom: 0, width: '100%', padding: '18px 28px',
-        background: 'var(--bg-main)', backdropFilter: 'blur(8px)',
-        borderTop: '1px solid var(--border-gold-faint)', display: 'flex', justifyContent: 'space-between',
-        alignItems: 'center', boxSizing: 'border-box', flexWrap: 'wrap', gap: 8, zIndex: 6,
-      }}>
-        <button
-          onClick={() => { setPhase(p => { if (p === 5) setScenarioCache({}); return Math.max(0, p - 1); }); setError(null); }}
-          disabled={phase === 0}
-          className={styles.btnBack}
-          style={{
-            fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600,
-            color: phase === 0 ? 'var(--text-dim)' : 'var(--text-secondary)',
-            background: 'transparent',
-            border: phase === 0 ? '1px solid var(--border-gold-faint)' : '1px solid var(--border-card)',
-            borderRadius: 5, cursor: phase === 0 ? 'default' : 'pointer',
-            padding: '10px 24px', letterSpacing: '0.06em',
-          }}
-        >&larr; BACK</button>
-
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-          <span style={{
-            fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-dim)',
-          }}>Phase {phase + 1} of {STEP_NAMES.length}</span>
-          {error && (
-            <span style={{
-              fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c84a4a',
-            }}>{error}</span>
-          )}
+          {/* Bottom nav — inside modal */}
+          <div className={styles.phaseModalNav}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+              <span style={{
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-dim)',
+              }}>Phase {phase + 1} of {STEP_NAMES.length}</span>
+              {error && (
+                <span style={{
+                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--color-danger)',
+                }}>{error}</span>
+              )}
+            </div>
+            <button
+              onClick={handleNext}
+              disabled={!buttonEnabled}
+              className={styles.btnPrimary}
+              style={{
+                fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
+                color: buttonEnabled ? 'var(--bg-main)' : 'var(--text-dim)',
+                background: buttonEnabled ? 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))' : 'var(--bg-gold-subtle)',
+                border: 'none', borderRadius: 5, padding: '12px 32px',
+                cursor: buttonEnabled ? 'pointer' : 'default',
+                letterSpacing: '0.08em', flexShrink: 0,
+              }}
+            >
+              {saving ? 'SAVING...' : phase === 5 ? 'BEGIN ADVENTURE' : 'CONTINUE'}
+            </button>
+          </div>
         </div>
-
-        <button
-          onClick={handleNext}
-          disabled={!buttonEnabled}
-          className={styles.btnPrimary}
-          style={{
-            fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
-            color: buttonEnabled ? 'var(--bg-main)' : 'var(--text-dim)',
-            background: buttonEnabled ? 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))' : 'var(--bg-gold-subtle)',
-            border: 'none', borderRadius: 5, padding: '12px 32px',
-            cursor: buttonEnabled ? 'pointer' : 'default',
-            letterSpacing: '0.08em',
-          }}
-        >
-          {saving ? 'SAVING...' : phase === 5 ? 'BEGIN ADVENTURE' : 'CONTINUE'}
-        </button>
       </div>
+
+      {/* Confirmation Modal */}
+      {confirmVisible && (
+        <div onClick={() => setConfirmVisible(false)} style={{
+          position: 'fixed', inset: 0, background: 'rgba(10,14,26,0.85)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#0d1120', border: '1px solid #3a3328', borderRadius: 10,
+            padding: '28px 32px', maxWidth: 400, width: 'calc(100% - 48px)', textAlign: 'center',
+          }}>
+            <p style={{
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 15, color: '#c8c0b0',
+              lineHeight: 1.6, marginBottom: 24, margin: '0 0 24px',
+            }}>{confirmMessage}</p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
+              <button onClick={() => setConfirmVisible(false)} style={{
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4',
+                background: 'none', border: 'none', padding: '10px 20px', cursor: 'pointer',
+              }}>Go Back</button>
+              <button onClick={() => { setConfirmVisible(false); confirmBypassRef.current = true; handleNext(); }} style={{
+                fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700, letterSpacing: '0.06em',
+                textTransform: 'uppercase', color: '#0a0e1a',
+                background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
+                border: 'none', borderRadius: 5, padding: '10px 24px', cursor: 'pointer',
+              }}>Confirm</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer variant="minimal" />
+
+      {/* Combined character→attributes overlay */}
+      {charOverlayActive && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          background: 'var(--bg-main)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          '--font-alegreya': "'Alegreya', serif",
+          '--font-alegreya-sans': "'Alegreya Sans', sans-serif",
+          '--font-jetbrains': "'JetBrains Mono', monospace",
+          opacity: charOverlayFading ? 0 : 1,
+          transition: 'opacity 0.5s ease',
+          pointerEvents: charOverlayFading ? 'none' : 'auto',
+        }}>
+          <style>{EMBER_KEYFRAMES}</style>
+
+          {/* Background particle field */}
+          <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
+            {Array.from({ length: 20 }, (_, i) => (
+              <div key={i} style={{
+                position: 'absolute',
+                left: `${(i * 37 + 13) % 100}%`,
+                top: `${(i * 53 + 7) % 100}%`,
+                width: ((i * 7 + 3) % 5) * 0.5 + 0.8,
+                height: ((i * 7 + 3) % 5) * 0.5 + 0.8,
+                borderRadius: '50%',
+                background: '#c9a84c',
+                opacity: ((i * 3 + 1) % 6) * 0.04 + 0.08,
+              }} />
+            ))}
+          </div>
+
+          {/* Radial glow */}
+          <div style={{
+            position: 'absolute', width: 500, height: 500, borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(201,168,76,0.04) 0%, transparent 70%)',
+            top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none',
+          }} />
+
+          {/* Wordmark */}
+          <div style={{ position: 'absolute', top: 22, left: 24, display: 'flex', alignItems: 'baseline', gap: 8, zIndex: 2 }}>
+            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 900, color: 'var(--accent-gold)', letterSpacing: '0.06em' }}>CRUCIBLE</span>
+            <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: 'var(--gold-muted)', letterSpacing: '0.18em' }}>RPG</span>
+          </div>
+
+          {/* Center content */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+            {/* Phase label */}
+            <div style={{
+              fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
+              color: 'var(--accent-gold)', letterSpacing: '0.18em', textTransform: 'uppercase',
+              marginBottom: 32,
+            }}>{overlayLabel}</div>
+
+            {/* Firefly embers */}
+            <div style={{ width: 160, height: 160, position: 'relative' }}>
+              {FIREFLY_EMBERS.map((e, i) => (
+                <div key={i} style={{
+                  position: 'absolute', left: e.x, top: e.y,
+                  width: e.size, height: e.size, borderRadius: '50%',
+                  background: e.color, opacity: 0.65 + i * 0.025,
+                  boxShadow: `0 0 ${e.glow}px rgba(201,168,76,0.6), 0 0 ${Math.round(e.glow * 2.5)}px rgba(201,168,76,0.2)`,
+                  animation: `${e.anim} ${e.dur}s linear ${e.delay}s infinite`,
+                }} />
+              ))}
+            </div>
+
+            {/* Lore fragment */}
+            <div style={{ marginTop: 30, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{
+                fontFamily: 'var(--font-alegreya)', fontSize: 24, fontStyle: 'italic',
+                color: 'var(--text-heading)', fontWeight: 500,
+                opacity: overlayLoreFade ? 1 : 0,
+                transition: 'opacity 0.3s',
+              }}>
+                {overlayLore}
+              </span>
+            </div>
+
+            {/* Secondary description */}
+            <p style={{
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 16,
+              color: 'var(--text-muted)', margin: '12px 0 0', textAlign: 'center',
+              maxWidth: 400,
+            }}>{overlaySecondary}</p>
+
+            {/* Wait message */}
+            <p style={{
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
+              color: 'var(--text-dim)', marginTop: 16,
+            }}>This may take a minute or two.</p>
+          </div>
+        </div>
+      )}
 
       {/* Phase transition overlay */}
       {transitionPhase !== null && (() => {
@@ -3027,6 +3556,9 @@ function InitWizardInner() {
             background: 'var(--bg-main)',
             display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center',
+            '--font-alegreya': "'Alegreya', serif",
+            '--font-alegreya-sans': "'Alegreya Sans', sans-serif",
+            '--font-jetbrains': "'JetBrains Mono', monospace",
             opacity: transitionFading ? 0 : 1,
             transition: 'opacity 0.5s ease',
             pointerEvents: transitionFading ? 'none' : 'auto',
@@ -3058,8 +3590,8 @@ function InitWizardInner() {
 
             {/* Wordmark */}
             <div style={{ position: 'absolute', top: 22, left: 24, display: 'flex', alignItems: 'baseline', gap: 8, zIndex: 2 }}>
-              <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 900, color: '#c9a84c', letterSpacing: '0.06em' }}>CRUCIBLE</span>
-              <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: '#9a8545', letterSpacing: '0.18em' }}>RPG</span>
+              <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 22, fontWeight: 900, color: 'var(--accent-gold)', letterSpacing: '0.06em' }}>CRUCIBLE</span>
+              <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600, color: 'var(--gold-muted)', letterSpacing: '0.18em' }}>RPG</span>
             </div>
 
             {/* Center content */}
@@ -3067,9 +3599,9 @@ function InitWizardInner() {
               {/* Phase label */}
               <div style={{
                 fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
-                color: '#c9a84c', letterSpacing: '0.18em', textTransform: 'uppercase',
+                color: 'var(--accent-gold)', letterSpacing: '0.18em', textTransform: 'uppercase',
                 marginBottom: 32,
-              }}>{STEP_NAMES[transitionPhase + 1] || 'Adventure'}</div>
+              }}>{OVERLAY_LABELS[transitionPhase] || 'Adventure'}</div>
 
               {/* Firefly embers */}
               <div style={{ width: 160, height: 160, position: 'relative' }}>
@@ -3088,7 +3620,7 @@ function InitWizardInner() {
               <div style={{ marginTop: 30, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span style={{
                   fontFamily: 'var(--font-alegreya)', fontSize: 24, fontStyle: 'italic',
-                  color: '#d0c098', fontWeight: 500,
+                  color: 'var(--text-heading)', fontWeight: 500,
                   opacity: loreFade ? 1 : 0,
                   transition: 'opacity 0.3s',
                 }}>
@@ -3099,7 +3631,7 @@ function InitWizardInner() {
               {/* Secondary description */}
               <p style={{
                 fontFamily: 'var(--font-alegreya-sans)', fontSize: 16,
-                color: '#7082a4', margin: '12px 0 0', textAlign: 'center',
+                color: 'var(--text-muted)', margin: '12px 0 0', textAlign: 'center',
                 maxWidth: 400,
               }}>{msg.secondary}</p>
             </div>

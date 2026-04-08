@@ -2426,7 +2426,7 @@ function InitWizardInner() {
   const [error, setError] = useState(null);
   const [transitionPhase, setTransitionPhase] = useState(null);
   const [transitionFading, setTransitionFading] = useState(false);
-  const [contentFading, setContentFading] = useState(false);
+  const [modalFading, setModalFading] = useState(false);
   const [loreIndex, setLoreIndex] = useState(0);
   const [loreFade, setLoreFade] = useState(true);
   const [worldGenStatus, setWorldGenStatus] = useState(null); // null, 'generating', 'complete', 'error', 'timeout'
@@ -2447,9 +2447,7 @@ function InitWizardInner() {
   const worldPollCount = useRef(0);
   const worldPollRef = useRef(null);
   const worldGenStatusRef = useRef(null);
-  const bottomNavRef = useRef(null);
-  const [scrollFadeVisible, setScrollFadeVisible] = useState(false);
-  const [bottomNavHeight, setBottomNavHeight] = useState(0);
+  const modalScrollRef = useRef(null);
 
   // --- Character→Attributes combined overlay ---
   const [charOverlayActive, setCharOverlayActive] = useState(false);
@@ -2467,30 +2465,9 @@ function InitWizardInner() {
   // Scroll to top whenever the wizard phase changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
+    if (modalScrollRef.current) modalScrollRef.current.scrollTop = 0;
   }, [phase]);
 
-  // --- Scroll fade indicator ---
-  useEffect(() => {
-    const measure = () => {
-      if (bottomNavRef.current) setBottomNavHeight(bottomNavRef.current.offsetHeight);
-    };
-    const check = () => {
-      measure();
-      const { scrollY, innerHeight } = window;
-      const { scrollHeight } = document.documentElement;
-      const atBottom = scrollY + innerHeight >= scrollHeight - 20;
-      const hasScroll = scrollHeight > innerHeight + 20;
-      setScrollFadeVisible(hasScroll && !atBottom);
-    };
-    const raf = requestAnimationFrame(check);
-    window.addEventListener('scroll', check, { passive: true });
-    window.addEventListener('resize', check, { passive: true });
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('scroll', check);
-      window.removeEventListener('resize', check);
-    };
-  }, [phase]);
 
   // --- Connection state ---
   const [connectionFailed, setConnectionFailed] = useState(false);
@@ -3112,18 +3089,6 @@ function InitWizardInner() {
     setSaving(true);
     setError(null);
 
-    // Phases that use the standard ember overlay (not phase 1 or 2 — those use background gen + combined overlay).
-    const useOverlay = phase === 0 || phase === 3 || phase === 4;
-
-    if (useOverlay) {
-      setTransitionPhase(phase);
-      setTransitionFading(false);
-    } else if (phase !== 5) {
-      setContentFading(true);
-    }
-
-    const transitionStart = Date.now();
-
     try {
       switch (phase) {
         case 0:
@@ -3147,7 +3112,6 @@ function InitWizardInner() {
           charOverlayAbortRef.current = false;
           proposalResultRef.current = { done: false, failed: false };
           setCharOverlayActive(true);
-          setContentFading(false);
           savingRef.current = false;
           setSaving(false);
           return;
@@ -3180,37 +3144,20 @@ function InitWizardInner() {
           return;
       }
 
-      if (useOverlay) {
-        // Ensure overlay shows for at least 2s for generation transitions
-        const elapsed = Date.now() - transitionStart;
-        const minDisplay = 2000;
-        if (elapsed < minDisplay) {
-          await new Promise(r => setTimeout(r, minDisplay - elapsed));
-        }
-        if (phase < 5) setPhase(phase + 1);
-        setTransitionFading(true);
-        setTimeout(() => {
-          setTransitionPhase(null);
-          setTransitionFading(false);
+      // Modal content fade: out → advance → in
+      setModalFading(true);
+      await new Promise(r => setTimeout(r, 150));
+      if (phase < 5) setPhase(phase + 1);
+      if (modalScrollRef.current) modalScrollRef.current.scrollTop = 0;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setModalFading(false);
           savingRef.current = false;
           setSaving(false);
-        }, 500);
-      } else {
-        // Crossfade: wait for fade-out, advance phase, then fade in
-        await new Promise(r => setTimeout(r, 300));
-        if (phase < 5) setPhase(phase + 1);
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            setContentFading(false);
-            savingRef.current = false;
-            setSaving(false);
-          });
         });
-      }
+      });
     } catch (err) {
-      setTransitionPhase(null);
-      setTransitionFading(false);
-      setContentFading(false);
+      setModalFading(false);
       savingRef.current = false;
       setSaving(false);
       setError(err.message || 'Something went wrong. Please try again.');
@@ -3233,45 +3180,8 @@ function InitWizardInner() {
       <ParticleField />
       <div style={{ width: '100%' }}><NavBar /></div>
 
-      {/* Offline banner */}
-      {connectionFailed && !gameId && (
-        <div style={{
-          width: '100%', maxWidth: 740, margin: '0 auto', padding: '12px 28px 0',
-          boxSizing: 'border-box',
-        }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
-            background: '#1a1610', border: '1px solid #3d3322', borderRadius: 6,
-            fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#d4a84b',
-          }}>
-            <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>&#9888;</span>
-            <span style={{ flex: 1 }}>
-              Unable to connect to the server. Your progress won't be saved. Check your connection and refresh to try again.
-            </span>
-            <button
-              onClick={retryConnection}
-              disabled={retrying}
-              style={{
-                fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600,
-                color: retrying ? 'var(--text-dim)' : '#d4a84b',
-                background: 'transparent', border: '1px solid #3d3322', borderRadius: 4,
-                padding: '6px 14px', cursor: retrying ? 'default' : 'pointer',
-                letterSpacing: '0.04em', whiteSpace: 'nowrap', flexShrink: 0,
-              }}
-            >
-              {retrying ? 'RETRYING...' : 'RETRY CONNECTION'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Content */}
-      <div style={{
-        width: '100%', maxWidth: 740, padding: '44px 28px 100px', flex: 1, boxSizing: 'border-box',
-        opacity: contentFading ? 0 : 1,
-        transform: contentFading ? 'translateY(-15px)' : 'translateY(0)',
-        transition: 'opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-      }}>
+      {/* Behind-modal context: step indicator + summary bar (dimmed on desktop, hidden on mobile) */}
+      <div style={{ width: '100%', maxWidth: 740, padding: '44px 28px 0', boxSizing: 'border-box' }}>
         <StepIndicator steps={STEP_NAMES} current={phase} />
 
         {/* Summary bar — progressive chips for previous selections */}
@@ -3317,6 +3227,46 @@ function InitWizardInner() {
             </div>
           );
         })()}
+      </div>
+
+      {/* Phase Modal */}
+      <div className={styles.phaseModalBackdrop}>
+        <div className={styles.phaseModalCard}>
+          <div
+            ref={modalScrollRef}
+            className={styles.phaseModalScroll}
+            style={{
+              opacity: modalFading ? 0 : 1,
+              transition: 'opacity 150ms ease',
+            }}
+          >
+            {/* Offline banner */}
+            {connectionFailed && !gameId && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+                background: '#1a1610', border: '1px solid #3d3322', borderRadius: 6,
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#d4a84b',
+                marginBottom: 24,
+              }}>
+                <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>&#9888;</span>
+                <span style={{ flex: 1 }}>
+                  Unable to connect to the server. Your progress won't be saved. Check your connection and refresh to try again.
+                </span>
+                <button
+                  onClick={retryConnection}
+                  disabled={retrying}
+                  style={{
+                    fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600,
+                    color: retrying ? 'var(--text-dim)' : '#d4a84b',
+                    background: 'transparent', border: '1px solid #3d3322', borderRadius: 4,
+                    padding: '6px 14px', cursor: retrying ? 'default' : 'pointer',
+                    letterSpacing: '0.04em', whiteSpace: 'nowrap', flexShrink: 0,
+                  }}
+                >
+                  {retrying ? 'RETRYING...' : 'RETRY CONNECTION'}
+                </button>
+              </div>
+            )}
 
         {phase === 0 && <Phase1 selected={storyteller} onSelect={setStoryteller} customText={customStorytellerText} setCustomText={setCustomStorytellerText} />}
         {phase === 1 && (
@@ -3436,51 +3386,44 @@ function InitWizardInner() {
             <Phase6 scenario={scenario} setScenario={setScenario} customStartText={customStartText} setCustomStartText={setCustomStartText} scenariosLoading={scenariosLoading} displayScenarios={scenarioCache['default'] || (gameId ? [] : SCENARIOS)} scenarioAlts={scenarioAlts} scenarioView={scenarioView} setScenarioView={setScenarioView} refreshingScenario={refreshingScenario} onRefreshScenario={handleRefreshScenario} />
           )
         )}
-      </div>
+          </div>
 
-      {/* Scroll fade indicator */}
-      <div className={styles.scrollFade} style={{ opacity: scrollFadeVisible ? 1 : 0, bottom: bottomNavHeight }} />
-
-      {/* Bottom Nav */}
-      <div ref={bottomNavRef} className={styles.bottomNav} style={{
-        position: 'sticky', bottom: 0, width: '100%', padding: '18px 28px',
-        background: 'var(--bg-main)', backdropFilter: 'blur(8px)',
-        borderTop: '1px solid var(--border-gold-faint)',
-        display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 16,
-        boxSizing: 'border-box', zIndex: 6,
-      }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-          <span style={{
-            fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-dim)',
-          }}>Phase {phase + 1} of {STEP_NAMES.length}</span>
-          {error && (
-            <span style={{
-              fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--color-danger)',
-            }}>{error}</span>
-          )}
+          {/* Bottom nav — inside modal */}
+          <div className={styles.phaseModalNav}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+              <span style={{
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--text-dim)',
+              }}>Phase {phase + 1} of {STEP_NAMES.length}</span>
+              {error && (
+                <span style={{
+                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--color-danger)',
+                }}>{error}</span>
+              )}
+            </div>
+            <button
+              onClick={handleNext}
+              disabled={!buttonEnabled}
+              className={styles.btnPrimary}
+              style={{
+                fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
+                color: buttonEnabled ? 'var(--bg-main)' : 'var(--text-dim)',
+                background: buttonEnabled ? 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))' : 'var(--bg-gold-subtle)',
+                border: 'none', borderRadius: 5, padding: '12px 32px',
+                cursor: buttonEnabled ? 'pointer' : 'default',
+                letterSpacing: '0.08em', flexShrink: 0,
+              }}
+            >
+              {saving ? 'SAVING...' : phase === 5 ? 'BEGIN ADVENTURE' : 'CONTINUE'}
+            </button>
+          </div>
         </div>
-        <button
-          onClick={handleNext}
-          disabled={!buttonEnabled}
-          className={styles.btnPrimary}
-          style={{
-            fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
-            color: buttonEnabled ? 'var(--bg-main)' : 'var(--text-dim)',
-            background: buttonEnabled ? 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))' : 'var(--bg-gold-subtle)',
-            border: 'none', borderRadius: 5, padding: '12px 32px',
-            cursor: buttonEnabled ? 'pointer' : 'default',
-            letterSpacing: '0.08em', flexShrink: 0,
-          }}
-        >
-          {saving ? 'SAVING...' : phase === 5 ? 'BEGIN ADVENTURE' : 'CONTINUE'}
-        </button>
       </div>
 
       {/* Confirmation Modal */}
       {confirmVisible && (
         <div onClick={() => setConfirmVisible(false)} style={{
           position: 'fixed', inset: 0, background: 'rgba(10,14,26,0.85)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60,
         }}>
           <div onClick={e => e.stopPropagation()} style={{
             background: '#0d1120', border: '1px solid #3a3328', borderRadius: 10,

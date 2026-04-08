@@ -34,6 +34,18 @@
 
 ## Recent Work (This Session: 2026-04-08)
 
+### Init Wizard — Modal Overlay Layout
+Converted the init wizard from a vertically-scrolling page layout to a modal overlay pattern. Each phase's content now renders inside a centered card overlay on a dimmed background (desktop), or a full-screen sheet (mobile). The step indicator and summary bar render behind the modal as dimmed context on desktop.
+
+- **PhaseModal structure:** Fixed overlay with centered card (max-width 720px, max-height 85vh, scrollable). On mobile (<=768px), becomes a full-screen sheet with fixed bottom nav.
+- **Bottom nav inside modal:** Continue button + phase counter now render inside the modal card, pinned to bottom. On mobile, fixed to viewport bottom with 100px scroll padding.
+- **Phase transition fade:** 150ms opacity fade out/in when advancing between phases, replacing the old ember overlay for quick saves (phases 0, 3, 4) and the crossfade for phase 1. The character generation combined overlay (phase 2->3) is preserved.
+- **Scroll reset:** Modal scroll container resets to top on phase change.
+- **Confirmation modals:** Z-index raised to 60 (above PhaseModal at 10, below heavy-work overlays at 100).
+- **Behind-modal context:** NavBar, step indicator, summary bar, and ParticleField render behind the dimmed backdrop on desktop. Hidden on mobile (solid background).
+
+- **Files modified:** `app/init/page.js`, `app/init/page.module.css`
+
 ### Pricing Page — Equal Height Cards
 Added `alignItems: 'stretch'` to the pricing cards flex container and `height: '100%'` to each ScrollReveal wrapper and card div. CTA buttons now align at the same vertical position on both cards.
 
