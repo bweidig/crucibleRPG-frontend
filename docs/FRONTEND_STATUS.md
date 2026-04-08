@@ -34,8 +34,12 @@
 
 ## Recent Work (This Session: 2026-04-08)
 
-### Fix: Custom World Setting Answers Not Sent to Backend
-The Custom path in `saveSetting()` was dropping `settingAnswers` — Technology and Supernatural Elements guided questions were collected but never included in the API payload. Added `answers: settingAnswers` to the Custom body, matching the era path pattern.
+### Init Wizard — Three Character/Save Fixes
+Three bundled fixes for Phase 2 and the save logic:
+
+- **Fix 1: Character name moved to main Phase 2 view.** Name input was buried inside FieldModals, making it unclear why Continue was disabled after closing the popup. Now renders between the PhaseTitle and path cards, always visible. Name syncs to the other path if that path's name is blank. Card summaries updated: archetype card shows archetype name only, custom card shows "Backstory added" when configured.
+- **Fix 2: Custom world setting answers sent to backend.** The Custom path in `saveSetting()` was dropping `settingAnswers`. Added `answers: settingAnswers` to the Custom body. *(Already fixed in prior commit, no change needed.)*
+- **Fix 3: Personality fields concatenated before save.** `saveCharacter()` now joins trait pills and freeform text into one `personality` field (joined with `. `). Removed `personalityCustom` and `customPronouns` from the payload since the backend doesn't use them as separate fields.
 
 - **Files modified:** `app/init/page.js`, `docs/FRONTEND_STATUS.md`
 

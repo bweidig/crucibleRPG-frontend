@@ -1455,17 +1455,6 @@ function CharacterForm({ character, onChange }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
       <div>
-        <label style={labelStyle}>Character Name</label>
-        <input
-          value={character.name || ''}
-          onChange={e => onChange('name', e.target.value)}
-          placeholder="What are you called?"
-          className={styles.wizardInput}
-          style={inputStyle}
-        />
-      </div>
-
-      <div>
         <label style={labelStyle}>Backstory {optionalTag}</label>
         <textarea
           value={character.backstory || ''}
@@ -1624,7 +1613,7 @@ function ArchetypeCard({ archetype, isSelected, onSelect }) {
   );
 }
 
-function Phase3({ characterMode, hasArchetypes, selectedArchetype, availableArchetypes, archetypeChar, customChar, onCardTap }) {
+function Phase3({ characterMode, hasArchetypes, selectedArchetype, availableArchetypes, archetypeChar, customChar, onCardTap, characterName, onNameChange }) {
   const selectedArch = selectedArchetype ? availableArchetypes.find(a => a.id === selectedArchetype) : null;
 
   return (
@@ -1635,6 +1624,27 @@ function Phase3({ characterMode, hasArchetypes, selectedArchetype, availableArch
           ? "Choose a template to start from, or build entirely your own."
           : "Describe your character and the engine builds the rest."}
       />
+
+      {/* Character Name — always visible, required */}
+      <div style={{ marginBottom: 24 }}>
+        <label style={{
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 600,
+          color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase',
+          display: 'block', marginBottom: 8,
+        }}>Character Name</label>
+        <input
+          value={characterName}
+          onChange={e => onNameChange(e.target.value)}
+          placeholder="What are you called?"
+          className={styles.wizardInput}
+          style={{
+            width: '100%', background: 'var(--bg-main)', border: '1px solid var(--border-gold-faint)',
+            borderRadius: 6, padding: '13px 16px', fontFamily: 'var(--font-alegreya)',
+            fontSize: 16, color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box',
+            transition: 'border-color 0.2s',
+          }}
+        />
+      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {/* Archetype Path Card */}
@@ -1660,7 +1670,7 @@ function Phase3({ characterMode, hasArchetypes, selectedArchetype, availableArch
               <div style={{ fontFamily: 'var(--font-alegreya)', fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.5 }}>Pre-built characters shaped for this era. Customize the details.</div>
               {selectedArch && (
                 <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--accent-gold)', marginTop: 8 }}>
-                  {archetypeChar.name ? `${selectedArch.name} · ${archetypeChar.name}` : selectedArch.name}
+                  {selectedArch.name}
                 </div>
               )}
             </div>
@@ -1688,9 +1698,9 @@ function Phase3({ characterMode, hasArchetypes, selectedArchetype, availableArch
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 17, fontWeight: 700, color: 'var(--text-heading)', marginBottom: 4 }}>{hasArchetypes ? 'Full Custom' : 'Create Your Character'}</div>
             <div style={{ fontFamily: 'var(--font-alegreya)', fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.5 }}>Start from a blank slate. Write as much or as little as you want.</div>
-            {customChar.name && (
+            {customChar.backstory && (
               <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: 'var(--accent-gold)', marginTop: 8 }}>
-                {customChar.name}
+                Backstory added
               </div>
             )}
           </div>
@@ -3059,14 +3069,16 @@ function InitWizardInner() {
 
   const saveCharacter = async () => {
     const char = characterMode === 'archetype' ? archetypeChar : customChar;
+    const combinedPersonality = [
+      char.personality,
+      char.personalityCustom
+    ].filter(Boolean).join('. ') || null;
     await api.post(`/api/init/${gameId}/character`, {
       name: char.name.trim(),
       backstory: char.backstory || null,
-      personality: char.personality || null,
-      personalityCustom: char.personalityCustom || null,
+      personality: combinedPersonality,
       appearance: char.appearance || null,
       gender: char.customPronouns || char.pronouns || null,
-      customPronouns: char.customPronouns || null,
       archetypeId: characterMode === 'archetype' ? selectedArchetype : null,
       powersFlag: char.powersFlag || null,
       powersDescription: char.powersDescription || null,
@@ -3561,6 +3573,13 @@ function InitWizardInner() {
               archetypeChar={archetypeChar}
               customChar={customChar}
               onCardTap={(mode) => { setCharacterMode(mode); setCharFieldModal(mode); }}
+              characterName={(characterMode === 'archetype' ? archetypeChar : customChar).name}
+              onNameChange={(val) => {
+                const setter = characterMode === 'archetype' ? setArchetypeChar : setCustomChar;
+                const otherSetter = characterMode === 'archetype' ? setCustomChar : setArchetypeChar;
+                setter(prev => ({ ...prev, name: val }));
+                otherSetter(prev => prev.name ? prev : { ...prev, name: val });
+              }}
             />
           )}
           {phase === 3 && (
