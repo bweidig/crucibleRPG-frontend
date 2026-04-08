@@ -47,7 +47,7 @@ Added Analytics tab, Report Distiller, and GM cost display to the admin dashboar
 ### Init Wizard — Modal Overlay Layout (Redo)
 Rebuilt the init wizard modal as a proper `position: fixed` overlay using a `PhaseModal` wrapper component (defined inside `page.js`). The previous attempt used CSS module classes that were not producing a floating overlay in production.
 
-- **PhaseModal component:** Renders two fixed layers — a backdrop (z-index 10) and a centering container (z-index 11) with `pointerEvents: 'none'`. The card inside gets `pointerEvents: 'auto'`. Accepts `children` (phase content) and `bottomNav` (pinned Continue button). Has its own scroll ref with auto-scroll-to-top via `useEffect([children])`.
+- **PhaseModal component:** Uses `createPortal(…, document.body)` to render directly into `<body>`, bypassing any ancestor CSS (`transform`, `will-change`, `filter`) that breaks `position: fixed`. Waits for client mount via `useState(false)` + `useEffect` before portaling. Renders two fixed layers — backdrop (z-index 10) and centering container (z-index 11) with `pointerEvents: 'none'`. Card inside gets `pointerEvents: 'auto'`. Has its own scroll ref with auto-scroll-to-top via `useEffect([children])`.
 - **Card:** Inline styles for layout (`width: 100%`, flex column, overflow hidden). `className={styles.phaseModalCard}` provides `border`, `border-radius`, `max-width: 720px`, `max-height: 85vh` — the properties the mobile media query needs to override.
 - **Mobile (<=768px):** CSS override with `!important` makes card full-screen (`max-width: 100%`, `max-height: 100%`, `height: 100%`, no border/radius).
 - **Bottom nav:** Phase counter + Continue button moved into `bottomNav` prop, pinned at bottom of card via `flexShrink: 0`.

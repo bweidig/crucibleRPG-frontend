@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import * as api from '@/lib/api';
 import NavBar from '@/components/NavBar';
@@ -2360,13 +2361,18 @@ function Phase6({ scenario, setScenario, customStartText, setCustomStartText, sc
 
 function PhaseModal({ children, bottomNav }) {
   const scrollRef = useRef(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   // Scroll to top whenever children change
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, [children]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <>
       {/* Backdrop */}
       <div style={{
@@ -2417,7 +2423,8 @@ function PhaseModal({ children, bottomNav }) {
           )}
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
 
