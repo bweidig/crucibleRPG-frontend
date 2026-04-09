@@ -34,6 +34,19 @@
 
 ## Recent Work (This Session: 2026-04-09)
 
+### World Gen Retry UI (backend contract: AD-582 timeout safety net)
+Backend now returns `{ status: "failed", retryable: true, message: "…" }` when world generation stalls (or otherwise fails with a known recoverable state). Frontend wasn't reading the new fields, so players saw a generic error with no way to recover short of going back and changing setting.
+
+**What changed:**
+- `pollWorldStatus` now captures `res.message` and `res.retryable` from failed responses and stores them in `worldGenErrorRef` (sync access) plus a `worldGenRetryable` state flag. The poller already stopped on `status === 'failed'`; no change there.
+- The three hardcoded `setError('World generation ran into a problem…')` sites now prefer the backend-supplied message, falling back to the old string when absent (old backend compatibility).
+- New `retryWorldGen()` function clears error state, resets timestamps/poll counters, and re-calls `saveSetting()` → `pollWorldStatus()`. Safe because `POST /setting` is idempotent (AD-577) and re-triggers generation on a prior failure.
+- New "TRY AGAIN" button in the bottomNav, rendered only when `worldGenStatus === 'error' && worldGenRetryable`. Outlined gold style, distinct from the primary Continue button. Hidden by default so old-backend `failed` responses (no `retryable` field) fall back to current "go back and change setting" behavior.
+
+**Files modified:**
+- `app/init/page.js`
+- `claude-upload/init-page.js` (synced)
+
 ### Scene Visualization Feature
 Full implementation of the scene visualization system. Players can generate AI illustrations of their current scene during gameplay, view them in a lightbox, and browse all generated images in a gallery.
 

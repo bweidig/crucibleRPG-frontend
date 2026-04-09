@@ -2662,6 +2662,8 @@ function InitWizardInner() {
   const worldPollCount = useRef(0);
   const worldPollRef = useRef(null);
   const worldGenStatusRef = useRef(null);
+  const worldGenErrorRef = useRef(null); // { message, retryable } — captured from backend on failed status
+  const [worldGenRetryable, setWorldGenRetryable] = useState(false);
 
   // --- Character→Attributes combined overlay ---
   const [charOverlayActive, setCharOverlayActive] = useState(false);
@@ -2839,7 +2841,7 @@ function InitWizardInner() {
           await safeSleep(500);
           setCharOverlayActive(false);
           setCharOverlayFading(false);
-          setError('World generation ran into a problem. Go back to try a different setting, or try again.');
+          setError(worldGenErrorRef.current?.message || 'World generation ran into a problem. Go back to try a different setting, or try again.');
           return;
         }
 
@@ -2906,7 +2908,7 @@ function InitWizardInner() {
           await safeSleep(500);
           setCharOverlayActive(false);
           setCharOverlayFading(false);
-          setError('World generation ran into a problem. Go back to try a different setting, or try again.');
+          setError(worldGenErrorRef.current?.message || 'World generation ran into a problem. Go back to try a different setting, or try again.');
           return;
         }
         await safeSleep(500);
@@ -3060,6 +3062,10 @@ function InitWizardInner() {
         return;
       }
       if (res.status === 'failed') {
+        const message = res.message || 'World generation ran into a problem. Go back to try a different setting, or try again.';
+        const retryable = res.retryable === true;
+        worldGenErrorRef.current = { message, retryable };
+        setWorldGenRetryable(retryable);
         setWorldGenStatus('error');
         return;
       }
@@ -3080,6 +3086,36 @@ function InitWizardInner() {
       worldPollRef.current = setTimeout(pollWorldStatus, 2000);
     } catch (err) {
       setWorldGenStatus('error');
+    }
+  };
+
+  const retryWorldGen = async () => {
+    // Clear prior error state and restart the world gen pipeline.
+    // POST /setting is idempotent on the backend (AD-577) and re-triggers
+    // generation when the previous run failed.
+    if (worldPollRef.current) {
+      clearTimeout(worldPollRef.current);
+      worldPollRef.current = null;
+    }
+    setError(null);
+    worldGenErrorRef.current = null;
+    setWorldGenRetryable(false);
+    worldGenTimestamps.current = {};
+    worldPollCount.current = 0;
+    setWorldGenPhase(null);
+    setWorldGenName(null);
+    setWorldGenStatus('generating');
+    try {
+      await saveSetting();
+      pollWorldStatus();
+    } catch (err) {
+      worldGenErrorRef.current = {
+        message: err.message || 'Failed to restart world generation. Please go back and try a different setting.',
+        retryable: false,
+      };
+      setWorldGenRetryable(false);
+      setWorldGenStatus('error');
+      setError(worldGenErrorRef.current.message);
     }
   };
 
@@ -3349,7 +3385,7 @@ function InitWizardInner() {
             savingRef.current = false;
             setSaving(false);
             setModalFading(false);
-            setError('World generation ran into a problem. Go back to try a different setting, or try again.');
+            setError(worldGenErrorRef.current?.message || 'World generation ran into a problem. Go back to try a different setting, or try again.');
             return;
           }
           // Activate the combined overlay — it handles saveCharacter, generateProposal, and phase advance
@@ -3505,6 +3541,23 @@ function InitWizardInner() {
               }}>{error}</span>
             )}
           </div>
+          {worldGenStatus === 'error' && worldGenRetryable && (
+            <button
+              onClick={retryWorldGen}
+              disabled={saving}
+              style={{
+                fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
+                color: saving ? 'var(--text-dim)' : 'var(--accent-gold)',
+                background: 'transparent',
+                border: '1px solid var(--accent-gold)',
+                borderRadius: 5, padding: '11px 20px',
+                cursor: saving ? 'default' : 'pointer',
+                letterSpacing: '0.08em', flexShrink: 0,
+              }}
+            >
+              TRY AGAIN
+            </button>
+          )}
           <button
             onClick={handleNext}
             disabled={!buttonEnabled}
