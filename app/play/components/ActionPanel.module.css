@@ -145,7 +145,7 @@
   border: 1px solid var(--border-card);
   border-radius: 4px;
   color: var(--accent-gold);
-  opacity: 0.5;
+  opacity: 0.75;
   cursor: pointer;
   flex-shrink: 0;
   transition: opacity 0.15s, border-color 0.15s;
