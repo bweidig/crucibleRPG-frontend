@@ -405,7 +405,12 @@ export default function MenuPage() {
       }
     }
     fetchGames();
-    getAnnouncement().then(data => setAnnouncementData(data)).catch(() => {});
+    getAnnouncement().then(data => {
+      console.log('[menu] announcement response:', data);
+      setAnnouncementData(data);
+    }).catch(err => {
+      console.error('[menu] announcement fetch failed:', err);
+    });
     setTimeout(() => setLoaded(true), 100);
   }, [router]);
 
@@ -489,10 +494,10 @@ export default function MenuPage() {
               fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0',
               lineHeight: 1.6, paddingRight: 20,
             }}>{announcement.text}</div>
-            {announcement.postedAt && (
+            {announcement.updatedAt && (
               <div style={{
                 fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4', marginTop: 6,
-              }}>Posted {formatTimeAgo(announcement.postedAt)}</div>
+              }}>Posted {formatTimeAgo(announcement.updatedAt)}</div>
             )}
           </div>
         )}
