@@ -166,6 +166,54 @@
   cursor: not-allowed;
 }
 
+/* ─── Visualize Button ─── */
+
+.visualizeButton {
+  padding: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border-card);
+  border-radius: 4px;
+  color: var(--accent-gold);
+  opacity: 0.75;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+
+.visualizeButton:hover:not(:disabled) {
+  opacity: 1;
+  border-color: var(--border-card-hover);
+}
+
+.visualizeButton:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 1px;
+}
+
+.visualizeButton:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.visualizeSpinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--accent-gold);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ─── Rewind Button ─── */
 
 .rewindButton {
@@ -404,6 +452,16 @@
 }
 
 /* ─── Status Messages ─── */
+
+.visualizingText {
+  text-align: center;
+  color: var(--accent-gold);
+  font-family: var(--font-alegreya);
+  font-size: 13px;
+  font-style: italic;
+  padding: 4px 0 8px;
+  opacity: 0.8;
+}
 
 .submittingText {
   text-align: center;

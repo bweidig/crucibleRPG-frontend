@@ -439,6 +439,147 @@ function AiModelSection({ gameId }) {
 // Tab 1: Game Settings
 // =============================================================================
 
+// =============================================================================
+// Image Style Section (playtester-only)
+// =============================================================================
+
+const STYLE_PRESETS = [
+  { id: 'dark_fantasy', label: 'Dark Fantasy' },
+  { id: 'cyberpunk', label: 'Cyberpunk' },
+  { id: 'watercolor', label: 'Watercolor' },
+  { id: 'ink_wash', label: 'Ink & Wash' },
+  { id: 'comic_book', label: 'Comic Book' },
+  { id: 'oil_painting', label: 'Oil Painting' },
+  { id: 'sketch', label: 'Pencil Sketch' },
+];
+
+function ImageStyleSection({ gameId }) {
+  const user = api.getUser();
+  const isPlaytester = user?.isPlaytester;
+
+  const [styleData, setStyleData] = useState(null); // null=loading, false=hidden
+  const [preset, setPreset] = useState('dark_fantasy');
+  const [customStyle, setCustomStyle] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [successMsg, setSuccessMsg] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!gameId || !isPlaytester) {
+      setStyleData(false);
+      return;
+    }
+    api.get(`/api/game/${gameId}/settings/image-style`).then(data => {
+      setStyleData(data);
+      if (data.preset) setPreset(data.preset);
+      if (data.custom) setCustomStyle(data.custom);
+    }).catch(() => {
+      setStyleData(false);
+    });
+  }, [gameId, isPlaytester]);
+
+  const saveStyle = useCallback(async (body) => {
+    if (!gameId) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await api.put(`/api/game/${gameId}/settings/image-style`, body);
+      if (res.preset) setPreset(res.preset);
+      if (res.custom !== undefined) setCustomStyle(res.custom || '');
+      setSuccessMsg('\u2713');
+      setTimeout(() => setSuccessMsg(null), 1500);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }, [gameId]);
+
+  if (!isPlaytester || styleData === false) return null;
+
+  if (styleData === null) {
+    return (
+      <div>
+        <SectionLabel>Scene Visualization</SectionLabel>
+        <div className={styles.loadingSkeleton} style={{ width: '60%' }} />
+        <div className={styles.loadingSkeleton} style={{ width: '100%', marginTop: 6 }} />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <SectionLabel extra={
+        <>
+          <span className={styles.devBadge}>Playtester</span>
+          {saving && <span className={styles.savingDot} />}
+          {successMsg && <span style={{ color: '#8aba7a', marginLeft: 8, fontSize: 12 }}>{successMsg}</span>}
+        </>
+      }>
+        Scene Visualization
+      </SectionLabel>
+
+      {/* Preset selector */}
+      <div style={{ padding: '8px 0', borderBottom: '1px solid #161c34' }}>
+        <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: '#c8c0b0', marginBottom: 6 }}>Image Style</div>
+        <select
+          className={styles.modelSelect}
+          value={preset}
+          onChange={e => { setPreset(e.target.value); saveStyle({ preset: e.target.value }); }}
+        >
+          {STYLE_PRESETS.map(s => (
+            <option key={s.id} value={s.id}>{s.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Custom style */}
+      <div style={{ padding: '10px 0', borderBottom: '1px solid #161c34' }}>
+        <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: '#c8c0b0', marginBottom: 4 }}>Custom Style</div>
+        <textarea
+          value={customStyle}
+          onChange={e => { if (e.target.value.length <= 300) setCustomStyle(e.target.value); }}
+          onBlur={() => { if (customStyle !== (styleData?.custom || '')) saveStyle({ custom: customStyle || '' }); }}
+          placeholder="Or describe your own style..."
+          maxLength={300}
+          style={{
+            width: '100%', boxSizing: 'border-box', minHeight: 60, padding: '10px 12px',
+            background: '#0a0e1a', border: '1px solid #1e2540', borderRadius: 6,
+            fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: '#c8c0b0',
+            outline: 'none', resize: 'vertical', lineHeight: 1.5,
+          }}
+        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+          <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 12, color: '#6b83a3', fontStyle: 'italic' }}>
+            {customStyle ? 'Custom style will be used instead of the preset.' : ''}
+          </div>
+          <div style={{
+            fontFamily: "var(--font-jetbrains)", fontSize: 11,
+            color: customStyle.length >= 270 ? '#e8845a' : '#6b83a3',
+          }}>
+            {customStyle.length}/300
+          </div>
+        </div>
+        {customStyle && (
+          <button
+            onClick={() => { setCustomStyle(''); saveStyle({ custom: '' }); }}
+            style={{
+              marginTop: 4, padding: '4px 12px', borderRadius: 4, cursor: 'pointer',
+              fontFamily: "var(--font-alegreya-sans)", fontSize: 12,
+              background: 'transparent', border: '1px solid #1e2540', color: '#7082a4',
+              transition: 'all 0.2s',
+            }}
+          >
+            Clear custom style
+          </button>
+        )}
+      </div>
+
+      {error && <div className={styles.errorText}>{error}</div>}
+    </div>
+  );
+}
+
 function GameSettingsTab({ gameId, gameState }) {
   // ─── Storyteller State ───
   const [storyteller, setStoryteller] = useState(gameState?.storyteller || 'Chronicler');
@@ -653,6 +794,9 @@ function GameSettingsTab({ gameId, gameState }) {
 
       {/* ── AI Models (playtester only) ── */}
       <AiModelSection gameId={gameId} />
+
+      {/* ── Image Style (playtester only) ── */}
+      <ImageStyleSection gameId={gameId} />
 
       <div style={{
         fontFamily: "var(--font-alegreya-sans)", fontSize: 12, color: '#6b83a3',

@@ -1,4 +1,6 @@
-// ===== FILE: app/play/page.js =====
+// ============================================================
+// FILE: app/play/page.js
+// ============================================================
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
@@ -15,6 +17,8 @@ import SettingsModal, { THEMES, FONTS, SIZES } from './components/SettingsModal'
 import EntityPopup from './components/EntityPopup';
 import DebugPanel from './components/DebugPanel';
 import ReportModal from './components/ReportModal';
+import ImageLightbox from './components/ImageLightbox';
+import GalleryModal from './components/GalleryModal';
 import { buildGlossaryTermSet } from '@/lib/renderLinkedText';
 import styles from './play.module.css';
 
@@ -119,6 +123,11 @@ function PlayPage() {
   // ─── Rewind ───
   const [rewindAvailable, setRewindAvailable] = useState(false);
   const [rewinding, setRewinding] = useState(false);
+
+  // ─── Visualization ───
+  const [visualizing, setVisualizing] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState(null);
 
   // ─── Directives ───
   const [directiveState, setDirectiveState] = useState(null);
@@ -436,6 +445,41 @@ function PlayPage() {
       setRewinding(false);
     }
   }, [gameId, rewinding, refetchCharacter, refetchGlossary]);
+
+  // ─── Visualize Handler ───
+  const handleVisualize = useCallback(async () => {
+    if (!gameId || visualizing) return;
+    setVisualizing(true);
+    try {
+      const res = await api.post(`/api/game/${gameId}/visualize`, {});
+      // Attach image to the latest real turn
+      const sceneImage = {
+        imageUrl: res.imageUrl,
+        blurb: res.blurb || null,
+        turnNumber: res.turnNumber,
+        resolution: res.resolution,
+        createdAt: res.createdAt,
+      };
+      setTurns(prev => {
+        const updated = [...prev];
+        // Find last real turn (not gm_aside)
+        for (let i = updated.length - 1; i >= 0; i--) {
+          if (updated[i].type !== 'gm_aside') {
+            updated[i] = { ...updated[i], sceneImage };
+            break;
+          }
+        }
+        return updated;
+      });
+    } catch (err) {
+      console.error('Visualize failed:', err);
+      if (err.status !== 403) {
+        setError(err.message || 'Failed to generate scene image.');
+      }
+    } finally {
+      setVisualizing(false);
+    }
+  }, [gameId, visualizing]);
 
   // ─── Compute lastResolution and lastStateChanges for TalkToGM contextual chip ───
   const lastResolutionTurn = turns.slice().reverse().find(t => t.resolution);
@@ -814,6 +858,7 @@ function PlayPage() {
             directiveState={directiveState}
             onDeleteDirective={handleDeleteDirective}
             onRestoreDirective={handleRestoreDirective}
+            onImageClick={setLightboxImage}
           />
           <ActionPanel
             actions={actions}
@@ -831,6 +876,9 @@ function PlayPage() {
             rewindAvailable={rewindAvailable}
             rewinding={rewinding}
             onRewind={handleRewind}
+            onVisualize={handleVisualize}
+            visualizing={visualizing}
+            isPlaytester={!!api.getUser()?.isPlaytester}
           />
           {directiveToasts.length > 0 && (
             <div className={styles.toastContainer}>
@@ -867,6 +915,8 @@ function PlayPage() {
           onNotesChange={refetchNotes}
           onEntityClick={handleEntityClick}
           onOpenReport={setReportMode}
+          onOpenGallery={() => setGalleryOpen(true)}
+          isPlaytester={!!api.getUser()?.isPlaytester}
           debugMode={debugMode}
           isDebugUser={!!api.getUser()?.isDebug}
           onToggleDebug={() => {
@@ -924,6 +974,24 @@ function PlayPage() {
           characterData={characterData}
           debugLog={debugLog}
           onClose={() => setReportMode(null)}
+        />
+      )}
+
+      {/* Gallery Modal */}
+      {galleryOpen && (
+        <GalleryModal
+          gameId={gameId}
+          onClose={() => setGalleryOpen(false)}
+        />
+      )}
+
+      {/* Image Lightbox */}
+      {lightboxImage && (
+        <ImageLightbox
+          imageUrl={lightboxImage.imageUrl}
+          blurb={lightboxImage.blurb}
+          turnNumber={lightboxImage.turnNumber}
+          onClose={() => setLightboxImage(null)}
         />
       )}
 
@@ -1120,8 +1188,9 @@ export default function Page() {
   );
 }
 
-
-// ===== FILE: app/play/components/ActionPanel.js =====
+// ============================================================
+// FILE: app/play/components/ActionPanel.js
+// ============================================================
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './ActionPanel.module.css';
@@ -1133,6 +1202,16 @@ function CompassIcon({ size = 18, className }) {
       <circle cx="9" cy="9" r="7.5" stroke="currentColor" strokeWidth="1.2" />
       <polygon points="9,3 10.5,8 9,7 7.5,8" fill="currentColor" />
       <polygon points="9,15 10.5,10 9,11 7.5,10" fill="currentColor" opacity="0.4" />
+    </svg>
+  );
+}
+
+// ─── Paintbrush SVG Icon (Visualize) ───
+function PaintbrushIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M14.5 2.5C13.5 1.8 11 4 9.5 6C8 8 7 9.5 7.5 10.5C8 11.5 9 11 9 11C9 11 8.5 13 7 14C5.5 15 4 15.5 3 15C3 15 5 14 5.5 12.5C6 11 5 10.5 4.5 10C4 9.5 4.5 8.5 5.5 8C6.5 7.5 8 7 9.5 5.5C11 4 15.5 3.2 14.5 2.5Z" stroke="currentColor" strokeWidth="1.1" fill="none" strokeLinejoin="round" />
+      <circle cx="5" cy="11.5" r="1.2" fill="currentColor" opacity="0.5" />
     </svg>
   );
 }
@@ -1237,6 +1316,7 @@ export default function ActionPanel({
   compassOpen, onToggleCompass, objectives, currentLocation, onEscalate, hintLoading,
   glossaryTerms, onEntityClick,
   rewindAvailable, rewinding, onRewind,
+  onVisualize, visualizing, isPlaytester,
 }) {
   const [customText, setCustomText] = useState('');
   const [rewindConfirm, setRewindConfirm] = useState(false);
@@ -1282,6 +1362,12 @@ export default function ActionPanel({
               onEntityClick={onEntityClick}
             />
           </>
+        )}
+
+        {visualizing && (
+          <div className={styles.visualizingText}>
+            The world takes shape...
+          </div>
         )}
 
         {submitting ? (
@@ -1336,6 +1422,21 @@ export default function ActionPanel({
                 >
                   <CompassIcon size={18} />
                 </button>
+                {isPlaytester && onVisualize && (
+                  <button
+                    className={styles.visualizeButton}
+                    onClick={onVisualize}
+                    disabled={submitting || visualizing}
+                    aria-label="Visualize scene"
+                    title="Visualize this scene"
+                  >
+                    {visualizing ? (
+                      <span className={styles.visualizeSpinner} />
+                    ) : (
+                      <PaintbrushIcon size={18} />
+                    )}
+                  </button>
+                )}
                 {onRewind && (
                   <button
                     className={styles.rewindButton}
@@ -1376,8 +1477,9 @@ export default function ActionPanel({
   );
 }
 
-
-// ===== FILE: app/play/components/CharacterTab.js =====
+// ============================================================
+// FILE: app/play/components/CharacterTab.js
+// ============================================================
 import PanelSection from './PanelSection';
 import styles from './CharacterTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
@@ -1585,8 +1687,9 @@ export default function CharacterTab({ data, onEntityClick }) {
   );
 }
 
-
-// ===== FILE: app/play/components/DebugPanel.js =====
+// ============================================================
+// FILE: app/play/components/DebugPanel.js
+// ============================================================
 'use client';
 
 import React, { useState, useRef, useCallback } from 'react';
@@ -2535,8 +2638,9 @@ export default function DebugPanel({ entries, onClear }) {
   );
 }
 
-
-// ===== FILE: app/play/components/EntityPopup.js =====
+// ============================================================
+// FILE: app/play/components/EntityPopup.js
+// ============================================================
 import { useState, useEffect, useCallback } from 'react';
 import * as api from '@/lib/api';
 import { renderLinkedText } from '@/lib/renderLinkedText';
@@ -2716,8 +2820,125 @@ export default function EntityPopup({ entity, glossaryData, glossaryTerms, notes
   );
 }
 
+// ============================================================
+// FILE: app/play/components/GalleryModal.js
+// ============================================================
+'use client';
 
-// ===== FILE: app/play/components/GlossaryTab.js =====
+import { useState, useEffect, useCallback } from 'react';
+import * as api from '@/lib/api';
+import ImageLightbox from './ImageLightbox';
+import styles from './GalleryModal.module.css';
+
+export default function GalleryModal({ gameId, onClose }) {
+  const [images, setImages] = useState(null); // null=loading
+  const [error, setError] = useState(null);
+  const [lightboxImage, setLightboxImage] = useState(null);
+
+  useEffect(() => {
+    if (!gameId) return;
+    api.get(`/api/game/${gameId}/gallery`).then(data => {
+      setImages(data.images || []);
+    }).catch(err => {
+      setError(err.message || 'Failed to load gallery');
+    });
+  }, [gameId]);
+
+  useEffect(() => {
+    const handleKey = (e) => { if (e.key === 'Escape' && !lightboxImage) onClose(); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose, lightboxImage]);
+
+  return (
+    <div className={styles.overlay} onClick={onClose}>
+      <div className={styles.panel} onClick={e => e.stopPropagation()}>
+        <div className={styles.header}>
+          <span className={styles.headerLabel}>GALLERY</span>
+          <button className={styles.closeButton} onClick={onClose} aria-label="Close gallery">&times;</button>
+        </div>
+
+        <div className={styles.body}>
+          {/* Loading */}
+          {images === null && !error && (
+            <div className={styles.emptyState}>Loading gallery...</div>
+          )}
+
+          {/* Error */}
+          {error && (
+            <div className={styles.errorText}>{error}</div>
+          )}
+
+          {/* Empty */}
+          {images && images.length === 0 && (
+            <div className={styles.emptyState}>
+              No scenes captured yet. Use the Visualize button during gameplay to illustrate your story.
+            </div>
+          )}
+
+          {/* Image Grid */}
+          {images && images.length > 0 && (
+            <div className={styles.grid}>
+              {images.map(img => (
+                <button
+                  key={img.id}
+                  className={styles.card}
+                  onClick={() => setLightboxImage(img)}
+                >
+                  <div className={styles.cardImageWrapper}>
+                    <img
+                      src={img.imageUrl}
+                      alt={img.blurb || 'Scene visualization'}
+                      className={styles.cardImage}
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className={styles.cardInfo}>
+                    {img.blurb && (
+                      <div className={styles.cardBlurb}>{img.blurb}</div>
+                    )}
+                    <div className={styles.cardMeta}>
+                      <span className={styles.cardTurn}>Turn {img.turnNumber}</span>
+                      {img.stylePreset && (
+                        <span className={styles.cardStyle}>{formatPreset(img.stylePreset)}</span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {lightboxImage && (
+        <ImageLightbox
+          imageUrl={lightboxImage.imageUrl}
+          blurb={lightboxImage.blurb}
+          turnNumber={lightboxImage.turnNumber}
+          onClose={() => setLightboxImage(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function formatPreset(preset) {
+  const map = {
+    dark_fantasy: 'Dark Fantasy',
+    cyberpunk: 'Cyberpunk',
+    watercolor: 'Watercolor',
+    ink_wash: 'Ink & Wash',
+    comic_book: 'Comic Book',
+    oil_painting: 'Oil Painting',
+    sketch: 'Pencil Sketch',
+  };
+  return map[preset] || preset;
+}
+
+// ============================================================
+// FILE: app/play/components/GlossaryTab.js
+// ============================================================
 import { useState, useMemo } from 'react';
 import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './GlossaryTab.module.css';
@@ -2834,8 +3055,47 @@ export default function GlossaryTab({ data, characterData, glossaryTerms, onEnti
   );
 }
 
+// ============================================================
+// FILE: app/play/components/ImageLightbox.js
+// ============================================================
+'use client';
 
-// ===== FILE: app/play/components/InlineDicePanel.js =====
+import { useEffect, useCallback } from 'react';
+import styles from './ImageLightbox.module.css';
+
+export default function ImageLightbox({ imageUrl, blurb, turnNumber, onClose }) {
+  const handleKey = useCallback((e) => {
+    if (e.key === 'Escape') onClose();
+  }, [onClose]);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [handleKey]);
+
+  return (
+    <div className={styles.overlay} onClick={onClose}>
+      <div className={styles.content} onClick={e => e.stopPropagation()}>
+        <button className={styles.closeButton} onClick={onClose} aria-label="Close image">&times;</button>
+        <img
+          src={imageUrl}
+          alt={blurb || 'Scene visualization'}
+          className={styles.image}
+        />
+        {(blurb || turnNumber != null) && (
+          <div className={styles.caption}>
+            {blurb && <div className={styles.blurb}>{blurb}</div>}
+            {turnNumber != null && <div className={styles.turnLabel}>Turn {turnNumber}</div>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// FILE: app/play/components/InlineDicePanel.js
+// ============================================================
 import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './InlineDicePanel.module.css';
 
@@ -3212,8 +3472,9 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
   );
 }
 
-
-// ===== FILE: app/play/components/InventoryTab.js =====
+// ============================================================
+// FILE: app/play/components/InventoryTab.js
+// ============================================================
 import PanelSection from './PanelSection';
 import styles from './InventoryTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
@@ -3365,8 +3626,9 @@ export default function InventoryTab({ data, onEntityClick }) {
   );
 }
 
-
-// ===== FILE: app/play/components/MapTab.js =====
+// ============================================================
+// FILE: app/play/components/MapTab.js
+// ============================================================
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -4084,8 +4346,9 @@ export default function MapTab({ data: initialData, gameId, onEntityClick }) {
   );
 }
 
-
-// ===== FILE: app/play/components/NarrativePanel.js =====
+// ============================================================
+// FILE: app/play/components/NarrativePanel.js
+// ============================================================
 import { useRef, useEffect, forwardRef } from 'react';
 import TurnBlock from './TurnBlock';
 import TalkToGM from './TalkToGM';
@@ -4108,6 +4371,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
   lastResolution, lastStateChanges, onMetaResponse,
   glossaryTerms, onEntityClick, inventoryItems,
   directiveState, onDeleteDirective, onRestoreDirective,
+  onImageClick,
 }, ref) {
   const newTurnRef = useRef(null);
   const bottomRef = useRef(null);
@@ -4180,6 +4444,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
                   glossaryTerms={glossaryTerms}
                   onEntityClick={onEntityClick}
                   inventoryItems={inventoryItems}
+                  onImageClick={onImageClick}
                   ref={isLast && isNew ? newTurnRef : undefined}
                 />
               </div>
@@ -4208,8 +4473,9 @@ const NarrativePanel = forwardRef(function NarrativePanel({
 
 export default NarrativePanel;
 
-
-// ===== FILE: app/play/components/NotesTab.js =====
+// ============================================================
+// FILE: app/play/components/NotesTab.js
+// ============================================================
 import { useState, useCallback } from 'react';
 import * as api from '@/lib/api';
 import styles from './NotesTab.module.css';
@@ -4342,8 +4608,9 @@ export default function NotesTab({ data, gameId, onNotesChange }) {
   );
 }
 
-
-// ===== FILE: app/play/components/NPCTab.js =====
+// ============================================================
+// FILE: app/play/components/NPCTab.js
+// ============================================================
 import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './NPCTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
@@ -4381,8 +4648,9 @@ export default function NPCTab({ glossaryData, glossaryTerms, onEntityClick }) {
   );
 }
 
-
-// ===== FILE: app/play/components/PanelSection.js =====
+// ============================================================
+// FILE: app/play/components/PanelSection.js
+// ============================================================
 import { useState } from 'react';
 import styles from './PanelSection.module.css';
 
@@ -4399,8 +4667,9 @@ export default function PanelSection({ title, children, defaultOpen = true }) {
   );
 }
 
-
-// ===== FILE: app/play/components/ReflectionBlock.js =====
+// ============================================================
+// FILE: app/play/components/ReflectionBlock.js
+// ============================================================
 import styles from './ReflectionBlock.module.css';
 import { renderNarrative } from '@/lib/renderLinkedText';
 
@@ -4488,8 +4757,9 @@ export default function ReflectionBlock({ reflection, glossaryTerms, onEntityCli
   );
 }
 
-
-// ===== FILE: app/play/components/ReportModal.js =====
+// ============================================================
+// FILE: app/play/components/ReportModal.js
+// ============================================================
 'use client';
 
 import { useState } from 'react';
@@ -4893,8 +5163,9 @@ export default function ReportModal({ mode, gameId, gameState, turns, characterD
   );
 }
 
-
-// ===== FILE: app/play/components/ResolutionBlock.js =====
+// ============================================================
+// FILE: app/play/components/ResolutionBlock.js
+// ============================================================
 import { useState } from 'react';
 import styles from './ResolutionBlock.module.css';
 
@@ -5014,8 +5285,9 @@ export default function ResolutionBlock({ resolution }) {
   );
 }
 
-
-// ===== FILE: app/play/components/SettingsModal.js =====
+// ============================================================
+// FILE: app/play/components/SettingsModal.js
+// ============================================================
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -5457,6 +5729,147 @@ function AiModelSection({ gameId }) {
 // Tab 1: Game Settings
 // =============================================================================
 
+// =============================================================================
+// Image Style Section (playtester-only)
+// =============================================================================
+
+const STYLE_PRESETS = [
+  { id: 'dark_fantasy', label: 'Dark Fantasy' },
+  { id: 'cyberpunk', label: 'Cyberpunk' },
+  { id: 'watercolor', label: 'Watercolor' },
+  { id: 'ink_wash', label: 'Ink & Wash' },
+  { id: 'comic_book', label: 'Comic Book' },
+  { id: 'oil_painting', label: 'Oil Painting' },
+  { id: 'sketch', label: 'Pencil Sketch' },
+];
+
+function ImageStyleSection({ gameId }) {
+  const user = api.getUser();
+  const isPlaytester = user?.isPlaytester;
+
+  const [styleData, setStyleData] = useState(null); // null=loading, false=hidden
+  const [preset, setPreset] = useState('dark_fantasy');
+  const [customStyle, setCustomStyle] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [successMsg, setSuccessMsg] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!gameId || !isPlaytester) {
+      setStyleData(false);
+      return;
+    }
+    api.get(`/api/game/${gameId}/settings/image-style`).then(data => {
+      setStyleData(data);
+      if (data.preset) setPreset(data.preset);
+      if (data.custom) setCustomStyle(data.custom);
+    }).catch(() => {
+      setStyleData(false);
+    });
+  }, [gameId, isPlaytester]);
+
+  const saveStyle = useCallback(async (body) => {
+    if (!gameId) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await api.put(`/api/game/${gameId}/settings/image-style`, body);
+      if (res.preset) setPreset(res.preset);
+      if (res.custom !== undefined) setCustomStyle(res.custom || '');
+      setSuccessMsg('\u2713');
+      setTimeout(() => setSuccessMsg(null), 1500);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }, [gameId]);
+
+  if (!isPlaytester || styleData === false) return null;
+
+  if (styleData === null) {
+    return (
+      <div>
+        <SectionLabel>Scene Visualization</SectionLabel>
+        <div className={styles.loadingSkeleton} style={{ width: '60%' }} />
+        <div className={styles.loadingSkeleton} style={{ width: '100%', marginTop: 6 }} />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <SectionLabel extra={
+        <>
+          <span className={styles.devBadge}>Playtester</span>
+          {saving && <span className={styles.savingDot} />}
+          {successMsg && <span style={{ color: '#8aba7a', marginLeft: 8, fontSize: 12 }}>{successMsg}</span>}
+        </>
+      }>
+        Scene Visualization
+      </SectionLabel>
+
+      {/* Preset selector */}
+      <div style={{ padding: '8px 0', borderBottom: '1px solid #161c34' }}>
+        <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: '#c8c0b0', marginBottom: 6 }}>Image Style</div>
+        <select
+          className={styles.modelSelect}
+          value={preset}
+          onChange={e => { setPreset(e.target.value); saveStyle({ preset: e.target.value }); }}
+        >
+          {STYLE_PRESETS.map(s => (
+            <option key={s.id} value={s.id}>{s.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Custom style */}
+      <div style={{ padding: '10px 0', borderBottom: '1px solid #161c34' }}>
+        <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: '#c8c0b0', marginBottom: 4 }}>Custom Style</div>
+        <textarea
+          value={customStyle}
+          onChange={e => { if (e.target.value.length <= 300) setCustomStyle(e.target.value); }}
+          onBlur={() => { if (customStyle !== (styleData?.custom || '')) saveStyle({ custom: customStyle || '' }); }}
+          placeholder="Or describe your own style..."
+          maxLength={300}
+          style={{
+            width: '100%', boxSizing: 'border-box', minHeight: 60, padding: '10px 12px',
+            background: '#0a0e1a', border: '1px solid #1e2540', borderRadius: 6,
+            fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: '#c8c0b0',
+            outline: 'none', resize: 'vertical', lineHeight: 1.5,
+          }}
+        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+          <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 12, color: '#6b83a3', fontStyle: 'italic' }}>
+            {customStyle ? 'Custom style will be used instead of the preset.' : ''}
+          </div>
+          <div style={{
+            fontFamily: "var(--font-jetbrains)", fontSize: 11,
+            color: customStyle.length >= 270 ? '#e8845a' : '#6b83a3',
+          }}>
+            {customStyle.length}/300
+          </div>
+        </div>
+        {customStyle && (
+          <button
+            onClick={() => { setCustomStyle(''); saveStyle({ custom: '' }); }}
+            style={{
+              marginTop: 4, padding: '4px 12px', borderRadius: 4, cursor: 'pointer',
+              fontFamily: "var(--font-alegreya-sans)", fontSize: 12,
+              background: 'transparent', border: '1px solid #1e2540', color: '#7082a4',
+              transition: 'all 0.2s',
+            }}
+          >
+            Clear custom style
+          </button>
+        )}
+      </div>
+
+      {error && <div className={styles.errorText}>{error}</div>}
+    </div>
+  );
+}
+
 function GameSettingsTab({ gameId, gameState }) {
   // ─── Storyteller State ───
   const [storyteller, setStoryteller] = useState(gameState?.storyteller || 'Chronicler');
@@ -5671,6 +6084,9 @@ function GameSettingsTab({ gameId, gameState }) {
 
       {/* ── AI Models (playtester only) ── */}
       <AiModelSection gameId={gameId} />
+
+      {/* ── Image Style (playtester only) ── */}
+      <ImageStyleSection gameId={gameId} />
 
       <div style={{
         fontFamily: "var(--font-alegreya-sans)", fontSize: 12, color: '#6b83a3',
@@ -6140,8 +6556,9 @@ export default function SettingsModal({ settings, onSave, onClose, gameId, gameS
   );
 }
 
-
-// ===== FILE: app/play/components/Sidebar.js =====
+// ============================================================
+// FILE: app/play/components/Sidebar.js
+// ============================================================
 import { useState, useCallback, useEffect } from 'react';
 import CharacterTab from './CharacterTab';
 import InventoryTab from './InventoryTab';
@@ -6213,12 +6630,14 @@ export default function Sidebar({
   onNotesChange,
   onEntityClick,
   onOpenReport,
+  onOpenGallery,
+  isPlaytester,
   debugMode,
   isDebugUser,
   onToggleDebug,
 }) {
   const [activeTab, setActiveTab] = useState('character');
-  const [width, setWidth] = useState(340);
+  const [width, setWidth] = useState(380);
   const [isMobile, setIsMobile] = useState(false);
 
   // Track mobile breakpoint
@@ -6310,24 +6729,32 @@ export default function Sidebar({
           <div className={styles.tabContent}>
             {renderContent()}
           </div>
-          {(onOpenReport || isDebugUser) && (
+          {(onOpenReport || isDebugUser || (isPlaytester && onOpenGallery)) && (
             <div className={styles.sidebarFooter}>
               {onOpenReport && (
                 <>
                   <button className={styles.footerIconBtn} onClick={() => onOpenReport('bug')} aria-label="Report a bug" data-tooltip="Report a bug">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="8" y="6" width="8" height="14" rx="4" /><path d="M19 10h2" /><path d="M3 10h2" />
                       <path d="M19 14h2" /><path d="M3 14h2" /><path d="M19 18h2" /><path d="M3 18h2" />
                       <path d="M16 2l-2 4" /><path d="M8 2l2 4" />
                     </svg>
                   </button>
                   <button className={styles.footerIconBtn} onClick={() => onOpenReport('suggest')} aria-label="Share a suggestion" data-tooltip="Share a suggestion">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M9 18h6" /><path d="M10 22h4" />
                       <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
                     </svg>
                   </button>
                 </>
+              )}
+              {isPlaytester && onOpenGallery && (
+                <button className={styles.footerIconBtn} onClick={onOpenGallery} aria-label="Scene gallery" data-tooltip="Scene gallery">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" />
+                    <path d="M21 15l-5-5L5 21" />
+                  </svg>
+                </button>
               )}
               {isDebugUser && onToggleDebug && (
                 <button className={styles.footerBtn} onClick={onToggleDebug}
@@ -6369,7 +6796,7 @@ export default function Sidebar({
       <div className={styles.tabContent}>
         {renderContent()}
       </div>
-      {(onOpenReport || isDebugUser) && (
+      {(onOpenReport || isDebugUser || (isPlaytester && onOpenGallery)) && (
         <div className={styles.sidebarFooter}>
           {onOpenReport && (
             <>
@@ -6388,6 +6815,14 @@ export default function Sidebar({
               </button>
             </>
           )}
+          {isPlaytester && onOpenGallery && (
+            <button className={styles.footerIconBtn} onClick={onOpenGallery} aria-label="Scene gallery" data-tooltip="Scene gallery">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" />
+                <path d="M21 15l-5-5L5 21" />
+              </svg>
+            </button>
+          )}
           {isDebugUser && onToggleDebug && (
             <button className={styles.footerBtn} onClick={onToggleDebug}
               style={{ color: debugMode ? '#c9a84c' : undefined, borderColor: debugMode ? '#c9a84c33' : undefined }}
@@ -6404,8 +6839,9 @@ export default function Sidebar({
   );
 }
 
-
-// ===== FILE: app/play/components/TalkToGM.js =====
+// ============================================================
+// FILE: app/play/components/TalkToGM.js
+// ============================================================
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as api from '@/lib/api';
 import { renderLinkedText } from '@/lib/renderLinkedText';
@@ -7249,8 +7685,9 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
   );
 }
 
-
-// ===== FILE: app/play/components/TopBar.js =====
+// ============================================================
+// FILE: app/play/components/TopBar.js
+// ============================================================
 import Link from 'next/link';
 import AuthAvatar from '@/components/AuthAvatar';
 import styles from './TopBar.module.css';
@@ -7363,8 +7800,9 @@ export default function TopBar({ setting, clock, sseConnected, sidebarOpen, onTo
   );
 }
 
-
-// ===== FILE: app/play/components/TurnBlock.js =====
+// ============================================================
+// FILE: app/play/components/TurnBlock.js
+// ============================================================
 import React, { useState, forwardRef } from 'react';
 import InlineDicePanel from './InlineDicePanel';
 import ResolutionBlock from './ResolutionBlock';
@@ -7580,7 +8018,7 @@ function StatusBadges({ stateChanges, inventoryItems }) {
   );
 }
 
-const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, onEntityClick, inventoryItems }, ref) {
+const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, onEntityClick, inventoryItems, onImageClick }, ref) {
   const hasResolution = !!turn.resolution;
   const shouldAnimate = isNew && hasResolution;
   const [showContent, setShowContent] = useState(!shouldAnimate);
@@ -7645,6 +8083,25 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
             {renderNarrative(turn.narrative, glossaryTerms, onEntityClick)}
           </div>
 
+          {turn.sceneImage && (
+            <div className={styles.sceneImageBlock}>
+              <button
+                className={styles.sceneImageButton}
+                onClick={() => onImageClick?.(turn.sceneImage)}
+                aria-label="View full image"
+              >
+                <img
+                  src={turn.sceneImage.imageUrl}
+                  alt={turn.sceneImage.blurb || 'Scene visualization'}
+                  className={styles.sceneImage}
+                />
+              </button>
+              {turn.sceneImage.blurb && (
+                <div className={styles.sceneCaption}>{turn.sceneImage.blurb}</div>
+              )}
+            </div>
+          )}
+
           <StatusBadges stateChanges={turn.stateChanges} inventoryItems={inventoryItems} />
           <NpcWoundStates npcStates={turn.npcStates} />
         </>
@@ -7654,5 +8111,3 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
 });
 
 export default TurnBlock;
-
-

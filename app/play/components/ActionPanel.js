@@ -13,6 +13,16 @@ function CompassIcon({ size = 18, className }) {
   );
 }
 
+// ─── Paintbrush SVG Icon (Visualize) ───
+function PaintbrushIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M14.5 2.5C13.5 1.8 11 4 9.5 6C8 8 7 9.5 7.5 10.5C8 11.5 9 11 9 11C9 11 8.5 13 7 14C5.5 15 4 15.5 3 15C3 15 5 14 5.5 12.5C6 11 5 10.5 4.5 10C4 9.5 4.5 8.5 5.5 8C6.5 7.5 8 7 9.5 5.5C11 4 15.5 3.2 14.5 2.5Z" stroke="currentColor" strokeWidth="1.1" fill="none" strokeLinejoin="round" />
+      <circle cx="5" cy="11.5" r="1.2" fill="currentColor" opacity="0.5" />
+    </svg>
+  );
+}
+
 // ─── Pin SVG Icon ───
 function PinIcon({ size = 13 }) {
   return (
@@ -113,6 +123,7 @@ export default function ActionPanel({
   compassOpen, onToggleCompass, objectives, currentLocation, onEscalate, hintLoading,
   glossaryTerms, onEntityClick,
   rewindAvailable, rewinding, onRewind,
+  onVisualize, visualizing, isPlaytester,
 }) {
   const [customText, setCustomText] = useState('');
   const [rewindConfirm, setRewindConfirm] = useState(false);
@@ -158,6 +169,12 @@ export default function ActionPanel({
               onEntityClick={onEntityClick}
             />
           </>
+        )}
+
+        {visualizing && (
+          <div className={styles.visualizingText}>
+            The world takes shape...
+          </div>
         )}
 
         {submitting ? (
@@ -212,6 +229,21 @@ export default function ActionPanel({
                 >
                   <CompassIcon size={18} />
                 </button>
+                {isPlaytester && onVisualize && (
+                  <button
+                    className={styles.visualizeButton}
+                    onClick={onVisualize}
+                    disabled={submitting || visualizing}
+                    aria-label="Visualize scene"
+                    title="Visualize this scene"
+                  >
+                    {visualizing ? (
+                      <span className={styles.visualizeSpinner} />
+                    ) : (
+                      <PaintbrushIcon size={18} />
+                    )}
+                  </button>
+                )}
                 {onRewind && (
                   <button
                     className={styles.rewindButton}

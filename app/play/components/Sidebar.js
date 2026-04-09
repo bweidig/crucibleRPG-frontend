@@ -69,6 +69,8 @@ export default function Sidebar({
   onNotesChange,
   onEntityClick,
   onOpenReport,
+  onOpenGallery,
+  isPlaytester,
   debugMode,
   isDebugUser,
   onToggleDebug,
@@ -166,7 +168,7 @@ export default function Sidebar({
           <div className={styles.tabContent}>
             {renderContent()}
           </div>
-          {(onOpenReport || isDebugUser) && (
+          {(onOpenReport || isDebugUser || (isPlaytester && onOpenGallery)) && (
             <div className={styles.sidebarFooter}>
               {onOpenReport && (
                 <>
@@ -184,6 +186,14 @@ export default function Sidebar({
                     </svg>
                   </button>
                 </>
+              )}
+              {isPlaytester && onOpenGallery && (
+                <button className={styles.footerIconBtn} onClick={onOpenGallery} aria-label="Scene gallery" data-tooltip="Scene gallery">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" />
+                    <path d="M21 15l-5-5L5 21" />
+                  </svg>
+                </button>
               )}
               {isDebugUser && onToggleDebug && (
                 <button className={styles.footerBtn} onClick={onToggleDebug}
@@ -225,7 +235,7 @@ export default function Sidebar({
       <div className={styles.tabContent}>
         {renderContent()}
       </div>
-      {(onOpenReport || isDebugUser) && (
+      {(onOpenReport || isDebugUser || (isPlaytester && onOpenGallery)) && (
         <div className={styles.sidebarFooter}>
           {onOpenReport && (
             <>
@@ -243,6 +253,14 @@ export default function Sidebar({
                 </svg>
               </button>
             </>
+          )}
+          {isPlaytester && onOpenGallery && (
+            <button className={styles.footerIconBtn} onClick={onOpenGallery} aria-label="Scene gallery" data-tooltip="Scene gallery">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" />
+                <path d="M21 15l-5-5L5 21" />
+              </svg>
+            </button>
           )}
           {isDebugUser && onToggleDebug && (
             <button className={styles.footerBtn} onClick={onToggleDebug}

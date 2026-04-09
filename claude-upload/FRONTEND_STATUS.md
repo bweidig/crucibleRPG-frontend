@@ -34,6 +34,34 @@
 
 ## Recent Work (This Session: 2026-04-09)
 
+### Scene Visualization Feature
+Full implementation of the scene visualization system. Players can generate AI illustrations of their current scene during gameplay, view them in a lightbox, and browse all generated images in a gallery.
+
+**What was added:**
+- **Visualize button** in the action panel (paintbrush icon, next to compass) — playtesters only, shows atmospheric loading text while generating
+- **Inline scene images** in narrative turns — generated images appear below the narrative text, clickable to expand in lightbox
+- **Image lightbox** — fullscreen dark overlay with image, blurb caption, and turn number
+- **Gallery modal** — accessible from sidebar footer (image icon), shows all generated images in a 2-column grid with blurb/turn/style metadata
+- **Image style settings** in SettingsModal Game tab — preset dropdown (Dark Fantasy, Cyberpunk, Watercolor, Ink & Wash, Comic Book, Oil Painting, Pencil Sketch) + custom freeform text field
+- **API integration** — POST /visualize, GET /gallery, GET+PUT /settings/image-style
+
+**Gating:** All visualization features are hidden for non-playtesters (no disabled/locked UI shown). Button, gallery, and settings sections check `isPlaytester`.
+
+**Files created:**
+- `app/play/components/ImageLightbox.js` + `.module.css`
+- `app/play/components/GalleryModal.js` + `.module.css`
+
+**Files modified:**
+- `app/play/page.js` — visualization state, handlers, lightbox/gallery modals, prop passing
+- `app/play/components/ActionPanel.js` + `.module.css` — visualize button, loading state
+- `app/play/components/TurnBlock.js` + `.module.css` — inline scene image display
+- `app/play/components/NarrativePanel.js` — onImageClick prop passthrough
+- `app/play/components/SettingsModal.js` — ImageStyleSection (preset dropdown + custom text)
+- `app/play/components/Sidebar.js` — gallery button in footer
+- `docs/API_CONTRACT.md` — new Scene Visualization section with 4 endpoints
+
+---
+
 ### Fix: Announcements Not Appearing on Menu Page
 The `getAnnouncement()` function in `lib/api.js` was calling `/api/announcement` instead of the correct `/api/games/announcement` endpoint from the API contract. Classic contract mismatch — admin could post announcements but players never saw them.
 

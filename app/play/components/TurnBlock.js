@@ -213,7 +213,7 @@ function StatusBadges({ stateChanges, inventoryItems }) {
   );
 }
 
-const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, onEntityClick, inventoryItems }, ref) {
+const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, onEntityClick, inventoryItems, onImageClick }, ref) {
   const hasResolution = !!turn.resolution;
   const shouldAnimate = isNew && hasResolution;
   const [showContent, setShowContent] = useState(!shouldAnimate);
@@ -277,6 +277,25 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
           <div className={styles.narrativeText}>
             {renderNarrative(turn.narrative, glossaryTerms, onEntityClick)}
           </div>
+
+          {turn.sceneImage && (
+            <div className={styles.sceneImageBlock}>
+              <button
+                className={styles.sceneImageButton}
+                onClick={() => onImageClick?.(turn.sceneImage)}
+                aria-label="View full image"
+              >
+                <img
+                  src={turn.sceneImage.imageUrl}
+                  alt={turn.sceneImage.blurb || 'Scene visualization'}
+                  className={styles.sceneImage}
+                />
+              </button>
+              {turn.sceneImage.blurb && (
+                <div className={styles.sceneCaption}>{turn.sceneImage.blurb}</div>
+              )}
+            </div>
+          )}
 
           <StatusBadges stateChanges={turn.stateChanges} inventoryItems={inventoryItems} />
           <NpcWoundStates npcStates={turn.npcStates} />

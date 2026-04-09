@@ -20,6 +20,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
   lastResolution, lastStateChanges, onMetaResponse,
   glossaryTerms, onEntityClick, inventoryItems,
   directiveState, onDeleteDirective, onRestoreDirective,
+  onImageClick,
 }, ref) {
   const newTurnRef = useRef(null);
   const bottomRef = useRef(null);
@@ -92,6 +93,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
                   glossaryTerms={glossaryTerms}
                   onEntityClick={onEntityClick}
                   inventoryItems={inventoryItems}
+                  onImageClick={onImageClick}
                   ref={isLast && isNew ? newTurnRef : undefined}
                 />
               </div>

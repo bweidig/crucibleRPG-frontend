@@ -2,7 +2,7 @@
 
 > **This contract is verified against backend code as of 2026-03-17. The frontend uses this as its single source of truth. Do not change response shapes without updating this document.**
 
-**Last Updated:** 2026-04-07
+**Last Updated:** 2026-04-09
 
 Base URL: `https://<host>` (Railway production or `http://localhost:3000` local)
 
@@ -17,6 +17,7 @@ All game values use **x10 integer format** internally (7.3 → 73). Public API r
 - [Games (`/api/games`)](#games)
 - [Init Wizard (`/api/init`)](#init-wizard)
 - [Gameplay (`/api/game`)](#gameplay)
+- [Scene Visualization (`/api/game`)](#scene-visualization)
 - [Admin (`/api/admin`)](#admin)
 
 ---
@@ -426,9 +427,9 @@ Import a previously exported game. Creates a new game with new IDs.
 
 ---
 
-### GET /api/games/snapshots
+### GET /api/games/snapshots (alias: GET /api/world-snapshots)
 
-List all world snapshots owned by the authenticated user.
+List all world snapshots owned by the authenticated user. Frontend uses `/api/world-snapshots`.
 
 **Response (200):**
 ```json
@@ -1779,6 +1780,97 @@ Create a world snapshot for sharing/branching.
 
 ---
 
+### POST /api/game/:id/visualize
+
+Generate an AI illustration of the current scene. Does not advance the turn clock. Playtester-only (Phase 1).
+
+**Request Body:**
+| Field | Type | Required | Default | Validation |
+|-------|------|----------|---------|------------|
+| `resolution` | integer | no | 1024 | Must be one of: 1024, 2048, 4096 |
+
+**Response (200):**
+```json
+{
+  "imageUrl": "https://pub-xxx.r2.dev/5/1712345678-turn34.png",
+  "turnNumber": 34,
+  "blurb": "You crouch behind the market stall as the patrol passes, one hand on the hilt of your short sword.",
+  "resolution": 1024,
+  "createdAt": "2026-04-09T..."
+}
+```
+
+| Status | Meaning |
+|--------|---------|
+| 403 | Not a playtester / not entitled |
+| 404 | Game not found or not owned |
+| 400 | Invalid resolution |
+| 422 | Image generation blocked by safety filters |
+
+---
+
+### GET /api/game/:id/gallery
+
+Returns all generated images for a game, ordered by turn number descending.
+
+**Response (200):**
+```json
+{
+  "images": [
+    {
+      "id": 12,
+      "imageUrl": "https://pub-xxx.r2.dev/5/1712345678-turn34.png",
+      "turnNumber": 34,
+      "blurb": "You crouch behind the market stall...",
+      "resolution": 1024,
+      "stylePreset": "dark_fantasy",
+      "createdAt": "2026-04-09T..."
+    }
+  ],
+  "count": 1
+}
+```
+
+---
+
+### GET /api/game/:id/settings/image-style
+
+Returns current image style preference and available presets.
+
+**Response (200):**
+```json
+{
+  "preset": "dark_fantasy",
+  "custom": null,
+  "presets": ["dark_fantasy", "cyberpunk", "watercolor", "ink_wash", "comic_book", "oil_painting", "sketch"]
+}
+```
+
+---
+
+### PUT /api/game/:id/settings/image-style
+
+Save the player's image style preference for this game.
+
+**Request Body:**
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `preset` | string | no | Must be a key in STYLE_PRESETS, or null to clear |
+| `custom` | string | no | Max 500 chars. If provided, overrides preset. Empty string clears. |
+
+At least one field required.
+
+**Response (200):**
+```json
+{
+  "preset": "cyberpunk",
+  "custom": null,
+  "presets": ["dark_fantasy", "cyberpunk", "watercolor", "ink_wash", "comic_book", "oil_painting", "sketch"]
+}
+```
+
+---
+
 ### POST /api/game/:id/talk-to-gm
 
 Ask the GM a question. Phase 1: free keyword lookup (no turn cost).
@@ -1968,6 +2060,87 @@ The `directives` field is added to the game state response:
 ```
 
 **Status Codes:** 200, 400 (not eligible / game not active), 401 (unauthenticated), 403 (not game owner).
+
+---
+
+## Scene Visualization
+
+Mount: `/api/game/:gameId`
+
+### POST /api/game/:id/visualize
+
+Generates an AI illustration of the current scene. Takes 3-8 seconds. Does not advance the turn.
+
+**Request Body:**
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `resolution` | integer | no | Default 1024. Valid: 1024, 2048, 4096 |
+
+**Response (200):**
+```json
+{
+  "imageUrl": "https://pub-xxx.r2.dev/5/1712345678-turn34.png",
+  "turnNumber": 34,
+  "blurb": "You crouch behind the market stall as the patrol passes...",
+  "resolution": 1024,
+  "createdAt": "2026-04-08T..."
+}
+```
+
+**Status Codes:** 200, 400 (invalid resolution), 403 (non-playtester), 404 (game not found), 422 (safety filter block), 500.
+
+---
+
+### GET /api/game/:id/gallery
+
+Returns all generated images for this game, ordered by turn number descending.
+
+**Response (200):**
+```json
+{
+  "images": [
+    {
+      "id": 12,
+      "imageUrl": "https://pub-xxx.r2.dev/5/1712345678-turn34.png",
+      "turnNumber": 34,
+      "blurb": "You crouch behind the market stall...",
+      "resolution": 1024,
+      "stylePreset": "dark_fantasy",
+      "createdAt": "2026-04-08T..."
+    }
+  ],
+  "count": 1
+}
+```
+
+---
+
+### GET /api/game/:id/settings/image-style
+
+Returns the player's current image style settings plus valid presets.
+
+**Response (200):**
+```json
+{
+  "preset": "dark_fantasy",
+  "custom": null,
+  "presets": ["dark_fantasy", "cyberpunk", "watercolor", "ink_wash", "comic_book", "oil_painting", "sketch"]
+}
+```
+
+---
+
+### PUT /api/game/:id/settings/image-style
+
+Saves image style preference. At least one of `preset` or `custom` required. `custom` overrides `preset` when both set. Sending `custom: ""` clears it.
+
+**Request Body:**
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `preset` | string | no | One of the valid presets |
+| `custom` | string | no | Freeform style description |
+
+**Response (200):** Same shape as GET.
 
 ---
 

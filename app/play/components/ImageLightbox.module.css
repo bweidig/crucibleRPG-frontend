@@ -1,0 +1,93 @@
+/* ==============================================
+   ImageLightbox — Fullscreen image viewer
+   ============================================== */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 24px;
+}
+
+.content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.closeButton {
+  position: absolute;
+  top: -36px;
+  right: -4px;
+  background: none;
+  border: none;
+  color: #8a94a8;
+  font-size: 28px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+  transition: color 0.15s;
+  z-index: 1;
+}
+
+.closeButton:hover {
+  color: #c8c0b0;
+}
+
+.image {
+  max-width: 100%;
+  max-height: 80vh;
+  border-radius: 6px;
+  border: 1px solid #3a3328;
+  object-fit: contain;
+}
+
+.caption {
+  margin-top: 12px;
+  text-align: center;
+  max-width: 600px;
+}
+
+.blurb {
+  font-family: var(--font-alegreya);
+  font-size: 15px;
+  font-style: italic;
+  color: #8a9ab8;
+  line-height: 1.5;
+}
+
+.turnLabel {
+  font-family: var(--font-jetbrains);
+  font-size: 11px;
+  color: #6b83a3;
+  margin-top: 6px;
+  letter-spacing: 0.04em;
+}
+
+/* ─── Mobile ─── */
+
+@media (max-width: 768px) {
+  .overlay {
+    padding: 16px;
+  }
+
+  .content {
+    max-width: 100%;
+  }
+
+  .closeButton {
+    top: -32px;
+    right: 0;
+  }
+
+  .image {
+    max-height: 70vh;
+  }
+}

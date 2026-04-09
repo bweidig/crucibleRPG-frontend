@@ -70,6 +70,52 @@
   margin-bottom: 0;
 }
 
+/* ─── Scene Image ─── */
+
+.sceneImageBlock {
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+
+.sceneImageButton {
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+  max-width: 480px;
+}
+
+.sceneImageButton:hover {
+  box-shadow: 0 0 20px rgba(201, 168, 76, 0.15);
+}
+
+.sceneImageButton:focus-visible {
+  outline: 2px solid rgba(201, 168, 76, 0.6);
+  outline-offset: 2px;
+}
+
+.sceneImage {
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  border-radius: 6px;
+  border: 1px solid #3a3328;
+}
+
+.sceneCaption {
+  font-family: var(--font-alegreya);
+  font-size: 13px;
+  font-style: italic;
+  color: #8a9ab8;
+  margin-top: 8px;
+  line-height: 1.4;
+  max-width: 480px;
+}
+
 /* ─── Status Change Badges ─── */
 
 .badges {

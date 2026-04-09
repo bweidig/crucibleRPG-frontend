@@ -14,6 +14,8 @@ import SettingsModal, { THEMES, FONTS, SIZES } from './components/SettingsModal'
 import EntityPopup from './components/EntityPopup';
 import DebugPanel from './components/DebugPanel';
 import ReportModal from './components/ReportModal';
+import ImageLightbox from './components/ImageLightbox';
+import GalleryModal from './components/GalleryModal';
 import { buildGlossaryTermSet } from '@/lib/renderLinkedText';
 import styles from './play.module.css';
 
@@ -118,6 +120,11 @@ function PlayPage() {
   // ─── Rewind ───
   const [rewindAvailable, setRewindAvailable] = useState(false);
   const [rewinding, setRewinding] = useState(false);
+
+  // ─── Visualization ───
+  const [visualizing, setVisualizing] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState(null);
 
   // ─── Directives ───
   const [directiveState, setDirectiveState] = useState(null);
@@ -435,6 +442,41 @@ function PlayPage() {
       setRewinding(false);
     }
   }, [gameId, rewinding, refetchCharacter, refetchGlossary]);
+
+  // ─── Visualize Handler ───
+  const handleVisualize = useCallback(async () => {
+    if (!gameId || visualizing) return;
+    setVisualizing(true);
+    try {
+      const res = await api.post(`/api/game/${gameId}/visualize`, {});
+      // Attach image to the latest real turn
+      const sceneImage = {
+        imageUrl: res.imageUrl,
+        blurb: res.blurb || null,
+        turnNumber: res.turnNumber,
+        resolution: res.resolution,
+        createdAt: res.createdAt,
+      };
+      setTurns(prev => {
+        const updated = [...prev];
+        // Find last real turn (not gm_aside)
+        for (let i = updated.length - 1; i >= 0; i--) {
+          if (updated[i].type !== 'gm_aside') {
+            updated[i] = { ...updated[i], sceneImage };
+            break;
+          }
+        }
+        return updated;
+      });
+    } catch (err) {
+      console.error('Visualize failed:', err);
+      if (err.status !== 403) {
+        setError(err.message || 'Failed to generate scene image.');
+      }
+    } finally {
+      setVisualizing(false);
+    }
+  }, [gameId, visualizing]);
 
   // ─── Compute lastResolution and lastStateChanges for TalkToGM contextual chip ───
   const lastResolutionTurn = turns.slice().reverse().find(t => t.resolution);
@@ -813,6 +855,7 @@ function PlayPage() {
             directiveState={directiveState}
             onDeleteDirective={handleDeleteDirective}
             onRestoreDirective={handleRestoreDirective}
+            onImageClick={setLightboxImage}
           />
           <ActionPanel
             actions={actions}
@@ -830,6 +873,9 @@ function PlayPage() {
             rewindAvailable={rewindAvailable}
             rewinding={rewinding}
             onRewind={handleRewind}
+            onVisualize={handleVisualize}
+            visualizing={visualizing}
+            isPlaytester={!!api.getUser()?.isPlaytester}
           />
           {directiveToasts.length > 0 && (
             <div className={styles.toastContainer}>
@@ -866,6 +912,8 @@ function PlayPage() {
           onNotesChange={refetchNotes}
           onEntityClick={handleEntityClick}
           onOpenReport={setReportMode}
+          onOpenGallery={() => setGalleryOpen(true)}
+          isPlaytester={!!api.getUser()?.isPlaytester}
           debugMode={debugMode}
           isDebugUser={!!api.getUser()?.isDebug}
           onToggleDebug={() => {
@@ -923,6 +971,24 @@ function PlayPage() {
           characterData={characterData}
           debugLog={debugLog}
           onClose={() => setReportMode(null)}
+        />
+      )}
+
+      {/* Gallery Modal */}
+      {galleryOpen && (
+        <GalleryModal
+          gameId={gameId}
+          onClose={() => setGalleryOpen(false)}
+        />
+      )}
+
+      {/* Image Lightbox */}
+      {lightboxImage && (
+        <ImageLightbox
+          imageUrl={lightboxImage.imageUrl}
+          blurb={lightboxImage.blurb}
+          turnNumber={lightboxImage.turnNumber}
+          onClose={() => setLightboxImage(null)}
         />
       )}
 
