@@ -2006,7 +2006,7 @@ function SettingsTab({ data, loading, onRefresh }) {
               {announcement.text}
             </div>
             <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>
-              Posted {timeAgo(announcement.postedAt)}
+              Posted {timeAgo(announcement.updatedAt)}
             </div>
           </div>
         ) : (
