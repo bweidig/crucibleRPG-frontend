@@ -2566,7 +2566,10 @@ function InitWizardInner() {
   const searchParams = useSearchParams();
   const urlGameId = searchParams.get('gameId') || searchParams.get('id');
   const [createdGameId, setCreatedGameId] = useState(null);
-  const gameId = urlGameId || createdGameId;
+  const [resumedGameId, setResumedGameId] = useState(null); // restored from sessionStorage on refresh
+  const gameId = urlGameId || resumedGameId || createdGameId;
+  const shouldResume = !!(urlGameId || resumedGameId); // skip resume fetch for freshly-created games
+  const resumedRef = useRef(false);
 
   // Playtester gate
   useEffect(() => {
@@ -2703,8 +2706,23 @@ function InitWizardInner() {
   const [retrying, setRetrying] = useState(false);
 
   // --- Create game on mount if no gameId in URL ---
+  // Order: URL param → sessionStorage (refresh resilience) → POST /api/games/new
   useEffect(() => {
-    if (urlGameId || createdGameId) return;
+    if (urlGameId || createdGameId || resumedGameId) return;
+
+    // Refresh resilience: restore the in-progress gameId if one was persisted
+    // during a prior mount. The menu's "NEW GAME" button clears this key, so a
+    // deliberate fresh start still creates a new game.
+    try {
+      const persisted = typeof window !== 'undefined'
+        ? sessionStorage.getItem('crucible_init_gameId')
+        : null;
+      if (persisted) {
+        setResumedGameId(persisted);
+        return;
+      }
+    } catch {}
+
     const createGame = async () => {
       try {
         const res = await api.post('/api/games/new', {});
@@ -2720,7 +2738,125 @@ function InitWizardInner() {
       }
     };
     createGame();
-  }, [urlGameId, createdGameId]);
+  }, [urlGameId, createdGameId, resumedGameId]);
+
+  // --- Persist gameId to sessionStorage so a mid-wizard refresh can recover it ---
+  useEffect(() => {
+    if (!gameId) return;
+    try { sessionStorage.setItem('crucible_init_gameId', String(gameId)); } catch {}
+  }, [gameId]);
+
+  // --- Resume from server state: on mount with an existing gameId, fetch the
+  // game's current progress and jump to the correct wizard phase. Without this,
+  // clicking "Continue Setup" or refreshing mid-wizard would start the user
+  // over at Phase 0 even though their prior choices are already saved.
+  useEffect(() => {
+    if (!shouldResume || !gameId || resumedRef.current) return;
+    resumedRef.current = true;
+
+    (async () => {
+      let game;
+      try {
+        game = await api.get(`/api/games/${gameId}`);
+      } catch (err) {
+        console.error('[init] Failed to load game for resume:', err.message);
+        // If the persisted/URL gameId is invalid (404, deleted), clear the
+        // stale sessionStorage entry and let the create-game effect start fresh.
+        try { sessionStorage.removeItem('crucible_init_gameId'); } catch {}
+        if (resumedGameId) {
+          setResumedGameId(null);
+          resumedRef.current = false;
+        }
+        return;
+      }
+
+      // Game already finished init — send them to play instead of the wizard.
+      if (game.status === 'active') {
+        try { sessionStorage.removeItem('crucible_init_gameId'); } catch {}
+        router.replace(`/play?gameId=${gameId}`);
+        return;
+      }
+
+      let resumePhase = 0;
+
+      // Phase 0 complete — storyteller chosen
+      if (game.storyteller) {
+        const stMatch = STORYTELLERS.find(s => s.name === game.storyteller);
+        setStoryteller(stMatch ? stMatch.id : 'custom');
+        if (!stMatch) setCustomStorytellerText(game.storyteller);
+        resumePhase = 1;
+      }
+
+      // Phase 1 complete (or setting saved with world gen still running)
+      if (game.setting) {
+        const stgMatch = SETTINGS.find(s => s.name === game.setting);
+        setSetting(stgMatch ? stgMatch.id : 'custom');
+        if (!stgMatch) setCustomWorldText(game.setting);
+        resumePhase = 2;
+
+        if (game.worldName) {
+          // World gen already complete — mark it so the chips render and
+          // the Phase 2→3 overlay won't wait for progress events.
+          setWorldGenName(game.worldName);
+          setWorldGenStatus('complete');
+          worldGenTimestamps.current.complete = Date.now();
+        } else {
+          // World gen may still be running or may have failed. Start a poll
+          // to determine current state (handles generating_*, complete, failed).
+          worldPollCount.current = 0;
+          setWorldGenStatus('generating');
+          pollWorldStatus();
+        }
+      }
+
+      // Phase 2 complete — character row exists
+      if (game.character) {
+        // Populate the "custom" character form since the backend flattens
+        // any archetype choice into character fields on save.
+        setCharacterMode('custom');
+        setCustomChar(prev => ({
+          ...prev,
+          name: game.character.name || '',
+          backstory: game.character.backstory || '',
+          personality: game.character.personality || '',
+          appearance: game.character.appearance || '',
+          pronouns: game.character.gender || '',
+          powersFlag: game.character.powersFlag || '',
+          powersDescription: game.character.powersDescription || '',
+        }));
+        resumePhase = 3;
+      }
+
+      // Phase 3 complete — adjust-proposal wrote character_stats to the DB.
+      // Before that, character exists but stats will be missing/empty.
+      const statsObj = game.character?.stats;
+      const hasFinalizedStats = !!(
+        statsObj &&
+        typeof statsObj === 'object' &&
+        Object.keys(statsObj).length > 0 &&
+        typeof statsObj.STR?.base === 'number' &&
+        statsObj.STR.base > 0
+      );
+      if (hasFinalizedStats) {
+        resumePhase = 4;
+      }
+
+      // Phase 4 complete — difficulty preset saved
+      if (game.difficulty) {
+        setDifficulty(String(game.difficulty).toLowerCase());
+        resumePhase = 5;
+      }
+
+      setPhase(resumePhase);
+
+      // If we're resuming exactly at Phase 3, proposals aren't persisted on
+      // the backend — they're normally generated inside the Phase 2→3 overlay.
+      // Trigger a fresh proposal so the Phase 3 UI has something to display.
+      if (resumePhase === 3) {
+        generateProposal();
+      }
+    })();
+  }, [shouldResume, gameId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const retryConnection = async () => {
     setRetrying(true);
@@ -3418,6 +3554,9 @@ function InitWizardInner() {
               difficulty: difficultyName,
             }));
           } catch { /* sessionStorage may be unavailable */ }
+          // Init wizard finished — clear the refresh-resilience key so a
+          // subsequent NEW GAME click doesn't resume this completed game.
+          try { sessionStorage.removeItem('crucible_init_gameId'); } catch {}
           // Navigate immediately — save scenario in background
           router.push(`/play?gameId=${gameId}`);
           saveScenario().catch(() => {});

@@ -12,13 +12,24 @@ Tracks bugs investigated in the frontend, what was tried, what worked, and what 
 
 ## Log
 
-### FE-5: Announcements from /admin don't appear on /menu (2026-04-09) — RESOLVED
+### FE-5: Announcements from /admin don't appear on /menu (2026-04-09) — BLOCKED ON BACKEND
 
 **Symptom:** Admin posts an announcement via /admin Settings tab, but players never see the banner on /menu.
 
-**Root cause:** `lib/api.js` `getAnnouncement()` was calling `/api/announcement` — a non-existent endpoint. The API contract specifies `/api/games/announcement` as the public announcement endpoint. The request was silently 404-ing and the `.catch(() => {})` swallowed the error.
+**First-pass fix (insufficient):** `lib/api.js` `getAnnouncement()` was calling `/api/announcement` — a non-existent endpoint. Changed it to `/api/games/announcement` per the API contract. Also fixed `postedAt` → `updatedAt` on the menu banner and added `console.log/error` on fetch so failures wouldn't be swallowed. The banner still never appeared — the original bug was real but wasn't the whole story.
 
-**Fix:** Changed the endpoint in `getAnnouncement()` from `/api/announcement` to `/api/games/announcement`.
+**Real root cause (2026-04-09, second investigation):** The API contract documents `GET /api/games/announcement` as a JWT-only public endpoint, but **that endpoint is not actually implemented on the backend**. Requests to `/api/games/announcement` are caught by the `/api/games/:id` route handler, which treats the word "announcement" as a game ID.
+
+Production API verification (with a real JWT for a non-playtester test account):
+- `GET /api/games/announcement` → `403 {"error":"Your account is pending playtester access."}`
+- `GET /api/games/abc` → identical 403 response
+- `GET /api/games/999` → identical 403 response
+
+All three hit the same handler, which is the `:id` handler (it checks `isPlaytester` before looking up the game). For a playtester user the request would pass the playtester gate and then fail to find a game with id='announcement', returning 404 or 400 — either way, no announcement data comes back. The `/api/admin/announcement` endpoint works fine (admin can post and read), but there is no corresponding public read endpoint.
+
+**Status:** Frontend is correct per the contract; the fix is on the backend. Either (A) register a dedicated `/api/games/announcement` route BEFORE `/api/games/:id` in the Express router, or (B) mount the public read at a non-colliding path (e.g. `/api/site-announcement`) and update both the contract and `lib/api.js` `getAnnouncement()` to match.
+
+**Frontend state left in place:** `getAnnouncement()` still points at `/api/games/announcement` (matches contract). The `console.log`/`console.error` debug hooks on `/menu` stay until the backend fix is verified in production.
 
 ---
 

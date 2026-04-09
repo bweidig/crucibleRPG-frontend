@@ -34,6 +34,34 @@
 
 ## Recent Work (This Session: 2026-04-09)
 
+### Init Wizard — Resume From Correct Phase + Refresh Resilience
+Previously, clicking "Continue Setup" on an in-progress game (or refreshing mid-wizard) would dump the player back at Phase 0 (Storyteller) even though all their prior choices were already saved on the backend. The menu was correctly passing `/init?id={id}`, but the init page had an open TODO to read that id's state and jump to the right phase.
+
+**What changed:**
+- **Init resume logic** (`app/init/page.js`): new `useEffect` that, when mounted with an existing `gameId`, fetches `GET /api/games/:id` and walks the response to determine the furthest completed phase:
+  - `storyteller` set → past Phase 0
+  - `setting` set → past Phase 1 (plus: if `worldName` present, world gen is complete; otherwise start polling world-status)
+  - `character` exists → past Phase 2 (populates the custom character form from the saved fields)
+  - `character.stats.STR.base > 0` → past Phase 3 (adjust-proposal has written stats)
+  - `difficulty` set → past Phase 4
+  - `status === 'active'` → game is already past init, redirect to `/play` instead
+- **Phase 3 edge case:** when resuming *exactly* at Phase 3, the resume effect triggers `generateProposal()` because proposals aren't persisted on the backend — they're normally generated inside the Phase 2→3 overlay which the resume flow skips.
+- **sessionStorage refresh resilience:** `crucible_init_gameId` is written whenever the wizard's `gameId` resolves and read on mount before the fallback `POST /api/games/new` path. A mid-wizard page refresh now recovers the gameId even if the URL param was lost. Cleared on successful Phase 5 → `/play` navigation and when the resume fetch 404s (stale/deleted game).
+- **Menu NEW GAME buttons** (`app/menu/page.js`): new `startNewGame()` helper clears `crucible_init_gameId` before navigating to `/init`, so clicking NEW GAME after abandoning a prior wizard correctly creates a fresh game instead of resuming the abandoned one. Both the "BEGIN YOUR STORY" empty-state button and the "NEW GAME" button use it. The "CONTINUE SETUP" / "RESUME" path (via `navigateToGame`) was already correct — it was always passing the gameId; the bug was purely on the init side ignoring it.
+
+**Files modified:**
+- `app/init/page.js` — resume effect, sessionStorage read/write/clear, `resumedGameId` state
+- `app/menu/page.js` — `startNewGame()` helper wired to both new-game buttons
+- `claude-upload/init-page.js`, `claude-upload/menu-page.js` (synced)
+
+### Announcements Still Not Appearing on /menu — Diagnosed as Backend Bug (FE-6)
+Re-investigated after the previous endpoint fix didn't actually make announcements appear. Used a real JWT against production to hit `GET /api/games/announcement` directly and confirmed it's not a real endpoint — the request falls through to the `/api/games/:id` handler, which returns an identical 403/404 for `announcement`, `abc`, and `999`. The API contract documents it as a public endpoint, but the backend either never implemented it or registered `/api/games/:id` first in the Express router.
+
+Frontend code is correct per the contract and no changes were made to application code this pass. Documentation was updated: FE-5 in `docs/FRONTEND_DEBUG.md` is now marked BLOCKED ON BACKEND with the full investigation, and a new FE-6 row was added to the Known Bugs table. Backend fix options: register a dedicated `/api/games/announcement` route before `/api/games/:id`, or move the public read to a non-colliding path (e.g. `/api/site-announcement`) and update both the contract and `lib/api.js`.
+
+**Files modified:** `docs/FRONTEND_DEBUG.md`, `docs/FRONTEND_STATUS.md`
+**Files synced:** `claude-upload/FRONTEND_DEBUG.md`, `claude-upload/FRONTEND_STATUS.md`
+
 ### World Gen Retry UI (backend contract: AD-582 timeout safety net)
 Backend now returns `{ status: "failed", retryable: true, message: "…" }` when world generation stalls (or otherwise fails with a known recoverable state). Frontend wasn't reading the new fields, so players saw a generic error with no way to recover short of going back and changing setting.
 
@@ -1545,6 +1573,7 @@ All pending rgba/color fixes from previous sessions have been completed.
 | FE-3 | `ez` ReferenceError crashes play page — TDZ violation from directive handlers (`addDirectiveToast`, `refetchDirectiveState`) referenced in `handleTurnResponse` dependency array before their `const` declarations | `/play` page.js | Blocking | Fixed | 2026-04-07 |
 | FE-4 | `setContentFading is not defined` ReferenceError when world gen fails on Phase 2 (character phase) — stale reference left behind when `contentFading` was renamed to `modalFading` during modal overlay conversion. Crashes init wizard on retry/continue after world gen error. | `/init` page.js | Blocking | Fixed | 2026-04-08 |
 | FE-5 | `generate-proposal` endpoint called 5+ times for a single game during init. `generateProposal()` had no in-flight guard — `proposalLoading` state is async so concurrent calls weren't blocked. Built-in auto-retries (empty stats + catch) compound the issue. Fix: added `proposalInFlight` ref guard, changed catch retry from `return` to `await` so flag stays true through retry chain. | `/init` page.js | Annoying | Fixed | 2026-04-08 |
+| FE-6 | Announcements posted in `/admin` Settings never appear on `/menu`. Frontend hits `GET /api/games/announcement` per the API contract, but that endpoint is not actually implemented on the backend — requests fall through to the `/api/games/:id` handler, which treats "announcement" as a game ID and returns 403/404. `/api/admin/announcement` works fine for the admin side. Backend fix required: register a dedicated `/api/games/announcement` route before `/api/games/:id`, OR move the public read to a non-colliding path (e.g. `/api/site-announcement`). See FRONTEND_DEBUG.md FE-5 for full investigation. | `/menu` page.js (blocked on backend) | Annoying | Open | — |
 
 **Severity levels:**
 - **Blocking** — Prevents playtesting or core functionality. Fix before launch.

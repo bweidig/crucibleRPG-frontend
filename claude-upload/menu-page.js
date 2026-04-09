@@ -426,6 +426,13 @@ export default function MenuPage() {
     router.push(game.status === 'active' ? `/play?id=${game.id}` : `/init?id=${game.id}`);
   }
 
+  function startNewGame() {
+    // Clear any persisted init gameId so the wizard starts fresh
+    // instead of resuming a previously abandoned in-progress game.
+    try { sessionStorage.removeItem('crucible_init_gameId'); } catch {}
+    router.push('/init');
+  }
+
   async function handleDeleteGame(gameId) {
     await del(`/api/games/${gameId}`);
     setGames(prev => prev.filter(g => g.id !== gameId));
@@ -547,7 +554,7 @@ export default function MenuPage() {
                 opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(10px)',
                 transition: 'opacity 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s, transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s',
               }}>No prep needed. The engine knows the rules so you don&rsquo;t have to.</p>
-              <button className={styles.btnPrimary} onClick={() => router.push('/init')} style={{
+              <button className={styles.btnPrimary} onClick={startNewGame} style={{
                 fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 700,
                 color: 'var(--bg-main)', letterSpacing: '0.1em',
                 background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
@@ -655,7 +662,7 @@ export default function MenuPage() {
             </div>{/* end CONTINUE YOUR ADVENTURE stagger wrapper */}
 
             {/* NEW GAME button */}
-            <div className={styles.newGameBtn} onClick={() => router.push('/init')} role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') router.push('/init'); }} style={{
+            <div className={styles.newGameBtn} onClick={startNewGame} role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') startNewGame(); }} style={{
               opacity: loaded ? 1 : 0, transform: loaded ? 'translateY(0)' : 'translateY(10px)',
               transition: 'opacity 1s cubic-bezier(0.16, 1, 0.3, 1) 0.35s, transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.35s',
               width: '100%', padding: '14px 0', borderRadius: 5,
