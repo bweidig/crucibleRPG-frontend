@@ -34,6 +34,13 @@
 
 ## Recent Work (This Session: 2026-04-09)
 
+### Announcement Banner Preserves Line Breaks
+Admin writes announcements in a `<textarea>` (newlines preserved), but both the `/menu` banner and the `/admin` preview rendered `{announcement.text}` inside a plain `<div>` — HTML/React collapses whitespace by default, so any line breaks disappeared and multi-line announcements became one run-on paragraph.
+
+**Fix:** Added `whiteSpace: 'pre-wrap', overflowWrap: 'break-word'` to both render sites. Preserves typed line breaks without affecting other formatting; `overflowWrap` protects against very long unbroken strings.
+
+**Files modified:** `app/menu/page.js`, `app/admin/page.js`, `claude-upload/menu-page.js`, `claude-upload/admin-page.js` (synced)
+
 ### Talk to GM: Three Tabs → Two (Rules + My Story)
 Consolidated the Talk to GM panel from three tabs (Rules / My Story / My Directives) down to two. The third tab was redundant — directives are part of telling the GM your story, not a separate concept, and splitting them confused the mental model.
 

@@ -1998,7 +1998,11 @@ function SettingsTab({ data, loading, onRefresh }) {
         {/* Current announcement display */}
         {announcement?.text ? (
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0', lineHeight: 1.6, marginBottom: 4 }}>
+            <div style={{
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0',
+              lineHeight: 1.6, marginBottom: 4,
+              whiteSpace: 'pre-wrap', overflowWrap: 'break-word',
+            }}>
               {announcement.text}
             </div>
             <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>

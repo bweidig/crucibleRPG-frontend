@@ -500,6 +500,7 @@ export default function MenuPage() {
             <div style={{
               fontFamily: 'var(--font-alegreya-sans)', fontSize: 17, color: 'var(--text-primary)',
               lineHeight: 1.6, paddingRight: 28,
+              whiteSpace: 'pre-wrap', overflowWrap: 'break-word',
             }}>{announcement.text}</div>
             {announcement.updatedAt && (
               <div style={{
