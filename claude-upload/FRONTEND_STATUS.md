@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-08
+**Last Updated:** 2026-04-09
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -32,7 +32,23 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-08)
+## Recent Work (This Session: 2026-04-09)
+
+### Fix: Announcements Not Appearing on Menu Page
+The `getAnnouncement()` function in `lib/api.js` was calling `/api/announcement` instead of the correct `/api/games/announcement` endpoint from the API contract. Classic contract mismatch — admin could post announcements but players never saw them.
+
+- **Files modified:** `lib/api.js`
+- **Files synced:** `claude-upload/lib-api.js`
+
+---
+
+## Recent Work (Previous Session: 2026-04-08)
+
+### Init Wizard — Wait for World Gen on Character Continue
+Fixed a bug where clicking Continue on the Character step would show "World generation ran into a problem" even when world gen was still in progress. The old code treated any non-complete status (including "still generating") as a failure. Now the handler waits for the polling loop to finish before proceeding — showing "BUILDING WORLD..." on the button and "Finishing world generation…" as an info message in gold. Only shows the error if polling actually returns failed or times out.
+
+- **Files modified:** `app/init/page.js`
+- **Files synced:** `claude-upload/init-page.js`
 
 ### Right Sidebar Default Width Increase
 Increased the default sidebar width on `/play` from 340px to 380px so glossary entries are readable without manual resizing.

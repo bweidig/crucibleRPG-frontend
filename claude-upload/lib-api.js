@@ -112,5 +112,5 @@ export function del(path) { return request('DELETE', path); }
 // ─── Public Endpoints ───
 
 export function getAnnouncement() {
-  return get('/api/announcement');
+  return get('/api/games/announcement');
 }
