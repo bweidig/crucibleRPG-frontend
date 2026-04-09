@@ -65,7 +65,7 @@ const STATIC_CHIPS = [
 
 export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastStateChanges, onMetaResponse, glossaryTerms, onEntityClick, directiveState, onDeleteDirective, onRestoreDirective }) {
   const [open, setOpen] = useState(false);
-  const [tabMode, setTabMode] = useState('rules'); // 'rules' | 'story' | 'directives'
+  const [tabMode, setTabMode] = useState('rules'); // 'rules' | 'story'
 
   // ─── Rules Tab State ───
   const [rulesInput, setRulesInput] = useState('');
@@ -166,8 +166,8 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
   }, [lastQuestion, gameId, rulesLoading]);
 
   // ─── My Story Tab: Meta question ───
-  const handleAskStory = useCallback(async () => {
-    const question = storyInput.trim();
+  const handleAskStory = useCallback(async (questionText) => {
+    const question = (typeof questionText === 'string' ? questionText : storyInput).trim();
     if (!question || !gameId || storyLoading) return;
 
     setStoryLoading(true);
@@ -641,12 +641,6 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
         >
           My Story
         </button>
-        <button
-          className={`${styles.tab} ${tabMode === 'directives' ? styles.tabActive : ''}`}
-          onClick={() => setTabMode('directives')}
-        >
-          My Directives
-        </button>
       </div>
 
       {/* ─── Rules Tab ─── */}
@@ -655,16 +649,6 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
           <div className={styles.resultArea}>
             {showChips && (
               <div className={styles.chipRow}>
-                {STATIC_CHIPS.map((chip) => (
-                  <button
-                    key={chip}
-                    className={styles.chip}
-                    onClick={() => handleAskRules(chip)}
-                    disabled={rulesLoading}
-                  >
-                    {chip}
-                  </button>
-                ))}
                 <button
                   className={styles.chip}
                   onClick={() => handleAskRules(contextualChip)}
@@ -711,132 +695,132 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
       )}
 
       {/* ─── My Story Tab ─── */}
-      {tabMode === 'story' && (
-        <>
-          <div className={styles.resultArea}>
-            {storyLoading && <div className={styles.loadingText}>The GM is considering...</div>}
-            {storyResult && (
-              <div className={styles.metaResponse}>
-                <div className={styles.metaLabel}>GM</div>
-                <div className={storyResult.isRateLimit ? styles.metaTextWarning : styles.metaText}>{renderLinkedText(storyResult.text, glossaryTerms, onEntityClick)}</div>
-                {storyResult.directiveStored && (
-                  <div className={styles.directiveConfirmation}>
-                    {storyResult.directiveLane === 'goal'
-                      ? 'The GM noted your goal and will look for opportunities.'
-                      : 'The GM noted your preference.'}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+      {tabMode === 'story' && (() => {
+        const goals = directiveState?.goals || [];
+        const prefs = directiveState?.preferences || [];
+        const fulfilled = directiveState?.recentlyFulfilled || [];
+        const limits = directiveState?.limits || { goalsMax: 10, preferencesMax: 10 };
+        const hasDirectives = goals.length > 0 || prefs.length > 0 || fulfilled.length > 0;
 
-          <div className={styles.storyInputArea}>
-            <div className={styles.inputRow}>
-              <input
-                ref={storyInputRef}
-                type="text"
-                className={styles.input}
-                placeholder={rotatingPlaceholder}
-                value={storyInput}
-                onChange={e => setStoryInput(e.target.value)}
-                onKeyDown={e => {
-                  e.stopPropagation();
-                  if (e.key === 'Enter' && storyInput.trim()) {
-                    e.preventDefault();
-                    handleAskStory();
-                  }
-                }}
-                disabled={storyLoading}
-                maxLength={500}
-                aria-label="Story question for the GM"
-              />
-              <button
-                className={styles.sendButton}
-                onClick={handleAskStory}
-                disabled={storyLoading || !storyInput.trim()}
-              >
-                Ask
-              </button>
-            </div>
-            <div className={styles.storyHint}>The GM will respond without advancing your turn.</div>
-          </div>
-        </>
-      )}
-
-      {/* ─── My Directives Tab ─── */}
-      {tabMode === 'directives' && (
-        <div className={styles.resultArea}>
-          {(() => {
-            const goals = directiveState?.goals || [];
-            const prefs = directiveState?.preferences || [];
-            const fulfilled = directiveState?.recentlyFulfilled || [];
-            const limits = directiveState?.limits || { goalsMax: 10, preferencesMax: 10 };
-            const isEmpty = goals.length === 0 && prefs.length === 0 && fulfilled.length === 0;
-
-            if (isEmpty) {
-              return (
-                <div className={styles.directiveEmpty}>
-                  No active directives. Use the My Story tab to tell the GM what you&rsquo;re working toward.
-                </div>
-              );
-            }
-
-            return (
-              <div className={styles.directiveSections}>
-                {/* Goals */}
-                <div className={styles.directiveSection}>
-                  <div className={styles.directiveSectionHeader}>
-                    <span className={styles.directiveSectionTitle}>Goals</span>
-                    <span className={styles.directiveCount}>{goals.length}/{limits.goalsMax}</span>
-                  </div>
-                  {goals.length === 0 ? (
-                    <div className={styles.directiveNone}>No active goals.</div>
-                  ) : goals.map((g, i) => (
-                    <div key={i} className={styles.directiveItem}>
-                      <span className={styles.directiveText}>{g.text}</span>
-                      <button className={styles.directiveDismiss} onClick={() => onDeleteDirective?.({ lane: 'goal', index: i })} aria-label="Remove goal">&times;</button>
-                    </div>
+        return (
+          <>
+            <div className={styles.resultArea}>
+              {!storyLoading && (
+                <div className={styles.chipRow}>
+                  {STATIC_CHIPS.map((chip) => (
+                    <button
+                      key={chip}
+                      className={styles.chip}
+                      onClick={() => handleAskStory(chip)}
+                      disabled={storyLoading}
+                    >
+                      {chip}
+                    </button>
                   ))}
                 </div>
+              )}
 
-                {/* Preferences */}
-                <div className={styles.directiveSection}>
-                  <div className={styles.directiveSectionHeader}>
-                    <span className={styles.directiveSectionTitle}>Preferences</span>
-                    <span className={styles.directiveCount}>{prefs.length}/{limits.preferencesMax}</span>
-                  </div>
-                  {prefs.length === 0 ? (
-                    <div className={styles.directiveNone}>No active preferences.</div>
-                  ) : prefs.map((p, i) => (
-                    <div key={i} className={styles.directiveItem}>
-                      <span className={styles.directiveText}>{p.text}</span>
-                      <button className={styles.directiveDismiss} onClick={() => onDeleteDirective?.({ lane: 'preference', index: i })} aria-label="Remove preference">&times;</button>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Recently Fulfilled */}
-                {fulfilled.length > 0 && (
-                  <div className={styles.directiveSection}>
-                    <div className={styles.directiveSectionHeader}>
-                      <span className={styles.directiveFulfilledTitle}>Recently Completed</span>
-                    </div>
-                    {fulfilled.map((f, i) => (
-                      <div key={i} className={styles.directiveFulfilledItem}>
-                        <div className={styles.directiveFulfilledContent}>
-                          <span className={styles.directiveFulfilledText}>{f.text}</span>
-                          {f.reason && <span className={styles.directiveFulfilledReason}>{f.reason}</span>}
-                        </div>
-                        <button className={styles.directiveRestore} onClick={() => onRestoreDirective?.(f.text)}>Restore</button>
+              {/* Active directives — only shown if any exist, so players see and manage them in context */}
+              {hasDirectives && (
+                <div className={styles.directiveSections}>
+                  {goals.length > 0 && (
+                    <div className={styles.directiveSection}>
+                      <div className={styles.directiveSectionHeader}>
+                        <span className={styles.directiveSectionTitle}>Goals</span>
+                        <span className={styles.directiveCount}>{goals.length}/{limits.goalsMax}</span>
                       </div>
-                    ))}
-                  </div>
-                )}
+                      {goals.map((g, i) => (
+                        <div key={i} className={styles.directiveItem}>
+                          <span className={styles.directiveText}>{g.text}</span>
+                          <button className={styles.directiveDismiss} onClick={() => onDeleteDirective?.({ lane: 'goal', index: i })} aria-label="Remove goal">&times;</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {prefs.length > 0 && (
+                    <div className={styles.directiveSection}>
+                      <div className={styles.directiveSectionHeader}>
+                        <span className={styles.directiveSectionTitle}>Preferences</span>
+                        <span className={styles.directiveCount}>{prefs.length}/{limits.preferencesMax}</span>
+                      </div>
+                      {prefs.map((p, i) => (
+                        <div key={i} className={styles.directiveItem}>
+                          <span className={styles.directiveText}>{p.text}</span>
+                          <button className={styles.directiveDismiss} onClick={() => onDeleteDirective?.({ lane: 'preference', index: i })} aria-label="Remove preference">&times;</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {fulfilled.length > 0 && (
+                    <div className={styles.directiveSection}>
+                      <div className={styles.directiveSectionHeader}>
+                        <span className={styles.directiveFulfilledTitle}>Recently Completed</span>
+                      </div>
+                      {fulfilled.map((f, i) => (
+                        <div key={i} className={styles.directiveFulfilledItem}>
+                          <div className={styles.directiveFulfilledContent}>
+                            <span className={styles.directiveFulfilledText}>{f.text}</span>
+                            {f.reason && <span className={styles.directiveFulfilledReason}>{f.reason}</span>}
+                          </div>
+                          <button className={styles.directiveRestore} onClick={() => onRestoreDirective?.(f.text)}>Restore</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {storyLoading && <div className={styles.loadingText}>The GM is considering...</div>}
+              {storyResult && (
+                <div className={styles.metaResponse}>
+                  <div className={styles.metaLabel}>GM</div>
+                  <div className={storyResult.isRateLimit ? styles.metaTextWarning : styles.metaText}>{renderLinkedText(storyResult.text, glossaryTerms, onEntityClick)}</div>
+                  {storyResult.directiveStored && (
+                    <div className={styles.directiveConfirmation}>
+                      {storyResult.directiveLane === 'goal'
+                        ? 'The GM noted your goal and will look for opportunities.'
+                        : 'The GM noted your preference.'}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className={styles.storyInputArea}>
+              <div className={styles.inputRow}>
+                <input
+                  ref={storyInputRef}
+                  type="text"
+                  className={styles.input}
+                  placeholder={rotatingPlaceholder}
+                  value={storyInput}
+                  onChange={e => setStoryInput(e.target.value)}
+                  onKeyDown={e => {
+                    e.stopPropagation();
+                    if (e.key === 'Enter' && storyInput.trim()) {
+                      e.preventDefault();
+                      handleAskStory();
+                    }
+                  }}
+                  disabled={storyLoading}
+                  maxLength={500}
+                  aria-label="Story question or preference for the GM"
+                />
+                <button
+                  className={styles.sendButton}
+                  onClick={() => handleAskStory()}
+                  disabled={storyLoading || !storyInput.trim()}
+                >
+                  Ask
+                </button>
               </div>
-            );
-          })()}
-        </div>
-      )}
+              <div className={styles.storyHint}>Ask about your surroundings, tell the GM your goals, or share preferences. No turn is spent.</div>
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
 }

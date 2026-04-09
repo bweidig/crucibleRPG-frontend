@@ -34,6 +34,21 @@
 
 ## Recent Work (This Session: 2026-04-09)
 
+### Talk to GM: Three Tabs → Two (Rules + My Story)
+Consolidated the Talk to GM panel from three tabs (Rules / My Story / My Directives) down to two. The third tab was redundant — directives are part of telling the GM your story, not a separate concept, and splitting them confused the mental model.
+
+**What moved:**
+- Removed the `My Directives` tab button and its rendering block entirely.
+- The three narrative quick-prompt chips (`Where can I go?`, `Remind me of my goals`, `What do I know about this place?`) moved from the Rules tab chip row to the top of the My Story tab — they were never rules questions to begin with, and they now hit the free `/talk-to-gm/meta` endpoint instead of the rulebook-lookup-then-escalate flow. The contextual `How do rolls work?` / `How does combat work?` / etc. chip stays on the Rules tab.
+- The directives display (Goals, Preferences, Recently Completed with delete/restore controls) was inlined into the My Story tab between the chip row and the result area. It's only rendered when at least one directive exists, so the tab stays clean for new games. Players now see their active directives in the same place they create them.
+- `handleAskStory` now accepts an optional `questionText` argument (matching `handleAskRules`) so the new chip buttons can pass a pre-written prompt instead of going through the input field.
+- Hint text under the input updated: "Ask about your surroundings, tell the GM your goals, or share preferences. No turn is spent." — frames the tab as handling both preferences and directives.
+
+All existing APIs, handlers, and directive props (`directiveState`, `onDeleteDirective`, `onRestoreDirective`) were reused as-is — no parent page changes needed. Rulebook lookup → GM escalation flow on the Rules tab is untouched.
+
+**Files modified:** `app/play/components/TalkToGM.js`
+**Files synced:** `claude-upload/play-full.js`
+
 ### /menu Announcement Banner — Larger Type, Design System Colors
 Player reported the banner was cramped and the copy was hard to read. Bumped padding from `14px 20px` to `20px 26px`, body text from 14px to 17px, timestamp from 11px to 12px, and the close `×` from 12px to 18px so it's actually tappable. The gold accent stripe went from 3px to 4px to scale with the bigger box.
 
