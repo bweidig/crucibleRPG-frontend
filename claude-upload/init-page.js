@@ -2779,7 +2779,16 @@ function InitWizardInner() {
 
       let resumePhase = 0;
 
-      // Phase 0 complete — storyteller chosen
+      // Phase markers are gated progressively: each later phase ONLY counts
+      // as complete if the previous phase was also complete. The backend has
+      // been observed returning default values for some fields (e.g.
+      // `character.stats.STR.base = 5.0` the moment a character row exists;
+      // `difficulty = "standard"` as a default), so checking any field in
+      // isolation can advance us past phases the player never actually saw.
+      // Progressive gating is the defense: no Phase 4 without a real Phase 3,
+      // no Phase 5 without a real Phase 4, and so on.
+
+      // Phase 0 → 1: Storyteller chosen
       if (game.storyteller) {
         const stMatch = STORYTELLERS.find(s => s.name === game.storyteller);
         setStoryteller(stMatch ? stMatch.id : 'custom');
@@ -2787,8 +2796,8 @@ function InitWizardInner() {
         resumePhase = 1;
       }
 
-      // Phase 1 complete (or setting saved with world gen still running)
-      if (game.setting) {
+      // Phase 1 → 2: Setting saved (world gen may still be running)
+      if (resumePhase >= 1 && game.setting) {
         const stgMatch = SETTINGS.find(s => s.name === game.setting);
         setSetting(stgMatch ? stgMatch.id : 'custom');
         if (!stgMatch) setCustomWorldText(game.setting);
@@ -2809,8 +2818,8 @@ function InitWizardInner() {
         }
       }
 
-      // Phase 2 complete — character row exists
-      if (game.character) {
+      // Phase 2 → 3: Character row exists (POST /character called)
+      if (resumePhase >= 2 && game.character) {
         // Populate the "custom" character form since the backend flattens
         // any archetype choice into character fields on save.
         setCharacterMode('custom');
@@ -2827,21 +2836,20 @@ function InitWizardInner() {
         resumePhase = 3;
       }
 
-      // Phase 3 complete — adjust-proposal has been called. We detect this via
-      // `game.clock`: per API_CONTRACT, adjust-proposal is the side effect
-      // that initializes world_clock (along with scene_state, chronicle,
-      // context_budget_config). Before that, GET /api/games/:id returns
-      // `clock: null`. We deliberately do NOT gate on `character.stats`: the
-      // backend populates that with default values as soon as the character
-      // row exists (POST /character), so `stats.STR.base > 0` is true even
-      // mid-Phase-3 before the player has reviewed/adjusted anything.
-      const adjustProposalDone = !!game.clock;
-      if (adjustProposalDone) {
+      // Phase 3 → 4: adjust-proposal called. Detected via `game.clock`: per
+      // API_CONTRACT, adjust-proposal is the side effect that initializes
+      // world_clock. Before that, GET /api/games/:id returns `clock: null`.
+      // We deliberately do NOT gate on `character.stats` — the backend
+      // populates that with defaults as soon as the character row exists.
+      if (resumePhase >= 3 && game.clock) {
         resumePhase = 4;
       }
 
-      // Phase 4 complete — difficulty preset saved
-      if (game.difficulty) {
+      // Phase 4 → 5: difficulty preset saved. Gated on Phase 3 because the
+      // backend has been observed returning a default `difficulty` value
+      // before `POST /difficulty` is ever called — without this gate, any
+      // mid-wizard resume could land on Scenario Select.
+      if (resumePhase >= 4 && game.difficulty) {
         setDifficulty(String(game.difficulty).toLowerCase());
         resumePhase = 5;
       }

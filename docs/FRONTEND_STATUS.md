@@ -34,6 +34,27 @@
 
 ## Recent Work (This Session: 2026-04-09)
 
+### Init Resume: Progressive Phase Gating (FE-8)
+Player reported: resumed a save that had quit out on the character screen, wizard jumped straight to Scenario Select and failed. Railway logs confirmed world gen was still running in the background — so the backend state was definitely mid-Phase-1, yet the frontend resumed to Phase 5.
+
+**Root cause:** Same bug class as the Phase 3 stats issue (FE-7), different marker. The backend returns a default value for `game.difficulty` (observed: `"standard"`) even before `POST /difficulty` has been called. My resume logic was checking each phase marker independently — so `hasDifficulty === true` advanced resumePhase to 5 regardless of whether character/attributes had actually been completed.
+
+**Fix:** Progressive gating. Each later phase now ONLY counts as complete if the previous phase was also complete:
+
+```js
+if (game.storyteller) { resumePhase = 1; }
+if (resumePhase >= 1 && game.setting) { resumePhase = 2; ... }
+if (resumePhase >= 2 && game.character) { resumePhase = 3; ... }
+if (resumePhase >= 3 && game.clock) { resumePhase = 4; }
+if (resumePhase >= 4 && game.difficulty) { resumePhase = 5; ... }
+```
+
+No Phase 4 without a real Phase 3, no Phase 5 without a real Phase 4, and so on. This is a defense-in-depth fix: even if the backend starts returning defaults for other fields in the future, the resume can never jump past a phase the player hasn't actually completed.
+
+The existing `[init] Resume decision:` diagnostic log was already in place from FE-7 and didn't need changes.
+
+**Files modified:** `app/init/page.js`, `claude-upload/init-page.js` (synced)
+
 ### Announcement Banner Preserves Line Breaks
 Admin writes announcements in a `<textarea>` (newlines preserved), but both the `/menu` banner and the `/admin` preview rendered `{announcement.text}` inside a plain `<div>` — HTML/React collapses whitespace by default, so any line breaks disappeared and multi-line announcements became one run-on paragraph.
 
