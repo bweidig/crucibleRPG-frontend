@@ -34,6 +34,13 @@
 
 ## Recent Work (This Session: 2026-04-09)
 
+### World Gen Poll Timeout Bumped Past Backend Safety Net
+The frontend poll count was `>= 60` with a 2000ms interval — effectively 120s, which *matches* the backend's stuck-status safety net (AD-582) exactly. The frontend would give up at the same moment the backend was firing its retryable `failed` response, usually timing out before the response could arrive.
+
+**Change:** Bumped the cap from 60 to 75 iterations → 150s effective. That gives a 30s buffer past the backend's 120s threshold, so the retryable `failed` response reliably reaches the poller and triggers the Try Again UI instead of the generic client-side timeout branch. Custom world gen (40–60s in practice) now has plenty of headroom, and the backend — not this counter — is the authoritative timeout.
+
+**Files modified:** `app/init/page.js`, `claude-upload/init-page.js` (synced)
+
 ### Init Wizard — Resume From Correct Phase + Refresh Resilience
 Previously, clicking "Continue Setup" on an in-progress game (or refreshing mid-wizard) would dump the player back at Phase 0 (Storyteller) even though all their prior choices were already saved on the backend. The menu was correctly passing `/init?id={id}`, but the init page had an open TODO to read that id's state and jump to the right phase.
 

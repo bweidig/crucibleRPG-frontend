@@ -3215,7 +3215,12 @@ function InitWizardInner() {
         }
       }
       worldPollCount.current += 1;
-      if (worldPollCount.current >= 60) {
+      // 75 polls × 2000ms = 150s effective. This deliberately outlasts the
+      // backend's 120s stuck-status safety net (AD-582) so its retryable
+      // `failed` response has time to reach us before the frontend gives up.
+      // Custom world gen can legitimately run 40–60s; the backend — not this
+      // counter — is the authoritative timeout.
+      if (worldPollCount.current >= 75) {
         setWorldGenStatus('timeout');
         return;
       }
