@@ -34,6 +34,19 @@
 
 ## Recent Work (This Session: 2026-04-09)
 
+### Init Resume: Phase 3 Detection Fix (FE-7)
+Player reported: exited the wizard mid-character-screen, refreshed, was placed at Phase 4 (Difficulty) instead of Phase 2/3 — skipped past Attributes entirely.
+
+**Root cause:** The resume logic gated "Phase 3 complete" on `game.character.stats.STR.base > 0`. That was built on a wrong assumption — the backend returns `character.stats` with default values (e.g., 5.0 across the board) as soon as the character row exists (`POST /character`), not just after `adjust-proposal`. So the check fired true mid-Phase-3 and the resume advanced to Phase 4.
+
+**Fix:** Switched the Phase 3 marker to `!!game.clock`. Per API_CONTRACT, `adjust-proposal` is the side effect that initializes `world_clock` (along with scene_state, chronicle, context_budget_config), and GET `/api/games/:id` returns `clock: null` until that happens. That gives a reliable boundary between "character exists" (Phase 3 in progress) and "character finalized" (Phase 4+).
+
+**Also added:** One-shot `console.log('[init] Resume decision:', {...})` that prints `resumePhase` plus the per-marker booleans (`hasStoryteller`, `hasSetting`, `hasWorldName`, `hasCharacter`, `hasClock`, `hasDifficulty`). If another resume-to-wrong-phase bug surfaces, the log tells us which marker was wrong without guessing.
+
+Phase 4 detection (via `game.difficulty`) was left alone — the player landed on Phase 4 rather than skipping all the way to Phase 5, so that marker is correctly null mid-init.
+
+**Files modified:** `app/init/page.js`, `claude-upload/init-page.js` (synced)
+
 ### World Gen Poll Timeout Bumped Past Backend Safety Net
 The frontend poll count was `>= 60` with a 2000ms interval — effectively 120s, which *matches* the backend's stuck-status safety net (AD-582) exactly. The frontend would give up at the same moment the backend was firing its retryable `failed` response, usually timing out before the response could arrive.
 

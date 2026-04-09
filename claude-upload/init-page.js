@@ -2827,17 +2827,16 @@ function InitWizardInner() {
         resumePhase = 3;
       }
 
-      // Phase 3 complete — adjust-proposal wrote character_stats to the DB.
-      // Before that, character exists but stats will be missing/empty.
-      const statsObj = game.character?.stats;
-      const hasFinalizedStats = !!(
-        statsObj &&
-        typeof statsObj === 'object' &&
-        Object.keys(statsObj).length > 0 &&
-        typeof statsObj.STR?.base === 'number' &&
-        statsObj.STR.base > 0
-      );
-      if (hasFinalizedStats) {
+      // Phase 3 complete — adjust-proposal has been called. We detect this via
+      // `game.clock`: per API_CONTRACT, adjust-proposal is the side effect
+      // that initializes world_clock (along with scene_state, chronicle,
+      // context_budget_config). Before that, GET /api/games/:id returns
+      // `clock: null`. We deliberately do NOT gate on `character.stats`: the
+      // backend populates that with default values as soon as the character
+      // row exists (POST /character), so `stats.STR.base > 0` is true even
+      // mid-Phase-3 before the player has reviewed/adjusted anything.
+      const adjustProposalDone = !!game.clock;
+      if (adjustProposalDone) {
         resumePhase = 4;
       }
 
@@ -2846,6 +2845,20 @@ function InitWizardInner() {
         setDifficulty(String(game.difficulty).toLowerCase());
         resumePhase = 5;
       }
+
+      // One-shot diagnostic: prints what the backend returned for each of
+      // the phase markers we inspect, so if a player reports resuming to the
+      // wrong phase we can tell which marker was wrong without guessing.
+      console.log('[init] Resume decision:', {
+        resumePhase,
+        status: game.status,
+        hasStoryteller: !!game.storyteller,
+        hasSetting: !!game.setting,
+        hasWorldName: !!game.worldName,
+        hasCharacter: !!game.character,
+        hasClock: !!game.clock,
+        hasDifficulty: !!game.difficulty,
+      });
 
       setPhase(resumePhase);
 
