@@ -34,6 +34,16 @@
 
 ## Recent Work (This Session: 2026-04-09)
 
+### /menu Announcement Banner — Larger Type, Design System Colors
+Player reported the banner was cramped and the copy was hard to read. Bumped padding from `14px 20px` to `20px 26px`, body text from 14px to 17px, timestamp from 11px to 12px, and the close `×` from 12px to 18px so it's actually tappable. The gold accent stripe went from 3px to 4px to scale with the bigger box.
+
+Also replaced the hardcoded warm-brown background `#1a1814` (which was **not** from the design system and clashed with the cool dark blue palette used everywhere else) with `var(--bg-gold-subtle)` (#13151d), the gold-tinted dark background already in use on the pricing subscription card and CTA hover states. Remaining hardcoded hex values (`#3a3328`, `#c9a84c`, `#c8c0b0`, `#7082a4`) were swapped for their design-system tokens (`--border-card`, `--accent-gold`, `--text-primary`, `--text-muted`) so future palette tweaks flow through automatically.
+
+FE-5 (announcements missing on /menu) and FE-6 (same, viewed as a status-table entry) are both marked resolved — backend deployed the dedicated `/api/games/announcement` route ahead of the `:id` collision, and announcements now reach /menu as intended. The `console.log` debug hooks from the earlier commit were left in place; they can come out on a future cleanup pass.
+
+**Files modified:** `app/menu/page.js`, `docs/FRONTEND_DEBUG.md`, `docs/FRONTEND_STATUS.md`
+**Files synced:** `claude-upload/menu-page.js`, `claude-upload/FRONTEND_DEBUG.md`, `claude-upload/FRONTEND_STATUS.md`
+
 ### Init Resume: Phase 3 Detection Fix (FE-7)
 Player reported: exited the wizard mid-character-screen, refreshed, was placed at Phase 4 (Difficulty) instead of Phase 2/3 — skipped past Attributes entirely.
 
@@ -1593,7 +1603,7 @@ All pending rgba/color fixes from previous sessions have been completed.
 | FE-3 | `ez` ReferenceError crashes play page — TDZ violation from directive handlers (`addDirectiveToast`, `refetchDirectiveState`) referenced in `handleTurnResponse` dependency array before their `const` declarations | `/play` page.js | Blocking | Fixed | 2026-04-07 |
 | FE-4 | `setContentFading is not defined` ReferenceError when world gen fails on Phase 2 (character phase) — stale reference left behind when `contentFading` was renamed to `modalFading` during modal overlay conversion. Crashes init wizard on retry/continue after world gen error. | `/init` page.js | Blocking | Fixed | 2026-04-08 |
 | FE-5 | `generate-proposal` endpoint called 5+ times for a single game during init. `generateProposal()` had no in-flight guard — `proposalLoading` state is async so concurrent calls weren't blocked. Built-in auto-retries (empty stats + catch) compound the issue. Fix: added `proposalInFlight` ref guard, changed catch retry from `return` to `await` so flag stays true through retry chain. | `/init` page.js | Annoying | Fixed | 2026-04-08 |
-| FE-6 | Announcements posted in `/admin` Settings never appear on `/menu`. Frontend hits `GET /api/games/announcement` per the API contract, but that endpoint is not actually implemented on the backend — requests fall through to the `/api/games/:id` handler, which treats "announcement" as a game ID and returns 403/404. `/api/admin/announcement` works fine for the admin side. Backend fix required: register a dedicated `/api/games/announcement` route before `/api/games/:id`, OR move the public read to a non-colliding path (e.g. `/api/site-announcement`). See FRONTEND_DEBUG.md FE-5 for full investigation. | `/menu` page.js (blocked on backend) | Annoying | Open | — |
+| FE-6 | Announcements posted in `/admin` Settings never appeared on `/menu`. Frontend hit `GET /api/games/announcement` per the API contract, but that endpoint wasn't actually implemented on the backend — requests fell through to the `/api/games/:id` handler, which treated "announcement" as a game ID and returned 403/404. Backend registered the dedicated route before `/api/games/:id`; no frontend code changes needed. See FRONTEND_DEBUG.md FE-5. | `/menu` page.js (backend fix) | Annoying | Fixed | 2026-04-09 |
 
 **Severity levels:**
 - **Blocking** — Prevents playtesting or core functionality. Fix before launch.

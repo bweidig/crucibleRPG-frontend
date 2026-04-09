@@ -12,7 +12,7 @@ Tracks bugs investigated in the frontend, what was tried, what worked, and what 
 
 ## Log
 
-### FE-5: Announcements from /admin don't appear on /menu (2026-04-09) — BLOCKED ON BACKEND
+### FE-5: Announcements from /admin don't appear on /menu (2026-04-09) — RESOLVED
 
 **Symptom:** Admin posts an announcement via /admin Settings tab, but players never see the banner on /menu.
 
@@ -30,6 +30,8 @@ All three hit the same handler, which is the `:id` handler (it checks `isPlaytes
 **Status:** Frontend is correct per the contract; the fix is on the backend. Either (A) register a dedicated `/api/games/announcement` route BEFORE `/api/games/:id` in the Express router, or (B) mount the public read at a non-colliding path (e.g. `/api/site-announcement`) and update both the contract and `lib/api.js` `getAnnouncement()` to match.
 
 **Frontend state left in place:** `getAnnouncement()` still points at `/api/games/announcement` (matches contract). The `console.log`/`console.error` debug hooks on `/menu` stay until the backend fix is verified in production.
+
+**Final resolution (2026-04-09):** Backend registered the dedicated `/api/games/announcement` route before `/api/games/:id`. Verified working from production — admin posts now appear on `/menu` as expected. No frontend code changes needed.
 
 ---
 

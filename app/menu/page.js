@@ -481,29 +481,29 @@ export default function MenuPage() {
         {/* Announcement banner */}
         {announcement?.text && dismissedAnnouncement !== announcement.text && (
           <div style={{
-            background: '#1a1814', border: '1px solid #3a3328', borderLeft: '3px solid #c9a84c',
-            borderRadius: 8, padding: '14px 20px', marginTop: 12, marginBottom: 18,
+            background: 'var(--bg-gold-subtle)', border: '1px solid var(--border-card)', borderLeft: '4px solid var(--accent-gold)',
+            borderRadius: 8, padding: '20px 26px', marginTop: 12, marginBottom: 18,
             position: 'relative',
           }}>
             <button
               onClick={() => setDismissedAnnouncement(announcement.text)}
               style={{
-                position: 'absolute', top: 10, right: 12,
+                position: 'absolute', top: 12, right: 14,
                 background: 'none', border: 'none', cursor: 'pointer',
-                fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4',
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 18, color: 'var(--text-muted)',
                 padding: 4, lineHeight: 1, transition: 'color 0.15s',
               }}
-              onMouseEnter={e => { e.currentTarget.style.color = '#c9a84c'; }}
-              onMouseLeave={e => { e.currentTarget.style.color = '#7082a4'; }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent-gold)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}
               aria-label="Dismiss announcement"
             >&times;</button>
             <div style={{
-              fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0',
-              lineHeight: 1.6, paddingRight: 20,
+              fontFamily: 'var(--font-alegreya-sans)', fontSize: 17, color: 'var(--text-primary)',
+              lineHeight: 1.6, paddingRight: 28,
             }}>{announcement.text}</div>
             {announcement.updatedAt && (
               <div style={{
-                fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4', marginTop: 6,
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: 'var(--text-muted)', marginTop: 8,
               }}>Posted {formatTimeAgo(announcement.updatedAt)}</div>
             )}
           </div>
