@@ -2322,6 +2322,64 @@ function GameLogTab({ pendingGameId, onClearPending }) {
     return [...evts].sort((a, b) => tsOf(a) - tsOf(b));
   }, [events, turnEvents, selectedTurn, typeFilter, errorsOnly]);
 
+  // Turn Summary: aggregate the per-turn events into a single card so the
+  // admin doesn't have to read every event_data blob to see "what happened
+  // this turn." Pulls cost/tokens/model out of ai_call event_data, counts
+  // events by type, and surfaces any classification fields the backend has
+  // attached. All fields are extracted defensively (snake_case + camelCase)
+  // because event_data shape is not part of the contract.
+  // Source events: prefer the per-turn fetch result (full set, no LIMIT 500)
+  // when available, otherwise fall back to filteredEvents.
+  const turnSummary = useMemo(() => {
+    if (errorsOnly || selectedTurn == null) return null;
+    const source = (turnEvents != null) ? turnEvents : filteredEvents;
+    if (!source || source.length === 0) return null;
+
+    const countByType = {};
+    const aiCalls = [];
+    const classifications = [];
+    let totalCost = 0;
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+
+    for (const evt of source) {
+      const type = evt.event_type || evt.eventType || 'unknown';
+      countByType[type] = (countByType[type] || 0) + 1;
+      const data = evt.event_data || evt.eventData || evt.data || {};
+
+      if (type === 'ai_call') {
+        const model = data.model || data.modelName || null;
+        const inT = data.input_tokens ?? data.inputTokens ?? null;
+        const outT = data.output_tokens ?? data.outputTokens ?? null;
+        const cost = data.cost ?? data.totalCost ?? null;
+        const taskType = data.task_type || data.taskType || data.task || data.purpose || null;
+        if (typeof cost === 'number') totalCost += cost;
+        if (typeof inT === 'number') totalInputTokens += inT;
+        if (typeof outT === 'number') totalOutputTokens += outT;
+        aiCalls.push({ model, inT, outT, cost, taskType });
+      }
+
+      // Classification can show up in a few places: a dedicated event type,
+      // a `classification` field on event_data, or a `task_type === 'classification'`.
+      if (data.classification) {
+        classifications.push(typeof data.classification === 'string' ? data.classification : JSON.stringify(data.classification));
+      }
+      if (data.directive_type || data.directiveType) {
+        classifications.push(`directive: ${data.directive_type || data.directiveType}`);
+      }
+    }
+
+    return {
+      eventCount: source.length,
+      countByType,
+      aiCalls,
+      classifications,
+      totalCost,
+      totalInputTokens,
+      totalOutputTokens,
+    };
+  }, [turnEvents, filteredEvents, selectedTurn, errorsOnly]);
+
   // Snapshot data helpers
   const snap = currentSnapshot?.snapshot || currentSnapshot;
   const snapStats = snap?.character?.stats || snap?.stats;
@@ -2554,6 +2612,99 @@ function GameLogTab({ pendingGameId, onClearPending }) {
                       <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 10, color: '#7082a4', marginLeft: 6 }}>loading...</span>
                     )}
                   </h3>
+
+                  {/* Turn Summary card — aggregates the per-turn events into a
+                      single at-a-glance view (totals + per-AI-call breakdown). */}
+                  {turnSummary && (
+                    <div className={styles.tableCard} style={{ padding: 14, marginBottom: 12 }}>
+                      <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 10 }}>
+                        Turn Summary
+                      </span>
+
+                      {/* Totals row */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px 16px', marginBottom: 12 }}>
+                        <div className={styles.snapshotStatRow}>
+                          <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#8a94a8' }}>Events</span>
+                          <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#c8c0b0' }}>{turnSummary.eventCount}</span>
+                        </div>
+                        <div className={styles.snapshotStatRow}>
+                          <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#8a94a8' }}>AI calls</span>
+                          <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#c8c0b0' }}>{turnSummary.aiCalls.length}</span>
+                        </div>
+                        <div className={styles.snapshotStatRow}>
+                          <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#8a94a8' }}>Tokens</span>
+                          <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#c8c0b0' }}>
+                            {turnSummary.totalInputTokens.toLocaleString()} {'\u2192'} {turnSummary.totalOutputTokens.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className={styles.snapshotStatRow}>
+                          <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#8a94a8' }}>Cost</span>
+                          <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, fontWeight: 600, color: '#d0c098' }}>{formatCost(turnSummary.totalCost)}</span>
+                        </div>
+                      </div>
+
+                      {/* Event-type breakdown */}
+                      {Object.keys(turnSummary.countByType).length > 0 && (
+                        <div style={{ marginBottom: 10 }}>
+                          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4', marginBottom: 4 }}>By type</div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {Object.entries(turnSummary.countByType)
+                              .sort((a, b) => b[1] - a[1])
+                              .map(([type, count]) => (
+                                <span key={type} style={{
+                                  fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11, color: '#c8c0b0',
+                                  background: '#0a0e1a', border: '1px solid #2a2622',
+                                  padding: '2px 8px', borderRadius: 3,
+                                }}>
+                                  {type} <span style={{ color: '#9a8545' }}>{'\u00D7'}{count}</span>
+                                </span>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Per-AI-call breakdown */}
+                      {turnSummary.aiCalls.length > 0 && (
+                        <div style={{ marginBottom: turnSummary.classifications.length > 0 ? 10 : 0 }}>
+                          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4', marginBottom: 4 }}>AI calls</div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {turnSummary.aiCalls.map((call, i) => (
+                              <div key={i} style={{
+                                display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'baseline',
+                                fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11,
+                                padding: '4px 0', borderBottom: '1px solid #1e2540',
+                              }}>
+                                {call.taskType && <span style={{ color: '#9a8545', minWidth: 90 }}>{call.taskType}</span>}
+                                {call.model && <span style={{ color: '#7ab4e8' }}>{call.model}</span>}
+                                {call.inT != null && <span style={{ color: '#8a94a8' }}>{'\u2192'} {call.inT.toLocaleString()}</span>}
+                                {call.outT != null && <span style={{ color: '#8a94a8' }}>{'\u2190'} {call.outT.toLocaleString()}</span>}
+                                {call.cost != null && <span style={{ color: '#d0c098', fontWeight: 600, marginLeft: 'auto' }}>{formatCost(call.cost)}</span>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Classifications */}
+                      {turnSummary.classifications.length > 0 && (
+                        <div>
+                          <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4', marginBottom: 4 }}>Classification</div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {turnSummary.classifications.map((c, i) => (
+                              <span key={i} style={{
+                                fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11, color: '#c8c0b0',
+                                background: '#1a1610', border: '1px solid #3d3322',
+                                padding: '2px 8px', borderRadius: 3,
+                              }}>
+                                {c}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className={styles.tableCard}>
                     {filteredEvents.length === 0 ? (
                       <div style={{ padding: 14, textAlign: 'center', fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>

@@ -34,6 +34,20 @@
 
 ## Recent Work (This Session: 2026-04-09)
 
+### Admin Game Log: Turn Summary Card
+Follow-up to the per-turn fetch / expand-all change. Admin reported the Railway logs surface "cost per turn, tokens called, classification, etc." that the panel doesn't show — but the data is mostly already in the events, just buried inside individual `event_data` JSON blobs that the admin would have to read one by one.
+
+**Fix:** New `turnSummary` memo aggregates the per-turn events into a Turn Summary card rendered above the individual events list. Pulls from `turnEvents` (the per-turn full-set fetch) when available, falls back to `filteredEvents` otherwise. Surfaces:
+
+- **Totals row:** event count, AI call count, total tokens (in → out), total cost
+- **By type:** chip list of `event_type × N` (e.g. `ai_call × 4`, `narrative_generated × 1`), sorted by frequency
+- **AI calls:** per-call breakdown — `task_type` / `model` / input tokens / output tokens / cost — pulled defensively from `event_data` (snake_case + camelCase fallbacks since the JSONB shape isn't part of the contract)
+- **Classification:** any `classification` or `directive_type` fields found anywhere in the event data, surfaced as chips
+
+The card only renders when a turn is selected and we're not in Errors-Only mode. It's purely a frontend aggregation — no new endpoints, no backend changes. If a Railway log line is *not* persisted to `game_event_log`, the summary still won't show it; that would be a backend logging gap.
+
+**Files modified:** `app/admin/page.js`, `claude-upload/admin-page.js` (synced)
+
 ### Admin Game Log: Per-Turn Fetch + Expand-All Default
 Admin reported "there is far more information in the railway logs. can we get a complete output for each turn?" Two reasons the panel was sparse compared to Railway:
 
