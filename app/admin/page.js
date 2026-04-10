@@ -2215,7 +2215,8 @@ function GameLogTab({ pendingGameId, onClearPending }) {
         setGameInfo({ gameId: gid, characterName: null, setting: null });
       }
 
-      // Default to latest turn
+      // Default to latest turn. Snapshots use camelCase (`turnNumber`) per
+      // API_CONTRACT, but events use snake_case (`turn_number`) — read both.
       const turnNumbers = snaps.map(s => s.turnNumber).filter(n => n != null).sort((a, b) => a - b);
       if (turnNumbers.length > 0) {
         const latest = turnNumbers[turnNumbers.length - 1];
@@ -2223,7 +2224,7 @@ function GameLogTab({ pendingGameId, onClearPending }) {
         loadSnapshot(gid, latest);
       } else {
         // Try to get turn numbers from events
-        const evtTurns = [...new Set(evts.map(e => e.turnNumber).filter(n => n != null))].sort((a, b) => a - b);
+        const evtTurns = [...new Set(evts.map(e => e.turn_number ?? e.turnNumber).filter(n => n != null))].sort((a, b) => a - b);
         if (evtTurns.length > 0) setSelectedTurn(evtTurns[evtTurns.length - 1]);
       }
     } catch (err) {
@@ -2257,27 +2258,30 @@ function GameLogTab({ pendingGameId, onClearPending }) {
     });
   }
 
-  // Build turn list from snapshots + events
+  // Build turn list from snapshots + events. Snapshots use camelCase
+  // (`turnNumber`), events use snake_case (`turn_number`) per API_CONTRACT.
   const turnNumbers = useMemo(() => {
     const fromSnaps = snapshots.map(s => s.turnNumber).filter(n => n != null);
-    const fromEvts = events.map(e => e.turnNumber).filter(n => n != null);
+    const fromEvts = events.map(e => e.turn_number ?? e.turnNumber).filter(n => n != null);
     return [...new Set([...fromSnaps, ...fromEvts])].sort((a, b) => a - b);
   }, [snapshots, events]);
 
-  // Filter events
+  // Filter events. Event field names are snake_case (turn_number, event_type,
+  // created_at) per API_CONTRACT — keep camelCase fallbacks for safety.
   const filteredEvents = useMemo(() => {
+    const tsOf = (e) => new Date(e.created_at || e.timestamp || e.createdAt);
     let evts = events;
     if (errorsOnly) {
       return evts.filter(e => (e.event_type || e.eventType || '').toLowerCase() === 'error')
-        .sort((a, b) => new Date(a.timestamp || a.createdAt) - new Date(b.timestamp || b.createdAt));
+        .sort((a, b) => tsOf(a) - tsOf(b));
     }
     if (selectedTurn != null) {
-      evts = evts.filter(e => e.turnNumber === selectedTurn);
+      evts = evts.filter(e => (e.turn_number ?? e.turnNumber) === selectedTurn);
     }
     if (typeFilter !== 'All') {
       evts = evts.filter(e => (e.event_type || e.eventType) === typeFilter);
     }
-    return evts.sort((a, b) => new Date(a.timestamp || a.createdAt) - new Date(b.timestamp || b.createdAt));
+    return evts.sort((a, b) => tsOf(a) - tsOf(b));
   }, [events, selectedTurn, typeFilter, errorsOnly]);
 
   // Snapshot data helpers
@@ -2509,7 +2513,8 @@ function GameLogTab({ pendingGameId, onClearPending }) {
                       const isAiCall = evtType.toLowerCase() === 'ai_call';
                       const evtData = evt.event_data || evt.eventData || evt.data;
                       const expanded = expandedEvents.has(idx);
-                      const ts = evt.timestamp || evt.createdAt;
+                      const ts = evt.created_at || evt.timestamp || evt.createdAt;
+                      const evtTurn = evt.turn_number ?? evt.turnNumber;
 
                       // Extract ai_call stats
                       const aiModel = isAiCall && evtData ? (evtData.model || evtData.modelName) : null;
@@ -2522,8 +2527,8 @@ function GameLogTab({ pendingGameId, onClearPending }) {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                             {isError && <span style={{ fontSize: 14 }}>{'\u26A0'}</span>}
                             <EventTypeBadge type={evtType} />
-                            {errorsOnly && evt.turnNumber != null && (
-                              <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11, color: '#7082a4' }}>Turn {evt.turnNumber}</span>
+                            {errorsOnly && evtTurn != null && (
+                              <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11, color: '#7082a4' }}>Turn {evtTurn}</span>
                             )}
                             {ts && (
                               <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4', marginLeft: 'auto' }}>

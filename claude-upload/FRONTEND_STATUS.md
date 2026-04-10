@@ -34,6 +34,21 @@
 
 ## Recent Work (This Session: 2026-04-09)
 
+### Admin Game Log: Empty Events Panel (Field-Name Contract Mismatch)
+Admin reported the Game Log tab "doesn't populate with anything." The events panel showed "No events for this selection." even on games that definitely had events.
+
+**Root cause:** Per `API_CONTRACT.md`, the `/api/admin/game-log/:gameId` response uses **snake_case** field names on event records (`turn_number`, `event_type`, `event_data`, `created_at`) — and the contract explicitly notes "Field names on the response match DB column names ... not camelCase." Snapshots, by contrast, use camelCase. The frontend handled `event_type`/`event_data` correctly but read `e.turnNumber` everywhere — which is always `undefined` because the backend sends `turn_number`. As soon as the turn scrubber auto-selected the latest snapshot turn, the events filter `e.turnNumber === selectedTurn` filtered every event out.
+
+**Fix:** Read the documented snake_case fields first, with camelCase fallbacks for safety. Affected sites:
+- `loadGame()` — extract turn numbers from events when no snapshots exist
+- `turnNumbers` memo — build the union turn list
+- `filteredEvents` memo — both the `selectedTurn` filter and the timestamp sort comparator (used `created_at`, not `timestamp`/`createdAt`)
+- Event row rendering — `ts` and the errors-only "Turn N" label both used the wrong field
+
+The turn-scrubber and snapshot rendering were already correct because the snapshots endpoint actually does return camelCase.
+
+**Files modified:** `app/admin/page.js`, `claude-upload/admin-page.js` (synced)
+
 ### Init Resume: Progressive Phase Gating (FE-8)
 Player reported: resumed a save that had quit out on the character screen, wizard jumped straight to Scenario Select and failed. Railway logs confirmed world gen was still running in the background — so the backend state was definitely mid-Phase-1, yet the frontend resumed to Phase 5.
 
