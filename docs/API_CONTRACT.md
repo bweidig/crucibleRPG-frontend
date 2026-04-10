@@ -17,6 +17,7 @@ All game values use **x10 integer format** internally (7.3 → 73). Public API r
 - [Games (`/api/games`)](#games)
 - [Init Wizard (`/api/init`)](#init-wizard)
 - [Gameplay (`/api/game`)](#gameplay)
+- [Scene Visualization (`/api/game`)](#scene-visualization)
 - [Admin (`/api/admin`)](#admin)
 
 ---
@@ -2059,6 +2060,87 @@ The `directives` field is added to the game state response:
 ```
 
 **Status Codes:** 200, 400 (not eligible / game not active), 401 (unauthenticated), 403 (not game owner).
+
+---
+
+## Scene Visualization
+
+Mount: `/api/game/:gameId`
+
+### POST /api/game/:id/visualize
+
+Generates an AI illustration of the current scene. Takes 3-8 seconds. Does not advance the turn.
+
+**Request Body:**
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `resolution` | integer | no | Default 1024. Valid: 1024, 2048, 4096 |
+
+**Response (200):**
+```json
+{
+  "imageUrl": "https://pub-xxx.r2.dev/5/1712345678-turn34.png",
+  "turnNumber": 34,
+  "blurb": "You crouch behind the market stall as the patrol passes...",
+  "resolution": 1024,
+  "createdAt": "2026-04-08T..."
+}
+```
+
+**Status Codes:** 200, 400 (invalid resolution), 403 (non-playtester), 404 (game not found), 422 (safety filter block), 500.
+
+---
+
+### GET /api/game/:id/gallery
+
+Returns all generated images for this game, ordered by turn number descending.
+
+**Response (200):**
+```json
+{
+  "images": [
+    {
+      "id": 12,
+      "imageUrl": "https://pub-xxx.r2.dev/5/1712345678-turn34.png",
+      "turnNumber": 34,
+      "blurb": "You crouch behind the market stall...",
+      "resolution": 1024,
+      "stylePreset": "dark_fantasy",
+      "createdAt": "2026-04-08T..."
+    }
+  ],
+  "count": 1
+}
+```
+
+---
+
+### GET /api/game/:id/settings/image-style
+
+Returns the player's current image style settings plus valid presets.
+
+**Response (200):**
+```json
+{
+  "preset": "dark_fantasy",
+  "custom": null,
+  "presets": ["dark_fantasy", "cyberpunk", "watercolor", "ink_wash", "comic_book", "oil_painting", "sketch"]
+}
+```
+
+---
+
+### PUT /api/game/:id/settings/image-style
+
+Saves image style preference. At least one of `preset` or `custom` required. `custom` overrides `preset` when both set. Sending `custom: ""` clears it.
+
+**Request Body:**
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `preset` | string | no | One of the valid presets |
+| `custom` | string | no | Freeform style description |
+
+**Response (200):** Same shape as GET.
 
 ---
 
