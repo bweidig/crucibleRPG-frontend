@@ -2,7 +2,7 @@
 
 > **This contract is verified against backend code as of 2026-03-17. The frontend uses this as its single source of truth. Do not change response shapes without updating this document.**
 
-**Last Updated:** 2026-04-07
+**Last Updated:** 2026-04-10 (AD-595 web auto-playtester admin endpoints)
 
 Base URL: `https://<host>` (Railway production or `http://localhost:3000` local)
 
@@ -1293,7 +1293,7 @@ Unified action endpoint — player choices, custom actions, and bracket commands
 | Field | Type | Notes |
 |-------|------|-------|
 | `choice` | string | `"A"`, `"B"`, or `"C"` — select a presented option. `"D"` is rejected (use `custom` instead). |
-| `custom` | string | Free-text action, max 500 chars |
+| `custom` | string | Free-text action, max 500 chars. Bracket-wrapped text (`[Short Rest]`, `[Long Rest]`, `[Status Report]`, `[Briefing]`, `[Help]`) is auto-translated to the equivalent structured `command` before dispatch (AD-592). |
 | `command` | string | Bracket command name (see below) |
 | `target` | string | For `travel_to`, `forced_march`, `restore_checkpoint`, `delete_checkpoint` |
 | `text` | string | For `set_objective`, `checkpoint` |
@@ -1311,8 +1311,9 @@ Unified action endpoint — player choices, custom actions, and bracket commands
 | `set_objective` | no | `text` | Create a player objective |
 | `checkpoint` | no | `name` | Save a checkpoint (max 3) |
 | `restore_checkpoint` | no | `target` (name) | Restore a checkpoint |
-| `delete_checkpoint` | no | `target` (name) | Delete a checkpoint |
-| `long_rest` | **yes** | — | Rest (advances time) |
+| `delete_checkpoint` | no | — | Delete a checkpoint |
+| `short_rest` | no | — | Mechanical Short Rest — reduces condition penalties by 0.3, +0.5 POT (1/day), advances clock 1h. Bypasses AI. (AD-592) |
+| `long_rest` | no | — | Mechanical Long Rest — threshold recovery, Wellspring POT, resets strain counter, companion/group recovery, advances clock 6h. Bypasses AI. (AD-592) |
 | `travel_to` | **yes** | `target` (location) | Travel to location |
 | `forced_march` | **yes** | `target` (location) | Forced march to location |
 
@@ -2504,6 +2505,93 @@ Delete a game and all associated data. Uses the same ordered cascade delete as t
 
 ---
 
+### GET /api/admin/games/:id/server-logs
+
+**AD-589.** Server log capture browser. Returns persisted server console output for a game, ordered by `captured_at DESC`. Filterable by turn and request type.
+
+**URL Params:**
+| Param | Type | Notes |
+|-------|------|-------|
+| `id` | integer | Game ID |
+
+**Query Params (all optional):**
+| Param | Type | Default | Notes |
+|-------|------|---------|-------|
+| `turn` | integer | — | Filter to a specific turn number |
+| `requestType` | string | — | Filter by `'turn'`, `'init'`, `'gm_question'`, `'rewind'`, `'error'`, `'bug_report_flush'` |
+| `limit` | integer | 50 | Max 200 |
+| `offset` | integer | 0 | |
+
+**Response (200):**
+```json
+{
+  "logs": [
+    {
+      "id": 1,
+      "turnNumber": 5,
+      "requestType": "turn",
+      "lines": [
+        { "timestamp": "2026-04-09T20:15:32.123Z", "level": "log", "message": "[executeTurn] Starting turn 5..." },
+        { "timestamp": "2026-04-09T20:15:38.789Z", "level": "log", "message": "[AI_RAW_RESPONSE] {\"narrative\":\"...\",...}" }
+      ],
+      "capturedAt": "2026-04-09T20:15:39.000Z"
+    }
+  ],
+  "total": 42,
+  "limit": 50,
+  "offset": 0
+}
+```
+
+**Status Codes:** 200, 400 (`{"error": "Invalid game ID"}` / `{"error": "Invalid turn"}`), 500.
+
+---
+
+### PATCH /api/admin/games/:id/logging
+
+**AD-589.** Toggle the per-game logging override. When `true`, all future requests for the game persist server logs to `server_logs` regardless of playtester status.
+
+**URL Params:**
+| Param | Type | Notes |
+|-------|------|-------|
+| `id` | integer | Game ID |
+
+**Request Body:**
+```json
+{ "enabled": true }
+```
+
+**Response (200):**
+```json
+{ "loggingEnabled": true }
+```
+
+**Status Codes:** 200, 400 (invalid game ID, missing/non-boolean `enabled`), 404 (game not found), 500.
+
+---
+
+### POST /api/admin/prune-logs
+
+**AD-589.** Manual cleanup of old `server_logs` entries. The capture system also auto-prunes every 100th persist call.
+
+**Request Body (optional):**
+```json
+{ "daysOld": 30 }
+```
+
+| Field | Type | Default | Notes |
+|-------|------|---------|-------|
+| `daysOld` | number | 30 | Must be ≥ 1 |
+
+**Response (200):**
+```json
+{ "deleted": 1234 }
+```
+
+**Status Codes:** 200, 400 (`daysOld < 1`), 500.
+
+---
+
 ### GET /api/admin/games/:id/narrative
 
 Full narrative log for spectator/read-only view. Returns all entries (not capped at 200 like the detail endpoint).
@@ -3037,6 +3125,69 @@ Browse all Talk to GM interactions across games. Reverse chronological order.
 ```
 
 `total` reflects the count matching filters (date/game) but ignoring limit/offset — for "showing 50 of 89" UI. `callType` is `"refinement"` (rulebook answer) or `"meta"` (free-form GM question). `turnNumber` is null for non-turn-scoped GM calls.
+
+---
+
+### Auto-Playtest (Admin)
+
+#### POST /api/admin/autoplay/start
+Start a new auto-playtest run.
+**Request body:**
+```json
+{
+  "playStyle": "normal|chaotic|adversarial",
+  "setting": "Sword & Soil|Smoke & Steel|Concrete & Code|Stars & Circuits|Ash & Remnants|Dream & Myth",
+  "storyteller": "Chronicler|Bard|Trickster|Poet|Whisper|Noir",
+  "archetypeId": "string|null",
+  "targetTurns": 10-100,
+  "difficultyPreset": "forgiving|standard|harsh|brutal"
+}
+```
+**Response (201):**
+```json
+{ "runId": 42, "status": "initializing", "estimatedCost": "$0.10 - $0.30", "message": "Auto-playtest run started" }
+```
+
+#### GET /api/admin/autoplay/runs
+List all auto-playtest runs.
+**Query params:** `status` (optional filter), `limit` (default 20, max 100)
+**Response (200):**
+```json
+{ "runs": [{ "id": 42, "status": "running", "playStyle": "adversarial", "setting": "...", "storyteller": "...", "archetypeName": "...", "characterName": "...", "difficultyPreset": "standard", "targetTurns": 30, "completedTurns": 12, "totalFlags": 2, "totalCost": 0.0834, "endReason": null, "startedAt": "...", "completedAt": null }], "total": 15 }
+```
+
+#### GET /api/admin/autoplay/runs/:id
+Full run detail with turn logs.
+**Response (200):**
+```json
+{ "run": { "id": 42, "status": "completed", "playStyle": "...", "setting": "...", "storyteller": "...", "archetypeName": "...", "characterName": "...", "difficultyPreset": "standard", "targetTurns": 30, "completedTurns": 30, "gameId": 99, "diagnosticFlags": { "skillHallucination": 2 }, "totalFlags": 3, "totalCost": 0.2145, "endReason": "completed", "errorMessage": null, "startedAt": "...", "completedAt": "..." }, "turns": [{ "turnNumber": 1, "botAction": "...", "actionType": "custom", "tier": 2, "tierName": "Success", "narrativeSnippet": "...", "diagnosticFlags": [], "stateSnapshot": { "stats": { "str": 45 }, "conditionCount": 0, "inventoryCount": 8 }, "turnCost": 0.0072, "error": null }] }
+```
+
+#### GET /api/admin/autoplay/runs/:id/progress
+Lightweight polling endpoint.
+**Response (200):**
+```json
+{ "id": 42, "status": "running", "completedTurns": 12, "targetTurns": 30, "totalFlags": 2, "latestTurn": { "turnNumber": 12, "botAction": "...", "tier": 4, "tierName": "Failure", "diagnosticFlags": ["skillHallucination"], "error": null } }
+```
+When completed/failed: also includes `endReason` and `totalCost`.
+
+#### POST /api/admin/autoplay/runs/:id/cancel
+Cancel an active run. Returns 400 if not initializing/running.
+**Response (200):** `{ "cancelled": true, "completedTurns": 12 }`
+
+#### DELETE /api/admin/autoplay/runs/:id
+Delete a run + turn logs + associated game.
+**Response (200):** `{ "deleted": true }`
+
+#### GET /api/admin/autoplay/archetypes
+Available archetypes for a setting (static reference list).
+**Query params:** `setting` (required)
+**Response (200):**
+```json
+{ "archetypes": [{ "id": "shadow_thief", "name": "Shadow Thief", "description": "..." }] }
+```
+
+---
 
 ### GET /api/games/announcement
 

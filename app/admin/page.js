@@ -2669,7 +2669,8 @@ function GameLogTab({ pendingGameId, onClearPending }) {
   const [events, setEvents] = useState([]);
   const [snapshots, setSnapshots] = useState([]);
   const [currentSnapshot, setCurrentSnapshot] = useState(null);
-  const [selectedTurn, setSelectedTurn] = useState(null);
+  const [selectedTurns, setSelectedTurns] = useState(() => new Set());
+  const [lastClickedTurn, setLastClickedTurn] = useState(null);
   const [typeFilter, setTypeFilter] = useState('All');
   const [errorsOnly, setErrorsOnly] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -2709,7 +2710,8 @@ function GameLogTab({ pendingGameId, onClearPending }) {
     setEvents([]);
     setSnapshots([]);
     setCurrentSnapshot(null);
-    setSelectedTurn(null);
+    setSelectedTurns(new Set());
+    setLastClickedTurn(null);
     setTypeFilter('All');
     setErrorsOnly(false);
     setExpandedEvents(new Set());
@@ -2744,7 +2746,8 @@ function GameLogTab({ pendingGameId, onClearPending }) {
       const turnNumbers = snaps.map(s => s.turnNumber).filter(n => n != null).sort((a, b) => a - b);
       if (turnNumbers.length > 0) {
         const latest = turnNumbers[turnNumbers.length - 1];
-        setSelectedTurn(latest);
+        setSelectedTurns(new Set([latest]));
+        setLastClickedTurn(latest);
         loadSnapshot(gid, latest);
         loadEventsForTurn(gid, latest);
       } else {
@@ -2752,7 +2755,8 @@ function GameLogTab({ pendingGameId, onClearPending }) {
         const evtTurns = [...new Set(evts.map(e => e.turn_number ?? e.turnNumber).filter(n => n != null))].sort((a, b) => a - b);
         if (evtTurns.length > 0) {
           const latest = evtTurns[evtTurns.length - 1];
-          setSelectedTurn(latest);
+          setSelectedTurns(new Set([latest]));
+          setLastClickedTurn(latest);
           loadEventsForTurn(gid, latest);
         }
       }
@@ -2789,11 +2793,45 @@ function GameLogTab({ pendingGameId, onClearPending }) {
     setTurnEventsLoading(false);
   }
 
-  function handleTurnClick(turnNumber) {
-    setSelectedTurn(turnNumber);
+  function handleTurnClick(turnNumber, e) {
     setExpandedEvents(new Set());
+
+    if (e?.shiftKey && lastClickedTurn != null) {
+      // Range select: add all turns between last clicked and this one
+      const lo = Math.min(lastClickedTurn, turnNumber);
+      const hi = Math.max(lastClickedTurn, turnNumber);
+      setSelectedTurns(prev => {
+        const next = new Set(prev);
+        for (const t of turnNumbers) {
+          if (t >= lo && t <= hi) next.add(t);
+        }
+        return next;
+      });
+      // Multi-select: clear per-turn fetch + snapshot (they only work for single)
+      setTurnEvents(null);
+      setCurrentSnapshot(null);
+      return;
+    }
+
+    // Single click: toggle this turn (replace selection)
+    setSelectedTurns(new Set([turnNumber]));
+    setLastClickedTurn(turnNumber);
     loadSnapshot(loadedGameId, turnNumber);
     loadEventsForTurn(loadedGameId, turnNumber);
+  }
+
+  function selectAllTurns() {
+    setSelectedTurns(new Set(turnNumbers));
+    setExpandedEvents(new Set());
+    setTurnEvents(null);
+    setCurrentSnapshot(null);
+  }
+
+  function clearTurnSelection() {
+    setSelectedTurns(new Set());
+    setExpandedEvents(new Set());
+    setTurnEvents(null);
+    setCurrentSnapshot(null);
   }
 
   function toggleEventExpand(idx) {
@@ -2818,6 +2856,10 @@ function GameLogTab({ pendingGameId, onClearPending }) {
   // contains the COMPLETE event log for the selected turn (no LIMIT 500),
   // and we can skip the client-side turn filter entirely. Errors-only mode
   // still uses the bulk events list since errors span all turns.
+  // Derived helpers for the current selection.
+  const isSingleTurn = selectedTurns.size === 1;
+  const singleTurn = isSingleTurn ? [...selectedTurns][0] : null;
+
   const filteredEvents = useMemo(() => {
     const tsOf = (e) => new Date(e.created_at || e.timestamp || e.createdAt);
     if (errorsOnly) {
@@ -2825,16 +2867,17 @@ function GameLogTab({ pendingGameId, onClearPending }) {
         .filter(e => (e.event_type || e.eventType || '').toLowerCase() === 'error')
         .sort((a, b) => tsOf(a) - tsOf(b));
     }
-    const usingTurnFetch = turnEvents != null && selectedTurn != null;
+    // Single turn with per-turn fetch: use the complete turn data
+    const usingTurnFetch = turnEvents != null && isSingleTurn;
     let evts = usingTurnFetch ? turnEvents : events;
-    if (!usingTurnFetch && selectedTurn != null) {
-      evts = evts.filter(e => (e.turn_number ?? e.turnNumber) === selectedTurn);
+    if (!usingTurnFetch && selectedTurns.size > 0) {
+      evts = evts.filter(e => selectedTurns.has(e.turn_number ?? e.turnNumber));
     }
     if (typeFilter !== 'All') {
       evts = evts.filter(e => (e.event_type || e.eventType) === typeFilter);
     }
     return [...evts].sort((a, b) => tsOf(a) - tsOf(b));
-  }, [events, turnEvents, selectedTurn, typeFilter, errorsOnly]);
+  }, [events, turnEvents, selectedTurns, isSingleTurn, typeFilter, errorsOnly]);
 
   // Turn Summary: aggregate the per-turn events into a single card so the
   // admin doesn't have to read every event_data blob to see "what happened
@@ -2845,8 +2888,8 @@ function GameLogTab({ pendingGameId, onClearPending }) {
   // Source events: prefer the per-turn fetch result (full set, no LIMIT 500)
   // when available, otherwise fall back to filteredEvents.
   const turnSummary = useMemo(() => {
-    if (errorsOnly || selectedTurn == null) return null;
-    const source = (turnEvents != null) ? turnEvents : filteredEvents;
+    if (errorsOnly || selectedTurns.size === 0) return null;
+    const source = (turnEvents != null && isSingleTurn) ? turnEvents : filteredEvents;
     if (!source || source.length === 0) return null;
 
     const countByType = {};
@@ -2892,7 +2935,39 @@ function GameLogTab({ pendingGameId, onClearPending }) {
       totalInputTokens,
       totalOutputTokens,
     };
-  }, [turnEvents, filteredEvents, selectedTurn, errorsOnly]);
+  }, [turnEvents, filteredEvents, selectedTurns, isSingleTurn, errorsOnly]);
+
+  // Running cost tally: aggregate cost/tokens per turn across the entire game
+  // so the admin can see spend-per-turn and a running cumulative total.
+  // Uses the bulk events array (all turns) as the data source.
+  const turnCostTally = useMemo(() => {
+    if (!events || events.length === 0 || turnNumbers.length === 0) return null;
+    const perTurn = {};
+    for (const t of turnNumbers) {
+      perTurn[t] = { aiCalls: 0, inputTokens: 0, outputTokens: 0, cost: 0 };
+    }
+    for (const evt of events) {
+      const turn = evt.turn_number ?? evt.turnNumber;
+      const type = evt.event_type || evt.eventType || '';
+      if (turn == null || type !== 'ai_call') continue;
+      if (!perTurn[turn]) perTurn[turn] = { aiCalls: 0, inputTokens: 0, outputTokens: 0, cost: 0 };
+      const data = evt.event_data || evt.eventData || evt.data || {};
+      const inT = data.input_tokens ?? data.inputTokens ?? 0;
+      const outT = data.output_tokens ?? data.outputTokens ?? 0;
+      const cost = data.cost ?? data.totalCost ?? 0;
+      perTurn[turn].aiCalls += 1;
+      if (typeof inT === 'number') perTurn[turn].inputTokens += inT;
+      if (typeof outT === 'number') perTurn[turn].outputTokens += outT;
+      if (typeof cost === 'number') perTurn[turn].cost += cost;
+    }
+    let cumulative = 0;
+    const rows = turnNumbers.map(t => {
+      const d = perTurn[t] || { aiCalls: 0, inputTokens: 0, outputTokens: 0, cost: 0 };
+      cumulative += d.cost;
+      return { turn: t, ...d, cumulative };
+    });
+    return { rows, grandTotal: cumulative };
+  }, [events, turnNumbers]);
 
   // Snapshot data helpers
   const snap = currentSnapshot?.snapshot || currentSnapshot;
@@ -2957,24 +3032,117 @@ function GameLogTab({ pendingGameId, onClearPending }) {
             <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', textAlign: 'center', padding: 40 }}>No events recorded for this game.</p>
           ) : (
             <>
-              {/* Turn Scrubber */}
+              {/* Turn Scrubber — click to select one, shift+click for range */}
               {turnNumbers.length > 0 && (
                 <div style={{ marginBottom: 12 }}>
-                  <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
-                    Turns
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                    <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                      Turns
+                    </span>
+                    {selectedTurns.size > 0 && (
+                      <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 10, color: '#7082a4' }}>
+                        {selectedTurns.size === 1
+                          ? `Turn ${[...selectedTurns][0]}`
+                          : (() => {
+                              const sorted = [...selectedTurns].sort((a, b) => a - b);
+                              const isContiguous = sorted.length === sorted[sorted.length - 1] - sorted[0] + 1;
+                              return isContiguous
+                                ? `Turns ${sorted[0]}\u2013${sorted[sorted.length - 1]} (${sorted.length} turns)`
+                                : `${sorted.length} turns selected`;
+                            })()}
+                      </span>
+                    )}
+                    {selectedTurns.size > 1 && (
+                      <button
+                        className={styles.typeFilterPill}
+                        onClick={clearTurnSelection}
+                        style={{ fontSize: 10, padding: '2px 8px' }}
+                      >
+                        Clear
+                      </button>
+                    )}
+                    <button
+                      className={selectedTurns.size === turnNumbers.length ? styles.typeFilterPillActive : styles.typeFilterPill}
+                      onClick={selectAllTurns}
+                      style={{ fontSize: 10, padding: '2px 8px' }}
+                    >
+                      All
+                    </button>
+                  </div>
                   <div className={styles.turnScrubber}>
                     {turnNumbers.map(t => (
                       <button
                         key={t}
-                        className={selectedTurn === t && !errorsOnly ? styles.turnBtnActive : styles.turnBtn}
-                        onClick={() => { setErrorsOnly(false); handleTurnClick(t); }}
+                        className={selectedTurns.has(t) && !errorsOnly ? styles.turnBtnActive : styles.turnBtn}
+                        onClick={(e) => { setErrorsOnly(false); handleTurnClick(t, e); }}
                       >
                         {t}
                       </button>
                     ))}
                   </div>
                 </div>
+              )}
+
+              {/* Running Cost Tally — collapsible table showing per-turn spend
+                  and a running cumulative total across the entire game. */}
+              {turnCostTally && turnCostTally.rows.length > 0 && (
+                <CollapsibleSection title={`Cost Tally — ${formatCost(turnCostTally.grandTotal)} total`}>
+                  <div style={{ overflowX: 'auto', marginBottom: 12 }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11 }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #2a2622' }}>
+                          <th style={{ textAlign: 'left', padding: '4px 8px', color: '#9a8545', fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, letterSpacing: '0.05em' }}>Turn</th>
+                          <th style={{ textAlign: 'right', padding: '4px 8px', color: '#9a8545', fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, letterSpacing: '0.05em' }}>AI</th>
+                          <th style={{ textAlign: 'right', padding: '4px 8px', color: '#9a8545', fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, letterSpacing: '0.05em' }}>In Tok</th>
+                          <th style={{ textAlign: 'right', padding: '4px 8px', color: '#9a8545', fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, letterSpacing: '0.05em' }}>Out Tok</th>
+                          <th style={{ textAlign: 'right', padding: '4px 8px', color: '#9a8545', fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, letterSpacing: '0.05em' }}>Cost</th>
+                          <th style={{ textAlign: 'right', padding: '4px 8px', color: '#9a8545', fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, letterSpacing: '0.05em' }}>Running</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {turnCostTally.rows.map(row => {
+                          const isSelected = selectedTurns.has(row.turn) && !errorsOnly;
+                          return (
+                            <tr
+                              key={row.turn}
+                              onClick={(e) => { setErrorsOnly(false); handleTurnClick(row.turn, e); }}
+                              style={{
+                                borderBottom: '1px solid #1e2540',
+                                cursor: 'pointer',
+                                background: isSelected ? '#1a1814' : 'transparent',
+                              }}
+                            >
+                              <td style={{ padding: '4px 8px', color: isSelected ? '#c9a84c' : '#7082a4', fontWeight: isSelected ? 600 : 400 }}>{row.turn}</td>
+                              <td style={{ textAlign: 'right', padding: '4px 8px', color: '#8a94a8' }}>{row.aiCalls}</td>
+                              <td style={{ textAlign: 'right', padding: '4px 8px', color: '#8a94a8' }}>{row.inputTokens.toLocaleString()}</td>
+                              <td style={{ textAlign: 'right', padding: '4px 8px', color: '#8a94a8' }}>{row.outputTokens.toLocaleString()}</td>
+                              <td style={{ textAlign: 'right', padding: '4px 8px', color: '#d0c098', fontWeight: 600 }}>{formatCost(row.cost)}</td>
+                              <td style={{ textAlign: 'right', padding: '4px 8px', color: '#c8c0b0' }}>{formatCost(row.cumulative)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot>
+                        <tr style={{ borderTop: '2px solid #3a3328' }}>
+                          <td style={{ padding: '6px 8px', color: '#9a8545', fontWeight: 600 }}>Total</td>
+                          <td style={{ textAlign: 'right', padding: '6px 8px', color: '#8a94a8' }}>
+                            {turnCostTally.rows.reduce((s, r) => s + r.aiCalls, 0)}
+                          </td>
+                          <td style={{ textAlign: 'right', padding: '6px 8px', color: '#8a94a8' }}>
+                            {turnCostTally.rows.reduce((s, r) => s + r.inputTokens, 0).toLocaleString()}
+                          </td>
+                          <td style={{ textAlign: 'right', padding: '6px 8px', color: '#8a94a8' }}>
+                            {turnCostTally.rows.reduce((s, r) => s + r.outputTokens, 0).toLocaleString()}
+                          </td>
+                          <td style={{ textAlign: 'right', padding: '6px 8px', color: '#d0c098', fontWeight: 700 }}>
+                            {formatCost(turnCostTally.grandTotal)}
+                          </td>
+                          <td style={{ textAlign: 'right', padding: '6px 8px' }}></td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </CollapsibleSection>
               )}
 
               {/* Type Filters */}
@@ -3009,9 +3177,11 @@ function GameLogTab({ pendingGameId, onClearPending }) {
                 {/* Left Column — Snapshot */}
                 <div>
                   <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700, color: '#d0c098', marginBottom: 12 }}>
-                    Snapshot {selectedTurn != null ? `— Turn ${selectedTurn}` : ''}
+                    Snapshot {singleTurn != null ? `— Turn ${singleTurn}` : ''}
                   </h3>
-                  {snapshotLoading ? (
+                  {!isSingleTurn && selectedTurns.size > 1 ? (
+                    <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>Select a single turn to view its snapshot</p>
+                  ) : snapshotLoading ? (
                     <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>Loading...</p>
                   ) : !snap ? (
                     <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>No snapshot recorded for this turn</p>
@@ -3135,9 +3305,9 @@ function GameLogTab({ pendingGameId, onClearPending }) {
                 {/* Right Column — Events */}
                 <div>
                   <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700, color: '#d0c098', marginBottom: 12 }}>
-                    Events {errorsOnly ? '— Errors (All Turns)' : selectedTurn != null ? `— Turn ${selectedTurn}` : ''}
+                    Events {errorsOnly ? '— Errors (All Turns)' : isSingleTurn ? `— Turn ${singleTurn}` : selectedTurns.size > 1 ? `— ${selectedTurns.size} Turns` : ''}
                     <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11, color: '#7082a4', marginLeft: 8 }}>{filteredEvents.length}</span>
-                    {!errorsOnly && turnEvents != null && selectedTurn != null && (
+                    {!errorsOnly && turnEvents != null && isSingleTurn && (
                       <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 10, color: '#6a8a6a', marginLeft: 6 }}>full set</span>
                     )}
                     {turnEventsLoading && (
@@ -3150,7 +3320,7 @@ function GameLogTab({ pendingGameId, onClearPending }) {
                   {turnSummary && (
                     <div className={styles.tableCard} style={{ padding: 14, marginBottom: 12 }}>
                       <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 10 }}>
-                        Turn Summary
+                        {isSingleTurn ? 'Turn Summary' : `Summary — ${selectedTurns.size} Turns`}
                       </span>
 
                       {/* Totals row */}
@@ -3745,6 +3915,8 @@ export default function AdminPage() {
           <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600, color: '#7082a4', letterSpacing: '0.08em', textTransform: 'uppercase', marginLeft: 8 }}>ADMIN</span>
         </div>
         <nav style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <a href="/admin/playtest" className={styles.headerLink}>Auto-Playtester</a>
+          <span style={{ color: '#7082a4' }}>&middot;</span>
           <a href="/menu" className={styles.headerLink}>Main Menu</a>
           <span style={{ color: '#7082a4' }}>&middot;</span>
           <a href="/settings" className={styles.headerLink}>Settings</a>

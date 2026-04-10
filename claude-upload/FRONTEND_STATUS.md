@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-09
+**Last Updated:** 2026-04-10
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -25,6 +25,7 @@
 | Legal (Privacy) | `/privacy` | Complete | None (static) | None |
 | Settings | `/settings` | Complete | Partial (display settings localStorage, profile edit graceful fallback) | Subscription section uses mock data |
 | Admin | `/admin` | Complete | All admin endpoints wired | Not discoverable from UI (direct URL only) |
+| Admin Playtester | `/admin/playtest` | Complete | All autoplay endpoints wired | Admin-only, linked from admin dashboard |
 
 **Status definitions:**
 - **Complete:** Page renders, styled per design system, all mock/live data displays correctly.
@@ -32,7 +33,51 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-09)
+## Recent Work (This Session: 2026-04-10)
+
+### Admin Auto-Playtester Page (`/admin/playtest`)
+New admin-only page for configuring, launching, monitoring, and reviewing automated playtest runs.
+
+- **Config Panel:** Play style toggle pills (Normal/Chaotic/Adversarial), setting/storyteller/archetype/difficulty dropdowns, turn count slider with estimated cost, confirmation step before launch
+- **Active Runs:** Live cards showing character info, play style badge, progress bar, flag count, latest action text, cancel button. Polls every 4s per active run.
+- **Run History:** Table of completed/failed/cancelled runs with status badges, character info, turns, flags, cost, duration, end reason. View and Delete actions with confirmation modal.
+- **Detail Panel:** Inline push panel (same pattern as admin game detail) showing full run summary, diagnostic flag breakdown (color-coded by severity), and scrollable turn log with tier badges, flag badges, expandable narrative, and error display.
+- **API Client:** 7 new autoplay endpoint wrappers added to `lib/adminApi.js`
+- **Navigation:** "Auto-Playtester" link added to admin dashboard header nav
+- **Auth Guard:** Same pattern as `/admin` — redirects non-admins to `/menu`
+
+**Files created:** `app/admin/playtest/page.js`, `app/admin/playtest/page.module.css`
+**Files modified:** `app/admin/page.js`, `lib/adminApi.js`
+**Files synced:** `claude-upload/admin-playtest-page.js`, `claude-upload/admin-playtest-page.module.css`, `claude-upload/admin-page.js`, `claude-upload/lib-adminApi.js`
+
+---
+
+### Admin Game Log — Running Cost Tally + Multi-Turn Select
+Added a collapsible "Cost Tally" table and multi-turn selection to the Game Log tab.
+
+**Running Cost Tally:**
+- New `turnCostTally` useMemo computes per-turn cost breakdown (AI calls, input/output tokens, cost) from the bulk events array, plus a running cumulative sum
+- Collapsible section sits between the turn scrubber and the type filters
+- Table columns: Turn, AI calls, Input Tokens, Output Tokens, Cost, Running Total
+- Grand total shown in the collapse toggle label and in a footer row
+
+**Multi-Turn Selection:**
+- Converted `selectedTurn` (single number) to `selectedTurns` (Set) for multi-select
+- **Click** a turn button to select a single turn (replaces selection)
+- **Shift+Click** to range-select all turns between the last clicked and the current
+- **All** button selects every turn; **Clear** button deselects (appears when 2+ selected)
+- Live selection label shows "Turn 5", "Turns 3–8 (6 turns)", or "4 turns selected"
+- Events column shows combined events from all selected turns; Turn Summary aggregates across the selection
+- Snapshot column only shows for single-turn selections (shows guidance message for multi)
+- Per-turn fetch (`?turn=N`) only used for single-turn selections; multi falls back to bulk events
+- Cost tally table rows and turn scrubber buttons both support shift+click
+
+**Files modified:** `app/admin/page.js`
+**Files synced:** `claude-upload/admin-page.js`
+
+---
+
+## Recent Work (Previous Session: 2026-04-09)
 
 ### Admin Server Logs Viewer (AD-583)
 Backend now captures server console output per game per turn into a `server_logs` table. Built the admin UI to view those captures and toggle per-game logging.

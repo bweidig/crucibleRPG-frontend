@@ -182,3 +182,37 @@ export function getServerLogs(gameId, params = {}) {
 export function toggleGameLogging(gameId, enabled) {
   return patch(`/api/admin/games/${gameId}/logging`, { enabled });
 }
+
+// ─── Auto-Playtester ───
+
+export function getAutoplayArchetypes(setting) {
+  return get(`/api/admin/autoplay/archetypes?setting=${encodeURIComponent(setting)}`);
+}
+
+export function startAutoplay(config) {
+  return post('/api/admin/autoplay/start', config);
+}
+
+export function getAutoplayRuns(params = {}) {
+  const query = new URLSearchParams();
+  if (params.limit != null) query.set('limit', params.limit);
+  if (params.offset != null) query.set('offset', params.offset);
+  const qs = query.toString();
+  return get(`/api/admin/autoplay/runs${qs ? `?${qs}` : ''}`);
+}
+
+export function getAutoplayRun(id) {
+  return get(`/api/admin/autoplay/runs/${id}`);
+}
+
+export function getAutoplayProgress(id) {
+  return get(`/api/admin/autoplay/runs/${id}/progress`);
+}
+
+export function cancelAutoplay(id) {
+  return post(`/api/admin/autoplay/runs/${id}/cancel`);
+}
+
+export function deleteAutoplayRun(id) {
+  return del(`/api/admin/autoplay/runs/${id}`);
+}
