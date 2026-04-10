@@ -2165,6 +2165,15 @@ function GameLogTab({ pendingGameId, onClearPending }) {
   const [snapshotLoading, setSnapshotLoading] = useState(false);
   const [error, setError] = useState(null);
   const [expandedEvents, setExpandedEvents] = useState(new Set());
+  // Per-turn events: a separate fetch via `?turn=N` that bypasses the
+  // backend's hardcoded LIMIT 500 on the bulk endpoint, so we get the
+  // FULL event log for the selected turn (matching what Railway shows).
+  // null = no per-turn fetch yet; array = per-turn results to use.
+  const [turnEvents, setTurnEvents] = useState(null);
+  const [turnEventsLoading, setTurnEventsLoading] = useState(false);
+  // Default to expanded so the full event_data renders inline without
+  // requiring a click on every row. Toggle off if too noisy.
+  const [expandAll, setExpandAll] = useState(true);
 
   const typeFilters = ['All', 'ai_call', 'turn_start', 'turn_end', 'error'];
 
@@ -2190,6 +2199,7 @@ function GameLogTab({ pendingGameId, onClearPending }) {
     setTypeFilter('All');
     setErrorsOnly(false);
     setExpandedEvents(new Set());
+    setTurnEvents(null);
     setGameInfo(null);
 
     try {
@@ -2222,10 +2232,15 @@ function GameLogTab({ pendingGameId, onClearPending }) {
         const latest = turnNumbers[turnNumbers.length - 1];
         setSelectedTurn(latest);
         loadSnapshot(gid, latest);
+        loadEventsForTurn(gid, latest);
       } else {
         // Try to get turn numbers from events
         const evtTurns = [...new Set(evts.map(e => e.turn_number ?? e.turnNumber).filter(n => n != null))].sort((a, b) => a - b);
-        if (evtTurns.length > 0) setSelectedTurn(evtTurns[evtTurns.length - 1]);
+        if (evtTurns.length > 0) {
+          const latest = evtTurns[evtTurns.length - 1];
+          setSelectedTurn(latest);
+          loadEventsForTurn(gid, latest);
+        }
       }
     } catch (err) {
       setError(err.message || 'Failed to load game log');
@@ -2244,10 +2259,27 @@ function GameLogTab({ pendingGameId, onClearPending }) {
     setSnapshotLoading(false);
   }
 
+  // Per-turn fetch: bypasses the bulk endpoint's hardcoded LIMIT 500 by
+  // querying `?turn=N` directly. Returns the COMPLETE set of events for
+  // that turn (the same data Railway logs surface).
+  async function loadEventsForTurn(gid, turnNumber) {
+    setTurnEventsLoading(true);
+    setTurnEvents(null);
+    try {
+      const data = await getGameLog(gid || loadedGameId, { turn: turnNumber });
+      const evts = data?.events || data || [];
+      setTurnEvents(Array.isArray(evts) ? evts : []);
+    } catch {
+      setTurnEvents([]);
+    }
+    setTurnEventsLoading(false);
+  }
+
   function handleTurnClick(turnNumber) {
     setSelectedTurn(turnNumber);
     setExpandedEvents(new Set());
     loadSnapshot(loadedGameId, turnNumber);
+    loadEventsForTurn(loadedGameId, turnNumber);
   }
 
   function toggleEventExpand(idx) {
@@ -2268,21 +2300,27 @@ function GameLogTab({ pendingGameId, onClearPending }) {
 
   // Filter events. Event field names are snake_case (turn_number, event_type,
   // created_at) per API_CONTRACT — keep camelCase fallbacks for safety.
+  // When a per-turn fetch has populated `turnEvents`, prefer that source: it
+  // contains the COMPLETE event log for the selected turn (no LIMIT 500),
+  // and we can skip the client-side turn filter entirely. Errors-only mode
+  // still uses the bulk events list since errors span all turns.
   const filteredEvents = useMemo(() => {
     const tsOf = (e) => new Date(e.created_at || e.timestamp || e.createdAt);
-    let evts = events;
     if (errorsOnly) {
-      return evts.filter(e => (e.event_type || e.eventType || '').toLowerCase() === 'error')
+      return events
+        .filter(e => (e.event_type || e.eventType || '').toLowerCase() === 'error')
         .sort((a, b) => tsOf(a) - tsOf(b));
     }
-    if (selectedTurn != null) {
+    const usingTurnFetch = turnEvents != null && selectedTurn != null;
+    let evts = usingTurnFetch ? turnEvents : events;
+    if (!usingTurnFetch && selectedTurn != null) {
       evts = evts.filter(e => (e.turn_number ?? e.turnNumber) === selectedTurn);
     }
     if (typeFilter !== 'All') {
       evts = evts.filter(e => (e.event_type || e.eventType) === typeFilter);
     }
-    return evts.sort((a, b) => tsOf(a) - tsOf(b));
-  }, [events, selectedTurn, typeFilter, errorsOnly]);
+    return [...evts].sort((a, b) => tsOf(a) - tsOf(b));
+  }, [events, turnEvents, selectedTurn, typeFilter, errorsOnly]);
 
   // Snapshot data helpers
   const snap = currentSnapshot?.snapshot || currentSnapshot;
@@ -2365,6 +2403,14 @@ function GameLogTab({ pendingGameId, onClearPending }) {
                   onClick={() => setErrorsOnly(!errorsOnly)}
                 >
                   {'\u26A0'} Errors Only
+                </button>
+                <button
+                  className={expandAll ? styles.typeFilterPillActive : styles.typeFilterPill}
+                  onClick={() => setExpandAll(!expandAll)}
+                  style={{ marginLeft: 'auto' }}
+                  title="Show full event_data inline for every event"
+                >
+                  {expandAll ? '\u25BC Collapse all' : '\u25B6 Expand all'}
                 </button>
               </div>
 
@@ -2501,18 +2547,24 @@ function GameLogTab({ pendingGameId, onClearPending }) {
                   <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700, color: '#d0c098', marginBottom: 12 }}>
                     Events {errorsOnly ? '— Errors (All Turns)' : selectedTurn != null ? `— Turn ${selectedTurn}` : ''}
                     <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11, color: '#7082a4', marginLeft: 8 }}>{filteredEvents.length}</span>
+                    {!errorsOnly && turnEvents != null && selectedTurn != null && (
+                      <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 10, color: '#6a8a6a', marginLeft: 6 }}>full set</span>
+                    )}
+                    {turnEventsLoading && (
+                      <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 10, color: '#7082a4', marginLeft: 6 }}>loading...</span>
+                    )}
                   </h3>
                   <div className={styles.tableCard}>
                     {filteredEvents.length === 0 ? (
                       <div style={{ padding: 14, textAlign: 'center', fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>
-                        {errorsOnly ? 'No errors found.' : 'No events for this selection.'}
+                        {errorsOnly ? 'No errors found.' : turnEventsLoading ? 'Loading events for this turn...' : 'No events for this selection.'}
                       </div>
                     ) : filteredEvents.map((evt, idx) => {
                       const evtType = evt.event_type || evt.eventType || 'unknown';
                       const isError = evtType.toLowerCase() === 'error';
                       const isAiCall = evtType.toLowerCase() === 'ai_call';
                       const evtData = evt.event_data || evt.eventData || evt.data;
-                      const expanded = expandedEvents.has(idx);
+                      const expanded = expandAll || expandedEvents.has(idx);
                       const ts = evt.created_at || evt.timestamp || evt.createdAt;
                       const evtTurn = evt.turn_number ?? evt.turnNumber;
 
@@ -2547,12 +2599,15 @@ function GameLogTab({ pendingGameId, onClearPending }) {
                             </div>
                           )}
 
-                          {/* Expandable event data */}
+                          {/* Event data — always rendered when expandAll is on,
+                              otherwise togglable per event. */}
                           {evtData && (
                             <div style={{ marginTop: 6 }}>
-                              <button className={styles.eventExpand} onClick={() => toggleEventExpand(idx)}>
-                                {expanded ? '\u25BC Hide data' : '\u25B6 Show data'}
-                              </button>
+                              {!expandAll && (
+                                <button className={styles.eventExpand} onClick={() => toggleEventExpand(idx)}>
+                                  {expanded ? '\u25BC Hide data' : '\u25B6 Show data'}
+                                </button>
+                              )}
                               {expanded && (
                                 <pre className={styles.eventDataPre}>
                                   {JSON.stringify(evtData, null, 2)}

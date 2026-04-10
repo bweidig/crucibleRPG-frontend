@@ -34,6 +34,19 @@
 
 ## Recent Work (This Session: 2026-04-09)
 
+### Admin Game Log: Per-Turn Fetch + Expand-All Default
+Admin reported "there is far more information in the railway logs. can we get a complete output for each turn?" Two reasons the panel was sparse compared to Railway:
+
+1. **The bulk endpoint is hardcoded `LIMIT 500`** ordered by `created_at DESC` (per API_CONTRACT line 2536). For any game past ~10–15 turns, earlier turns get truncated and the events panel only shows a slice of what actually happened.
+2. **`event_data` was hidden behind per-event "Show data" clicks.** Only the compact AI-call summary (model + tokens + cost) was visible by default; the full JSONB blob — which is where most of the Railway-log-level detail lives — required a click on every single row.
+
+**Fix:**
+- **Per-turn fetch.** When a turn is selected (auto-selected on load OR clicked in the scrubber), the panel now fires a second request: `getGameLog(gid, { turn: N })`. The backend already supported the `?turn=` query param via `adminApi.js`. Querying by turn returns the COMPLETE event log for that turn — the LIMIT 500 cap stops mattering because no single turn exceeds that. New `turnEvents` state holds the per-turn results; `filteredEvents` prefers them over the bulk-list client-side filter when present. The panel header shows `full set` next to the count when per-turn data is in use.
+- **Expand-all default.** New `expandAll` state, default `true`. When on, every event renders its full `event_data` JSON inline without requiring a click. New "Collapse all / Expand all" pill in the type-filter row toggles it. Per-event "Show data" click-toggling still works when expand-all is off.
+- **Errors-Only mode is unaffected** — it still uses the bulk events list because errors span all turns and are rare enough that the cap doesn't matter.
+
+**Files modified:** `app/admin/page.js`, `claude-upload/admin-page.js` (synced)
+
 ### Admin Game Log: Empty Events Panel (Field-Name Contract Mismatch)
 Admin reported the Game Log tab "doesn't populate with anything." The events panel showed "No events for this selection." even on games that definitely had events.
 
