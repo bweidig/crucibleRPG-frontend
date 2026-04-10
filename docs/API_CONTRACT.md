@@ -17,7 +17,7 @@ All game values use **x10 integer format** internally (7.3 → 73). Public API r
 - [Games (`/api/games`)](#games)
 - [Init Wizard (`/api/init`)](#init-wizard)
 - [Gameplay (`/api/game`)](#gameplay)
-- [Scene Visualization (`/api/game`)](#scene-visualization)
+- [Reports & Feedback (`/api`)](#reports--feedback)
 - [Admin (`/api/admin`)](#admin)
 
 ---
@@ -1079,7 +1079,7 @@ At least one required. Valid dials: `dc_offset`, `fate_dc`, `survival_enabled`, 
 
 #### GET /api/init/:gameId/pacing-options
 
-List scenario pacing options (AD-516). Also available at `/intensity-options` for backward compatibility.
+List scenario pacing options (AD-516).
 
 **Response (200):**
 ```json
@@ -1091,6 +1091,12 @@ List scenario pacing options (AD-516). Also available at `/intensity-options` fo
   ]
 }
 ```
+
+---
+
+#### GET /api/init/:gameId/intensity-options
+
+**Deprecated alias** of `GET /api/init/:gameId/pacing-options` (AD-516). Same handler, same response shape. Retained for backward compatibility with older frontend builds. New code should call `/pacing-options` directly.
 
 ---
 
@@ -1465,6 +1471,32 @@ The `state` object has the same shape as `GET /api/game/:id/state`. `rewindAvail
 | 400 | No turn to rewind (`rewindAvailable` is false), or game not active |
 | 429 | Rate limited |
 | 500 | Internal server error |
+
+---
+
+### POST /api/game/:id/skill-challenge
+
+**Stub endpoint (AD-504).** Reserved for player-initiated Skill Relevance Challenges — the player disputes which skill the AI applied and proposes an alternative. The full AI re-evaluation pipeline is not yet wired, so the handler logs the request and returns 501 Not Implemented. Frontend should treat this as a placeholder and avoid relying on its side effects until the AD-504 follow-up ships.
+
+**Auth:** `requireAuth`. No ownership check.
+
+**Request Body (all optional — all fields are logged but not validated):**
+| Field | Type | Notes |
+|-------|------|-------|
+| `turnNumber` | integer | Turn the challenge applies to |
+| `skillId` | string or integer | Alternative skill the player proposes |
+| `justification` | string | Player's reasoning |
+
+**Response (501):**
+```json
+{
+  "message": "Skill Relevance Challenge not yet implemented. The AI re-evaluation pipeline will be wired in a future update.",
+  "turnNumber": 5,
+  "skillId": "persuasion"
+}
+```
+
+No database writes, no other status codes. Always 501 until the AD-504 follow-up lands.
 
 ---
 
@@ -1871,6 +1903,70 @@ At least one field required.
 
 ---
 
+### GET /api/game/:id/settings/ai-model
+
+Read per-game AI model overrides (AD-348). **Playtester-only feature** — returns 403 for non-playtester users. Reads `game_worlds.ai_model_overrides` JSONB.
+
+**Auth:** `requireAuth` + game ownership + `is_playtester = true`.
+
+**Response (200):**
+```json
+{
+  "overrides": {
+    "all": null,
+    "narrative": null,
+    "summarization": null,
+    "zone_generation": null,
+    "classification": null,
+    "npc_flesh_out": null,
+    "character_proposal": null
+  },
+  "reasoning_effort": null,
+  "defaults": {
+    "narrative": "gemini-3-flash-preview",
+    "summarization": "gemini-3-flash-preview",
+    "zone_generation": "gemini-3-flash-preview",
+    "classification": "gemini-3-flash-preview",
+    "npc_flesh_out": "gemini-3-flash-preview",
+    "character_proposal": "gemini-3-flash-preview"
+  },
+  "availableModels": [
+    { "id": "gemini-3.1-pro-preview", "label": "Gemini 3.1 Pro", "provider": "gemini", "tier": "standard" }
+  ],
+  "taskTypes": ["narrative", "summarization", "zone_generation", "classification", "npc_flesh_out", "character_proposal"],
+  "validReasoningEfforts": []
+}
+```
+
+Every key in `overrides` is populated (missing keys return `null`). `defaults` reflects the current `AI_PROVIDER` env var's default routing. `availableModels` lists every model in `MODEL_COSTS` with provider + tier metadata.
+
+**Status Codes:** 200, 403 (`{"error": "AI model overrides require playtester access"}`), 404 (game not found), 500.
+
+---
+
+### PUT /api/game/:id/settings/ai-model
+
+Update per-game AI model overrides (AD-348). Merges incoming overrides with existing `ai_model_overrides` JSONB — null values delete the corresponding key; empty `overrides` object or `null` clears all. `reasoning_effort` is tracked independently within the same JSONB blob.
+
+**Auth:** `requireAuth` + game ownership + `is_playtester = true`.
+
+**Request Body:**
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `overrides` | object or null | yes | Keys must be in `VALID_OVERRIDE_KEYS` (`all`, `narrative`, `summarization`, `zone_generation`, `classification`, `npc_flesh_out`, `character_proposal`). Values must be a model string or `null` (to delete). `{}` or `null` clears all overrides. |
+| `reasoning_effort` | string or null | no | If provided, must be in `VALID_REASONING_EFFORTS` |
+
+**Response (200):** Same shape as GET, plus `"message": "AI model overrides updated"`.
+
+**Status Codes:**
+- 200 — saved
+- 400 — `{"error": "overrides must be an object or null"}`, `{"error": "Unknown override key: \"<key>\". Valid keys: <list>"}`, or `{"error": "Invalid reasoning_effort: \"<value>\". Valid values: <list>"}`
+- 403 — `{"error": "AI model overrides require playtester access"}`
+- 404 — game not found
+- 500 — internal error
+
+---
+
 ### POST /api/game/:id/talk-to-gm
 
 Ask the GM a question. Phase 1: free keyword lookup (no turn cost).
@@ -2063,84 +2159,64 @@ The `directives` field is added to the game state response:
 
 ---
 
-## Scene Visualization
+## Reports & Feedback
 
-Mount: `/api/game/:gameId`
+Mount: `/api` (not under `/api/games` or `/api/game` — these are top-level player-feedback endpoints).
 
-### POST /api/game/:id/visualize
+**Auth:** all endpoints require `requireAuth`. No admin or playtester gate.
 
-Generates an AI illustration of the current scene. Takes 3-8 seconds. Does not advance the turn.
+**Rate limit:** shared across `/api/bug-report` and `/api/suggestion` — **10 submissions per user per hour**, tracked in-process. Returns 429 when exceeded.
+
+---
+
+### POST /api/bug-report
+
+Submit a bug report. If `gameId` is provided, the handler auto-captures the current `world_clock.total_turn` and stores it alongside the report.
 
 **Request Body:**
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| `resolution` | integer | no | Default 1024. Valid: 1024, 2048, 4096 |
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `type` | string | no | Must be `"bug"` or `"suggestion"` when provided. This route's handler does NOT force a type — both values are accepted. For forced-suggestion submissions use `POST /api/suggestion` instead. |
+| `category` | string | yes | For `type="bug"`: one of `narrative`, `mechanics`, `ui`, `performance`, `other`. For `type="suggestion"`: one of `feature`, `story`, `ui`, `balance`, `other`. |
+| `message` | string | yes | 1–2000 characters |
+| `gameId` | integer or null | no | If provided, must be parseable as integer |
+| `context` | object | no | Arbitrary JSON; stored as-is |
 
-**Response (200):**
+**Response (201):**
 ```json
 {
-  "imageUrl": "https://pub-xxx.r2.dev/5/1712345678-turn34.png",
-  "turnNumber": 34,
-  "blurb": "You crouch behind the market stall as the patrol passes...",
-  "resolution": 1024,
-  "createdAt": "2026-04-08T..."
+  "id": 42,
+  "message": "Report submitted. Thanks for helping improve the game."
 }
 ```
 
-**Status Codes:** 200, 400 (invalid resolution), 403 (non-playtester), 404 (game not found), 422 (safety filter block), 500.
+**Status Codes:**
+- 201 — submitted
+- 400 — `{"error": "type must be \"bug\" or \"suggestion\""}`, `{"error": "category must be one of: <list>"}`, `{"error": "message is required"}`, `{"error": "message must be 1-2000 characters"}`, or `{"error": "Invalid gameId"}`
+- 429 — `{"error": "Rate limited. Maximum 10 reports per hour."}`
+- 500 — internal error
 
 ---
 
-### GET /api/game/:id/gallery
+### POST /api/suggestion
 
-Returns all generated images for this game, ordered by turn number descending.
-
-**Response (200):**
-```json
-{
-  "images": [
-    {
-      "id": 12,
-      "imageUrl": "https://pub-xxx.r2.dev/5/1712345678-turn34.png",
-      "turnNumber": 34,
-      "blurb": "You crouch behind the market stall...",
-      "resolution": 1024,
-      "stylePreset": "dark_fantasy",
-      "createdAt": "2026-04-08T..."
-    }
-  ],
-  "count": 1
-}
-```
-
----
-
-### GET /api/game/:id/settings/image-style
-
-Returns the player's current image style settings plus valid presets.
-
-**Response (200):**
-```json
-{
-  "preset": "dark_fantasy",
-  "custom": null,
-  "presets": ["dark_fantasy", "cyberpunk", "watercolor", "ink_wash", "comic_book", "oil_painting", "sketch"]
-}
-```
-
----
-
-### PUT /api/game/:id/settings/image-style
-
-Saves image style preference. At least one of `preset` or `custom` required. `custom` overrides `preset` when both set. Sending `custom: ""` clears it.
+Alias of `POST /api/bug-report` that forces `type = "suggestion"`. Any `type` value in the request body is ignored. All other fields (`category`, `message`, `gameId`, `context`) behave identically to `/bug-report`. Shares the same rate limit counter.
 
 **Request Body:**
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| `preset` | string | no | One of the valid presets |
-| `custom` | string | no | Freeform style description |
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `category` | string | yes | Must be one of `feature`, `story`, `ui`, `balance`, `other` |
+| `message` | string | yes | 1–2000 characters |
+| `gameId` | integer or null | no | If provided, must be parseable as integer |
+| `context` | object | no | Arbitrary JSON; stored as-is |
 
-**Response (200):** Same shape as GET.
+**Response (201):** Same shape as `POST /api/bug-report`.
+
+**Status Codes:**
+- 201 — submitted
+- 400 — `{"error": "category must be one of: feature, story, ui, balance, other"}`, `{"error": "message is required"}`, `{"error": "message must be 1-2000 characters"}`, or `{"error": "Invalid gameId"}`
+- 429 — `{"error": "Rate limited. Maximum 10 reports per hour."}`
+- 500 — internal error
 
 ---
 
@@ -2455,6 +2531,101 @@ Full narrative log for spectator/read-only view. Returns all entries (not capped
 
 ---
 
+### GET /api/admin/game-log/:gameId
+
+Returns the most recent game event log entries for a game (from `game_event_log`), hardcoded `LIMIT 500`, ordered by `created_at DESC`. Supports optional filtering by `event_type` and `turn_number`.
+
+**URL Params:**
+| Param | Type | Notes |
+|-------|------|-------|
+| `gameId` | integer | Returns 400 if not a positive integer |
+
+**Query Params (all optional):**
+| Param | Type | Notes |
+|-------|------|-------|
+| `type` | string | Filter by `event_type` (exact match) |
+| `turn` | integer | Filter by `turn_number` (exact match) |
+
+**Response (200):**
+```json
+{
+  "events": [
+    {
+      "id": 987,
+      "turn_number": 12,
+      "event_type": "narrative_generated",
+      "event_data": { "model": "gemini-3-flash-preview", "inputTokens": 1800 },
+      "created_at": "2026-04-09T..."
+    }
+  ],
+  "count": 1
+}
+```
+
+`event_data` is a JSONB blob whose shape depends on `event_type`. Field names on the response match DB column names (`turn_number`, `event_type`, etc.) — not camelCase.
+
+**Status Codes:** 200, 400 (`{"error": "Invalid gameId"}`), 500.
+
+---
+
+### GET /api/admin/game-log/:gameId/snapshots
+
+List all turn-state snapshots for a game in summary view, ordered by `turn_number DESC`, capped at 200 entries. Used by the admin dashboard to pick a turn to inspect.
+
+**URL Params:**
+| Param | Type | Notes |
+|-------|------|-------|
+| `gameId` | integer | Returns 400 if not a positive integer |
+
+**Response (200):**
+```json
+{
+  "snapshots": [
+    {
+      "turnNumber": 12,
+      "createdAt": "2026-04-09T...",
+      "playerHp": "34/40",
+      "location": 5,
+      "npcCount": 3,
+      "conditionCount": 1,
+      "gold": 75
+    }
+  ],
+  "count": 1
+}
+```
+
+`playerHp` is derived from `snapshot.player.stats.CON` (format `effective/base`, or `null` if unavailable). `location` is `snapshot.player.locationId`. `npcCount` is `snapshot.npcsOnScreen.length`. `conditionCount` is `snapshot.player.conditions.length`.
+
+**Status Codes:** 200, 400 (`{"error": "Invalid gameId"}`), 500.
+
+---
+
+### GET /api/admin/game-log/:gameId/snapshot/:turnNumber
+
+Fetch the full JSON game-state snapshot for a specific turn.
+
+**URL Params:**
+| Param | Type | Notes |
+|-------|------|-------|
+| `gameId` | integer | Returns 400 if not a positive integer |
+| `turnNumber` | integer | Returns 400 if `isNaN` |
+
+**Response (200):**
+```json
+{
+  "turnNumber": 12,
+  "snapshot": { "player": { "stats": { "CON": { "effective": 34, "base": 40 } } }, "...": "full state blob" },
+  "createdAt": "2026-04-09T..."
+}
+```
+
+`snapshot` is the full JSONB blob from `game_state_snapshots.snapshot` — shape defined by the snapshot writer, not this endpoint.
+
+**Status Codes:** 200, 400 (`{"error": "Invalid gameId or turnNumber"}`), 404 (`{"error": "Snapshot not found"}`), 500.
+
+---
+
 ### GET /api/admin/costs
 
 Aggregate AI cost data across all games.
@@ -2674,6 +2845,114 @@ Aggregate analytics dashboard. Single-pass SQL aggregations.
   }
 }
 ```
+
+### GET /api/admin/reports
+
+Browse player-submitted bug reports and suggestions (from `bug_reports`, joined with `users` and `game_worlds`). Reverse chronological order.
+
+**Query Params (all optional):**
+| Param | Type | Default | Notes |
+|-------|------|---------|-------|
+| `type` | string | — | Filter by `type` (`bug` or `suggestion`) |
+| `status` | string | — | Filter by `status` (`open`, `reviewed`, `resolved`, `dismissed`) |
+| `limit` | integer | 50 | Clamped to 1–200 |
+| `offset` | integer | 0 | Minimum 0 |
+
+**Response (200):**
+```json
+{
+  "reports": [
+    {
+      "id": 42,
+      "type": "bug",
+      "category": "narrative",
+      "message": "The GM keeps forgetting my character is blind.",
+      "status": "open",
+      "adminNotes": null,
+      "playerName": "Destrega",
+      "playerEmail": "player@example.com",
+      "characterName": "Jasper",
+      "setting": "Sword & Soil",
+      "gameId": 101,
+      "turnNumber": 14,
+      "context": { "fromFrontendUrl": "/game/101" },
+      "createdAt": "2026-04-07T...",
+      "updatedAt": "2026-04-07T..."
+    }
+  ],
+  "total": 89,
+  "limit": 50,
+  "offset": 0
+}
+```
+
+`total` reflects all rows matching the filters, ignoring `limit`/`offset`.
+
+**Status Codes:** 200, 500.
+
+---
+
+### GET /api/admin/reports/summary
+
+Dashboard counts for open bugs, open suggestions, in-review, and total across all reports.
+
+**Response (200):**
+```json
+{
+  "openBugs": 7,
+  "openSuggestions": 12,
+  "inReview": 3,
+  "total": 89
+}
+```
+
+`openBugs` counts `status='open' AND type='bug'`; `openSuggestions` counts `status='open' AND type='suggestion'`; `inReview` counts `status='reviewed'`; `total` is every row in `bug_reports`.
+
+**Status Codes:** 200, 500.
+
+---
+
+### PATCH /api/admin/reports/:id
+
+Update a report's `status` and/or `adminNotes`. At least one field must be provided. Uses `COALESCE` to leave other fields unchanged. Sets `updated_at` to `NOW()`.
+
+**URL Params:**
+| Param | Type | Notes |
+|-------|------|-------|
+| `id` | integer | Returns 400 if `isNaN` |
+
+**Request Body:**
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `status` | string | one-of | Must be one of `open`, `reviewed`, `resolved`, `dismissed` |
+| `adminNotes` | string | one-of | Max 2000 characters |
+
+At least one of `status` or `adminNotes` must be provided.
+
+**Response (200):**
+```json
+{
+  "id": 42,
+  "type": "bug",
+  "category": "narrative",
+  "message": "The GM keeps forgetting my character is blind.",
+  "status": "reviewed",
+  "adminNotes": "Confirmed — tracked as AD-600.",
+  "gameId": 101,
+  "turnNumber": 14,
+  "context": { "fromFrontendUrl": "/game/101" },
+  "createdAt": "2026-04-07T...",
+  "updatedAt": "2026-04-09T..."
+}
+```
+
+**Status Codes:**
+- 200 — updated
+- 400 — `{"error": "Invalid report ID"}`, `{"error": "At least one of status or adminNotes must be provided"}`, `{"error": "status must be one of: open, reviewed, resolved, dismissed"}`, `{"error": "adminNotes must be a string"}`, or `{"error": "adminNotes must be 2000 characters or less"}`
+- 404 — `{"error": "Report not found"}`
+- 500 — internal error
+
+---
 
 ### POST /api/admin/reports/distill
 
