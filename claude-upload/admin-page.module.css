@@ -815,6 +815,177 @@
   color: #c9a84c;
 }
 
+/* ─── Game Log: Sub-Tabs (Events vs Server Logs) ─── */
+
+.subTab {
+  font-family: var(--font-cinzel);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #7082a4;
+  background: transparent;
+  border: 1px solid #1e2540;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.subTab:hover {
+  color: #c8c0b0;
+  border-color: #3a3328;
+}
+
+.subTabActive {
+  composes: subTab;
+  color: #c9a84c;
+  background: #1a1814;
+  border-color: #3a3328;
+}
+
+/* ─── Server Logs: Pills ─── */
+
+.serverLogPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-jetbrains-mono);
+  font-size: 12px;
+  font-weight: 600;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 4px;
+  border: 1px solid #1e2540;
+  background: transparent;
+  color: #7082a4;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.serverLogPill:hover {
+  color: #c8c0b0;
+  border-color: #3a3328;
+}
+
+.serverLogPillActive {
+  composes: serverLogPill;
+  color: #c9a84c;
+  background: #1a1814;
+  border-color: #c9a84c;
+}
+
+/* ─── Server Logs: Request Type Badges ─── */
+
+.badgePurple {
+  composes: badge;
+  color: #b58ae8;
+  background: #181426;
+  border: 1px solid #b58ae833;
+}
+
+.badgeGold {
+  composes: badge;
+  color: #c9a84c;
+  background: #1a1814;
+  border: 1px solid #c9a84c33;
+}
+
+.badgeGreen {
+  composes: badge;
+  color: #8aba7a;
+  background: #142018;
+  border: 1px solid #8aba7a33;
+}
+
+.badgeOrange {
+  composes: badge;
+  color: #e8845a;
+  background: #201a14;
+  border: 1px solid #e8845a33;
+}
+
+.badgeBlue {
+  composes: badge;
+  color: #7ab4e8;
+  background: #0d1a28;
+  border: 1px solid #7ab4e833;
+}
+
+/* ─── Server Logs: Log Display ─── */
+
+.serverLogsScroller {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.serverLogsScroller::-webkit-scrollbar {
+  width: 8px;
+}
+
+.serverLogsScroller::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.serverLogsScroller::-webkit-scrollbar-thumb {
+  background: #2a2a3a;
+  border-radius: 2px;
+}
+
+.serverLogPre {
+  background: #0a0e1a;
+  border: 1px solid #1e2540;
+  border-radius: 4px;
+  padding: 10px 12px;
+  margin-top: 6px;
+  font-family: var(--font-jetbrains-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.serverLogLine {
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 1px 0;
+}
+
+.tinyBtn {
+  font-family: var(--font-cinzel);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7082a4;
+  background: transparent;
+  border: 1px solid #1e2540;
+  border-radius: 3px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tinyBtn:hover {
+  color: #c9a84c;
+  border-color: #3a3328;
+}
+
+.tinyBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.serverLogTurnHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+}
+
 /* ─── Responsive ─── */
 
 @media (max-width: 1023px) {

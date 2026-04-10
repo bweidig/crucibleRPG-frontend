@@ -34,6 +34,39 @@
 
 ## Recent Work (This Session: 2026-04-09)
 
+### Admin Server Logs Viewer (AD-583)
+Backend now captures server console output per game per turn into a `server_logs` table. Built the admin UI to view those captures and toggle per-game logging.
+
+**New Game Log sub-tab.** The Game Log tab now has a sub-tab toggle: "Events & Snapshot" (the existing view) vs "Server Logs" (new). Selecting Server Logs renders a `ServerLogsPanel` that fetches `/api/admin/games/:id/server-logs?limit=200` once for the game (Option A from the spec — single fetch, client-side filtering — fine for playtester games under ~100 turns).
+
+**Turn pill bar.** Each captured log entry becomes a pill labeled with the turn number (or "Init" for null/0 turn). A small request-type badge sits inside each pill: blue for `turn`, purple for `init`, red for `error`, gold for `bug_report_flush`, green for `gm_question`, orange for `rewind`. Selection works three ways:
+- **Click** a pill to toggle that single entry
+- **Shift+Click** another pill to range-select all entries between the previously clicked and the just-clicked turn (numeric turns only — Init pills are never part of a range)
+- **Select All / Clear** buttons act on every pill
+
+A live label below the bar reads "Selected: Turn 14", "Selected: Turns 7–12 (6 turns)" (when contiguous), or "Selected: 4 entries" (non-contiguous).
+
+**Grouped, collapsible log display.** For each selected entry, a card shows the turn header (label, request-type badge, captured-at timestamp, line count) plus a `[Copy Turn]` button. The lines themselves are bucketed by `[tag]` prefix into named groups: Resolution, Context Curation, AI Call, AI Raw Response, State Changes, Classification, Errors (any line with `level: error`), and Other (everything that doesn't match). Each group is independently collapsible and has its own `[Copy]` button. Errors auto-expand if non-empty; everything else starts collapsed for fast initial render even on 100+ line turns. Inside the `<pre>`, each line shows `+Nms` relative to the first line of that turn, the `[level]`, and the message — color-coded (errors red, warns orange, default tan) in JetBrains Mono.
+
+**Three levels of copy.** Every copy button uses the same plain-text format designed to paste cleanly into a Claude chat:
+```
+=== Turn 5 (turn) — 2026-04-09 8:15:32 PM ===
++0ms [log] [executeTurn] Starting turn 5...
++234ms [log] [context-curator] L1: 2100 tokens...
+```
+- **"Copy Selected"** (top-right, prominent gold button): all selected turns, prepended with `Server logs for Game #58, Turns 7–12, captured 2026-04-09:`
+- **"Copy Turn"** (per-turn header): just that one turn
+- **"Copy"** (per-group): just the lines in that group (e.g. only AI Raw Response)
+
+All buttons swap to `✓ Copied!` for 2s on success. Designed so Ben can grab a slice in one click and drop it into a debug chat without manually selecting log text.
+
+**Game detail toggle.** The Games tab game-detail slide-over now has a "Capture Server Logs" toggle below the View Game Log button. Calls `PATCH /api/admin/games/:id/logging`. Reads current state from `gameDetail.game.loggingEnabled` (with `playerIsPlaytester` / `isPlaytester` fallback fields, since the spec calls out that the backend should return this and it's a backend gap to flag if it doesn't). For playtester games the toggle renders as a non-interactive "always on" indicator with the helper text "Always on for playtester games."
+
+**Empty state.** When no logs exist: "No server logs captured for this game. Logs are automatically captured for playtester games and games with logging enabled. For other games, logs are saved when a bug report is filed."
+
+**Files modified:** `lib/adminApi.js` (added `getServerLogs`, `toggleGameLogging`), `app/admin/page.js` (new `ServerLogsPanel` component, new helper functions for log grouping / formatting / copy text, sub-tab wired into `GameLogTab`, logging toggle added to `GamesTab` detail panel), `app/admin/page.module.css` (sub-tab styles, pill styles, scroller, request-type badges in purple/gold/green/orange/blue, tinyBtn, serverLogPre).
+**Files synced to claude-upload:** `lib-adminApi.js`, `admin-page.js`, `admin-page.module.css`.
+
 ### Admin Game Log: Turn Summary Card
 Follow-up to the per-turn fetch / expand-all change. Admin reported the Railway logs surface "cost per turn, tokens called, classification, etc." that the panel doesn't show — but the data is mostly already in the events, just buried inside individual `event_data` JSON blobs that the admin would have to read one by one.
 
