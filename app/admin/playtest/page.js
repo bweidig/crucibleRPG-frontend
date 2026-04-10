@@ -118,9 +118,9 @@ function ConfigPanel({ onRunStarted }) {
       const config = {
         playStyle: playStyle.toLowerCase(),
         setting,
-        storyteller: storyteller.toLowerCase(),
+        storyteller,
         archetype: archetype || null,
-        difficulty: difficulty.toLowerCase(),
+        difficulty,
         targetTurns: turnCount,
       };
       const result = await startAutoplay(config);
