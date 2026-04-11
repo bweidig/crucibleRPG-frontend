@@ -735,6 +735,9 @@ export default function PlaytestPage() {
   // ─── Handlers ───
   function handleRunStarted(newRun) {
     const run = newRun.run || newRun;
+    // Backend may return runId at top level instead of id
+    if (!run.id && newRun.runId) run.id = newRun.runId;
+    if (!run.id && run.runId) run.id = run.runId;
     setActiveRuns(prev => [...prev, run]);
     startPolling(run.id);
   }
