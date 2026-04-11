@@ -35,6 +35,20 @@
 
 ## Recent Work (This Session: 2026-04-10)
 
+### Admin Game Detail — NPCs Section
+Added an NPCs section to the admin game detail panel, lazy-loaded when the panel opens.
+
+- NPC count badge in section header (e.g., "NPCs (7)")
+- Each NPC is an expandable card (collapsed by default) showing name, tier badge, disposition badge, wound state badge (color-coded), alive/dead indicator
+- Expanded view: stats grid (2-col), durability bar with percent fill (color matches wound state), combat profile (intelligence, morale, break behavior, awareness, resistances/weaknesses as colored tags), capabilities/passives/innate traits as tag lists, voice print snippet
+- Dead NPCs visually dimmed (opacity 0.5), "No combat yet" shown when durability is null
+- New `getAdminGameNpcs(gameId)` API wrapper added
+
+**Files modified:** `app/admin/page.js`, `lib/adminApi.js`
+**Files synced:** `claude-upload/admin-page.js`, `claude-upload/lib-adminApi.js`
+
+---
+
 ### Admin Auto-Playtester Page (`/admin/playtest`)
 New admin-only page for configuring, launching, monitoring, and reviewing automated playtest runs.
 

@@ -2505,6 +2505,57 @@ Delete a game and all associated data. Uses the same ordered cascade delete as t
 
 ---
 
+### GET /api/admin/games/:id/npcs
+
+Full NPC audit for a game. Returns every NPC with decoded stats, durability pool state, capabilities, passives, innate traits, and combat profile. Sorted alive-first, then alphabetical.
+
+**Response:**
+```json
+{
+  "gameId": 42,
+  "npcCount": 7,
+  "npcs": [
+    {
+      "id": 101,
+      "name": "Aethelforge Enforcer",
+      "alive": true,
+      "disposition": "hostile",
+      "role": "guard",
+      "tier": "professional",
+      "archetype": null,
+      "threatNote": null,
+      "introduced": true,
+      "locationId": 5,
+      "factionId": 2,
+      "generationSource": "world_gen",
+      "stats": { "STR": 7.0, "DEX": 5.0, "CON": 8.0, "INT": 4.0, "WIS": 5.0, "CHA": 3.0 },
+      "durability": { "pool": 8.0, "current": 4.5, "percent": 56, "woundState": "bloodied" },
+      "combat": {
+        "intelligence": "trained",
+        "moraleThreshold": 0.3,
+        "breakBehavior": "flee",
+        "awarenessState": "unaware",
+        "resistances": [],
+        "weaknesses": ["fire"]
+      },
+      "capabilities": [{ "template": "power_attack", "label": "Power Attack", "uses": 2, "per": "encounter" }],
+      "passives": [],
+      "innateTraits": [],
+      "voicePrint": "Gruff, clipped sentences. Refers to player as 'outsider'...",
+      "playerMemory": null
+    }
+  ]
+}
+```
+
+- `durability` is `null` if the NPC's pool has not been initialized (no combat yet).
+- `stats` values are display format (divided by 10).
+- `voicePrint` is truncated to 120 characters.
+
+**Status Codes:** 200, 400 (invalid ID), 404 (game not found).
+
+---
+
 ### GET /api/admin/games/:id/server-logs
 
 **AD-589.** Server log capture browser. Returns persisted server console output for a game, ordered by `captured_at DESC`. Filterable by turn and request type.

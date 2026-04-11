@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { isAuthenticated, getUser } from '@/lib/api';
 import {
   getAdminUsers, getAdminUser, togglePlaytester, toggleDebug,
-  getAdminGames, getAdminGameDetail, deleteAdminGame, getAdminGameNarrative,
+  getAdminGames, getAdminGameDetail, deleteAdminGame, getAdminGameNarrative, getAdminGameNpcs,
   getAdminCosts, getAdminHealth,
   getAdminReports, updateReport,
   getAdminAnalytics, distillReports, distillGmQuestions, getAdminGmQuestions,
@@ -551,6 +551,9 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
   const [bulkDeleteText, setBulkDeleteText] = useState('');
   const [bulkDeleteProgress, setBulkDeleteProgress] = useState(null);
   const [backstoryExpanded, setBackstoryExpanded] = useState(false);
+  const [npcData, setNpcData] = useState(null);
+  const [npcLoading, setNpcLoading] = useState(false);
+  const [expandedNpcs, setExpandedNpcs] = useState({});
 
   useEffect(() => {
     if (pendingSearch) {
@@ -607,12 +610,21 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
     setDetailLoading(true);
     setNarrative(null);
     setBackstoryExpanded(false);
+    setNpcData(null);
+    setExpandedNpcs({});
     try {
       const detail = await getAdminGameDetail(game.id);
       if (detail.narrative) detail.narrative = groupNarrative(detail.narrative);
       setGameDetail(detail);
     } catch { setGameDetail(null); }
     setDetailLoading(false);
+    // Lazy-load NPCs
+    setNpcLoading(true);
+    try {
+      const npcs = await getAdminGameNpcs(game.id);
+      setNpcData(npcs);
+    } catch { setNpcData(null); }
+    setNpcLoading(false);
   }
 
   async function loadFullNarrative() {
@@ -758,6 +770,204 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
                   </div>
                 </div>
               )}
+
+              {/* NPCs */}
+              <div style={{ marginBottom: 24 }}>
+                <h4 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 700, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+                  NPCs{npcData?.npcCount != null ? ` (${npcData.npcCount})` : ''}
+                </h4>
+                {npcLoading ? (
+                  <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>Loading NPCs...</p>
+                ) : !npcData?.npcs || npcData.npcs.length === 0 ? (
+                  <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>No NPCs found.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {npcData.npcs.map(npc => {
+                      const expanded = expandedNpcs[npc.id];
+                      const dead = npc.alive === false;
+                      const ws = npc.durability?.woundState || 'fresh';
+                      const wsColor = ws === 'fresh' ? '#8aba7a' : ws === 'bloodied' ? '#e8c45a' : ws === 'staggering' ? '#e8845a' : ws === 'incapacitated' ? '#e85a5a' : '#8a94a8';
+                      const tierColors = { minion: '#7082a4', standard: '#8a94a8', professional: '#c9a84c', elite: '#e8c45a', boss: '#e85a5a' };
+                      const dispColors = { friendly: '#8aba7a', neutral: '#8a94a8', wary: '#e8c45a', hostile: '#e85a5a', fearful: '#7ab4e8' };
+                      return (
+                        <div key={npc.id} className={styles.npcCard} style={dead ? { opacity: 0.5 } : {}}>
+                          {/* Collapsed row */}
+                          <div
+                            onClick={() => setExpandedNpcs(prev => ({ ...prev, [npc.id]: !prev[npc.id] }))}
+                            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}
+                          >
+                            <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, fontWeight: 500, color: '#d0c098', flex: '0 0 auto' }}>
+                              {npc.name || 'Unnamed'}
+                            </span>
+                            {npc.tier && (
+                              <span style={{
+                                fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+                                letterSpacing: '0.06em', padding: '2px 8px', borderRadius: 3,
+                                color: tierColors[npc.tier] || '#8a94a8', background: '#0a0e1a', border: `1px solid ${(tierColors[npc.tier] || '#8a94a8')}33`,
+                              }}>{npc.tier}</span>
+                            )}
+                            {npc.disposition && (
+                              <span style={{
+                                fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+                                letterSpacing: '0.06em', padding: '2px 8px', borderRadius: 3,
+                                color: dispColors[npc.disposition] || '#8a94a8', background: '#0a0e1a', border: `1px solid ${(dispColors[npc.disposition] || '#8a94a8')}33`,
+                              }}>{npc.disposition}</span>
+                            )}
+                            {npc.durability && (
+                              <span style={{
+                                fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+                                letterSpacing: '0.06em', padding: '2px 8px', borderRadius: 3,
+                                color: wsColor, background: '#0a0e1a', border: `1px solid ${wsColor}33`,
+                              }}>{ws}</span>
+                            )}
+                            {dead && (
+                              <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 700, color: '#e85a5a', letterSpacing: '0.06em' }}>DEAD</span>
+                            )}
+                            <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4' }}>
+                              {expanded ? '\u25B2' : '\u25BC'}
+                            </span>
+                          </div>
+
+                          {/* Expanded content */}
+                          {expanded && (
+                            <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid #2a2622' }}>
+                              {/* Stats grid */}
+                              {npc.stats && (
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px', marginBottom: 12 }}>
+                                  {Object.entries(npc.stats).map(([stat, val]) => (
+                                    <div key={stat} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: '1px solid #2a2622' }}>
+                                      <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545' }}>{stat.toUpperCase()}</span>
+                                      <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 13, color: '#c8c0b0' }}>{val}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Durability bar */}
+                              {npc.durability ? (
+                                <div style={{ marginBottom: 12 }}>
+                                  <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em' }}>DURABILITY</span>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                                    <div style={{ flex: 1, height: 8, background: '#0a0e1a', borderRadius: 3, overflow: 'hidden' }}>
+                                      <div style={{ height: '100%', width: `${npc.durability.percent ?? 0}%`, background: wsColor, borderRadius: 3, transition: 'width 0.3s ease' }} />
+                                    </div>
+                                    <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: wsColor }}>
+                                      {npc.durability.current}/{npc.durability.pool}
+                                    </span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4', marginBottom: 12 }}>No combat yet</p>
+                              )}
+
+                              {/* Combat profile */}
+                              {npc.combat && (
+                                <div style={{ marginBottom: 12 }}>
+                                  <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em' }}>COMBAT</span>
+                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px', marginTop: 4 }}>
+                                    {npc.combat.intelligence && (
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: '1px solid #2a2622' }}>
+                                        <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>Intelligence</span>
+                                        <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#c8c0b0' }}>{npc.combat.intelligence}</span>
+                                      </div>
+                                    )}
+                                    {npc.combat.moraleThreshold != null && (
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: '1px solid #2a2622' }}>
+                                        <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>Morale</span>
+                                        <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#c8c0b0' }}>{Math.round(npc.combat.moraleThreshold * 100)}%</span>
+                                      </div>
+                                    )}
+                                    {npc.combat.breakBehavior && (
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: '1px solid #2a2622' }}>
+                                        <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>Break</span>
+                                        <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#c8c0b0' }}>{npc.combat.breakBehavior}</span>
+                                      </div>
+                                    )}
+                                    {npc.combat.awarenessState && (
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: '1px solid #2a2622' }}>
+                                        <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4' }}>Awareness</span>
+                                        <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#c8c0b0' }}>{npc.combat.awarenessState}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  {npc.combat.resistances?.length > 0 && (
+                                    <div style={{ marginTop: 6 }}>
+                                      <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4' }}>Resist: </span>
+                                      {npc.combat.resistances.map((r, i) => (
+                                        <span key={i} style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7ab4e8', background: '#0d1a28', padding: '1px 6px', borderRadius: 3, border: '1px solid #7ab4e833', marginRight: 4 }}>{r}</span>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {npc.combat.weaknesses?.length > 0 && (
+                                    <div style={{ marginTop: 4 }}>
+                                      <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 11, color: '#7082a4' }}>Weak: </span>
+                                      {npc.combat.weaknesses.map((w, i) => (
+                                        <span key={i} style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#e8845a', background: '#201a14', padding: '1px 6px', borderRadius: 3, border: '1px solid #e8845a33', marginRight: 4 }}>{w}</span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Capabilities */}
+                              {npc.capabilities?.length > 0 && (
+                                <div style={{ marginBottom: 8 }}>
+                                  <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em' }}>CAPABILITIES</span>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                                    {npc.capabilities.map((c, i) => (
+                                      <span key={i} style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#c9a84c', background: '#1a1814', padding: '2px 8px', borderRadius: 3, border: '1px solid #c9a84c33' }}>
+                                        {c.label || c.template}{c.uses ? ` (${c.uses}/${c.per})` : ''}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Passives */}
+                              {npc.passives?.length > 0 && (
+                                <div style={{ marginBottom: 8 }}>
+                                  <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em' }}>PASSIVES</span>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                                    {npc.passives.map((p, i) => (
+                                      <span key={i} style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#8a94a8', background: '#0a0e1a', padding: '2px 8px', borderRadius: 3, border: '1px solid #1e2540' }}>
+                                        {typeof p === 'string' ? p : p.label || p.template}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Innate Traits */}
+                              {npc.innateTraits?.length > 0 && (
+                                <div style={{ marginBottom: 8 }}>
+                                  <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em' }}>INNATE TRAITS</span>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                                    {npc.innateTraits.map((t, i) => (
+                                      <span key={i} style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#8a94a8', background: '#0a0e1a', padding: '2px 8px', borderRadius: 3, border: '1px solid #1e2540' }}>
+                                        {typeof t === 'string' ? t : t.label || t.template}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Voice Print */}
+                              {npc.voicePrint && (
+                                <div style={{ marginTop: 8 }}>
+                                  <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em' }}>VOICE</span>
+                                  <p style={{ fontFamily: 'var(--font-alegreya)', fontStyle: 'italic', fontSize: 12, color: '#8a94a8', lineHeight: 1.5, margin: '4px 0 0 0' }}>
+                                    {npc.voicePrint.length > 200 ? npc.voicePrint.slice(0, 200) + '...' : npc.voicePrint}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
               {/* View Game Log + Server Log Capture toggle */}
               <div style={{ marginBottom: 24 }}>
