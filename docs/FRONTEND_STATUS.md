@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-10
+**Last Updated:** 2026-04-11
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -33,7 +33,23 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-10)
+## Recent Work (This Session: 2026-04-11)
+
+### Require Backstory on Character Creation (Phase 3)
+Continue button now requires a backstory concept in addition to a name. Selecting an archetype counts (backstory is pre-filled). Custom mode requires the player to write something. Hint text shown below empty backstory field.
+
+**Files modified:** `app/init/page.js`
+**Files synced:** `claude-upload/init-page.js`
+
+---
+
+### Auto-Playtester Display Fixes
+Fixed tier badges not showing (coerce to Number), latest action text from progress polling (read `latestTurn.botAction`), table column overlap (wider grid with horizontal scroll), and cost extraction in game log (shared `extractAiMetrics` helper for nested field patterns).
+
+**Files modified:** `app/admin/playtest/page.js`, `app/admin/playtest/page.module.css`, `app/admin/page.js`
+**Files synced:** `claude-upload/admin-playtest-page.js`, `claude-upload/admin-playtest-page.module.css`, `claude-upload/admin-page.js`
+
+---
 
 ### Admin Game Detail — NPCs Section
 Added an NPCs section to the admin game detail panel, lazy-loaded when the panel opens.

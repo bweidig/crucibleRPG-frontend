@@ -49,6 +49,27 @@ function formatCostShort(val) {
   return `$${Number(val).toFixed(2)}`;
 }
 
+// Extract AI cost/token data from an event_data blob. The backend's JSONB
+// shape varies — tokens may be flat (inputTokens, input_tokens) or nested
+// (tokens.prompt, tokens.completion), and cost may be `cost`, `totalCost`,
+// or `estimatedCost`. This helper normalises all known patterns.
+function extractAiMetrics(data) {
+  if (!data) return { model: null, inT: null, outT: null, cost: null, taskType: null };
+  const model = data.model || data.modelName || null;
+  const taskType = data.task_type || data.taskType || data.task || data.purpose || null;
+  const tok = data.tokens || {};
+  const inT = data.input_tokens ?? data.inputTokens ?? tok.prompt ?? tok.input ?? null;
+  const outT = data.output_tokens ?? data.outputTokens ?? tok.completion ?? tok.output ?? null;
+  const cost = data.cost ?? data.totalCost ?? data.estimatedCost ?? data.estimated_cost ?? null;
+  return {
+    model,
+    inT: typeof inT === 'number' ? inT : null,
+    outT: typeof outT === 'number' ? outT : null,
+    cost: typeof cost === 'number' ? cost : null,
+    taskType,
+  };
+}
+
 function groupNarrative(entries) {
   const turns = new Map();
   for (const entry of entries) {
@@ -3115,15 +3136,11 @@ function GameLogTab({ pendingGameId, onClearPending }) {
       const data = evt.event_data || evt.eventData || evt.data || {};
 
       if (type === 'ai_call') {
-        const model = data.model || data.modelName || null;
-        const inT = data.input_tokens ?? data.inputTokens ?? null;
-        const outT = data.output_tokens ?? data.outputTokens ?? null;
-        const cost = data.cost ?? data.totalCost ?? null;
-        const taskType = data.task_type || data.taskType || data.task || data.purpose || null;
-        if (typeof cost === 'number') totalCost += cost;
-        if (typeof inT === 'number') totalInputTokens += inT;
-        if (typeof outT === 'number') totalOutputTokens += outT;
-        aiCalls.push({ model, inT, outT, cost, taskType });
+        const m = extractAiMetrics(data);
+        if (m.cost != null) totalCost += m.cost;
+        if (m.inT != null) totalInputTokens += m.inT;
+        if (m.outT != null) totalOutputTokens += m.outT;
+        aiCalls.push(m);
       }
 
       // Classification can show up in a few places: a dedicated event type,
@@ -3162,13 +3179,11 @@ function GameLogTab({ pendingGameId, onClearPending }) {
       if (turn == null || type !== 'ai_call') continue;
       if (!perTurn[turn]) perTurn[turn] = { aiCalls: 0, inputTokens: 0, outputTokens: 0, cost: 0 };
       const data = evt.event_data || evt.eventData || evt.data || {};
-      const inT = data.input_tokens ?? data.inputTokens ?? 0;
-      const outT = data.output_tokens ?? data.outputTokens ?? 0;
-      const cost = data.cost ?? data.totalCost ?? 0;
+      const m = extractAiMetrics(data);
       perTurn[turn].aiCalls += 1;
-      if (typeof inT === 'number') perTurn[turn].inputTokens += inT;
-      if (typeof outT === 'number') perTurn[turn].outputTokens += outT;
-      if (typeof cost === 'number') perTurn[turn].cost += cost;
+      if (m.inT != null) perTurn[turn].inputTokens += m.inT;
+      if (m.outT != null) perTurn[turn].outputTokens += m.outT;
+      if (m.cost != null) perTurn[turn].cost += m.cost;
     }
     let cumulative = 0;
     const rows = turnNumbers.map(t => {
@@ -3631,11 +3646,12 @@ function GameLogTab({ pendingGameId, onClearPending }) {
                       const ts = evt.created_at || evt.timestamp || evt.createdAt;
                       const evtTurn = evt.turn_number ?? evt.turnNumber;
 
-                      // Extract ai_call stats
-                      const aiModel = isAiCall && evtData ? (evtData.model || evtData.modelName) : null;
-                      const aiInputTokens = isAiCall && evtData ? (evtData.input_tokens || evtData.inputTokens) : null;
-                      const aiOutputTokens = isAiCall && evtData ? (evtData.output_tokens || evtData.outputTokens) : null;
-                      const aiCost = isAiCall && evtData ? (evtData.cost || evtData.totalCost) : null;
+                      // Extract ai_call stats via shared helper
+                      const aiM = isAiCall ? extractAiMetrics(evtData) : null;
+                      const aiModel = aiM?.model;
+                      const aiInputTokens = aiM?.inT;
+                      const aiOutputTokens = aiM?.outT;
+                      const aiCost = aiM?.cost;
 
                       return (
                         <div key={idx} className={isError ? styles.eventCardError : styles.eventCard}>

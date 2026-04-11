@@ -1455,7 +1455,7 @@ function CharacterForm({ character, onChange }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
       <div>
-        <label style={labelStyle}>Backstory {optionalTag}</label>
+        <label style={labelStyle}>Backstory</label>
         <textarea
           value={character.backstory || ''}
           onChange={e => onChange('backstory', e.target.value)}
@@ -1464,6 +1464,11 @@ function CharacterForm({ character, onChange }) {
           className={styles.wizardInput}
           style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }}
         />
+        {!(character.backstory || '').trim() && (
+          <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: 'var(--text-dim)', marginTop: 6, marginBottom: 0 }}>
+            Describe your character so the engine can build their stats
+          </p>
+        )}
       </div>
 
       <div>
@@ -3490,7 +3495,9 @@ function InitWizardInner() {
       case 1: return !!setting;
       case 2: {
         const char = characterMode === 'archetype' ? archetypeChar : customChar;
-        return char.name.trim().length > 0;
+        const hasName = char.name.trim().length > 0;
+        const hasConcept = (char.backstory || '').trim().length > 0 || (characterMode === 'archetype' && !!selectedArchetype);
+        return hasName && hasConcept;
       }
       case 3: return !proposalLoading && !proposalFailed && !!proposal?.stats?.length && !(proposalValidation.hardErrors.length > 0);
       case 4: return !!difficulty;

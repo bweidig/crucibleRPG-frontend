@@ -42,8 +42,9 @@ function formatDuration(startedAt, completedAt) {
 }
 
 function formatCost(val) {
-  if (val == null) return '$0.00';
-  return `$${Number(val).toFixed(2)}`;
+  if (val == null || val === 0) return '$0.00';
+  const n = Number(val);
+  return n >= 0.01 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`;
 }
 
 function playStyleBadge(style) {
@@ -64,11 +65,12 @@ function statusBadge(status) {
 }
 
 function tierClass(tier) {
-  if (tier === 1) return styles.tierT1;
-  if (tier === 2) return styles.tierT2;
-  if (tier === 3) return styles.tierT3;
-  if (tier === 4 || tier === 5) return styles.tierT4;
-  if (tier === 6) return styles.tierT6;
+  const t = Number(tier);
+  if (t === 1) return styles.tierT1;
+  if (t === 2) return styles.tierT2;
+  if (t === 3) return styles.tierT3;
+  if (t === 4 || t === 5) return styles.tierT4;
+  if (t === 6) return styles.tierT6;
   return styles.tierT3;
 }
 
@@ -295,7 +297,7 @@ function ActiveRuns({ runs, onCancel, onCompleted }) {
           ? Math.round((run.completedTurns / run.targetTurns) * 100)
           : 0;
         const charLabel = run.characterName
-          ? `${run.characterName} \u2014 ${run.archetype || ''} \u00B7 ${run.setting || ''}`
+          ? `${run.characterName} \u2014 ${run.archetypeName || ''} \u00B7 ${run.setting || ''}`
           : 'Initializing...';
 
         return (
@@ -304,8 +306,8 @@ function ActiveRuns({ runs, onCancel, onCompleted }) {
               <div>
                 <span className={styles.runCharacter}>{charLabel}</span>
                 <span style={{ marginLeft: 8 }} className={playStyleBadge(run.playStyle)}>{run.playStyle}</span>
-                {(run.flagCount || 0) > 0 && (
-                  <span className={styles.flagBadge} style={{ marginLeft: 6 }}>{run.flagCount} flags</span>
+                {(run.totalFlags || 0) > 0 && (
+                  <span className={styles.flagBadge} style={{ marginLeft: 6 }}>{run.totalFlags} flags</span>
                 )}
               </div>
               <button
@@ -322,8 +324,8 @@ function ActiveRuns({ runs, onCancel, onCompleted }) {
             <div className={styles.progressWrap}>
               <div className={styles.progressFill} style={{ width: `${pct}%` }} />
             </div>
-            {run.latestAction && (
-              <div className={styles.latestAction}>{run.latestAction}</div>
+            {(run.latestAction || run.latestTurn?.botAction) && (
+              <div className={styles.latestAction}>{run.latestAction || run.latestTurn?.botAction}</div>
             )}
           </div>
         );
@@ -347,7 +349,11 @@ function RunDetailPanel({ runId, onClose }) {
       setLoading(true);
       try {
         const data = await getAutoplayRun(runId);
-        if (!cancelled) setRun(data);
+        if (!cancelled) {
+          // Unwrap: API returns { run: {...}, turns: [...] }
+          const unwrapped = data.run ? { ...data.run, turns: data.turns || [] } : data;
+          setRun(unwrapped);
+        }
       } catch { /* keep stale */ }
       if (!cancelled) setLoading(false);
     }
@@ -383,8 +389,9 @@ function RunDetailPanel({ runId, onClose }) {
   const flagBreakdown = {};
   if (run.turns) {
     for (const t of run.turns) {
-      if (t.flags) {
-        for (const f of t.flags) {
+      const flags = t.diagnosticFlags || t.flags;
+      if (flags && Array.isArray(flags)) {
+        for (const f of flags) {
           const name = typeof f === 'string' ? f : f.type || f.name || 'unknown';
           flagBreakdown[name] = (flagBreakdown[name] || 0) + 1;
         }
@@ -409,7 +416,7 @@ function RunDetailPanel({ runId, onClose }) {
           {run.characterName || `Run #${run.id}`}
         </h3>
         <div style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>
-          {run.archetype} &middot; {run.setting}
+          {run.archetypeName || 'Unknown'} &middot; {run.setting}
         </div>
       </div>
 
@@ -429,7 +436,7 @@ function RunDetailPanel({ runId, onClose }) {
         </div>
         <div className={styles.summaryItem}>
           <div className={styles.summaryLabel}>Difficulty</div>
-          <div className={styles.summaryValue}>{run.difficulty}</div>
+          <div className={styles.summaryValue}>{run.difficultyPreset || run.difficulty || '--'}</div>
         </div>
         <div className={styles.summaryItem}>
           <div className={styles.summaryLabel}>Turns</div>
@@ -487,6 +494,10 @@ function RunDetailPanel({ runId, onClose }) {
             {run.turns.map((turn, i) => {
               const expanded = expandedTurns[i];
               const hasError = !!turn.error;
+              const flags = turn.diagnosticFlags || turn.flags || [];
+              const action = turn.botAction || turn.action;
+              const narrative = turn.narrativeSnippet || turn.narrative;
+              const cost = turn.turnCost ?? turn.cost;
               return (
                 <div key={i} className={hasError ? styles.turnEntryError : styles.turnEntry}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -494,7 +505,10 @@ function RunDetailPanel({ runId, onClose }) {
                     {turn.tier != null && (
                       <span className={tierClass(turn.tier)}>T{turn.tier}</span>
                     )}
-                    {turn.flags && turn.flags.length > 0 && turn.flags.map((f, fi) => {
+                    {turn.tierName && !turn.tier && (
+                      <span className={styles.tierT3}>{turn.tierName}</span>
+                    )}
+                    {Array.isArray(flags) && flags.length > 0 && flags.map((f, fi) => {
                       const fname = typeof f === 'string' ? f : f.type || f.name || 'flag';
                       const isCritical = CRITICAL_FLAGS.includes(fname);
                       return (
@@ -503,18 +517,18 @@ function RunDetailPanel({ runId, onClose }) {
                         </span>
                       );
                     })}
-                    {turn.cost != null && (
-                      <span className={styles.turnCost}>{formatCost(turn.cost)}</span>
+                    {cost != null && cost > 0 && (
+                      <span className={styles.turnCost}>{formatCost(cost)}</span>
                     )}
                   </div>
-                  {turn.action && <div className={styles.turnAction}>{turn.action}</div>}
-                  {turn.narrative && (
+                  {action && <div className={styles.turnAction}>{action}</div>}
+                  {narrative && (
                     <div
                       className={styles.turnNarrative}
                       onClick={() => setExpandedTurns(prev => ({ ...prev, [i]: !prev[i] }))}
                       style={expanded ? {} : { maxHeight: 40, overflow: 'hidden', textOverflow: 'ellipsis' }}
                     >
-                      {expanded ? turn.narrative : (turn.narrative.length > 120 ? turn.narrative.slice(0, 120) + '...' : turn.narrative)}
+                      {expanded ? narrative : (narrative.length > 120 ? narrative.slice(0, 120) + '...' : narrative)}
                     </div>
                   )}
                   {hasError && <div className={styles.turnError}>{turn.error}</div>}
@@ -580,7 +594,7 @@ function RunHistory({ runs, onRefresh, loading, selectedRunId, onSelectRun, onDe
             >
               <span className={statusBadge(run.status)}>{run.status}</span>
               <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#d0c098' }}>
-                {run.characterName || '--'}{run.archetype ? ` (${run.archetype})` : ''}
+                {run.characterName || '--'}{run.archetypeName ? ` (${run.archetypeName})` : ''}
               </span>
               <span style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#8a94a8' }}>
                 {run.setting || '--'}
@@ -590,8 +604,8 @@ function RunHistory({ runs, onRefresh, loading, selectedRunId, onSelectRun, onDe
                 {run.completedTurns}/{run.targetTurns}
               </span>
               <span>
-                {(run.flagCount || run.totalFlags || 0) > 0 ? (
-                  <span className={styles.flagBadge}>{run.flagCount || run.totalFlags}</span>
+                {(run.totalFlags || 0) > 0 ? (
+                  <span className={styles.flagBadge}>{run.totalFlags}</span>
                 ) : (
                   <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#7082a4' }}>0</span>
                 )}

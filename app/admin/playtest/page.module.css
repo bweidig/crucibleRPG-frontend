@@ -516,15 +516,16 @@
   background: #111528;
   border: 1px solid #3a3328;
   border-radius: 6px;
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 .tableRow {
   display: grid;
-  grid-template-columns: 90px 1.3fr 1fr 90px 80px 60px 80px 80px 1fr 100px;
+  grid-template-columns: 88px minmax(160px, 1.5fr) minmax(110px, 1fr) 90px 72px 56px 72px 72px minmax(100px, 1fr) 110px;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   padding: 10px 16px;
+  min-width: 960px;
   border-bottom: 1px solid #2a2622;
   font-family: var(--font-alegreya-sans);
   font-size: 13px;
@@ -552,6 +553,7 @@
   cursor: pointer;
   border-left: 3px solid transparent;
   padding-left: 13px;
+  min-width: 960px;
 }
 
 .clickableRow:hover {
@@ -756,7 +758,7 @@
   font-family: var(--font-jetbrains-mono);
   font-size: 11px;
   color: #7082a4;
-  margin-top: 4px;
+  margin-left: auto;
 }
 
 .turnError {
@@ -922,11 +924,6 @@
     grid-template-columns: 1fr 1fr;
   }
 
-  .tableRow, .tableHeader, .clickableRow {
-    grid-template-columns: 80px 1fr 80px 70px 60px 80px;
-    font-size: 12px;
-  }
-
   .pushPanel {
     width: 360px;
   }
@@ -935,10 +932,5 @@
 @media (max-width: 767px) {
   .configGrid {
     grid-template-columns: 1fr;
-  }
-
-  .tableRow, .tableHeader, .clickableRow {
-    grid-template-columns: 1fr;
-    gap: 4px;
   }
 }
