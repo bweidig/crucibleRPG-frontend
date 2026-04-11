@@ -259,7 +259,7 @@ export default function RulebookPage() {
           alignSelf: 'flex-start', paddingRight: 24,
         }}>
           <div style={{
-            fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 700,
+            fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
             color: 'var(--gold-muted)', letterSpacing: '0.2em', marginBottom: 16,
             paddingBottom: 12, borderBottom: '1px solid #1e2540',
           }}>CONTENTS</div>
@@ -272,7 +272,7 @@ export default function RulebookPage() {
                 className={styles.tocLink}
                 onClick={() => scrollToSection(i)}
                 style={{
-                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
+                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 15,
                   color: activeSection === i
                     ? ('var(--accent-gold)')
                     : 'var(--text-muted)',
@@ -282,7 +282,7 @@ export default function RulebookPage() {
                 }}
               >
                 <span style={{
-                  fontFamily: 'var(--font-jetbrains)', fontSize: 10,
+                  fontFamily: 'var(--font-jetbrains)', fontSize: 12,
                   color: activeSection === i
                     ? ('var(--accent-gold)')
                     : '#556178',
