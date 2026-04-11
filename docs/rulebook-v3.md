@@ -1,5 +1,5 @@
 # CrucibleRPG Rulebook — Full Copy Draft
-## Player-Facing Reference · v2.0
+## Player-Facing Reference · v3.0
 
 ---
 
@@ -34,7 +34,68 @@ If you need a full picture of where you are in the game, request a Briefing. It 
 
 ---
 
-## 02 · Your Character
+## 02 · Storytellers, Settings & Difficulty
+
+**Storytellers**
+
+Your Storyteller is the narrative voice of the game. The rules don't change, but the way the story feels does.
+
+- **Chronicler** - "The world as it is." Sparse, factual, precise. What a witness would remember.
+- **Bard** - "You are the hero of this story." Epic when earned, grounded the rest of the time.
+- **Trickster** - "The world has a sense of humor." Observational wit. Plays it straight, notices the absurd.
+- **Poet** - "Every victory has a cost." Lingering on what's lost. Specific, concrete images.
+- **Whisper** - "Everything is fine. Almost." Warm and cozy on the surface. Something wrong underneath.
+- **Noir** - "Nobody is clean." Hard-boiled. Reads people. Earned cynicism.
+- **Custom** - Define your own voice.
+
+Can be changed at any time during play. No penalty, no cooldown.
+
+**Settings**
+
+Your setting defines the genre and world type:
+
+- **Sword & Soil** - Pre-gunpowder. Muscle, metal, and maybe magic.
+- **Smoke & Steel** - Gunpowder through early mechanization. Steam, revolution, empire.
+- **Concrete & Code** - 20th century through near-future. Guns, cars, computers, bureaucracy.
+- **Stars & Circuits** - Spacefaring, cybernetic, post-human.
+- **Ash & Remnants** - Post-collapse. Something ended. What's left is what you have.
+- **Dream & Myth** - Surreal, mythic, or strange. Reality's rules are suggestions.
+- **Custom** - Blend, twist, or build from scratch.
+
+**Difficulty Dials**
+
+Difficulty isn't a single slider. It's a set of independent dials you can adjust at any time:
+
+- **DC Offset** - Shifts all difficulty checks up or down. The global harder/easier knob.
+- **Fate DC** - How hard it is to survive a Fate Check. Separable from combat difficulty.
+- **Survival** - Toggle food/water tracking on or off.
+- **Durability** - Toggle item degradation on or off.
+- **Progression Speed** - How fast you grow. 0x (frozen) through 5.0x (rapid). Default 1x.
+- **Encounter Pressure** - How frequently you face threats. Low / Standard / High.
+- **Fortune's Balance** - Toggle the 2d20 system on or off. Off = straight d20, every check.
+- **Simplified Outcomes** - Toggle 6-tier results to binary pass/fail.
+- **Recovery** - How much conditions heal overnight. Forgiving clears almost everything; Brutal leaves significant residuals.
+
+**Presets** for quick setup:
+
+- **Forgiving** - Easier checks, low death threshold, no survival/durability
+- **Standard** - Balanced baseline
+- **Harsh** - Harder checks, tough death threshold, full tracking
+- **Brutal** - Maximum challenge across the board
+
+All dials can be changed mid-game. Changes apply to the next relevant event. Nothing is recalculated retroactively.
+
+**Scenario Intensity**
+
+When starting a new campaign, you choose how your story begins:
+
+- **Calm** - Time to explore and orient. Low immediate threat.
+- **Standard** - Clear hook with proportional stakes.
+- **Dire** - High pressure from turn one. Immediate danger, scarce resources, ticking clock.
+
+---
+
+## 03 · Your Character
 
 Your character is defined by their core attributes, a set of skills, and the backstory you create. Together, these shape what your character is good at, what they struggle with, and how the world responds to them.
 
@@ -86,7 +147,7 @@ Not all settings have non-human species. If your world is all-human, this doesn'
 
 ---
 
-## 03 · How Rolls Work
+## 04 · How Rolls Work
 
 When you attempt something where the outcome is uncertain and failure matters, the system rolls dice. Routine actions (walking, eating, opening an unlocked door) resolve through narration without a check.
 
@@ -122,7 +183,7 @@ Results aren't just pass/fail. There are six levels:
 
 1. **Critical Success** - Everything goes better than planned. Extra reward.
 2. **Success** - Clean win. You did what you set out to do.
-3. **Costly Success** - You succeed, but it costs you something minor. The cost never outweighs the win.
+3. **Costly Success** - You succeed, but accumulated strain builds toward periodic small debuffs. Individual costly successes carry no direct penalty — instead, they feed a hidden Strain counter. When Strain builds up, a small Break fires: a minor stat penalty reflecting fatigue, mental fog, or composure slipping. The cost never outweighs the win.
 4. **Small Mercy** - You fail, but something small goes right. A lesson, a clue, a partial result.
 5. **Failure** - Clean miss. It didn't work.
 6. **Critical Failure** - Something goes actively wrong. Extra penalty.
@@ -141,7 +202,7 @@ You can choose to fail before a roll is made. Useful for social situations, feig
 
 ---
 
-## 04 · Skills
+## 05 · Skills
 
 Skills represent specific training or experience. They add a bonus to relevant rolls, making you more effective at particular tasks.
 
@@ -174,18 +235,33 @@ Rules:
 
 Stats and skills grow through play, but only through genuine challenge. Routine repetition teaches nothing.
 
-- Growth is flagged during play and awarded during End of Day Reflection (rest)
-- +0.1 for surviving a moderate challenge or learning from failure
-- +0.2 to +0.3 for high-stakes success or creative problem-solving
-- +0.4 to +0.5 for critical success against extreme odds or near-death survival
-- Max +0.5 per stat per Reflection. Overflow carries to the next rest.
+The system invisibly tracks a progression credit for every resolved action based on how well you performed relative to the challenge. These credits accumulate behind the scenes and are processed during End of Day Reflection at your next Long Rest.
+
+How growth works:
+- The system selects your three best moments per skill each day — volume doesn't matter, quality does
+- Skill growth is capped at +0.5 per skill per Reflection. Overflow carries to the next rest.
+- Stat growth is derived from your best skill performances and capped at +0.2 per stat per Reflection. Overflow carries.
+- Quest completion grants bonus growth on top of normal credits
 - Progression speed is adjustable via difficulty settings (0x to 5.0x multiplier)
+
+What earns the most growth:
+- Succeeding against a challenge that genuinely tested you (Matched difficulty)
+- Near-miss failures — almost succeeding teaches as much as barely succeeding
+- Critical successes against extreme odds
+- Surviving a Fate Check
+
+What earns little or nothing:
+- Dominating easy challenges — coasting teaches nothing
+- Catastrophic failure while hopelessly outmatched — panic isn't education
+- Routine repetition of tasks you've already mastered
+
+At the end of each Reflection, you see a narrative scene weaving together your day's most significant moments, followed by a table showing each gain and the event that earned it.
 
 > Skills don't grow in a vacuum. The system tracks whether you were actually tested. Picking easy locks a hundred times teaches you nothing. Picking the lock while guards approach? That's a lesson.
 
 ---
 
-## 05 · Active Skills
+## 06 · Active Skills
 
 Active Skills are tactical abilities you unlock through exceptional performance under pressure. They emerge from play, not from a creation menu.
 
@@ -236,7 +312,7 @@ Once per Long Rest, you can retire one Active Skill and pick a replacement. The 
 
 ---
 
-## 06 · Passive Masteries
+## 07 · Passive Masteries
 
 Passive Masteries represent deep competence earned through repeated success in a specific domain. They alter how game systems interact with you. Unlike skills, they don't give flat bonuses. They change the rules slightly in your favor.
 
@@ -251,7 +327,7 @@ Passive Masteries represent deep competence earned through repeated success in a
 1. **Efficiency Gain** - Reduced resource consumption in a specific domain
 2. **Armor Breaker** - Reduce a target's armor effectiveness with a specific weapon type
 3. **Sensory Edge** - Automatically detect a specific hazard type before triggering it
-4. **Medical Mastery** - Choose at unlock: improved triage results OR faster passive recovery for patients you treat
+4. **Medical Mastery** - Choose at unlock: improved triage results (stronger reductions) OR improved overnight recovery for patients you treat (Long Rest threshold shifts one severity bracket in their favor)
 5. **Environmental Adaptation** - Reduced severity from a specific environment type's conditions
 6. **Social Leverage** - Bonus to social checks against a specific faction or social group
 7. **Tactical Synergy** - Bonus when coordinating with a specific ally. Dormant if that ally isn't present.
@@ -261,7 +337,7 @@ You can have any number of Passive Masteries, but each must be in a separate dom
 
 ---
 
-## 07 · Combat
+## 08 · Combat
 
 Combat uses the same core resolution as everything else. There's no separate "combat mode." When violence breaks out, the pacing tightens, consequences become more immediate, and positioning matters.
 
@@ -327,9 +403,9 @@ Range states:
 - **Near** - Adjacent zone
 - **Far** - Two or more zones apart
 
-Zone tags affect combat: `cover` (bonus vs ranged), `elevated` (bonus for high ground), `difficult` (slows movement), `chokepoint` (limits who can fight in melee), `hazard` (environmental damage), `dark` (penalties without light), `confined` (no room for large weapons), `escape` (adjacent to non-combat area).
+Zone tags affect tactics: `cover` helps stealth and ranged defense, `elevated` gives ranged bonuses, `difficult` slows movement, `chokepoint` limits how many combatants can engage at once, `dark` hinders vision, `exposed` penalizes stealth, `hazard` tags impose environmental conditions.
 
-**Engagement & Disengagement**
+**Movement in Combat**
 
 - Leaving a zone while engaged in melee provokes an opportunity strike (the enemy gets a free hit)
 - Spend your swift action on careful withdrawal to avoid the opportunity strike
@@ -345,11 +421,71 @@ Zone tags affect combat: `cover` (bonus vs ranged), `elevated` (bonus for high g
 
 Players always act first. In multiplayer, players go in DEX order (highest first).
 
+**Enemy Capabilities**
+
+Enemies aren't just stat blocks. They have their own durability pools (tracked health), trained combat techniques, and innate traits. The GM telegraphs when an enemy is wounded, staggered, or near defeat — you won't be left guessing whether your attacks are landing.
+
+Powerful enemies may use techniques similar to Active Skills: targeted strikes, defensive gambits, or area attacks. The system warns you when an enemy is preparing something dangerous, giving you a chance to react.
+
 > Combat is dangerous by design. Even skilled fighters can be taken down by bad luck or poor positioning. Avoiding fights you don't need is often the smartest play.
 
 ---
 
-## 08 · Conditions & Status Effects
+## 09 · Stealth
+
+Stealth isn't just an ambush opener — it's a sustained state you can maintain across turns, zones, and encounters.
+
+**Entering Stealth**
+
+To go hidden, you need:
+- Not to be in active melee (disengage first)
+- Some form of concealment: cover, darkness, a crowd, distance, or a physical obstruction
+- No NPC currently focused on you (mid-conversation, being pointed at)
+
+You roll DEX against the highest Awareness DC among nearby NPCs. Success means you're hidden. Failure means you're spotted — and nearby NPCs become suspicious or alert depending on how badly you failed.
+
+Entering stealth costs your primary action. In combat, that means giving up your attack for the turn.
+
+**Staying Hidden**
+
+Once hidden, you stay hidden until something breaks it. You don't re-roll every turn just for existing in stealth. New checks are triggered by movement (entering a new zone), noisy actions (forcing a door, drawing a large weapon), or an NPC actively searching your zone.
+
+You can move one zone per turn while hidden. Rushing (two zones) automatically breaks stealth — you can't sprint silently. Drawing or readying a `concealable` weapon doesn't require a check. Drawing anything else does.
+
+**NPC Awareness**
+
+NPCs have three awareness states:
+
+- **Unaware** - Normal routine. Only passive detection.
+- **Suspicious** - Investigating a disturbance. Better at spotting you. Decays after a few turns with no further events.
+- **Alert** - Actively hunting. Best detection. Doesn't decay on its own — requires the situation to resolve.
+
+Near-miss stealth failures (almost spotted) push NPCs to Suspicious. Direct detection or loud events push them to Alert. Suspicious NPCs who find nothing eventually return to Unaware.
+
+**Ambush from Stealth**
+
+Attacking from stealth gives you graduated benefits:
+- **Full Ambush** (first strike against an unaware target): Their Defense DC drops significantly (calculated without their DEX)
+- **Fade Strike** (subsequent attacks from stealth, or against suspicious targets): Flat bonus to your attack
+
+After attacking, you're revealed. You can attempt to re-enter stealth on a later turn if conditions allow — creating hit-and-fade tactics — but it costs your primary action and the NPCs will be on higher alert.
+
+**Environmental Factors**
+
+The environment is assessed as one of three tiers:
+- **Favorable** (dark zones, distance, heavy cover): Easier to hide
+- **Neutral** (partial cover, adjacent zones): Standard difficulty
+- **Unfavorable** (exposed zones, same zone as an NPC, carrying a light source): Much harder to hide
+
+Terrain matters too: `difficult` terrain (rubble, swamp, branches) makes stealth maintenance checks harder because of the noise.
+
+**Group Stealth**
+
+If you're sneaking with companions, the group uses the weakest member's stealth roll. Choose your infiltration team carefully.
+
+---
+
+## 10 · Conditions & Status Effects
 
 Conditions are the system's way of tracking injuries, ailments, and ongoing effects. They reduce your Effective Stats, making everything that uses that stat harder until the condition clears.
 
@@ -402,7 +538,7 @@ Triggered by specific events: facing something vastly stronger than you, witness
 
 ---
 
-## 09 · Inventory & Gear
+## 11 · Inventory & Gear
 
 Everything you carry has weight, condition, and purpose. Your inventory is limited, so you'll need to make choices about what's worth hauling around.
 
@@ -451,7 +587,7 @@ If carried items exceed your capacity:
 
 ---
 
-## 10 · Weapons & Armor
+## 12 · Weapons & Armor
 
 **How Weapons Work**
 
@@ -525,7 +661,7 @@ If either weapon has a slot cost of 2.0 or more, a -3.0 penalty applies to ALL a
 
 ---
 
-## 11 · Item Quality & Durability
+## 13 · Item Quality & Durability
 
 **Material Quality**
 
@@ -564,7 +700,7 @@ Durability can be toggled off entirely in difficulty settings.
 
 ---
 
-## 12 · Enchantments & Magical Items
+## 14 · Enchantments & Magical Items
 
 Depending on your setting, items may carry effects beyond the mundane: magic, cybernetic enhancements, advanced technology. All use the same framework.
 
@@ -621,7 +757,7 @@ Requires supernatural or tech capability, relevant skills, materials, and worksp
 
 ---
 
-## 13 · Supernatural Abilities
+## 15 · Supernatural Abilities
 
 This section applies only to characters with POT. Mundane characters can skip it entirely.
 
@@ -664,12 +800,17 @@ When POT runs low, cascading fatigue kicks in:
 - POT below 3.0: penalty to all supernatural action rolls
 - POT below 1.0: penalty to ALL actions
 
+Both fatigue conditions clear at the end of a completed Long Rest, even if your POT hasn't fully recovered yet.
+
+**Mental Strain Recovery: The Wellspring Model**
+
 Mental Strain cannot be healed by magic or medical care. Recovery is time-based:
 
-- **Passive recovery** - +0.5 per day (faster than the standard +0.3 for other conditions)
-- **Short Rest** - Once per day, a few hours of focused meditation restores +0.5 POT
-- **Long Rest bonus** - A full rest restores an additional +1.0 POT on top of passive recovery
-- A full rest day with no adventuring restores +1.5 POT total
+- **Long Rest** - Proportional recovery based on how much POT you're missing. A nearly-empty mage recovers a large chunk overnight; a nearly-full mage recovers a small amount. Your highest mental stat (INT, WIS, or CHA) provides a small additional bonus. On Standard difficulty, a mage who went nova (0.0 POT) recovers to roughly 7.0 after one night's rest.
+- **Short Rest** - Flat +0.5 POT, once per day. Stacks with Long Rest recovery. The Arcane Recovery mastery doubles this to +1.0.
+- **No passive recovery** - You must actually rest. There's no slow trickle during the day. A safety valve fires only if you go a full 24 hours without any rest at all, providing a tiny +0.3 to prevent a dead end.
+
+The difficulty dial affects how much of your deficit you recover overnight: Forgiving recovers nearly everything, Brutal recovers about two-fifths.
 
 **Implements (Casting Focuses)**
 
@@ -714,7 +855,7 @@ Enhancement effects can be dispelled by enemies (contested POT check). Equipment
 
 Transformation temporarily replaces your stats, suspends your equipment, and gives you a creature form with natural weapons and potentially special abilities. Everything reverts cleanly when the form ends.
 
-Six archetypes:
+Seven archetypes:
 - **Beast (Agile)** - Fast, high DEX. Wolf, panther, hawk.
 - **Beast (Brute)** - Strong, high STR. Bear, gorilla, boar.
 - **Beast (Scout)** - Utility form. Minimal combat. Flight or swim for scouting.
@@ -743,6 +884,18 @@ But you're not helpless:
 
 When you break free, you return at your pre-polymorph health with all equipment restored. After any reversion, you gain 5 turns of polymorph immunity.
 
+**Spell Pattern Crystallization**
+
+As you repeatedly cast the same type of spell under pressure, the magic becomes instinctive. The system invisibly tracks your casting patterns — a fire bolt cast again and again in genuine combat, a shadow binding used under stress — and when a pattern has been practiced enough, it crystallizes into a named spell.
+
+When a pattern crystallizes:
+- The GM narrates a breakthrough moment — the magic clicks, what was improvisation becomes instinct
+- You're offered a narrative name for the spell (you can suggest your own)
+- The crystallized spell gains a permanent modifier bonus that stacks on top of your existing casting skills
+- The spell appears on your character sheet under "Spell Patterns"
+
+After crystallization, the spell's modifier grows through the same End of Day Reflection system that governs all skill growth. Crystallization doesn't gate access — you can always attempt any spell your domain permits. It rewards consistency and practice with a mechanical edge.
+
 **Conjured Groups: Summoning Allies**
 
 You can summon a group of creatures that fights alongside you. The system tracks the group as one entity with one action per turn and a shared health pool.
@@ -760,11 +913,24 @@ Physical groups (tamed animals, constructs built through crafting) require no PO
 
 You can have one conjured group and one companion at the same time, for a maximum of two allied entities.
 
+**Mind-Affecting Compulsions**
+
+Supernatural characters with the Dominion discipline can attempt to magically influence NPC behavior. There are four tiers, each more powerful and costly than the last:
+
+- **Charm** - The target treats you as a trusted acquaintance. They'll share information and give you the benefit of the doubt, but won't betray their faction or violate their core values. Ends if you or your allies act hostile. Cheapest option, social in nature.
+- **Command** - Speak a single immediate action: "Drop your weapon," "Open the gate," "Flee." One action, one chance, done. The target carries it out on their next turn. Won't work if the command would be self-destructive or violate their deepest values.
+- **Domination** - Sustained behavioral control. The target acts on your commands using their own capabilities. Extremely costly (Major or Legendary strain), requires your concentration, and the target gets increasingly strong resistance checks each round. Cannot target the player character.
+- **Terror** - The target must flee from you. They can defend but can't attack or approach. If cornered with no escape, they become Shaken instead (heavy penalty to all actions). Lasts up to 3 rounds with resistance checks each round.
+
+All compulsions respect NPC personality. An NPC's core values, deepest loyalties, and hard boundaries cannot be overridden by any spell — at most, a compulsion can push against them, giving the NPC a strong chance to break free. NPCs remember being compelled, and repeated compulsion on the same target becomes increasingly difficult and damages your relationship.
+
+When an NPC attempts a compulsion on you, it never overrides your choices. The effect is purely mechanical — stat penalties and movement restrictions — while you decide your own actions.
+
 > The specific abilities available depend on your setting. A dark fantasy world might offer blood magic with serious consequences. A sci-fi setting might give you cybernetic implants that strain your body. The system adapts to the genre, but the cost is always real.
 
 ---
 
-## 14 · Survival
+## 16 · Survival & Recovery
 
 Your character needs food, water, and rest. Neglecting these basics has real consequences.
 
@@ -779,31 +945,59 @@ On Standard, Harsh, and Brutal difficulty, you consume 1 water + 1 ration daily.
 
 Long Rest requires:
 - 6+ hours of uninterrupted rest
-- Having eaten that day
+- Having eaten that day (difficulty-dependent)
 - Max one Long Rest per 24 hours
 
-Long Rest clears certain conditions, restores strain, refreshes Active Skill cooldowns and item charges. End of Day Reflection happens during Long Rest. This is when your stats and skills grow.
+Long Rest is when most recovery happens. It also triggers End of Day Reflection (your stats and skills grow) and refreshes Active Skill cooldowns and item charges.
+
+**Short Rest**
+
+A few hours of focused rest. Reduces each condition's penalty by 0.3 — enough to fully clear Minor conditions. Also restores +0.5 POT for supernatural characters. Once per day, doesn't replace Long Rest.
 
 **Safe vs Unsafe Rest**
 
 - **Safe locations** (towns, secured camps, player property): rest completes automatically
-- **Unsafe locations** (dungeons, enemy territory, wilderness): contested check. Failure means ambush during rest. No benefits gained, rations still consumed.
+- **Unsafe locations** (dungeons, enemy territory, wilderness): contested check. Failure means interruption — reduced or no recovery benefits, and on Harsh/Brutal difficulty, your daily rest window is consumed.
 - You'll get a qualitative signal before committing: "The area feels tense" vs "This place seems secure."
 
-**Recovery Methods**
+**Recovery: The Threshold Model**
 
-- **Passive Recovery** - +0.3 per day to conditions. Requires relative safety but no resources. Slow but free. POT recovers faster at +0.5 per day (see Section 13).
-- **Triage** - Medical treatment (self or others). Divides remaining condition penalty by 5 for immediate partial reduction. Tools help. Does not work on Mental Strain (POT).
-- **Short Rest** - Once per day, a few hours of focused meditation restores +0.5 POT. The caster's equivalent of triage. No effect on non-POT conditions.
-- **Time Skip** - In safe locations, fast-forward rest and recovery without playing through each day.
+When you sleep, conditions don't heal completely — they're capped down to a threshold based on how bad they got.
+
+- **Minor and Moderate conditions** (-0.5 to -1.0): Gone after one Long Rest.
+- **Severe and Critical conditions** (-1.5 to -2.0): Reduced to Minor (-0.5) after one Long Rest. The residual clears on the next Long Rest. Two days total.
+- **Catastrophic conditions** (-3.0): Reduced to Moderate (-1.0) after one Long Rest. Two days total.
+- **Catastrophic+** (-4.0 or worse): Reduced to Severe (-1.5). Three days total for the worst injuries.
+
+The difficulty dial shifts these thresholds. On Forgiving, even Severe conditions clear overnight. On Brutal, Critical conditions wake as Severe and require multiple days.
+
+**Active Triage**
+
+Medical treatment for when you need something fixed right now, mid-dungeon, before the next fight.
+
+- Success reduces a condition's penalty by 0.5. Critical success reduces by 1.0.
+- Failure wastes supplies. Critical failure worsens the condition.
+- One attempt per condition per Short Rest window
+- Self-triage is allowed at higher difficulty
+- Triage does NOT improve overnight recovery — it's purely for immediate relief
+- Triage does NOT work on Mental Strain (POT conditions)
+- Medical Mastery improves triage results significantly
+
+**CHA Counseling**
+
+Same mechanics as triage, but for mental and psychological conditions (targeting INT, WIS, or CHA). Uses CHA instead of medical skills. No supplies required. Gives social characters a meaningful role during downtime. Does not work on POT/Mental Strain.
 
 **The Abyss of Zero**
 
 If any stat hits 0.0:
 - Voluntary actions using that stat are forbidden
 - Involuntary actions (crawling, shivering, survival instinct) still work
-- Stats below 0.0 impose an additional penalty on all rolls using that stat
+- Stats below 0.0 impose the Debt of Effort: the absolute value of the negative stat is subtracted from your die roll on any check using that stat
 - Recovery: +0.1 every 4 hours if you're in relative safety
+
+**Secure Respite**
+
+If you're deep in the Abyss of Zero at a safe location, you can fast-forward through rest and recovery without playing through each day. The system simulates day-by-day rest cycles, applying Long Rest thresholds and Short Rest reductions, until you're back on your feet.
 
 **Adrenaline Surge**
 
@@ -811,7 +1005,7 @@ Once per day, if any stat is at 0.0 or below, you can force it to 1.0 for one si
 
 ---
 
-## 15 · Death & Fate
+## 17 · Death & Fate
 
 Death is rare, dramatic, and always your choice.
 
@@ -853,7 +1047,7 @@ Rewinds are tracked. The AI may weave it into the narrative: recurring premoniti
 
 ---
 
-## 16 · The World
+## 18 · The World
 
 The world you play in is built during character creation based on your choices: genre, setting, storyteller. Once created, it's a persistent place with its own geography, factions, history, and logic.
 
@@ -917,26 +1111,76 @@ As you explore, locations are added to your map and glossary. The world contains
 
 ---
 
-## 17 · Exploration & Travel
+## 19 · Companions
+
+Some NPCs will travel and fight alongside you. A companion is a narrative ally with their own personality, capabilities, and opinions — not a second character for you to manage.
+
+**How Companions Work**
+
+- The GM controls their dialogue, reactions, and combat decisions
+- Each companion has a specialty (soldiering, field medicine, court diplomacy) that provides a passive bonus in their domain
+- They have their own wound state: healthy, wounded, critical, or dead
+- Their loyalty to you changes based on how you treat them and whether your actions align with their values
+
+**What You Don't Manage**
+
+You don't control their inventory, stats, or turn-by-turn actions. You give general direction ("cover the door," "tend to the wounded") and they act according to their personality and capability. A cautious medic won't charge into melee. A loyal sellsword won't abandon you under fire.
+
+**Companion Limits**
+
+You can have one companion traveling with you at a time, plus one conjured group if you're a supernatural character. Two allied entities maximum.
+
+**Companion Loss**
+
+Companions can be wounded, incapacitated, or killed. Their loss is genuine — a companion who dies is gone. The world remembers them. You may encounter new potential companions through play, but they aren't replaceable parts.
+
+> Companions add depth to your story. They're people with their own stakes, not extensions of your character sheet.
+
+---
+
+## 20 · Exploration & Travel
 
 Moving through the world takes time and resources. Travel isn't instant: distance matters, terrain matters, and what happens along the way matters.
 
 **Routes & Distance**
 
-Distance is measured in travel days, not miles. A travel day is roughly 8 hours of walking at a sustainable pace. Routes have a terrain type (road, trail, wilderness, mountain, water, underground) and a danger level.
+Distance is measured in travel days, not miles. A travel day is roughly 8 hours of walking at a sustainable pace. Routes have a terrain type, a climate, and a danger level.
 
 - 1 day: short trip, arrive by nightfall
 - 2-3 days: multi-day journey
 - 4-7 days: significant expedition
 - 8+ days: major undertaking
 
+**Terrain Types**
+
+Nine terrain types, each with its own profile:
+
+- **Road** - Safe, no navigation needed. Fast and reliable.
+- **Trail** - Mild navigation check. Standard travel.
+- **Wilderness** - Harder navigation, fatigue accumulates. Anything can happen.
+- **Swamp** - No carts or mounts. Disease, quicksand, toxic gas. High fatigue.
+- **Desert** - Dehydration risk, sandstorms, mirages. Extra water consumption.
+- **Mountain** - Rockfall, altitude, avalanche. Restricted mount access. High fatigue.
+- **Water** - Watercraft only. Drowning, storms, sea creatures.
+- **Underground** - Dark, confined. Collapse, flooding, gas. No mounts.
+- **Urban** - Easy navigation, crowd and social hazards.
+
+**Climate**
+
+Routes can have a climate tag that modifies conditions: temperate (no effect), hot, cold, extreme hot, or extreme cold. Extreme climates increase fatigue, ration consumption, and can damage equipment.
+
 **Travel Methods**
 
-- **On foot** - Default
-- **Mounted** - Faster (half travel time), requires animal upkeep. Terrain restrictions.
-- **Cart/Wagon** - Moderately faster, road or trail only.
-- **Watercraft** - Fast downstream, slow upstream. Requires skill.
-- **Magical/Tech transit** - Very fast or instant. Setting-dependent, expensive, may require specific locations.
+- **On foot** - Default. No restrictions.
+- **Mounted** - Faster (roughly two-thirds travel time), requires animal upkeep. Terrain restrictions.
+- **Cart/Wagon** - Moderately faster, roads and trails only.
+- **Ground Vehicle** - Fast, modern/sci-fi/steampunk settings. Roads and trails.
+- **Watercraft (river)** - Fast downstream, slow upstream.
+- **Watercraft (sea)** - Open-water voyaging. Harder navigation.
+- **Aerial** - Flying mounts or airships. Bypasses terrain penalties but not climate. Rare and expensive.
+- **Magical/Tech Transit** - Teleportation, portals, maglev. Very fast, no fatigue, requires infrastructure at both ends. Setting-dependent.
+
+Some routes have rail infrastructure, making ground vehicle travel even faster.
 
 **Resolution Modes**
 
@@ -956,7 +1200,78 @@ Known routes need no check. Unknown routes require navigation. Failure means det
 
 ---
 
-## 18 · Economy & Trade
+## 21 · Traps, Locks & Puzzles
+
+**Locks**
+
+DEX + relevant skill vs the lock's difficulty. Tool quality matters — masterwork lockpicks give a significant bonus, improvised tools impose a penalty. Critical failure may snap your pick in the mechanism, making the lock harder to attempt again.
+
+**Traps**
+
+Traps have a single difficulty that governs both detection and disarm. You may spot a trap passively as you enter a zone (the system silently checks your WIS), or actively by using Assess to scan the environment.
+
+If you spot a trap, you can attempt to disarm it (DEX check). Clean success recovers components. Critical failure triggers the trap on you.
+
+If a trap triggers, you defend against it using an appropriate stat — DEX to dodge projectiles, CON to resist poison. Defensive Commitment doesn't help against traps; they're environmental hazards, not attacks.
+
+**Puzzles**
+
+Puzzles are player-first: the GM describes the puzzle, and you can solve it directly by typing your answer. Correct answer = no roll, no time cost. The dice system is the fallback when you're stuck, not the default.
+
+If you're stuck, you can request hints:
+- **First hint** (free, costs a few minutes of game time): Reframes the puzzle from a different angle. Opens a WIS-based approach at reduced difficulty.
+- **Second hint** (costs more game time): Reveals a physical or mechanical approach. Opens a DEX or STR pathway at further reduced difficulty.
+
+There's no auto-solve. You must either figure it out or pass a check on one of the available pathways. But puzzles should feel like the clever path, not the only path — the GM will include alternate options (bash the door, climb the wall, find another way) when they make sense.
+
+---
+
+## 22 · Crafting & Extended Tasks
+
+Some objectives can't be resolved in a single check. Forging a weapon, studying an ancient text, fortifying a camp, decoding a cipher: these require sustained effort across multiple attempts.
+
+**How Extended Tasks Work**
+
+- Each attempt: roll your relevant stat + skills + equipment vs the task's difficulty
+- Better results = more progress. Critical success = breakthrough. Critical failure = setback or regression.
+- Even failed attempts where you learn something contribute small progress
+- Conditions from failed attempts carry into future attempts, creating natural escalating difficulty
+- Time between attempts varies: crafting might be hours, emergency repair might be minutes
+- If a relevant stat enters the Abyss of Zero during an Extended Task, you can't make further attempts using that stat until it recovers
+
+**Crafting**
+
+- Requires appropriate materials, tools, and often a workshop
+- Output quality is capped by input material quality (Crude iron can't produce a Masterwork sword)
+- Field crafting (no workshop): penalties and quality caps
+- Craft Excellence mastery bumps output quality one tier above your materials
+
+**Repair**
+
+- **Field repair** (basic tools) - Up to 50% durability restoration
+- **Professional repair** (full workshop) - Up to 100%
+- Broken items are harder to repair and risk permanent destruction on a critical fumble
+
+**Research & Study**
+
+- Study creatures to reveal elemental weaknesses, anatomical vulnerabilities, and behavioral patterns
+- Study texts for new skills, recipes, or lore
+- Safe research: wasted time is the worst outcome
+- Dangerous research (cursed texts, volatile magic): real risk of harm to your character or destruction of the source material
+
+**Knowledge as Power**
+
+Research doesn't make you hit harder. It lets you fight smarter.
+
+- Reveals elemental weaknesses (your fire attacks become more effective against that creature type)
+- Reveals weak points (reduced penalty for targeted attacks)
+- Reveals behavioral patterns (new tactical options using existing mechanics)
+
+Field experience counts too. Three critical successes against a creature type in combat reveals one piece of knowledge without any studying.
+
+---
+
+## 23 · Economy & Trade
 
 **How Money Works**
 
@@ -993,111 +1308,7 @@ Your setting determines which system applies.
 
 ---
 
-## 19 · Crafting & Extended Tasks
-
-Some objectives can't be resolved in a single check. Forging a weapon, studying an ancient text, fortifying a camp, decoding a cipher: these require sustained effort across multiple attempts.
-
-**How Extended Tasks Work**
-
-- Each attempt: roll your relevant stat + skills + equipment vs the task's difficulty
-- Better results = more progress. Critical success = breakthrough. Critical failure = setback or regression.
-- Even failed attempts where you learn something contribute small progress
-- Conditions from failed attempts carry into future attempts, creating natural escalating difficulty
-- Time between attempts varies: crafting might be hours, emergency repair might be minutes
-
-**Crafting**
-
-- Requires appropriate materials, tools, and often a workshop
-- Output quality is capped by input material quality (Crude iron can't produce a Masterwork sword)
-- Field crafting (no workshop): penalties and quality caps
-- Craft Excellence mastery bumps output quality one tier above your materials
-
-**Repair**
-
-- **Field repair** (basic tools) - Up to 50% durability restoration
-- **Professional repair** (full workshop) - Up to 100%
-- Broken items are harder to repair and risk permanent destruction on a critical fumble
-
-**Research & Study**
-
-- Study creatures to reveal elemental weaknesses, anatomical vulnerabilities, and behavioral patterns
-- Study texts for new skills, recipes, or lore
-- Safe research: wasted time is the worst outcome
-- Dangerous research (cursed texts, volatile magic): real risk of harm to your character or destruction of the source material
-
-**Knowledge as Power**
-
-Research doesn't make you hit harder. It lets you fight smarter.
-
-- Reveals elemental weaknesses (your fire attacks become more effective against that creature type)
-- Reveals weak points (reduced penalty for targeted attacks)
-- Reveals behavioral patterns (new tactical options using existing mechanics)
-
-Field experience counts too. Three critical successes against a creature type in combat reveals one piece of knowledge without any studying.
-
----
-
-## 20 · Storytellers, Settings & Difficulty
-
-**Storytellers**
-
-Your Storyteller is the narrative voice of the game. The rules don't change, but the way the story feels does.
-
-- **Chronicler** - "The world as it is." Sparse, factual, precise. What a witness would remember.
-- **Bard** - "You are the hero of this story." Epic when earned, grounded the rest of the time.
-- **Trickster** - "The world has a sense of humor." Observational wit. Plays it straight, notices the absurd.
-- **Poet** - "Every victory has a cost." Lingering on what's lost. Specific, concrete images.
-- **Whisper** - "Everything is fine. Almost." Warm and cozy on the surface. Something wrong underneath.
-- **Noir** - "Nobody is clean." Hard-boiled. Reads people. Earned cynicism.
-- **Custom** - Define your own voice.
-
-Can be changed at any time during play. No penalty, no cooldown.
-
-**Settings**
-
-Your setting defines the genre and world type:
-
-- **Sword & Soil** - Pre-gunpowder. Muscle, metal, and maybe magic.
-- **Smoke & Steel** - Gunpowder through early mechanization. Steam, revolution, empire.
-- **Concrete & Code** - 20th century through near-future. Guns, cars, computers, bureaucracy.
-- **Stars & Circuits** - Spacefaring, cybernetic, post-human.
-- **Ash & Remnants** - Post-collapse. Something ended. What's left is what you have.
-- **Dream & Myth** - Surreal, mythic, or strange. Reality's rules are suggestions.
-- **Custom** - Blend, twist, or build from scratch.
-
-**Difficulty Dials**
-
-Difficulty isn't a single slider. It's a set of independent dials you can adjust at any time:
-
-- **DC Offset** - Shifts all difficulty checks up or down. The global harder/easier knob.
-- **Fate DC** - How hard it is to survive a Fate Check. Separable from combat difficulty.
-- **Survival** - Toggle food/water tracking on or off.
-- **Durability** - Toggle item degradation on or off.
-- **Progression Speed** - How fast you grow. 0x (frozen) through 5.0x (rapid). Default 1x.
-- **Encounter Pressure** - How frequently you face threats. Low / Standard / High.
-- **Fortune's Balance** - Toggle the 2d20 system on or off. Off = straight d20, every check.
-- **Simplified Outcomes** - Toggle 6-tier results to binary pass/fail.
-
-**Presets** for quick setup:
-
-- **Forgiving** - Easier checks, low death threshold, no survival/durability
-- **Standard** - Balanced baseline
-- **Harsh** - Harder checks, tough death threshold, full tracking
-- **Brutal** - Maximum challenge across the board
-
-All dials can be changed mid-game. Changes apply to the next relevant event. Nothing is recalculated retroactively.
-
-**Scenario Intensity**
-
-When starting a new campaign, you choose how your story begins:
-
-- **Calm** - Time to explore and orient. Low immediate threat.
-- **Standard** - Clear hook with proportional stakes.
-- **Dire** - High pressure from turn one. Immediate danger, scarce resources, ticking clock.
-
----
-
-## 21 · Saving & Sharing
+## 24 · Saving & Sharing
 
 All save and share features are accessed through the settings menu in-game.
 

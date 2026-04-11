@@ -35,6 +35,14 @@
 
 ## Recent Work (This Session: 2026-04-11)
 
+### Rulebook Content Update to v3.0
+Updated the entire rulebook page content from v2 to v3.0 (24 sections, up from 22). New sections: Stealth (09), Companions (19), Traps/Locks/Puzzles (21). Sections reordered (Storytellers/Settings/Difficulty moved to 02). Significant content updates to Skills, Supernatural Abilities, Survival & Recovery, and Exploration & Travel. All styling, scroll-spy, and interactive behavior preserved.
+
+**Files modified:** `app/rulebook/page.js`
+**Files synced:** `claude-upload/rulebook-page.js`
+
+---
+
 ### Require Backstory on Character Creation (Phase 3)
 Continue button now requires a backstory concept in addition to a name. Selecting an archetype counts (backstory is pre-filled). Custom mode requires the player to write something. Hint text shown below empty backstory field.
 
