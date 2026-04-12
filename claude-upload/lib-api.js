@@ -114,3 +114,17 @@ export function del(path) { return request('DELETE', path); }
 export function getAnnouncement() {
   return get('/api/games/announcement');
 }
+
+// ─── Snapshot Import ───
+
+export function fetchSnapshotPreview(token) {
+  return get(`/api/games/snapshots/${token}`);
+}
+
+export function importSharedSnapshot(token) {
+  return post(`/api/games/snapshots/${token}/import`);
+}
+
+export function importMySnapshot(snapshotId) {
+  return post(`/api/games/snapshots/${snapshotId}/import-mine`);
+}

@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-11
+**Last Updated:** 2026-04-12
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -33,7 +33,24 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-11)
+## Recent Work (This Session: 2026-04-12)
+
+### Snapshot Landing Page + Init Wizard Snapshot Import Fix
+Two related snapshot bugs fixed in one pass.
+
+**Bug 1 — Shared snapshot share URL 404'd.** Players sharing a world via snapshot got a link like `/snapshot/{shareToken}`, but that route didn't exist. Built a new public landing page at `app/snapshot/[token]/page.js` that fetches the preview via `GET /api/games/snapshots/{token}` (no auth required) and shows a card with world name, description, setting, storyteller, faction/NPC/location counts, snapshot type, creator, and date. "Import This World" button routes logged-in players through `POST /api/games/snapshots/{token}/import` then `/init?gameId={newGameId}`; logged-out players get bounced to `/auth?redirect=/snapshot/{token}` so they can sign up first and return. 404 from the preview fetch shows "This world is no longer available" with a back-to-home link. Import failures render inline and leave the button available to retry. Uses NavBar + Footer + ParticleField for site consistency, CSS variables throughout, no rgba for text/borders.
+
+**Bug 2 — "Your Worlds" in init wizard sent through setting save.** When a player picked a saved snapshot from "Your Worlds" in Phase 2 (Settings), the Continue handler called `saveSetting()` which POSTed the snapshot's display name (e.g. "Sword & Soil") as a `selection` value to `/api/init/:gameId/setting`. The backend rejected it as an invalid setting identifier. Fixed by intercepting the snapshot path in `handleContinue` case 1 before `saveSetting()` is reached: calls `POST /api/games/snapshots/{snapshotId}/import-mine`, fire-and-forgets a `DELETE /api/games/{oldGameId}` for the abandoned init game, clears the `crucible_init_gameId` session key, and `router.replace`s to `/init?gameId={newGameId}`. The existing init resume logic then walks the new game's phase markers and lands the player at character creation (Phase 2). Import failures keep the current game intact and surface the error via the standard error banner.
+
+**API helpers added:** `fetchSnapshotPreview(token)`, `importSharedSnapshot(token)`, `importMySnapshot(snapshotId)` in `lib/api.js`.
+
+**Files created:** `app/snapshot/[token]/page.js`
+**Files modified:** `lib/api.js`, `app/init/page.js`
+**Files synced:** `claude-upload/lib-api.js`, `claude-upload/init-page.js`, `claude-upload/snapshot-page.js`, `claude-upload/FRONTEND_STATUS.md`
+
+---
+
+## Recent Work (Previous Session: 2026-04-11)
 
 ### Rulebook Content Update to v3.0
 Updated the entire rulebook page content from v2 to v3.0 (24 sections, up from 22). New sections: Stealth (09), Companions (19), Traps/Locks/Puzzles (21). Sections reordered (Storytellers/Settings/Difficulty moved to 02). Significant content updates to Skills, Supernatural Abilities, Survival & Recovery, and Exploration & Travel. All styling, scroll-spy, and interactive behavior preserved.

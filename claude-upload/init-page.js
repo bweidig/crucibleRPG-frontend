@@ -3543,10 +3543,33 @@ function InitWizardInner() {
         case 0:
           await saveStoryteller();
           break;
-        case 1:
+        case 1: {
+          // Snapshot import path: "Your Worlds" selections create a new game
+          // with the snapshot's world pre-loaded instead of going through the
+          // standard setting-save + world-gen pipeline. Delete the abandoned
+          // init game and jump to the new game's character creation phase.
+          if (setting === 'your-worlds' && selectedSnapshot) {
+            try {
+              const res = await api.importMySnapshot(selectedSnapshot);
+              const newGameId = res.gameId;
+              if (!newGameId) throw new Error('Snapshot import returned no game id.');
+              if (gameId) {
+                api.del(`/api/games/${gameId}`).catch(() => {});
+              }
+              try { sessionStorage.removeItem('crucible_init_gameId'); } catch {}
+              router.replace(`/init?gameId=${newGameId}`);
+              return;
+            } catch (err) {
+              savingRef.current = false;
+              setSaving(false);
+              setError(err.message || 'Failed to import this world. Please try again.');
+              return;
+            }
+          }
           await saveSetting();
           // World gen polls in background — advance immediately
           break;
+        }
         case 2: {
           // Gate on world gen status
           const wgStatus = worldGenStatusRef.current;
