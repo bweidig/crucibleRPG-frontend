@@ -35,6 +35,14 @@
 
 ## Recent Work (This Session: 2026-04-12)
 
+### Snapshot Landing Page — Faction & Location Names
+Backend now returns `factionNames` and `locationNames` (string arrays) on `GET /api/games/snapshots/:token`. Added a new "names" zone to the snapshot preview card on `app/snapshot/[token]/page.js`, sitting between the stat counts row and the metadata table. Renders a small Cinzel uppercase "FACTIONS" / "LOCATIONS" label (matching the StatBlock label style) with the names below as a single comma-separated Alegreya Sans line in muted blue-gray (#b0bec5). Each section is conditional — empty arrays render nothing — and if both arrays are empty the card layout falls back to the original two-zone (counts → details) appearance with no extra divider. The metadata table's existing `border-gold-faint` top border doubles as the divider between the names zone and the details zone, giving the card three visual zones when names are present.
+
+**Files modified:** `app/snapshot/[token]/page.js`
+**Files synced:** `claude-upload/snapshot-page.js`, `claude-upload/FRONTEND_STATUS.md`
+
+---
+
 ### Snapshot Landing Page + Init Wizard Snapshot Import Fix
 Two related snapshot bugs fixed in one pass.
 

@@ -218,6 +218,40 @@ export default function SnapshotLandingPage() {
                 <StatBlock label="Locations" value={snapshot.locationCount ?? 0} />
               </div>
 
+              {((snapshot.factionNames?.length > 0) || (snapshot.locationNames?.length > 0)) && (
+                <div style={{
+                  borderTop: '1px solid var(--border-gold-faint)',
+                  padding: '14px 0',
+                }}>
+                  {snapshot.factionNames?.length > 0 && (
+                    <div style={{ marginBottom: snapshot.locationNames?.length > 0 ? 12 : 0 }}>
+                      <div style={{
+                        fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600,
+                        color: 'var(--text-muted)', letterSpacing: '0.08em',
+                        textTransform: 'uppercase', marginBottom: 4,
+                      }}>Factions</div>
+                      <div style={{
+                        fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
+                        color: '#b0bec5', lineHeight: 1.5,
+                      }}>{snapshot.factionNames.join(', ')}</div>
+                    </div>
+                  )}
+                  {snapshot.locationNames?.length > 0 && (
+                    <div>
+                      <div style={{
+                        fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600,
+                        color: 'var(--text-muted)', letterSpacing: '0.08em',
+                        textTransform: 'uppercase', marginBottom: 4,
+                      }}>Locations</div>
+                      <div style={{
+                        fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
+                        color: '#b0bec5', lineHeight: 1.5,
+                      }}>{snapshot.locationNames.join(', ')}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div style={{
                 padding: '14px 0',
                 borderTop: '1px solid var(--border-gold-faint)',
