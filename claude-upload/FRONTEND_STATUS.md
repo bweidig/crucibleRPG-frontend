@@ -35,6 +35,22 @@
 
 ## Recent Work (This Session: 2026-04-12)
 
+### Save Snapshot — Description Field
+Added an optional description field to the "Save World Snapshot" section on the `/play` settings panel World tab (`app/play/components/SettingsModal.js`). New "Description (optional)" label and textarea (3 rows, max 500 chars) sit between the existing name input and the Save button, with placeholder "Describe this world for future you or other players..." and a JetBrains Mono character counter ("X characters remaining") that turns orange when ≤ 50 characters remain — same pattern as the storyteller custom directive counter. New `snapDescription` state defaults to empty (no pre-fill). `handleSaveSnapshot` now sends the trimmed description in the POST body (or `null` when empty), replacing the previous hardcoded `description: null`. Backend already accepts the field per existing API contract — no backend change needed.
+
+**Files modified:** `app/play/components/SettingsModal.js`
+**Files synced:** `claude-upload/play-full.js`, `claude-upload/FRONTEND_STATUS.md`
+
+---
+
+### Share Snapshot — Drop "(shared)" Suffix
+The share flow in `SettingsModal.js` previously created snapshots with `name: \`${campaignName} (shared)\``, which baked the literal "(shared)" suffix into the stored snapshot name. On the shared-snapshot landing page, the heading then showed "Sword & Soil (shared)" below the already-present "SHARED WORLD" label — redundant. The `/snapshot/[token]/page.js` heading always rendered `snapshot.name` as-is, so the fix had to happen at the CREATION site, not at display. Changed the share handler to post `name: campaignName` unchanged. New snapshots get a clean name; existing snapshots in the DB still carry the suffix and would need a rename through the snapshot management UI or a one-off cleanup.
+
+**Files modified:** `app/play/components/SettingsModal.js`
+**Files synced:** `claude-upload/play-full.js`, `claude-upload/FRONTEND_STATUS.md`
+
+---
+
 ### Snapshot Landing Page — Faction & Location Names
 Backend now returns `factionNames` and `locationNames` (string arrays) on `GET /api/games/snapshots/:token`. Added a new "names" zone to the snapshot preview card on `app/snapshot/[token]/page.js`, sitting between the stat counts row and the metadata table. Renders a small Cinzel uppercase "FACTIONS" / "LOCATIONS" label (matching the StatBlock label style) with the names below as a single comma-separated Alegreya Sans line in muted blue-gray (#b0bec5). Each section is conditional — empty arrays render nothing — and if both arrays are empty the card layout falls back to the original two-zone (counts → details) appearance with no extra divider. The metadata table's existing `border-gold-faint` top border doubles as the divider between the names zone and the details zone, giving the card three visual zones when names are present.
 

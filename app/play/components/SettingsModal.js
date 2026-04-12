@@ -941,6 +941,7 @@ function WorldTab({ gameId, gameState, onGameStateReload, onClose }) {
 
   // ─── Snapshot ───
   const [snapName, setSnapName] = useState(`${campaignName} \u2014 Turn ${currentTurn}`);
+  const [snapDescription, setSnapDescription] = useState('');
   const [snapSaving, setSnapSaving] = useState(false);
   const [snapSuccess, setSnapSuccess] = useState(false);
   const [snapError, setSnapError] = useState(null);
@@ -951,7 +952,10 @@ function WorldTab({ gameId, gameState, onGameStateReload, onClose }) {
     setSnapError(null);
     try {
       await api.post(`/api/game/${gameId}/snapshot`, {
-        name: snapName.trim(), description: null, type: 'branch', visibility: 'private',
+        name: snapName.trim(),
+        description: snapDescription.trim() || null,
+        type: 'branch',
+        visibility: 'private',
       });
       setSnapSuccess(true);
       setTimeout(() => setSnapSuccess(false), 2500);
@@ -974,7 +978,7 @@ function WorldTab({ gameId, gameState, onGameStateReload, onClose }) {
     setShareError(null);
     try {
       const res = await api.post(`/api/game/${gameId}/snapshot`, {
-        name: `${campaignName} (shared)`,
+        name: campaignName,
         description: null,
         type: type === 'began' ? 'fresh_start' : 'branch',
         visibility: 'unlisted',
@@ -1122,6 +1126,29 @@ function WorldTab({ gameId, gameState, onGameStateReload, onClose }) {
             outline: 'none', marginBottom: 10,
           }}
         />
+        <div style={{ fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: '#c8c0b0', marginBottom: 4 }}>
+          Description (optional)
+        </div>
+        <textarea
+          value={snapDescription}
+          onChange={e => { if (e.target.value.length <= 500) setSnapDescription(e.target.value); }}
+          placeholder="Describe this world for future you or other players..."
+          maxLength={500}
+          rows={3}
+          style={{
+            width: '100%', boxSizing: 'border-box', padding: '8px 12px',
+            background: '#0a0e1a', border: '1px solid #1e2540', borderRadius: 6,
+            fontFamily: "var(--font-alegreya-sans)", fontSize: 14, color: '#c8c0b0',
+            outline: 'none', resize: 'vertical', lineHeight: 1.5,
+          }}
+        />
+        <div style={{
+          fontFamily: "var(--font-jetbrains)", fontSize: 11,
+          color: snapDescription.length >= 450 ? '#e8845a' : '#6b83a3',
+          textAlign: 'right', marginTop: 4, marginBottom: 10,
+        }}>
+          {500 - snapDescription.length} characters remaining
+        </div>
         <button onClick={handleSaveSnapshot} disabled={snapSaving || !snapName.trim()} style={{
           width: '100%', padding: '8px 0', borderRadius: 6, cursor: snapSaving ? 'not-allowed' : 'pointer',
           fontFamily: "var(--font-alegreya-sans)", fontSize: 14, fontWeight: 600,
