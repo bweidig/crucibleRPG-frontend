@@ -474,10 +474,14 @@ Public preview of a shared snapshot. **No auth required.**
     "npcCount": 5,
     "locationCount": 6,
     "createdBy": "Player One",
-    "createdAt": "2026-03-16T..."
+    "createdAt": "2026-03-16T...",
+    "factionNames": ["The Ashen Hand", "The Iron Covenant", "The Thornfield Commune"],
+    "locationNames": ["Grimwall Crossing", "Millhaven", "The Ashwood"]
   }
 }
 ```
+
+`factionNames` and `locationNames` are names only (no descriptions, IDs, or other fields) extracted from the snapshot's stored world state. Locations include only top-level locations (no sub-locations). Both arrays are sorted alphabetically. Empty arrays when the snapshot has no factions/locations.
 
 **Status Codes:**
 | Code | Meaning |
