@@ -199,7 +199,13 @@ export default function SnapshotLandingPage() {
                 <h1 style={{
                   fontFamily: 'var(--font-cinzel)', fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 700,
                   color: 'var(--text-heading)', margin: 0, lineHeight: 1.2,
-                }}>{snapshot.name || 'Untitled World'}</h1>
+                }}>{snapshot.worldName || snapshot.name || 'Untitled World'}</h1>
+                {snapshot.worldName && snapshot.name && (
+                  <div style={{
+                    fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
+                    color: 'var(--text-muted)', lineHeight: 1.4, marginTop: 8,
+                  }}>{snapshot.name}</div>
+                )}
                 {snapshot.description && (
                   <p style={{
                     fontFamily: 'var(--font-alegreya)', fontSize: 16, fontStyle: 'italic',
@@ -258,7 +264,7 @@ export default function SnapshotLandingPage() {
                 borderBottom: '1px solid var(--border-gold-faint)',
                 marginBottom: 24,
               }}>
-                <MetaRow label="Setting" value={snapshot.setting} />
+                {!snapshot.worldName && <MetaRow label="Setting" value={snapshot.setting} />}
                 <MetaRow label="Storyteller" value={snapshot.storyteller} />
                 <MetaRow label="Type" value={typeLabel(snapshot.type)} />
                 <MetaRow label="Created by" value={snapshot.createdBy} />

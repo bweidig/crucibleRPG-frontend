@@ -466,6 +466,7 @@ Public preview of a shared snapshot. **No auth required.**
 {
   "snapshot": {
     "name": "My World",
+    "worldName": "The Fraying Throne",
     "description": "...",
     "type": "fresh_start",
     "setting": "Sword & Soil",
@@ -481,7 +482,7 @@ Public preview of a shared snapshot. **No auth required.**
 }
 ```
 
-`factionNames` and `locationNames` are names only (no descriptions, IDs, or other fields) extracted from the snapshot's stored world state. Locations include only top-level locations (no sub-locations). Both arrays are sorted alphabetically. Empty arrays when the snapshot has no factions/locations.
+`worldName` is the generated name of the snapshot's world (e.g., "The Fraying Throne"). `null` when world gen never produced one. When present, frontends should show it as the primary heading and the `name` field as a subtitle. `factionNames` and `locationNames` are names only (no descriptions, IDs, or other fields) extracted from the snapshot's stored world state. Locations include only top-level locations (no sub-locations). Both arrays are sorted alphabetically. Empty arrays when the snapshot has no factions/locations.
 
 **Status Codes:**
 | Code | Meaning |

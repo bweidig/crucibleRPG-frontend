@@ -881,6 +881,7 @@ function DisplayTab({ settings, onSave }) {
 function WorldTab({ gameId, gameState, onGameStateReload, onClose }) {
   const currentTurn = gameState?.clock?.totalTurn || gameState?.clock?.sessionTurn || 0;
   const campaignName = gameState?.setting || 'My World';
+  const worldLabel = gameState?.worldName || campaignName;
 
   // ─── Checkpoints ───
   const [checkpoints, setCheckpoints] = useState(null); // null=loading, false=error
@@ -940,7 +941,7 @@ function WorldTab({ gameId, gameState, onGameStateReload, onClose }) {
   };
 
   // ─── Snapshot ───
-  const [snapName, setSnapName] = useState(`${campaignName} \u2014 Turn ${currentTurn}`);
+  const [snapName, setSnapName] = useState(`${worldLabel} \u2014 Turn ${currentTurn}`);
   const [snapDescription, setSnapDescription] = useState('');
   const [snapSaving, setSnapSaving] = useState(false);
   const [snapSuccess, setSnapSuccess] = useState(false);

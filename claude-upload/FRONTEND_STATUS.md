@@ -35,6 +35,20 @@
 
 ## Recent Work (This Session: 2026-04-12)
 
+### Snapshot Landing Page Heading + Save Snapshot Name Pre-fill — use worldName
+Two related changes that lean on the new `worldName` field coming from the backend on the snapshot preview and game state responses.
+
+**Snapshot landing page heading (`app/snapshot/[token]/page.js`).** The main card heading now shows `snapshot.worldName` (e.g. "The Fraying Throne") as the large Cinzel title when it is present, with `snapshot.name` ("Sword & Soil — Turn 1") rendered below it as a smaller muted Alegreya Sans subtitle. When `worldName` is null the heading falls back to the previous behavior (snapshot.name as the title, no subtitle). The Setting row in the metadata table below is now suppressed whenever `worldName` is shown as the heading — the setting is already visible inside the snapshot name subtitle, so the row was redundant. When `worldName` is null, the Setting row still renders.
+
+**Save Snapshot name pre-fill (`app/play/components/SettingsModal.js`).** The World tab's Save Snapshot name input was pre-filling with `"{setting} — Turn {n}"`. It now uses `gameState.worldName` when present and falls back to the setting otherwise, so a shared snapshot from a named world arrives on the landing page with a subtitle like "The Fraying Throne — Turn 42" instead of just "Sword & Soil — Turn 42". Added a `worldLabel` helper in `WorldTab` (`gameState?.worldName || campaignName`) and the snap name `useState` now reads from it. Share-handler snapshot name is unchanged.
+
+**API contract:** `docs/API_CONTRACT.md` updated — `GET /api/games/snapshots/:token` response now documents a `worldName` field (nullable) and notes how frontends should render it.
+
+**Files modified:** `app/snapshot/[token]/page.js`, `app/play/components/SettingsModal.js`, `docs/API_CONTRACT.md`
+**Files synced:** `claude-upload/snapshot-page.js`, `claude-upload/play-full.js`, `claude-upload/API_CONTRACT.md`, `claude-upload/FRONTEND_STATUS.md`
+
+---
+
 ### Save Snapshot — Description Field
 Added an optional description field to the "Save World Snapshot" section on the `/play` settings panel World tab (`app/play/components/SettingsModal.js`). New "Description (optional)" label and textarea (3 rows, max 500 chars) sit between the existing name input and the Save button, with placeholder "Describe this world for future you or other players..." and a JetBrains Mono character counter ("X characters remaining") that turns orange when ≤ 50 characters remain — same pattern as the storyteller custom directive counter. New `snapDescription` state defaults to empty (no pre-fill). `handleSaveSnapshot` now sends the trimmed description in the POST body (or `null` when empty), replacing the previous hardcoded `description: null`. Backend already accepts the field per existing API contract — no backend change needed.
 
