@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { isAuthenticated, getUser } from '@/lib/api';
 import {
   getAdminUsers,
+  getAdminGameNarrative,
   getAutoplayArchetypes, startAutoplay,
   getAutoplayRuns, getAutoplayRun, getAutoplayProgress,
   cancelAutoplay, deleteAutoplayRun,
@@ -343,6 +344,7 @@ function RunDetailPanel({ runId, onClose, onReadingModeChange }) {
   const [run, setRun] = useState(null);
   const [loading, setLoading] = useState(true);
   const [expandedTurns, setExpandedTurns] = useState({});
+  const [fullNarratives, setFullNarratives] = useState({});
 
   const anyExpanded = Object.values(expandedTurns).some(Boolean);
   useEffect(() => {
@@ -367,6 +369,30 @@ function RunDetailPanel({ runId, onClose, onReadingModeChange }) {
     load();
     return () => { cancelled = true; };
   }, [runId]);
+
+  useEffect(() => {
+    const gameId = run?.gameId;
+    if (!gameId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await getAdminGameNarrative(gameId);
+        if (cancelled) return;
+        const entries = data?.narrative || data?.entries || [];
+        const byTurn = {};
+        for (const entry of entries) {
+          const role = entry.role;
+          if (role === 'ai' || role === 'narrator' || role === 'assistant') {
+            byTurn[entry.turnNumber] = byTurn[entry.turnNumber]
+              ? byTurn[entry.turnNumber] + '\n\n' + entry.content
+              : entry.content;
+          }
+        }
+        setFullNarratives(byTurn);
+      } catch { /* fall back to snippets */ }
+    })();
+    return () => { cancelled = true; };
+  }, [run?.gameId]);
 
   useEffect(() => {
     const h = (e) => { if (e.key === 'Escape') onClose(); };
@@ -503,7 +529,7 @@ function RunDetailPanel({ runId, onClose, onReadingModeChange }) {
               const hasError = !!turn.error;
               const flags = turn.diagnosticFlags || turn.flags || [];
               const action = turn.botAction || turn.action;
-              const narrative = turn.narrativeSnippet || turn.narrative;
+              const narrative = fullNarratives[turn.turnNumber] || turn.narrativeSnippet || turn.narrative;
               const cost = turn.turnCost ?? turn.cost;
               return (
                 <div key={i} className={hasError ? styles.turnEntryError : styles.turnEntry}>
