@@ -35,6 +35,20 @@
 
 ## Recent Work (This Session: 2026-04-12)
 
+### Admin User Detail — Delete Account Button (AD-585)
+Added a red "Delete Account" button to the admin user detail panel (`app/admin/page.js`), wired to `DELETE /api/admin/users/:id`. Sits in a new "Danger Zone" section at the bottom of the detail panel, below the user's Games list — admin can see any games in the way before they even open the confirm dialog.
+
+**Confirmation dialog.** New `DeleteUserModal` component that mirrors the existing `DeleteGameModal` pattern exactly (same `deleteModal`/`deleteModalCard` classes, same type-to-confirm UX, same shake-on-mismatch, same red "Delete Forever" button). Confirm word is the user's email since it's the most unique/unambiguous identifier — an admin would have to type it exactly to proceed. Escape key cancels. Disabled when currently-logged-in admin tries to delete their own account.
+
+**Error handling covers all documented status codes.** On `400` with `gameCount > 0` the dialog shows an inline message like "This user still owns 3 games. Close this dialog and delete their games from the Games list above, then try again." On `404` the admin is returned to the users list, the list is refreshed, and a red banner says "User not found. The list has been refreshed." On `500`/network error the dialog stays open with a generic "Something went wrong. Please try again." message so the admin can retry. On success the detail panel closes, the user is removed from the local list, and a green banner says "Deleted {name}." Banners auto-dismiss after 3.5s (success) / 5s (error) via a `useEffect` hook.
+
+**API plumbing.** Added `deleteAdminUser(userId)` to `lib/adminApi.js` wrapping `DELETE /api/admin/users/${userId}`. Also added `err.body = data` to the shared `request()` function in `lib/api.js` so error callers can read structured fields like `gameCount` off the response body — previously only `err.status` and `err.message` were exposed, which wasn't enough to show the game-count-specific error copy.
+
+**Files modified:** `app/admin/page.js`, `lib/adminApi.js`, `lib/api.js`
+**Files synced:** `claude-upload/admin-page.js`, `claude-upload/lib-adminApi.js`, `claude-upload/lib-api.js`, `claude-upload/FRONTEND_STATUS.md`
+
+---
+
 ### Snapshot Landing Page Heading + Save Snapshot Name Pre-fill — use worldName
 Two related changes that lean on the new `worldName` field coming from the backend on the snapshot preview and game state responses.
 

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAuthenticated, getUser } from '@/lib/api';
 import {
-  getAdminUsers, getAdminUser, togglePlaytester, toggleDebug,
+  getAdminUsers, getAdminUser, togglePlaytester, toggleDebug, deleteAdminUser,
   getAdminGames, getAdminGameDetail, deleteAdminGame, getAdminGameNarrative, getAdminGameNpcs,
   getAdminCosts, getAdminHealth,
   getAdminReports, updateReport,
@@ -282,6 +282,96 @@ function DeleteGameModal({ game, onConfirm, onCancel }) {
   );
 }
 
+function DeleteUserModal({ user, onConfirm, onCancel }) {
+  const [confirmText, setConfirmText] = useState('');
+  const [error, setError] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [shaking, setShaking] = useState(false);
+
+  const confirmWord = user.email || user.displayName || `user-${user.id}`;
+  const matches = confirmText === confirmWord;
+
+  useEffect(() => {
+    const h = (e) => { if (e.key === 'Escape') onCancel(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onCancel]);
+
+  async function handleDelete() {
+    if (!matches) {
+      setShaking(true);
+      setTimeout(() => setShaking(false), 400);
+      return;
+    }
+    setDeleting(true);
+    setError(null);
+    try {
+      await onConfirm(user.id);
+    } catch (err) {
+      if (err.status === 400 && err.body?.gameCount != null) {
+        const n = err.body.gameCount;
+        setError(`This user still owns ${n} game${n === 1 ? '' : 's'}. Close this dialog and delete their games from the Games list above, then try again.`);
+      } else if (err.status === 500 || err.status == null) {
+        setError('Something went wrong. Please try again.');
+      } else {
+        setError(err.message || 'Failed to delete user.');
+      }
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <div className={styles.deleteModal}>
+      <div onClick={e => e.stopPropagation()} className={styles.deleteModalCard}>
+        <h3 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700, color: '#d0c098', marginBottom: 12 }}>
+          Delete User Account
+        </h3>
+        <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0', marginBottom: 4, lineHeight: 1.6 }}>
+          This will permanently delete <strong>{user.displayName || user.email}</strong> ({user.email}). The account and all associated data will be removed. This cannot be undone.
+        </p>
+        <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4', marginTop: 16, marginBottom: 6 }}>
+          Type <strong style={{ color: '#c8c0b0' }}>{confirmWord}</strong> to confirm
+        </p>
+        <input
+          value={confirmText}
+          onChange={e => setConfirmText(e.target.value)}
+          className={shaking ? styles.inputShake : undefined}
+          style={{
+            width: '100%', boxSizing: 'border-box',
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#c8c0b0',
+            background: '#0a0e1a', border: `1px solid ${shaking ? '#e85a5a' : '#1e2540'}`,
+            borderRadius: 4, padding: '10px 14px', outline: 'none',
+            transition: 'border-color 0.2s ease',
+          }}
+          autoFocus
+        />
+        {error && (
+          <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#e85a5a', marginTop: 8, lineHeight: 1.5 }}>{error}</p>
+        )}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
+          <button className={styles.ghostBtn} onClick={onCancel} disabled={deleting}>Cancel</button>
+          <button
+            onClick={handleDelete}
+            disabled={!matches || deleting}
+            style={{
+              fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 700,
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+              color: matches && !deleting ? '#ffffff' : '#5a4a4a',
+              background: matches && !deleting ? '#b83a3a' : '#2a1a1a',
+              border: 'none', borderRadius: 4, padding: '10px 20px',
+              cursor: matches && !deleting ? 'pointer' : 'default',
+              opacity: matches && !deleting ? 1 : 0.5,
+              transition: 'all 0.2s ease',
+            }}
+          >
+            {deleting ? 'Deleting...' : 'Delete Forever'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DetailPanel({ children, onClose }) {
   return (
     <div className={styles.pushPanel}>
@@ -344,7 +434,15 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted, onViewGame, onNavig
   const [sortField, setSortField] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteUserTarget, setDeleteUserTarget] = useState(null);
+  const [actionBanner, setActionBanner] = useState(null); // { type: 'success'|'error', text }
   const currentUser = getUser();
+
+  useEffect(() => {
+    if (!actionBanner) return;
+    const t = setTimeout(() => setActionBanner(null), actionBanner.type === 'success' ? 3500 : 5000);
+    return () => clearTimeout(t);
+  }, [actionBanner]);
 
   useEffect(() => { if (data?.users) setUsers(data.users); }, [data]);
 
@@ -382,6 +480,29 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted, onViewGame, onNavig
     ));
     if (onGameDeleted) onGameDeleted(gameId);
     setDeleteTarget(null);
+  }
+
+  async function handleDeleteUser(userId) {
+    try {
+      await deleteAdminUser(userId);
+      const label = deleteUserTarget?.displayName || deleteUserTarget?.email || `User #${userId}`;
+      setUsers(prev => prev.filter(u => u.id !== userId));
+      setSelectedUser(null);
+      setUserDetail(null);
+      setDeleteUserTarget(null);
+      setActionBanner({ type: 'success', text: `Deleted ${label}.` });
+    } catch (err) {
+      if (err.status === 404) {
+        setUsers(prev => prev.filter(u => u.id !== userId));
+        setSelectedUser(null);
+        setUserDetail(null);
+        setDeleteUserTarget(null);
+        setActionBanner({ type: 'error', text: 'User not found. The list has been refreshed.' });
+        if (onRefresh) onRefresh();
+        return;
+      }
+      throw err;
+    }
   }
 
   const gridCols = '1.5fr 2fr 70px 90px 90px 100px';
@@ -466,6 +587,32 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted, onViewGame, onNavig
                   <div style={{ padding: 14, textAlign: 'center', fontFamily: 'var(--font-alegreya-sans)', fontSize: 13, color: '#7082a4' }}>No games.</div>
                 )}
               </div>
+
+              <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid #2a2622' }}>
+                <span style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 600, color: '#9a8545', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 10 }}>
+                  Danger Zone
+                </span>
+                <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: '#7082a4', lineHeight: 1.6, marginBottom: 12 }}>
+                  Permanently delete this user account. They must have zero games first — delete any games listed above before proceeding.
+                </p>
+                <button
+                  onClick={() => setDeleteUserTarget(userDetail.user)}
+                  disabled={currentUser?.email === userDetail.user?.email}
+                  style={{
+                    fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 700,
+                    letterSpacing: '0.08em', textTransform: 'uppercase',
+                    color: currentUser?.email === userDetail.user?.email ? '#5a4a4a' : '#e85a5a',
+                    background: 'transparent',
+                    border: `1px solid ${currentUser?.email === userDetail.user?.email ? '#2a1a1a' : '#6a2020'}`,
+                    borderRadius: 4, padding: '8px 18px',
+                    cursor: currentUser?.email === userDetail.user?.email ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  title={currentUser?.email === userDetail.user?.email ? "You can't delete your own admin account." : undefined}
+                >
+                  Delete Account
+                </button>
+              </div>
             </div>
           ) : (
             <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4' }}>Failed to load user details.</p>
@@ -475,6 +622,15 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted, onViewGame, onNavig
 
       {/* Main content */}
       <div style={{ flex: 1, minWidth: 0 }}>
+        {actionBanner && (
+          <div style={{
+            padding: '10px 14px', marginBottom: 14, borderRadius: 4,
+            background: actionBanner.type === 'success' ? '#14221a' : '#201416',
+            border: `1px solid ${actionBanner.type === 'success' ? '#2a5a3a' : '#5a3020'}`,
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
+            color: actionBanner.type === 'success' ? '#8aba7a' : '#e85a5a',
+          }}>{actionBanner.text}</div>
+        )}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
             <h2 style={{ fontFamily: 'var(--font-cinzel)', fontSize: 18, fontWeight: 700, color: '#d0c098', margin: 0 }}>Users</h2>
@@ -547,6 +703,9 @@ function UsersTab({ data, loading, onRefresh, onGameDeleted, onViewGame, onNavig
 
       {deleteTarget && (
         <DeleteGameModal game={deleteTarget} onConfirm={handleDeleteGame} onCancel={() => setDeleteTarget(null)} />
+      )}
+      {deleteUserTarget && (
+        <DeleteUserModal user={deleteUserTarget} onConfirm={handleDeleteUser} onCancel={() => setDeleteUserTarget(null)} />
       )}
     </div>
   );
