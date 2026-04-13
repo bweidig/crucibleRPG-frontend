@@ -9,6 +9,7 @@ import {
   getAutoplayRuns, getAutoplayRun, getAutoplayProgress,
   cancelAutoplay, deleteAutoplayRun,
 } from '@/lib/adminApi';
+import { ServerLogsPanel } from '../components/ServerLogsPanel';
 import styles from './page.module.css';
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -338,10 +339,16 @@ function ActiveRuns({ runs, onCancel, onCompleted }) {
 // RUN DETAIL PANEL
 // ═════════════════════════════════════════════════════════════════════════════
 
-function RunDetailPanel({ runId, onClose }) {
+function RunDetailPanel({ runId, onClose, onReadingModeChange }) {
   const [run, setRun] = useState(null);
   const [loading, setLoading] = useState(true);
   const [expandedTurns, setExpandedTurns] = useState({});
+
+  const anyExpanded = Object.values(expandedTurns).some(Boolean);
+  useEffect(() => {
+    if (onReadingModeChange) onReadingModeChange(anyExpanded);
+  }, [anyExpanded, onReadingModeChange]);
+  const panelClass = anyExpanded ? `${styles.pushPanel} ${styles.pushPanelWide}` : styles.pushPanel;
 
   useEffect(() => {
     let cancelled = false;
@@ -369,7 +376,7 @@ function RunDetailPanel({ runId, onClose }) {
 
   if (loading) {
     return (
-      <div className={styles.pushPanel} style={{ padding: 24, position: 'relative' }}>
+      <div className={panelClass} style={{ padding: 24, position: 'relative' }}>
         <button className={styles.panelClose} onClick={onClose}>&times;</button>
         <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#7082a4', marginTop: 40 }}>Loading...</p>
       </div>
@@ -378,7 +385,7 @@ function RunDetailPanel({ runId, onClose }) {
 
   if (!run) {
     return (
-      <div className={styles.pushPanel} style={{ padding: 24, position: 'relative' }}>
+      <div className={panelClass} style={{ padding: 24, position: 'relative' }}>
         <button className={styles.panelClose} onClick={onClose}>&times;</button>
         <p style={{ fontFamily: 'var(--font-alegreya-sans)', fontSize: 14, color: '#e85a5a', marginTop: 40 }}>Failed to load run</p>
       </div>
@@ -407,7 +414,7 @@ function RunDetailPanel({ runId, onClose }) {
   const hasFlags = Object.keys(flagBreakdown).length > 0;
 
   return (
-    <div className={styles.pushPanel} style={{ padding: 24, position: 'relative' }}>
+    <div className={panelClass} style={{ padding: 24, position: 'relative' }}>
       <button className={styles.panelClose} onClick={onClose}>&times;</button>
 
       {/* Header */}
@@ -522,20 +529,50 @@ function RunDetailPanel({ runId, onClose }) {
                     )}
                   </div>
                   {action && <div className={styles.turnAction}>{action}</div>}
-                  {narrative && (
-                    <div
-                      className={styles.turnNarrative}
-                      onClick={() => setExpandedTurns(prev => ({ ...prev, [i]: !prev[i] }))}
-                      style={expanded ? {} : { maxHeight: 40, overflow: 'hidden', textOverflow: 'ellipsis' }}
-                    >
-                      {expanded ? narrative : (narrative.length > 120 ? narrative.slice(0, 120) + '...' : narrative)}
-                    </div>
-                  )}
+                  {narrative && (() => {
+                    const NARRATIVE_PREVIEW = 240;
+                    const isLong = narrative.length > NARRATIVE_PREVIEW;
+                    const shown = !isLong || expanded ? narrative : narrative.slice(0, NARRATIVE_PREVIEW).trimEnd() + '\u2026';
+                    return (
+                      <>
+                        <div
+                          className={styles.turnNarrative}
+                          onClick={isLong ? () => setExpandedTurns(prev => ({ ...prev, [i]: !prev[i] })) : undefined}
+                          style={{ cursor: isLong ? 'pointer' : 'default', whiteSpace: 'pre-wrap' }}
+                        >
+                          {shown}
+                        </div>
+                        {isLong && (
+                          <button
+                            type="button"
+                            className={styles.narrativeExpandBtn}
+                            onClick={() => setExpandedTurns(prev => ({ ...prev, [i]: !prev[i] }))}
+                          >
+                            {expanded ? '\u25B2 Show Less' : '\u25BC Show More'}
+                          </button>
+                        )}
+                      </>
+                    );
+                  })()}
                   {hasError && <div className={styles.turnError}>{turn.error}</div>}
                 </div>
               );
             })}
           </div>
+        </>
+      )}
+
+      {/* Server Logs */}
+      {run.gameId != null && (
+        <>
+          <div style={{
+            fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 700,
+            color: '#d0c098', letterSpacing: '0.08em', textTransform: 'uppercase',
+            marginTop: 20, marginBottom: 8,
+          }}>
+            Server Logs <span style={{ color: '#7082a4', fontWeight: 400, letterSpacing: 0, textTransform: 'none' }}>(Game #{run.gameId})</span>
+          </div>
+          <ServerLogsPanel gameId={run.gameId} />
         </>
       )}
     </div>
@@ -668,6 +705,7 @@ export default function PlaytestPage() {
 
   // Detail panel
   const [selectedRunId, setSelectedRunId] = useState(null);
+  const [readingMode, setReadingMode] = useState(false);
 
   // ─── Auth guard ───
   useEffect(() => {
@@ -795,12 +833,13 @@ export default function PlaytestPage() {
       </div>
 
       {/* Content — with optional side panel */}
-      <div style={{ display: 'flex', maxWidth: 1280 }}>
+      <div style={{ display: 'flex', maxWidth: readingMode ? 'none' : (selectedRunId ? 1560 : 1280) }}>
         {/* Detail panel (left push) */}
         {selectedRunId && (
           <RunDetailPanel
             runId={selectedRunId}
-            onClose={() => setSelectedRunId(null)}
+            onClose={() => { setSelectedRunId(null); setReadingMode(false); }}
+            onReadingModeChange={setReadingMode}
           />
         )}
 

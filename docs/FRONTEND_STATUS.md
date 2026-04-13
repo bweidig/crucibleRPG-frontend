@@ -35,6 +35,23 @@
 
 ## Recent Work (This Session: 2026-04-12)
 
+### Admin Playtester — Server Logs, Narrative Expand, Wider Layout
+Three improvements to the auto-playtester diagnostic workflow at `/admin/playtest`.
+
+**1. Server logs inside the run detail panel.** The playtester now has parity with the main admin Game Detail for log-diving. Extracted `ServerLogsPanel` (the pill-bar + shift-click + copy-selected AD-583 viewer) out of `app/admin/page.js` into a new shared file at `app/admin/components/ServerLogsPanel.js` and imported it in both places. The new file carries all its helpers (`groupLogLines`, `relMs`, `isInitEntry`, `turnLabelFor`, `formatLogLineForCopy`, `formatTurnForCopy`, `reqTypeBadgeClass`) and re-uses `app/admin/page.module.css` by importing that module directly — no CSS duplication. On the playtester `RunDetailPanel`, a new "Server Logs (Game #N)" section appears below the turn log whenever `run.gameId` is present on the run (which it always is per API_CONTRACT §Auto-Playtest).
+
+**2. Turn narrative expand UX.** The turn log previously capped narrative text at 40px height plus a 120-char slice, which cut off mid-sentence with no visible indication you could click to see more. Raised the preview to 240 characters and added a proper "▼ Show More" / "▲ Show Less" button in Cinzel gold underneath long narratives. Short narratives (≤240 chars) render in full with no button at all — the affordance only appears when there is actually more to reveal. Body text still toggles on click for users who prefer clicking the text, but there is now a clearly labelled button so the expand behavior is discoverable. Added `.narrativeExpandBtn` class to `admin/playtest/page.module.css`.
+
+**3. Wider detail panel + reading mode.** The run detail push panel widened from 480px to 760px so the narrative preview and the new server logs viewer have meaningful horizontal room. The outer page layout (header and main content wrapper) stays at the original 1280px cap — only the panel is wider. When a detail panel is open the content wrapper expands to 1560px (760px panel + 800px main) so main content keeps its original width. New intermediate breakpoint at ≤1439px steps the panel down to 560px, and ≤1023px steps it further to 420px.
+
+**Reading mode:** when the user clicks "Show More" on any turn narrative, the detail panel transitions to `min(1200px, 80vw)` so long paragraphs actually have room to breathe — no more five-word-wide columns. `RunDetailPanel` computes `anyExpanded = Object.values(expandedTurns).some(Boolean)` and pushes it up to `PlaytestPage` via a new `onReadingModeChange` callback. While any narrative is expanded the page lifts the outer wrapper's `maxWidth` to `'none'` and the panel gets a `.pushPanelWide` class (added after the pushPanel media query overrides so it wins at every breakpoint). The main content stays visible beside the wide panel and flex-shrinks into whatever space is left. Collapsing the last expanded narrative or closing the panel resets reading mode and restores the original layout. CSS transition on `width` (250ms ease) smooths the widen/shrink.
+
+**Files modified:** `app/admin/page.js`, `app/admin/playtest/page.js`, `app/admin/playtest/page.module.css`
+**Files created:** `app/admin/components/ServerLogsPanel.js`
+**Files synced:** `claude-upload/admin-page.js`, `claude-upload/admin-playtest-page.js`, `claude-upload/admin-playtest-page.module.css`, `claude-upload/admin-ServerLogsPanel.js`, `claude-upload/FRONTEND_STATUS.md`
+
+---
+
 ### Admin User Detail — Delete Account Button (AD-585)
 Added a red "Delete Account" button to the admin user detail panel (`app/admin/page.js`), wired to `DELETE /api/admin/users/:id`. Sits in a new "Danger Zone" section at the bottom of the detail panel, below the user's Games list — admin can see any games in the way before they even open the confirm dialog.
 
