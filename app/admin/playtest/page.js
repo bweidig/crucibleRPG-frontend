@@ -859,7 +859,7 @@ export default function PlaytestPage() {
       </div>
 
       {/* Content — with optional side panel */}
-      <div style={{ display: 'flex', maxWidth: readingMode ? 'none' : (selectedRunId ? 1560 : 1280) }}>
+      <div style={{ display: 'flex', maxWidth: readingMode ? 'none' : 1280 }}>
         {/* Detail panel (left push) */}
         {selectedRunId && (
           <RunDetailPanel
@@ -879,14 +879,16 @@ export default function PlaytestPage() {
               setActiveRuns(prev => prev.filter(r => r.id !== id));
             }}
           />
-          <RunHistory
-            runs={historyRuns}
-            loading={historyLoading}
-            onRefresh={fetchHistory}
-            selectedRunId={selectedRunId}
-            onSelectRun={setSelectedRunId}
-            onDeleteRun={handleDeleteRun}
-          />
+          {!selectedRunId && (
+            <RunHistory
+              runs={historyRuns}
+              loading={historyLoading}
+              onRefresh={fetchHistory}
+              selectedRunId={selectedRunId}
+              onSelectRun={setSelectedRunId}
+              onDeleteRun={handleDeleteRun}
+            />
+          )}
         </div>
       </div>
     </div>
