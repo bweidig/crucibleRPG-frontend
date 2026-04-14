@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-12
+**Last Updated:** 2026-04-13
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -33,7 +33,18 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-12)
+## Recent Work (This Session: 2026-04-13)
+
+### Admin Game Log: wrap turn scrubber + broaden cost tally AI-call detection
+Admin reported two issues on the Game Log tab for long playthroughs: "events and snapshots and server log do not wrap and as such turns disappear off screen for long games" and "the cost tally also does not appear to be displaying correctly: it is showing straight zeros. zero ai calls, zero tokens, zero $".
+
+**1. Turn scrubber wrapping.** The `.turnScrubber` class (shared by the Events & Snapshot sub-tab, the Server Logs sub-tab, and the playtester Run Detail panel's embedded Server Logs viewer) was a single-row flex container with `overflow-x: auto` and a thin 4px horizontal scrollbar. For any game past ~40 turns the later-turn buttons scrolled off the right edge and the scrollbar was almost invisible — turns effectively disappeared. Fix: dropped `overflow-x: auto` and added `flex-wrap: wrap` so the row wraps onto as many lines as the game needs. All three places that use this class (admin Game Log Events view, admin Game Log Server Logs view, `/admin/playtest` run detail Server Logs view) share the fix because ServerLogsPanel already imports `app/admin/page.module.css`.
+
+**2. Cost Tally showing zeros.** `turnCostTally` (and `turnSummary`) were strictly matching `event_type === 'ai_call'` to decide which events to aggregate, and `extractAiMetrics` only looked at a narrow set of field names (`input_tokens`/`inputTokens`/`tokens.input|prompt`, `cost`/`totalCost`/`estimatedCost`). When the backend emits cost/token data under a different event type name (`narrative_generated`, `classifier_call`, `gm_call`, etc.) or nests usage inside an Anthropic-style `usage: { input_tokens, output_tokens }` blob, the tally saw zero matches and rendered $0 for every row.
+
+Fix: broadened `extractAiMetrics` to also accept `usage.input_tokens`/`usage.prompt_tokens` (Anthropic + OpenAI SDK shape), `usage.output_tokens`/`usage.completion_tokens`, and `cost_usd`/`costUsd` aliases. Added a small `hasAiMetrics(m)` helper that returns true if any of `model`, `inT`, `outT`, `cost` is present. Both `turnCostTally` and `turnSummary` now count an event as an AI call if its `event_type` is literally `ai_call` **or** `hasAiMetrics(extractAiMetrics(event_data))` is true — so cost/token aggregation stays correct regardless of what event-type label the backend uses. The per-event compact AI stats row (model → in → out → $) got the same treatment, so narrative-generated events that carry metrics now also show the inline summary.
+
+**Files modified:** `app/admin/page.js`, `app/admin/page.module.css`, `claude-upload/admin-page.js` (synced), `claude-upload/admin-page.module.css` (synced)
 
 ### Admin Playtester — Server Logs, Narrative Expand, Wider Layout
 Three improvements to the auto-playtester diagnostic workflow at `/admin/playtest`.
@@ -44,7 +55,7 @@ Three improvements to the auto-playtester diagnostic workflow at `/admin/playtes
 
 **Full narrative fetch.** `turn.narrativeSnippet` is already backend-truncated to ~300 chars, so even with the "Show More" button the expanded text was still clipped. `RunDetailPanel` now fires an additional `getAdminGameNarrative(run.gameId)` request once the run detail loads, groups entries by `turnNumber` (joining multi-entry AI turns with `\n\n` — same grouping pattern as the main admin Game Detail), and stores the map as `fullNarratives` state. The render picks the full text when available and falls back to the snippet during the brief window before the fetch resolves or if the fetch fails. Expanding a turn now reveals the complete narration.
 
-**3. Wider detail panel + reading mode.** The run detail push panel widened from 480px to 760px so the narrative preview and the new server logs viewer have meaningful horizontal room. The outer page layout (header and main content wrapper) stays at the original 1280px cap — only the panel is wider. When a detail panel is open the content wrapper expands to 1560px (760px panel + 800px main) so main content keeps its original width. New intermediate breakpoint at ≤1439px steps the panel down to 560px, and ≤1023px steps it further to 420px.
+**3. Wider detail panel + reading mode.** The run detail push panel widened from 480px to 760px so the narrative preview and the new server logs viewer have meaningful horizontal room. The outer page layout (header and main content wrapper) stays at the original 1280px cap — only the panel is wider. Run history is hidden whenever a run is selected (the detail panel takes the focus) so its 960px-min-width grid doesn't cause a horizontal scroll bar when the main content shrinks to fit the wider panel. Config and Active Runs stay visible. New intermediate breakpoint at ≤1439px steps the panel down to 560px, and ≤1023px steps it further to 420px.
 
 **Reading mode:** when the user clicks "Show More" on any turn narrative, the detail panel transitions to `min(1200px, 80vw)` so long paragraphs actually have room to breathe — no more five-word-wide columns. `RunDetailPanel` computes `anyExpanded = Object.values(expandedTurns).some(Boolean)` and pushes it up to `PlaytestPage` via a new `onReadingModeChange` callback. While any narrative is expanded the page lifts the outer wrapper's `maxWidth` to `'none'` and the panel gets a `.pushPanelWide` class (added after the pushPanel media query overrides so it wins at every breakpoint). The main content stays visible beside the wide panel and flex-shrinks into whatever space is left. Collapsing the last expanded narrative or closing the panel resets reading mode and restores the original layout. CSS transition on `width` (250ms ease) smooths the widen/shrink.
 

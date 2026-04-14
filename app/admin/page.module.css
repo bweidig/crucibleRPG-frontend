@@ -568,24 +568,9 @@
 
 .turnScrubber {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
-  overflow-x: auto;
   padding: 8px 0;
-  scrollbar-width: thin;
-  scrollbar-color: #2a2a3a transparent;
-}
-
-.turnScrubber::-webkit-scrollbar {
-  height: 4px;
-}
-
-.turnScrubber::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.turnScrubber::-webkit-scrollbar-thumb {
-  background: #2a2a3a;
-  border-radius: 2px;
 }
 
 .turnBtn {

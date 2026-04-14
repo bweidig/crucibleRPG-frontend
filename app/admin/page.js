@@ -58,10 +58,21 @@ function extractAiMetrics(data) {
   if (!data) return { model: null, inT: null, outT: null, cost: null, taskType: null };
   const model = data.model || data.modelName || null;
   const taskType = data.task_type || data.taskType || data.task || data.purpose || null;
+  // Token counts may live at the top level, under `tokens`, or under `usage`
+  // (Anthropic: input_tokens/output_tokens; OpenAI: prompt_tokens/completion_tokens).
   const tok = data.tokens || {};
-  const inT = data.input_tokens ?? data.inputTokens ?? tok.prompt ?? tok.input ?? null;
-  const outT = data.output_tokens ?? data.outputTokens ?? tok.completion ?? tok.output ?? null;
-  const cost = data.cost ?? data.totalCost ?? data.estimatedCost ?? data.estimated_cost ?? null;
+  const usage = data.usage || {};
+  const inT = data.input_tokens ?? data.inputTokens
+    ?? tok.prompt ?? tok.input
+    ?? usage.input_tokens ?? usage.prompt_tokens
+    ?? null;
+  const outT = data.output_tokens ?? data.outputTokens
+    ?? tok.completion ?? tok.output
+    ?? usage.output_tokens ?? usage.completion_tokens
+    ?? null;
+  const cost = data.cost ?? data.totalCost ?? data.estimatedCost ?? data.estimated_cost
+    ?? data.cost_usd ?? data.costUsd
+    ?? null;
   return {
     model,
     inT: typeof inT === 'number' ? inT : null,
@@ -69,6 +80,10 @@ function extractAiMetrics(data) {
     cost: typeof cost === 'number' ? cost : null,
     taskType,
   };
+}
+
+function hasAiMetrics(m) {
+  return m.model != null || m.inT != null || m.outT != null || m.cost != null;
 }
 
 function groupNarrative(entries) {
@@ -2852,8 +2867,11 @@ function GameLogTab({ pendingGameId, onClearPending }) {
       countByType[type] = (countByType[type] || 0) + 1;
       const data = evt.event_data || evt.eventData || evt.data || {};
 
-      if (type === 'ai_call') {
-        const m = extractAiMetrics(data);
+      // Treat any event whose event_data carries cost/token/model info as an
+      // AI call — backend may emit these under several event_type names
+      // (ai_call, narrative_generated, classifier_call, llm_call, etc.).
+      const m = extractAiMetrics(data);
+      if (type === 'ai_call' || hasAiMetrics(m)) {
         if (m.cost != null) totalCost += m.cost;
         if (m.inT != null) totalInputTokens += m.inT;
         if (m.outT != null) totalOutputTokens += m.outT;
@@ -2892,11 +2910,14 @@ function GameLogTab({ pendingGameId, onClearPending }) {
     }
     for (const evt of events) {
       const turn = evt.turn_number ?? evt.turnNumber;
-      const type = evt.event_type || evt.eventType || '';
-      if (turn == null || type !== 'ai_call') continue;
-      if (!perTurn[turn]) perTurn[turn] = { aiCalls: 0, inputTokens: 0, outputTokens: 0, cost: 0 };
+      if (turn == null) continue;
+      const type = (evt.event_type || evt.eventType || '').toLowerCase();
       const data = evt.event_data || evt.eventData || evt.data || {};
       const m = extractAiMetrics(data);
+      // Match strict ai_call type OR any event whose data carries AI metrics,
+      // so the tally stays correct if the backend uses a different type name.
+      if (type !== 'ai_call' && !hasAiMetrics(m)) continue;
+      if (!perTurn[turn]) perTurn[turn] = { aiCalls: 0, inputTokens: 0, outputTokens: 0, cost: 0 };
       perTurn[turn].aiCalls += 1;
       if (m.inT != null) perTurn[turn].inputTokens += m.inT;
       if (m.outT != null) perTurn[turn].outputTokens += m.outT;
@@ -3357,14 +3378,16 @@ function GameLogTab({ pendingGameId, onClearPending }) {
                     ) : filteredEvents.map((evt, idx) => {
                       const evtType = evt.event_type || evt.eventType || 'unknown';
                       const isError = evtType.toLowerCase() === 'error';
-                      const isAiCall = evtType.toLowerCase() === 'ai_call';
                       const evtData = evt.event_data || evt.eventData || evt.data;
                       const expanded = expandAll || expandedEvents.has(idx);
                       const ts = evt.created_at || evt.timestamp || evt.createdAt;
                       const evtTurn = evt.turn_number ?? evt.turnNumber;
 
-                      // Extract ai_call stats via shared helper
-                      const aiM = isAiCall ? extractAiMetrics(evtData) : null;
+                      // AI metrics: extract defensively — any event whose
+                      // event_data carries model/tokens/cost gets the compact
+                      // stats row, not just those literally typed 'ai_call'.
+                      const aiM = extractAiMetrics(evtData);
+                      const showAiStats = evtType.toLowerCase() === 'ai_call' || hasAiMetrics(aiM);
                       const aiModel = aiM?.model;
                       const aiInputTokens = aiM?.inT;
                       const aiOutputTokens = aiM?.outT;
@@ -3386,7 +3409,7 @@ function GameLogTab({ pendingGameId, onClearPending }) {
                           </div>
 
                           {/* AI Call compact stats */}
-                          {isAiCall && (aiModel || aiInputTokens != null || aiCost != null) && (
+                          {showAiStats && (aiModel || aiInputTokens != null || aiCost != null) && (
                             <div className={styles.aiCallStats}>
                               {aiModel && <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11, color: '#7ab4e8' }}>{aiModel}</span>}
                               {aiInputTokens != null && <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 11, color: '#8a94a8' }}>{'\u2192'} {aiInputTokens.toLocaleString()}</span>}
