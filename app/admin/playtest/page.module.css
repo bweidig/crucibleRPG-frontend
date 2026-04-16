@@ -135,6 +135,39 @@
   background: #201416;
 }
 
+.pillCheap {
+  composes: pill;
+  color: #8a94a8;
+  background: #161a20;
+}
+
+.pillSmart {
+  composes: pill;
+  color: #a895d6;
+  background: #1a1822;
+}
+
+/* Helper text shown under the Bot Intelligence pills. */
+.botModeHelp {
+  font-family: var(--font-alegreya-sans);
+  font-size: 12px;
+  color: #7082a4;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+/* Persistent warning shown in the config panel when Smart mode is selected. */
+.smartCostNote {
+  font-family: var(--font-alegreya-sans);
+  font-size: 13px;
+  color: #e8c45a;
+  background: #1a1a12;
+  border: 1px solid #e8c45a33;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-bottom: 16px;
+}
+
 /* ─── Slider ─── */
 
 .sliderRow {
@@ -371,6 +404,36 @@
   border: 1px solid #e85a5a33;
 }
 
+.badgeCheap {
+  display: inline-block;
+  font-family: var(--font-cinzel);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+  color: #8a94a8;
+  background: #161a20;
+  border: 1px solid #8a94a833;
+}
+
+.badgeSmart {
+  display: inline-block;
+  font-family: var(--font-cinzel);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+  color: #a895d6;
+  background: #1a1822;
+  border: 1px solid #a895d633;
+}
+
 /* ─── Flag Badge ─── */
 
 .flagBadge {
@@ -521,11 +584,11 @@
 
 .tableRow {
   display: grid;
-  grid-template-columns: 88px minmax(160px, 1.5fr) minmax(110px, 1fr) 90px 72px 56px 72px 72px minmax(100px, 1fr) 110px;
+  grid-template-columns: 88px minmax(160px, 1.5fr) minmax(110px, 1fr) 90px 72px 72px 56px 72px 72px minmax(100px, 1fr) 110px;
   align-items: center;
   gap: 10px;
   padding: 10px 16px;
-  min-width: 960px;
+  min-width: 1032px;
   border-bottom: 1px solid #2a2622;
   font-family: var(--font-alegreya-sans);
   font-size: 13px;
@@ -553,7 +616,7 @@
   cursor: pointer;
   border-left: 3px solid transparent;
   padding-left: 13px;
-  min-width: 960px;
+  min-width: 1032px;
 }
 
 .clickableRow:hover {

@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-13
+**Last Updated:** 2026-04-16
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -33,7 +33,39 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-13)
+## Recent Work (This Session: 2026-04-16)
+
+### Admin Playtester: bot mode selector + run-list mode column (AD-625 frontend relay)
+Backend AD-625 added a `botMode` toggle to the autoplay engine (`"cheap"` = Gemini Flash Lite, default; `"smart"` = Gemini Flash with moderate thinking budget, ~3–5x cheap per-turn cost). The autoplay admin UI now surfaces that choice on three surfaces.
+
+**1. New-run form — "Bot Intelligence" pill group.** Added a new field in `ConfigPanel` at `/admin/playtest`, placed after Turn Count so the cost estimate and the control that moves it sit adjacent. Matches the existing `pillGroup` pattern used by Play Style — two pills (Cheap / Smart) inside the shared bordered container, with selected-state colors that match the badges below: slate for Cheap, violet (`#a895d6`) for Smart. Helper text under the pills explains each mode ("Flash Lite. Fast, low-cost…" / "Flash. More realistic play, higher cost…"). Default selection: `cheap`, preserving pre-AD-625 behavior. The `botMode` field is now included in the `startAutoplay` POST body alongside `playStyle`, `archetypeId`, etc. When Smart is selected, a persistent amber callout renders below the config grid: "Smart mode runs cost substantially more per turn — budget accordingly." The confirm bar also mentions mode ("Start Normal run in Sword & Soil for 30 turns on Smart bot?") so the admin sees it before clicking Confirm.
+
+**Cost estimate updates with mode.** The existing `Est. cost: $X.XX – $Y.YY` readout now multiplies by 4x when `botMode === 'smart'` (midpoint of backend's 3–5x guidance), so the displayed range tracks the selected mode.
+
+**2. Run History table — new Mode column.** Added a Mode column between Style and Turns. Bumped `grid-template-columns` from 10 cols to 11 (inserting a fixed 72px Mode cell) and bumped the `min-width` from 960px to 1032px — the table already has `overflow-x: auto`, so narrow viewports scroll horizontally as before. Each row renders `<span className={botModeBadge(run.botMode)}>{botModeLabel(run.botMode)}</span>`: cheap uses `.badgeCheap` (slate on dark slate, same palette family as the Cancelled status badge), smart uses `.badgeSmart` (violet on dark violet). Neither green (success) nor red (error) is used, per the spec.
+
+**3. Active Runs + Run Detail.** Active run cards show the mode badge inline next to the play-style badge. The run detail panel's summary grid gets a new "Bot Mode" tile, positioned right after "Difficulty" so configuration fields cluster. When the selected run is smart-mode, the same amber "per-turn costs are higher than cheap mode baselines" callout renders above the Diagnostic Flags section so cost comparisons across runs are read in context.
+
+**Defensive handling for pre-AD-625 runs.** Added a `normalizeBotMode(mode)` helper that treats anything other than `"smart"` as `"cheap"`. Every badge/label call routes through `botModeBadge`/`botModeLabel` which use the normalizer, so older runs (where the backend response may not include `botMode`) render as Cheap without breaking. Matches the backend contract: "If omitted, the backend defaults to cheap."
+
+**API_CONTRACT.md updated.** `POST /api/admin/autoplay/start` request body documents `botMode` (optional, defaults to cheap). Run list and detail responses document the new `botMode` field. The `GET /runs/:id/progress` polling shape wasn't updated — polling only carries in-flight progress metadata and the mode was decided at start time, so the admin can rely on the initial list/detail shape for that value.
+
+**Backend verification deferred.** This terminal can't reach the Railway backend to live-probe the response shape (admin endpoints are JWT-gated and the backend repo is separate per CLAUDE.md). Implementation assumes the task description's claim that AD-625 is live on production. If `botMode` is absent from the response, the defensive `normalizeBotMode` helper still renders everything as Cheap — so the UI degrades cleanly, and we'll know the backend hasn't shipped if every run in the list is tagged Cheap including ones submitted with Smart.
+
+**Files modified:** `app/admin/playtest/page.js`, `app/admin/playtest/page.module.css`, `docs/API_CONTRACT.md`
+**Files synced:** `claude-upload/admin-playtest-page.js`, `claude-upload/admin-playtest-page.module.css`, `claude-upload/API_CONTRACT.md`, `claude-upload/FRONTEND_STATUS.md`
+
+---
+
+### Admin Playtester: fix archetype selection being silently ignored
+The archetype dropdown on `/admin/playtest` was non-functional — picking "Hedge Knight" would still produce a randomly-chosen archetype. Two bugs compounded:
+
+1. **Payload key mismatch.** `ConfigPanel.handleConfirm` was POSTing `{ archetype, difficulty }`, but per `docs/API_CONTRACT.md` the backend expects `{ archetypeId, difficultyPreset }`. The unknown keys were dropped server-side, so `archetypeId` fell through as null and `pickArchetype(setting, null)` picked randomly from the pool. `difficultyPreset` similarly defaulted.
+2. **Option value was the display name, not the id.** Even after renaming the payload key, the `<select>` was emitting `"Hedge Knight"` as the option value. The backend matches against ids like `"hedge_knight"`, so the match would still fail.
+
+Fix: renamed the payload keys to `archetypeId` / `difficultyPreset` (lowercased to match the contract's `forgiving|standard|harsh|brutal` shape, consistent with how `playStyle` is already lowercased on the adjacent line), and changed the archetype `<option>` to `<option value={a.id}>{a.name}</option>`. The `archetype` state already held the raw value emitted by the option, so it now carries the id end-to-end.
+
+**Files modified:** `app/admin/playtest/page.js`, `claude-upload/admin-playtest-page.js` (synced)
 
 ### Admin Game Log: wrap turn scrubber + broaden cost tally AI-call detection
 Admin reported two issues on the Game Log tab for long playthroughs: "events and snapshots and server log do not wrap and as such turns disappear off screen for long games" and "the cost tally also does not appear to be displaying correctly: it is showing straight zeros. zero ai calls, zero tokens, zero $".

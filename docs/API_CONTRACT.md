@@ -3196,9 +3196,11 @@ Start a new auto-playtest run.
   "storyteller": "Chronicler|Bard|Trickster|Poet|Whisper|Noir",
   "archetypeId": "string|null",
   "targetTurns": 10-100,
-  "difficultyPreset": "forgiving|standard|harsh|brutal"
+  "difficultyPreset": "forgiving|standard|harsh|brutal",
+  "botMode": "cheap|smart"
 }
 ```
+`botMode` is optional; defaults to `"cheap"` (Gemini Flash Lite, thinking disabled). `"smart"` selects Gemini Flash with moderate thinking budget and costs ~3–5x more per turn but plays more like a real player. Invalid values → 400.
 **Response (201):**
 ```json
 { "runId": 42, "status": "initializing", "estimatedCost": "$0.10 - $0.30", "message": "Auto-playtest run started" }
@@ -3209,14 +3211,15 @@ List all auto-playtest runs.
 **Query params:** `status` (optional filter), `limit` (default 20, max 100)
 **Response (200):**
 ```json
-{ "runs": [{ "id": 42, "status": "running", "playStyle": "adversarial", "setting": "...", "storyteller": "...", "archetypeName": "...", "characterName": "...", "difficultyPreset": "standard", "targetTurns": 30, "completedTurns": 12, "totalFlags": 2, "totalCost": 0.0834, "endReason": null, "startedAt": "...", "completedAt": null }], "total": 15 }
+{ "runs": [{ "id": 42, "status": "running", "playStyle": "adversarial", "setting": "...", "storyteller": "...", "archetypeName": "...", "characterName": "...", "difficultyPreset": "standard", "botMode": "cheap", "targetTurns": 30, "completedTurns": 12, "totalFlags": 2, "totalCost": 0.0834, "endReason": null, "startedAt": "...", "completedAt": null }], "total": 15 }
 ```
+`botMode` is `"cheap"` or `"smart"` (see POST /start for semantics). Missing field = treat as `"cheap"` for pre-AD-625 runs.
 
 #### GET /api/admin/autoplay/runs/:id
 Full run detail with turn logs.
 **Response (200):**
 ```json
-{ "run": { "id": 42, "status": "completed", "playStyle": "...", "setting": "...", "storyteller": "...", "archetypeName": "...", "characterName": "...", "difficultyPreset": "standard", "targetTurns": 30, "completedTurns": 30, "gameId": 99, "diagnosticFlags": { "skillHallucination": 2 }, "totalFlags": 3, "totalCost": 0.2145, "endReason": "completed", "errorMessage": null, "startedAt": "...", "completedAt": "..." }, "turns": [{ "turnNumber": 1, "botAction": "...", "actionType": "custom", "tier": 2, "tierName": "Success", "narrativeSnippet": "...", "diagnosticFlags": [], "stateSnapshot": { "stats": { "str": 45 }, "conditionCount": 0, "inventoryCount": 8 }, "turnCost": 0.0072, "error": null }] }
+{ "run": { "id": 42, "status": "completed", "playStyle": "...", "setting": "...", "storyteller": "...", "archetypeName": "...", "characterName": "...", "difficultyPreset": "standard", "botMode": "cheap", "targetTurns": 30, "completedTurns": 30, "gameId": 99, "diagnosticFlags": { "skillHallucination": 2 }, "totalFlags": 3, "totalCost": 0.2145, "endReason": "completed", "errorMessage": null, "startedAt": "...", "completedAt": "..." }, "turns": [{ "turnNumber": 1, "botAction": "...", "actionType": "custom", "tier": 2, "tierName": "Success", "narrativeSnippet": "...", "diagnosticFlags": [], "stateSnapshot": { "stats": { "str": 45 }, "conditionCount": 0, "inventoryCount": 8 }, "turnCost": 0.0072, "error": null }] }
 ```
 
 #### GET /api/admin/autoplay/runs/:id/progress

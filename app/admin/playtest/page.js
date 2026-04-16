@@ -28,6 +28,11 @@ const DIFFICULTIES = ['Forgiving', 'Standard', 'Harsh', 'Brutal'];
 
 const PLAY_STYLES = ['Normal', 'Chaotic', 'Adversarial'];
 
+const BOT_MODES = [
+  { id: 'cheap', label: 'Cheap', help: 'Flash Lite. Fast, low-cost. Best for volume regression and diagnostic flag counts.' },
+  { id: 'smart', label: 'Smart', help: 'Flash. More realistic play, higher cost. Best for narrative quality review.' },
+];
+
 const CRITICAL_FLAGS = ['inventoryDesync', 'statCorruption', 'narrativeLoop', 'infiniteLoop', 'crash'];
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -55,6 +60,20 @@ function playStyleBadge(style) {
   if (s === 'chaotic') return styles.badgeChaotic;
   if (s === 'adversarial') return styles.badgeAdversarial;
   return styles.badgeNormal;
+}
+
+// Treat missing/unknown botMode as "cheap" — matches backend default and keeps
+// pre-AD-625 runs rendering sensibly.
+function normalizeBotMode(mode) {
+  return mode === 'smart' ? 'smart' : 'cheap';
+}
+
+function botModeBadge(mode) {
+  return normalizeBotMode(mode) === 'smart' ? styles.badgeSmart : styles.badgeCheap;
+}
+
+function botModeLabel(mode) {
+  return normalizeBotMode(mode) === 'smart' ? 'Smart' : 'Cheap';
 }
 
 function statusBadge(status) {
@@ -87,6 +106,7 @@ function ConfigPanel({ onRunStarted }) {
   const [archetype, setArchetype] = useState(null);
   const [difficulty, setDifficulty] = useState('Standard');
   const [turnCount, setTurnCount] = useState(30);
+  const [botMode, setBotMode] = useState('cheap');
   const [archetypes, setArchetypes] = useState([]);
   const [archetypesLoading, setArchetypesLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -112,8 +132,10 @@ function ConfigPanel({ onRunStarted }) {
     setArchetype(null);
   }, [setting]);
 
-  const costMin = (turnCount * 0.005).toFixed(2);
-  const costMax = (turnCount * 0.015).toFixed(2);
+  // Smart mode runs ~4x cheap per-turn cost (backend ballpark: 3-5x).
+  const costMultiplier = botMode === 'smart' ? 4 : 1;
+  const costMin = (turnCount * 0.005 * costMultiplier).toFixed(2);
+  const costMax = (turnCount * 0.015 * costMultiplier).toFixed(2);
 
   async function handleConfirm() {
     setLaunching(true);
@@ -123,9 +145,10 @@ function ConfigPanel({ onRunStarted }) {
         playStyle: playStyle.toLowerCase(),
         setting,
         storyteller,
-        archetype: archetype || null,
-        difficulty,
+        archetypeId: archetype || null,
+        difficultyPreset: difficulty.toLowerCase(),
         targetTurns: turnCount,
+        botMode,
       };
       const result = await startAutoplay(config);
       setConfirming(false);
@@ -192,10 +215,9 @@ function ConfigPanel({ onRunStarted }) {
             disabled={archetypesLoading}
           >
             <option value="">Random</option>
-            {archetypes.map(a => {
-              const name = typeof a === 'string' ? a : a.name || a.id;
-              return <option key={name} value={name}>{name}</option>;
-            })}
+            {archetypes.map(a => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
           </select>
         </div>
 
@@ -228,7 +250,34 @@ function ConfigPanel({ onRunStarted }) {
             Est. cost: ${costMin} &ndash; ${costMax}
           </div>
         </div>
+
+        {/* Bot Intelligence */}
+        <div className={styles.fieldGroup}>
+          <div className={styles.fieldLabel}>Bot Intelligence</div>
+          <div className={styles.pillGroup}>
+            {BOT_MODES.map(m => (
+              <button
+                key={m.id}
+                className={botMode === m.id
+                  ? (m.id === 'smart' ? styles.pillSmart : styles.pillCheap)
+                  : styles.pill}
+                onClick={() => setBotMode(m.id)}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+          <div className={styles.botModeHelp}>
+            {BOT_MODES.find(m => m.id === botMode)?.help}
+          </div>
+        </div>
       </div>
+
+      {botMode === 'smart' && (
+        <div className={styles.smartCostNote}>
+          Smart mode runs cost substantially more per turn &mdash; budget accordingly.
+        </div>
+      )}
 
       {/* Start / Confirm */}
       {!confirming ? (
@@ -238,8 +287,8 @@ function ConfigPanel({ onRunStarted }) {
       ) : (
         <div className={styles.confirmBar}>
           <div className={styles.confirmText}>
-            Start <strong>{playStyle}</strong> run in <strong>{setting}</strong> for <strong>{turnCount}</strong> turns?
-            Estimated cost: ${costMin} &ndash; ${costMax}
+            Start <strong>{playStyle}</strong> run in <strong>{setting}</strong> for <strong>{turnCount}</strong> turns
+            on <strong>{botModeLabel(botMode)}</strong> bot? Estimated cost: ${costMin} &ndash; ${costMax}
           </div>
           <button
             className={styles.confirmBtn}
@@ -308,6 +357,7 @@ function ActiveRuns({ runs, onCancel, onCompleted }) {
               <div>
                 <span className={styles.runCharacter}>{charLabel}</span>
                 <span style={{ marginLeft: 8 }} className={playStyleBadge(run.playStyle)}>{run.playStyle}</span>
+                <span style={{ marginLeft: 6 }} className={botModeBadge(run.botMode)}>{botModeLabel(run.botMode)}</span>
                 {(run.totalFlags || 0) > 0 && (
                   <span className={styles.flagBadge} style={{ marginLeft: 6 }}>{run.totalFlags} flags</span>
                 )}
@@ -472,6 +522,10 @@ function RunDetailPanel({ runId, onClose, onReadingModeChange }) {
           <div className={styles.summaryValue}>{run.difficultyPreset || run.difficulty || '--'}</div>
         </div>
         <div className={styles.summaryItem}>
+          <div className={styles.summaryLabel}>Bot Mode</div>
+          <span className={botModeBadge(run.botMode)}>{botModeLabel(run.botMode)}</span>
+        </div>
+        <div className={styles.summaryItem}>
           <div className={styles.summaryLabel}>Turns</div>
           <div className={styles.summaryValue}>{run.completedTurns}/{run.targetTurns}</div>
         </div>
@@ -494,6 +548,12 @@ function RunDetailPanel({ runId, onClose, onReadingModeChange }) {
           </div>
         )}
       </div>
+
+      {normalizeBotMode(run.botMode) === 'smart' && (
+        <div className={styles.smartCostNote}>
+          This run used smart bot mode &mdash; per-turn costs are higher than cheap mode baselines.
+        </div>
+      )}
 
       {/* Diagnostic Flags */}
       {hasFlags && (
@@ -639,6 +699,7 @@ function RunHistory({ runs, onRefresh, loading, selectedRunId, onSelectRun, onDe
             <span className={styles.colLabel}>Character</span>
             <span className={styles.colLabel}>Setting</span>
             <span className={styles.colLabel}>Style</span>
+            <span className={styles.colLabel}>Mode</span>
             <span className={styles.colLabel}>Turns</span>
             <span className={styles.colLabel}>Flags</span>
             <span className={styles.colLabel}>Cost</span>
@@ -663,6 +724,7 @@ function RunHistory({ runs, onRefresh, loading, selectedRunId, onSelectRun, onDe
                 {run.setting || '--'}
               </span>
               <span className={playStyleBadge(run.playStyle)}>{run.playStyle}</span>
+              <span className={botModeBadge(run.botMode)}>{botModeLabel(run.botMode)}</span>
               <span style={{ fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12, color: '#b0b8cc' }}>
                 {run.completedTurns}/{run.targetTurns}
               </span>
