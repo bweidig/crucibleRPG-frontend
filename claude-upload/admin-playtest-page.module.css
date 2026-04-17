@@ -217,9 +217,17 @@
 
 .costEstimate {
   font-family: var(--font-jetbrains-mono);
-  font-size: 13px;
-  color: #7082a4;
+  font-size: 14px;
+  font-weight: 600;
+  color: #b0b8cc;
   margin-top: 8px;
+}
+
+/* Applied when the upper-bound estimate hits ~$5+ — amber to make the
+   running total hard to miss on long runs. */
+.costEstimateHigh {
+  composes: costEstimate;
+  color: #e8c45a;
 }
 
 /* ─── Start Button ─── */

@@ -35,6 +35,20 @@
 
 ## Recent Work (This Session: 2026-04-16)
 
+### Admin Playtester: raise autoplay turn cap to 250
+Backend bumped `POST /api/admin/autoplay/start`'s `targetTurns` range from 10–100 to 10–250. Frontend change: the Turn Count slider's `max` is now 250 (step stays at 5, default still 30). Default wasn't raised — keeps existing one-click behavior, admins who want long runs drag the slider explicitly.
+
+**Cost estimate made more prominent.** At 250 turns in smart mode the upper bound lands in the $15–$20 range (250 × $0.015 × 4x). The `.costEstimate` text got a size bump (13 → 14px, weight 500 → 600, color lightened from slate to bone) so it reads as a live running total rather than a muted footnote. Added a `.costEstimateHigh` variant (composes from `.costEstimate`, amber color) that kicks in whenever the computed `costMax >= 5` — this way the admin's eye catches the dollar figure before they click Confirm. Threshold chosen arbitrarily: $5 is the point where an accidentally-long run starts to feel expensive relative to a normal $1–2 run.
+
+**Not done this pass.** The backend team flagged that the in-memory run map orphans runs on server restart, and that 1–3 hour 250-turn runs are more likely to hit this. Did not add a "stale in-progress" badge on the run list (they suggested "consider" rather than "ship") — flagging here in case we want to follow up: we could mark `status === 'running'` rows as suspect when `startedAt` is older than, say, 4 hours, with a tooltip linking to the backend restart caveat.
+
+**API_CONTRACT.md updated** — `targetTurns` range documented as 10–250.
+
+**Files modified:** `app/admin/playtest/page.js`, `app/admin/playtest/page.module.css`, `docs/API_CONTRACT.md`
+**Files synced:** `claude-upload/admin-playtest-page.js`, `claude-upload/admin-playtest-page.module.css`, `claude-upload/API_CONTRACT.md`, `claude-upload/FRONTEND_STATUS.md`
+
+---
+
 ### Admin Playtester: bot mode selector + run-list mode column (AD-625 frontend relay)
 Backend AD-625 added a `botMode` toggle to the autoplay engine (`"cheap"` = Gemini Flash Lite, default; `"smart"` = Gemini Flash with moderate thinking budget, ~3–5x cheap per-turn cost). The autoplay admin UI now surfaces that choice on three surfaces.
 

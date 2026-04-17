@@ -240,13 +240,13 @@ function ConfigPanel({ onRunStarted }) {
             <input
               type="range"
               className={styles.slider}
-              min={10} max={100} step={5}
+              min={10} max={250} step={5}
               value={turnCount}
               onChange={e => setTurnCount(Number(e.target.value))}
             />
             <span className={styles.sliderValue}>{turnCount}</span>
           </div>
-          <div className={styles.costEstimate}>
+          <div className={Number(costMax) >= 5 ? styles.costEstimateHigh : styles.costEstimate}>
             Est. cost: ${costMin} &ndash; ${costMax}
           </div>
         </div>

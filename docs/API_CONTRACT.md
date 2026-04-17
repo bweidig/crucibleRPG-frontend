@@ -3195,7 +3195,7 @@ Start a new auto-playtest run.
   "setting": "Sword & Soil|Smoke & Steel|Concrete & Code|Stars & Circuits|Ash & Remnants|Dream & Myth",
   "storyteller": "Chronicler|Bard|Trickster|Poet|Whisper|Noir",
   "archetypeId": "string|null",
-  "targetTurns": 10-100,
+  "targetTurns": 10-250,
   "difficultyPreset": "forgiving|standard|harsh|brutal",
   "botMode": "cheap|smart"
 }
