@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-16
+**Last Updated:** 2026-04-18
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -33,7 +33,23 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-16)
+## Recent Work (This Session: 2026-04-18)
+
+### Play page: hide resolution panel on SKIP turns
+Bug: no-roll actions (e.g. "Begin the adventure", utility spells cast without a check) were rendering a fully-drawn resolution panel populated with zero values — "0.0 + d20(0) = 0.0 vs DC 0.0", Stat blank, Fortune "Matched", d20 Roll 0 — because `TurnBlock.js` rendered `InlineDicePanel` and `ResolutionBlock` unconditionally. Child components had null-guards, but the parent gate (`hasResolution`) was only being used to gate the animation prop, not rendering.
+
+**Fix** (frontend-only, backend already sends `resolution: null` on SKIP turns):
+- `app/play/components/TurnBlock.js`: Extended the `hasResolution` gate to also control rendering. `InlineDicePanel` and `ResolutionBlock` are now only mounted when `turn.resolution` is a non-null object. Tightened the check from `!!turn.resolution` to `turn.resolution != null && typeof turn.resolution === 'object'` so a stray empty-object payload can't slip past.
+- SKIP turns now render: location/day/time/weather header chips, player action line, narrative, status-change badges. No dice, no "vs DC" line, no resolution summary.
+- Rolled turns continue to render the full resolution panel with the correct DC (backend-side DC population fix already landed in the companion repo).
+- `transformResolution()` helper does not exist in the current codebase (mentioned in an older STATUS entry but removed in a later refactor); `ResolutionBlock` reads `resolution.dc` directly via the `fmt()` helper, so no frontend mapping changes were needed.
+
+**Files modified:** `app/play/components/TurnBlock.js`
+**Files synced:** `claude-upload/play-full.js`, `claude-upload/FRONTEND_STATUS.md`
+
+---
+
+## Recent Work (Previous Session: 2026-04-16)
 
 ### Admin Playtester: raise autoplay turn cap to 250
 Backend bumped `POST /api/admin/autoplay/start`'s `targetTurns` range from 10–100 to 10–250. Frontend change: the Turn Count slider's `max` is now 250 (step stays at 5, default still 30). Default wasn't raised — keeps existing one-click behavior, admins who want long runs drag the slider explicitly.

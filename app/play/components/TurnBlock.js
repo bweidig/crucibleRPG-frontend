@@ -214,7 +214,9 @@ function StatusBadges({ stateChanges, inventoryItems }) {
 }
 
 const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, onEntityClick, inventoryItems, onImageClick }, ref) {
-  const hasResolution = !!turn.resolution;
+  // A turn has a resolution only when the backend sent a non-null object.
+  // SKIP turns (no-roll actions) send resolution: null — don't render the dice/DC panels.
+  const hasResolution = turn.resolution != null && typeof turn.resolution === 'object';
   const shouldAnimate = isNew && hasResolution;
   const [showContent, setShowContent] = useState(!shouldAnimate);
 
@@ -260,17 +262,19 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
         <div className={styles.playerAction}>{turn.playerAction}</div>
       )}
 
-      {/* Dice display — shows Fortune's Balance, animated d20s */}
-      <InlineDicePanel
-        resolution={turn.resolution}
-        animate={shouldAnimate}
-        onComplete={() => setShowContent(true)}
-      />
+      {/* Dice display — shows Fortune's Balance, animated d20s. Only render on turns with a resolution. */}
+      {hasResolution && (
+        <InlineDicePanel
+          resolution={turn.resolution}
+          animate={shouldAnimate}
+          onComplete={() => setShowContent(true)}
+        />
+      )}
 
       {/* Resolution + narrative appear after dice animation completes */}
       {showContent && (
         <>
-          <ResolutionBlock resolution={turn.resolution} />
+          {hasResolution && <ResolutionBlock resolution={turn.resolution} />}
 
           <ReflectionBlock reflection={turn.reflection} glossaryTerms={glossaryTerms} onEntityClick={onEntityClick} />
 
