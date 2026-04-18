@@ -12,6 +12,26 @@ Tracks bugs investigated in the frontend, what was tried, what worked, and what 
 
 ## Log
 
+### FE-6: Debug panel on /play shows no entries (2026-04-18) — OPEN (backend)
+
+**Symptom:** On `/play` with debug mode toggled on, the DebugPanel drawer renders but the entry count stays at 0. No turn cards or API entries appear, even after taking advancing actions.
+
+**Investigation:**
+- Walked the full frontend path: `lib/api.js:60-105` sends `X-Debug: true` header when `_debugMode` is true, strips `_debug` from the response body, and invokes `_debugCallback` with a synthesized entry. `app/play/page.js:151-169` registers the callback and pushes each entry onto `debugLog`, which feeds `<DebugPanel entries={debugLog} />`.
+- useEffect ordering is fine: the debug registration effect (line 151) runs before the game-load effect (line 503), so `_debugCallback` is set before any API call fires.
+- Verified via browser DevTools Network tab: the request does include `X-Debug: true` in the request headers, but the response body has no `_debug` object at the top level. So the frontend is doing its part — the backend simply isn't attaching the payload.
+
+**Root cause (suspected):** Per `docs/API_CONTRACT.md:1407` and AD-487, the backend only attaches `_debug` when the authenticated user has both `isPlaytester: true` AND `isDebug: true`. The most likely cause is that the user's `isDebug` flag got toggled off on the backend, or the cached JWT / `crucible_user` in localStorage is stale relative to the DB. The Sidebar "Debug" toggle shows based on the cached `getUser().isDebug`, so the UI can look fully debug-enabled while the backend disagrees.
+
+**Next steps for the user:**
+1. Log out and sign back in (refreshes JWT + cached user).
+2. If that doesn't fix it, check `/admin` → Users → own user → confirm "Playtester: Yes" and "Debug: Yes". Toggle Debug on if needed, then re-login.
+3. If both flags are correct and `_debug` still doesn't come back, the fix is in the backend repo (something dropped the `_debug` attach step) — not this terminal.
+
+**Status:** OPEN pending user verification of backend user flags. No frontend code change needed.
+
+---
+
 ### FE-5: Announcements from /admin don't appear on /menu (2026-04-09) — RESOLVED
 
 **Symptom:** Admin posts an announcement via /admin Settings tab, but players never see the banner on /menu.
