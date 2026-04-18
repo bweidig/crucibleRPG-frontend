@@ -116,10 +116,6 @@ function PlayPage() {
   // ─── Report Modal ───
   const [reportMode, setReportMode] = useState(null); // null | 'bug' | 'suggest'
 
-  // ─── Compass ───
-  const [compassOpen, setCompassOpen] = useState(false);
-  const [hintLoading, setHintLoading] = useState(false);
-
   // ─── Rewind ───
   const [rewindAvailable, setRewindAvailable] = useState(false);
   const [rewinding, setRewinding] = useState(false);
@@ -362,29 +358,6 @@ function PlayPage() {
       });
     }
   }, [addNotifications, refetchCharacter, refetchGlossary, gameState, addDirectiveToast, refetchDirectiveState]);
-
-  // ─── Compass Escalation Handler ───
-  const handleCompassEscalate = useCallback(async () => {
-    if (!gameId || hintLoading) return;
-    setHintLoading(true);
-    setCompassOpen(false);
-    setSubmitting(true);
-
-    try {
-      const res = await api.post(`/api/game/${gameId}/talk-to-gm/escalate`, {
-        question: 'What should I do next? What are my options right now?',
-      });
-      if (res.turnAdvanced) {
-        handleTurnResponse(res, '[GM Guidance]');
-      }
-    } catch (err) {
-      console.error('Compass escalation failed:', err);
-      setError(err.message || 'Failed to get guidance from the GM.');
-    } finally {
-      setHintLoading(false);
-      setSubmitting(false);
-    }
-  }, [gameId, hintLoading, handleTurnResponse]);
 
   // ─── Meta Response Handler (My Story tab → GM aside in narrative) ───
   const handleMetaResponse = useCallback((content) => {
@@ -865,14 +838,6 @@ function PlayPage() {
             submitting={submitting}
             error={error}
             onSubmit={submitAction}
-            compassOpen={compassOpen}
-            onToggleCompass={() => setCompassOpen(prev => !prev)}
-            objectives={gameState?.world}
-            currentLocation={gameState?.world?.currentLocation}
-            onEscalate={handleCompassEscalate}
-            hintLoading={hintLoading}
-            glossaryTerms={glossaryTerms}
-            onEntityClick={handleEntityClick}
             rewindAvailable={rewindAvailable}
             rewinding={rewinding}
             onRewind={handleRewind}
@@ -1191,20 +1156,8 @@ export default function Page() {
 // ============================================================
 // FILE: app/play/components/ActionPanel.js
 // ============================================================
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { renderLinkedText } from '@/lib/renderLinkedText';
+import { useState, useCallback } from 'react';
 import styles from './ActionPanel.module.css';
-
-// ─── Compass SVG Icon ───
-function CompassIcon({ size = 18, className }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" className={className} aria-hidden="true">
-      <circle cx="9" cy="9" r="7.5" stroke="currentColor" strokeWidth="1.2" />
-      <polygon points="9,3 10.5,8 9,7 7.5,8" fill="currentColor" />
-      <polygon points="9,15 10.5,10 9,11 7.5,10" fill="currentColor" opacity="0.4" />
-    </svg>
-  );
-}
 
 // ─── Paintbrush SVG Icon (Visualize) ───
 function PaintbrushIcon({ size = 18 }) {
@@ -1216,105 +1169,8 @@ function PaintbrushIcon({ size = 18 }) {
   );
 }
 
-// ─── Pin SVG Icon ───
-function PinIcon({ size = 13 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 13 13" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
-      <path d="M6.5 1C4.57 1 3 2.57 3 4.5C3 7.25 6.5 12 6.5 12S10 7.25 10 4.5C10 2.57 8.43 1 6.5 1Z" stroke="currentColor" strokeWidth="1.1" fill="none" />
-      <circle cx="6.5" cy="4.5" r="1.3" fill="currentColor" />
-    </svg>
-  );
-}
-
-// ─── Direction Popover ───
-function CompassPopover({ objectives, currentLocation, onEscalate, onClose, glossaryTerms, onEntityClick }) {
-  const popoverRef = useRef(null);
-
-  // Close on click outside
-  useEffect(() => {
-    function handleClick(e) {
-      if (popoverRef.current && !popoverRef.current.contains(e.target)) {
-        onClose();
-      }
-    }
-    function handleKey(e) {
-      if (e.key === 'Escape') onClose();
-    }
-    document.addEventListener('mousedown', handleClick);
-    document.addEventListener('keydown', handleKey);
-    return () => {
-      document.removeEventListener('mousedown', handleClick);
-      document.removeEventListener('keydown', handleKey);
-    };
-  }, [onClose]);
-
-  const quests = objectives?.quests || objectives?.activeQuests || [];
-  const playerObjectives = objectives?.objectives || objectives?.playerObjectives || [];
-  const hasObjectives = quests.length > 0 || playerObjectives.length > 0;
-
-  // Cap combined items at 5
-  const allItems = [];
-  for (const q of quests) {
-    if (allItems.length >= 5) break;
-    const desc = q.stage != null ? (q.stageDescription || q.title) : q.title;
-    allItems.push({ marker: '\u25C6', text: desc || String(q) });
-  }
-  for (const o of playerObjectives) {
-    if (allItems.length >= 5) break;
-    const text = typeof o === 'string' ? o : o.text || o.title || String(o);
-    allItems.push({ marker: '\u25CB', text });
-  }
-  const overflow = (quests.length + playerObjectives.length) - allItems.length;
-
-  return (
-    <div className={styles.compassPopover} ref={popoverRef}>
-      <div className={styles.compassHeader}>
-        <div className={styles.compassHeaderLeft}>
-          <CompassIcon size={14} />
-          <span className={styles.compassHeaderLabel}>YOUR BEARINGS</span>
-        </div>
-        <button className={styles.compassClose} onClick={onClose} aria-label="Close">&times;</button>
-      </div>
-
-      {currentLocation && (
-        <div className={styles.compassLocation}>
-          <PinIcon />
-          <span>{currentLocation}</span>
-        </div>
-      )}
-
-      {hasObjectives ? (
-        <div className={styles.compassObjectives}>
-          {allItems.map((item, i) => (
-            <div key={i} className={styles.compassObjectiveItem}>
-              <span className={styles.compassMarker}>{item.marker}</span>
-              <span>{renderLinkedText(item.text, glossaryTerms, onEntityClick)}</span>
-            </div>
-          ))}
-          {overflow > 0 && (
-            <div className={styles.compassOverflow}>and {overflow} more in your journal.</div>
-          )}
-        </div>
-      ) : !currentLocation ? (
-        <div className={styles.compassEmpty}>
-          Your story is open. Try exploring, talking to someone nearby, or writing your own objective in the Notes tab.
-        </div>
-      ) : null}
-
-      <div className={styles.compassEscalateRow}>
-        <button className={styles.compassEscalateButton} onClick={() => { onClose(); onEscalate(); }}>
-          Ask the GM for guidance
-        </button>
-        <span className={styles.compassTurnCost}>Costs 1 turn</span>
-      </div>
-    </div>
-  );
-}
-
 export default function ActionPanel({
   actions, submitting, error, onSubmit,
-  compassOpen, onToggleCompass, objectives, currentLocation, onEscalate, hintLoading,
-  glossaryTerms, onEntityClick,
   rewindAvailable, rewinding, onRewind,
   onVisualize, visualizing, isPlaytester,
 }) {
@@ -1350,20 +1206,6 @@ export default function ActionPanel({
       <div className={styles.actionInner}>
         {error && <div className={styles.errorText}>{error}</div>}
 
-        {compassOpen && (
-          <>
-            <div className={styles.compassBackdrop} onClick={onToggleCompass} />
-            <CompassPopover
-              objectives={objectives}
-              currentLocation={currentLocation}
-              onEscalate={onEscalate}
-              onClose={onToggleCompass}
-              glossaryTerms={glossaryTerms}
-              onEntityClick={onEntityClick}
-            />
-          </>
-        )}
-
         {visualizing && (
           <div className={styles.visualizingText}>
             The world takes shape...
@@ -1372,7 +1214,7 @@ export default function ActionPanel({
 
         {submitting ? (
           <div className={styles.submittingText}>
-            {hintLoading ? 'Consulting the GM...' : 'Processing your action...'}
+            Processing your action...
           </div>
         ) : (
           <>
@@ -1412,15 +1254,6 @@ export default function ActionPanel({
                   aria-label="Submit custom action"
                 >
                   GO
-                </button>
-                <button
-                  className={styles.compassButton}
-                  onClick={onToggleCompass}
-                  disabled={submitting}
-                  aria-label="Get your bearings"
-                  title="Get your bearings"
-                >
-                  <CompassIcon size={18} />
                 </button>
                 {isPlaytester && onVisualize && (
                   <button

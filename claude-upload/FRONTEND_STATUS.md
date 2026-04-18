@@ -35,6 +35,21 @@
 
 ## Recent Work (This Session: 2026-04-18)
 
+### Play page: remove GM-guidance compass button
+The small compass icon next to the GO button in `ActionPanel` (and its popover — current location, bearings list, "Ask the GM for guidance" escalate button) has been removed. It was the only entry point into the compass feature, so the popover, the `/api/game/:id/talk-to-gm/escalate` call, and all supporting plumbing were deleted along with it.
+
+Removed:
+- `ActionPanel.js`: the `CompassIcon`, `PinIcon`, and `CompassPopover` components; the compass button in the customRow; the `{compassOpen && …}` popover block; props `compassOpen`, `onToggleCompass`, `objectives`, `currentLocation`, `onEscalate`, `hintLoading`, `glossaryTerms`, `onEntityClick`; the `hintLoading`-conditional "Consulting the GM..." string (submitting text is now always "Processing your action...").
+- `ActionPanel.module.css`: all `.compass*` classes (button, popover, header, location, objectives, escalate row, backdrop, mobile bottom-sheet variants).
+- `page.js`: `compassOpen`/`hintLoading` state, `handleCompassEscalate` callback, and the six compass-related props on the `<ActionPanel>` call site.
+
+The separate `AsideCompassIcon` in `NarrativePanel.js` (decorative header for GM asides) is unrelated and was not touched.
+
+**Files modified:** `app/play/page.js`, `app/play/components/ActionPanel.js`, `app/play/components/ActionPanel.module.css`
+**Files synced:** `claude-upload/play-full.js`, `claude-upload/component-ActionPanel.module.css`, `claude-upload/FRONTEND_STATUS.md`
+
+---
+
 ### Play page: hide resolution panel on SKIP turns
 Bug: no-roll actions (e.g. "Begin the adventure", utility spells cast without a check) were rendering a fully-drawn resolution panel populated with zero values — "0.0 + d20(0) = 0.0 vs DC 0.0", Stat blank, Fortune "Matched", d20 Roll 0 — because `TurnBlock.js` rendered `InlineDicePanel` and `ResolutionBlock` unconditionally. Child components had null-guards, but the parent gate (`hasResolution`) was only being used to gate the animation prop, not rendering.
 

@@ -113,10 +113,6 @@ function PlayPage() {
   // ─── Report Modal ───
   const [reportMode, setReportMode] = useState(null); // null | 'bug' | 'suggest'
 
-  // ─── Compass ───
-  const [compassOpen, setCompassOpen] = useState(false);
-  const [hintLoading, setHintLoading] = useState(false);
-
   // ─── Rewind ───
   const [rewindAvailable, setRewindAvailable] = useState(false);
   const [rewinding, setRewinding] = useState(false);
@@ -360,28 +356,6 @@ function PlayPage() {
     }
   }, [addNotifications, refetchCharacter, refetchGlossary, gameState, addDirectiveToast, refetchDirectiveState]);
 
-  // ─── Compass Escalation Handler ───
-  const handleCompassEscalate = useCallback(async () => {
-    if (!gameId || hintLoading) return;
-    setHintLoading(true);
-    setCompassOpen(false);
-    setSubmitting(true);
-
-    try {
-      const res = await api.post(`/api/game/${gameId}/talk-to-gm/escalate`, {
-        question: 'What should I do next? What are my options right now?',
-      });
-      if (res.turnAdvanced) {
-        handleTurnResponse(res, '[GM Guidance]');
-      }
-    } catch (err) {
-      console.error('Compass escalation failed:', err);
-      setError(err.message || 'Failed to get guidance from the GM.');
-    } finally {
-      setHintLoading(false);
-      setSubmitting(false);
-    }
-  }, [gameId, hintLoading, handleTurnResponse]);
 
   // ─── Meta Response Handler (My Story tab → GM aside in narrative) ───
   const handleMetaResponse = useCallback((content) => {
@@ -862,14 +836,6 @@ function PlayPage() {
             submitting={submitting}
             error={error}
             onSubmit={submitAction}
-            compassOpen={compassOpen}
-            onToggleCompass={() => setCompassOpen(prev => !prev)}
-            objectives={gameState?.world}
-            currentLocation={gameState?.world?.currentLocation}
-            onEscalate={handleCompassEscalate}
-            hintLoading={hintLoading}
-            glossaryTerms={glossaryTerms}
-            onEntityClick={handleEntityClick}
             rewindAvailable={rewindAvailable}
             rewinding={rewinding}
             onRewind={handleRewind}
