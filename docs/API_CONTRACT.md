@@ -1255,9 +1255,9 @@ Full current game state snapshot.
     "recentHistory": ["..."],
     "availableActions": {
       "options": [
-        { "id": "A", "text": "Approach the merchant" },
-        { "id": "B", "text": "Investigate the alley" },
-        { "id": "C", "text": "Rest at the inn" }
+        { "id": "A", "text": "Approach the merchant", "stat": "cha", "flavor": "social" },
+        { "id": "B", "text": "Investigate the alley", "stat": "wis", "flavor": "investigation" },
+        { "id": "C", "text": "Rest at the inn", "stat": null, "flavor": "safe" }
       ],
       "customAllowed": true
     }
@@ -1276,6 +1276,7 @@ Full current game state snapshot.
 - `character.conditions[].stat` is lowercase.
 - `character.inventory.items[]` uses `entropy` (durability state string: "intact"/"worn"/"damaged"/"broken") and `readiness` (state string: "ready"/"compromised"), not raw numeric durability.
 - `narrative.availableActions.options[].id` values are `"A"`, `"B"`, `"C"` (mapped from stored option labels, D filtered out — use `custom` field instead).
+- `narrative.availableActions.options[].stat` / `.flavor` (AD-671, **additive**) — same display-hint semantics as `nextActions.options[].stat` / `.flavor` (see POST `/action` notes below). Hints for pre-stored options persist across `/state` reads.
 - `rewindAvailable` (boolean) — whether a single-turn rewind is available. `true` after any successful advancing turn, `false` initially and after rewind is consumed. (AD-553)
 - `directives.recentlyFulfilled` (array) — Auto-removed directives with text, lane, reason, and removedAtTurn. Max 5 entries, pruned after 20 turns. Frontend uses for "removed, restore?" UI. (AD-554)
 
@@ -1392,9 +1393,9 @@ Error variants (200, `used: false`, `error` populated): `on_cooldown`, `disorien
   },
   "nextActions": {
     "options": [
-      { "id": "A", "text": "Haggle for a discount" },
-      { "id": "B", "text": "Ask about the missing caravan" },
-      { "id": "C", "text": "Browse and leave" }
+      { "id": "A", "text": "Haggle for a discount", "stat": "cha", "flavor": "social" },
+      { "id": "B", "text": "Ask about the missing caravan", "stat": "wis", "flavor": "investigation" },
+      { "id": "C", "text": "Browse and leave", "stat": null, "flavor": "safe" }
     ],
     "customAllowed": true
   }
@@ -1404,6 +1405,8 @@ Error variants (200, `used: false`, `error` populated): `on_cooldown`, `disorien
 **Notes:**
 - `resolution` is `null` when the turn involves no mechanical check (pure narrative turns, e.g. long rest).
 - `resolution.stat` is always lowercase (`"cha"`, `"str"`, etc.).
+- `nextActions.options[].stat` (AD-671, **additive**) — lowercase stat abbreviation (`"str"|"dex"|"con"|"int"|"wis"|"cha"|"pot"`) the AI predicts the rules engine would most likely test for this option, or `null` when no check applies. Display hint only — the actual resolution stat is decided at action-processing time, not bound by this value. Same field appears on `GET /state` `narrative.availableActions.options[]`.
+- `nextActions.options[].flavor` (AD-671, **additive**) — one or two lowercase words describing the approach as a vibe tag (e.g. `"combat"`, `"stealth"`, `"social"`, `"investigation"`, `"diplomatic"`, `"risky"`, `"cautious"`, `"safe"`, `"narrative"`). The AI narrator picks the tag; the tag list is open-ended, not an enum. `null` if the narrator omits or malforms the field — frontend should render no tag in that case. Same field appears on `GET /state` `narrative.availableActions.options[]`.
 - `stateChanges.stats` contains post-commit effective stats (base minus condition penalties) with lowercase keys. This is the authoritative stat snapshot after the turn resolves.
 - `stateChanges.conditions.added` entries include a `target` field: `"player"` for player conditions, or the NPC's display name (e.g. `"Enforcer"`) for enemy conditions. (AD-550)
 - `npcStates` (array, optional) — Present only on combat turns. Each entry: `{ name, npcId, woundState: "engaged"|"bloodied"|"desperate"|"defeated", defeated: boolean }`. (AD-550, AD-670 rename: fresh→engaged, staggering→desperate, incapacitated→defeated)

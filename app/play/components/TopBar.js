@@ -37,8 +37,9 @@ function formatTopBarClock(clock) {
   return { day, timeStr, weather: clock.weather || null };
 }
 
-export default function TopBar({ setting, clock, sseConnected, sidebarOpen, onToggleSidebar, onOpenSettings, debugMode }) {
+export default function TopBar({ setting, clock, turnNumber, sseConnected, sidebarOpen, onToggleSidebar, onOpenSettings, debugMode }) {
   const clockData = formatTopBarClock(clock);
+  const turnDisplay = turnNumber != null ? String(turnNumber).padStart(3, '0') : null;
 
   return (
     <header className={styles.topBar}>
@@ -66,6 +67,12 @@ export default function TopBar({ setting, clock, sseConnected, sidebarOpen, onTo
                 <span className={styles.clockWeather}>{clockData.weather}</span>
               </>
             )}
+          </div>
+        )}
+        {turnDisplay && (
+          <div className={styles.turnPill} title={`Turn ${turnDisplay}`}>
+            <span className={styles.turnPillLabel}>TURN</span>
+            <span className={styles.turnPillNumber}>{turnDisplay}</span>
           </div>
         )}
         {debugMode && (
@@ -101,7 +108,7 @@ export default function TopBar({ setting, clock, sseConnected, sidebarOpen, onTo
         <AuthAvatar size={28} />
         <div
           className={styles.connectionDot}
-          style={{ background: sseConnected ? '#8aba7a' : '#e8845a' }}
+          style={{ background: sseConnected ? 'rgba(201, 168, 76, 0.6)' : '#e8845a' }}
           title={sseConnected ? 'Connected' : 'Disconnected'}
           aria-label={sseConnected ? 'Server connected' : 'Server disconnected'}
         />

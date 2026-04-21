@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import styles from './ActionPanel.module.css';
 
 // ─── Paintbrush SVG Icon (Visualize) ───
@@ -11,6 +11,17 @@ function PaintbrushIcon({ size = 18 }) {
   );
 }
 
+// Render the optional stat/flavor tag on a choice button.
+// Backend is rolling out `stat` (lowercase abbrev) and `flavor` (short approach tag)
+// per AD-6xx — both optional. Nothing renders if neither field is present.
+function OptionTag({ stat, flavor }) {
+  if (!stat && !flavor) return null;
+  const parts = [];
+  if (stat) parts.push(stat.toUpperCase());
+  if (flavor) parts.push(flavor);
+  return <span className={styles.optionTag}>{parts.join(' · ')}</span>;
+}
+
 export default function ActionPanel({
   actions, submitting, error, onSubmit,
   rewindAvailable, rewinding, onRewind,
@@ -18,8 +29,11 @@ export default function ActionPanel({
 }) {
   const [customText, setCustomText] = useState('');
   const [rewindConfirm, setRewindConfirm] = useState(false);
+  const [selectedChoice, setSelectedChoice] = useState(null);
+  const panelRef = useRef(null);
 
   const handleChoice = useCallback((id) => {
+    setSelectedChoice(id);
     onSubmit({ choice: id });
   }, [onSubmit]);
 
@@ -37,6 +51,28 @@ export default function ActionPanel({
     }
   }, [handleCustom]);
 
+  // Clear the "selected" highlight once submitting ends (new turn arrived or error).
+  useEffect(() => {
+    if (!submitting) setSelectedChoice(null);
+  }, [submitting]);
+
+  // Track dock height as a CSS variable so the narrative scroll can reserve
+  // bottom padding and the latest turn never hides behind this panel.
+  useEffect(() => {
+    const el = panelRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const setVar = () => {
+      document.documentElement.style.setProperty('--dock-h', `${el.offsetHeight}px`);
+    };
+    setVar();
+    const ro = new ResizeObserver(setVar);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.removeProperty('--dock-h');
+    };
+  }, []);
+
   // Nothing to show if no actions loaded yet
   if (!actions) return null;
 
@@ -44,7 +80,7 @@ export default function ActionPanel({
   const customAllowed = actions.customAllowed !== false;
 
   return (
-    <div className={styles.actionPanel}>
+    <div className={styles.actionPanel} ref={panelRef}>
       <div className={styles.actionInner}>
         {error && <div className={styles.errorText}>{error}</div>}
 
@@ -61,19 +97,32 @@ export default function ActionPanel({
         ) : (
           <>
             {options.length > 0 && (
-              <div className={styles.options}>
-                {options.map(opt => (
-                  <button
-                    key={opt.id}
-                    className={styles.optionButton}
-                    onClick={() => handleChoice(opt.id)}
-                    disabled={submitting}
-                  >
-                    <span className={styles.optionKey}>{opt.id}</span>
-                    <span className={styles.optionText}>{opt.text}</span>
-                  </button>
-                ))}
-              </div>
+              <>
+                <div className={styles.yourMoveRow}>
+                  <div className={styles.yourMoveRule} />
+                  <span className={styles.yourMoveLabel}>YOUR MOVE</span>
+                  <div className={`${styles.yourMoveRule} ${styles.yourMoveRuleRight}`} />
+                </div>
+                <div className={styles.options}>
+                  {options.map(opt => {
+                    const isSelected = selectedChoice === opt.id;
+                    const isDimmed = selectedChoice && !isSelected;
+                    return (
+                      <button
+                        key={opt.id}
+                        className={`${styles.optionButton} ${isSelected ? styles.optionSelected : ''} ${isDimmed ? styles.optionDimmed : ''}`}
+                        onClick={() => handleChoice(opt.id)}
+                        disabled={submitting}
+                        data-choice-id={opt.id}
+                      >
+                        <span className={styles.optionKey}>{opt.id}</span>
+                        <span className={styles.optionText}>{opt.text}</span>
+                        <OptionTag stat={opt.stat} flavor={opt.flavor} />
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
             )}
 
             {customAllowed && (
@@ -81,7 +130,7 @@ export default function ActionPanel({
                 <input
                   type="text"
                   className={styles.customInput}
-                  placeholder="Or describe your own action..."
+                  placeholder="Or write your own action — the GM adapts"
                   value={customText}
                   onChange={e => setCustomText(e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -120,7 +169,7 @@ export default function ActionPanel({
                     aria-label="Undo last turn"
                     title="Undo last turn"
                   >
-                    {'\u21A9'}
+                    {'↩'}
                   </button>
                 )}
               </div>

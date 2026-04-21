@@ -19,6 +19,41 @@
   box-shadow: 0 2px 8px rgba(201, 168, 76, 0.25);
   transition: box-shadow 0.15s, transform 0.15s;
   z-index: 10;
+  /* Isolate for pseudo-rings (so the pulses don't render above unrelated content). */
+  isolation: isolate;
+}
+
+/* Two concentric breathing rings — out-of-phase so the glow feels alive rather than metronomic. */
+@keyframes gmBreathe {
+  0%   { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.45); }
+  50%  { box-shadow: 0 0 0 14px rgba(201, 168, 76, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0); }
+}
+
+.gmButton::before,
+.gmButton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.gmButton::before {
+  animation: gmBreathe 4.2s ease-out infinite;
+}
+
+.gmButton::after {
+  animation: gmBreathe 6.2s ease-out infinite;
+  animation-delay: 1.4s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gmButton::before,
+  .gmButton::after {
+    animation: none;
+  }
 }
 
 .gmButton:hover {
@@ -32,6 +67,17 @@
 }
 
 /* ─── Panel ─── */
+
+@keyframes gmPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 
 .panel {
   position: absolute;
@@ -47,6 +93,14 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transform-origin: bottom right;
+  animation: gmPanelIn 320ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
 }
 
 .header {

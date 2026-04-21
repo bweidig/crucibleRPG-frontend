@@ -621,7 +621,7 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
 
   // ─── Expanded panel ───
   return (
-    <div className={styles.panel}>
+    <div className={styles.panel} data-talk-to-gm-open="true">
       <div className={styles.header}>
         <span className={styles.title}>Talk to the GM</span>
         <button className={styles.closeButton} onClick={handleClose} aria-label="Close">&times;</button>

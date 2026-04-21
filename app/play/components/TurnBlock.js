@@ -5,36 +5,12 @@ import ReflectionBlock from './ReflectionBlock';
 import { renderNarrative } from '@/lib/renderLinkedText';
 import styles from './TurnBlock.module.css';
 
-// Format clock fields for display
-function formatTime(clock) {
+// 24h time for the turn header (e.g. "14:22")
+function format24h(clock) {
   if (!clock) return null;
   const hour = clock.hour ?? Math.floor((clock.globalClock || 0) / 60);
   const minute = clock.minute ?? ((clock.globalClock || 0) % 60);
-  const period = hour >= 12 ? 'PM' : 'AM';
-  const displayHour = hour % 12 || 12;
-  return `${displayHour}:${String(minute).padStart(2, '0')} ${period}`;
-}
-
-function getTimeEmoji(clock) {
-  if (!clock) return null;
-  const hour = clock.hour ?? Math.floor((clock.globalClock || 0) / 60);
-  if (hour >= 5 && hour < 8) return '\u{1F305}';   // sunrise
-  if (hour >= 8 && hour < 18) return '\u2600\uFE0F'; // sun
-  if (hour >= 18 && hour < 21) return '\u{1F307}';  // sunset
-  return '\u{1F319}';                                 // night
-}
-
-function getWeatherEmoji(weather) {
-  if (!weather) return null;
-  const w = weather.toLowerCase();
-  if (w.includes('clear') || w.includes('sunny')) return '\u2600\uFE0F';
-  if (w.includes('cloud') || w.includes('overcast')) return '\u2601\uFE0F';
-  if (w.includes('storm') || w.includes('thunder')) return '\u26C8\uFE0F';
-  if (w.includes('rain') || w.includes('drizzle')) return '\u{1F327}\uFE0F';
-  if (w.includes('snow') || w.includes('blizzard')) return '\u2744\uFE0F';
-  if (w.includes('fog') || w.includes('mist')) return '\u{1F32B}\uFE0F';
-  if (w.includes('wind')) return '\u{1F32C}\uFE0F';
-  return null;
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
 
 // ─── Status Change Badges ───
@@ -81,10 +57,10 @@ function NpcWoundStates({ npcStates }) {
         let cls, icon;
         if (defeated) {
           cls = styles.badgeNpcDefeated;
-          icon = '\u2620'; // ☠
+          icon = '☠'; // ☠
         } else if (npc.woundState === 'desperate') {
           cls = styles.badgeNpcDesperate;
-          icon = '\u26A0'; // ⚠
+          icon = '⚠'; // ⚠
         } else {
           cls = styles.badgeNpcBloodied;
           icon = '\u{1FA78}'; // 🩸
@@ -114,7 +90,7 @@ function StatusBadges({ stateChanges, inventoryItems }) {
         const isNpc = isNpcCondition(item);
         const isCon = !isNpc && (typeof item === 'object' && item !== null) ? (item.stat || '').toLowerCase() === 'con' : false;
         const npcLabel = isNpc ? (item.targetName || item.target || '') : '';
-        const icon = isNpc ? '\u2694' : '\u26A0'; // ⚔ for enemy, ⚠ for player
+        const icon = isNpc ? '⚔' : '⚠'; // ⚔ for enemy, ⚠ for player
         badges.push({
           type: isNpc ? 'condEnemy' : (isCon ? 'condConDanger' : 'condAdded'),
           text: `${icon} ${npcLabel ? `${npcLabel}: ` : ''}${name}${(typeof item === 'object' && item?.penalty) ? `: ${item.penalty} ${(item.stat || '').toUpperCase()}` : ''}`,
@@ -129,7 +105,7 @@ function StatusBadges({ stateChanges, inventoryItems }) {
         const npcLabel = isNpc ? (item.targetName || item.target || '') : '';
         badges.push({
           type: isNpc ? 'condEnemyCleared' : 'condRemoved',
-          text: `\u2713 ${npcLabel ? `${npcLabel}: ` : ''}${name} cleared`,
+          text: `✓ ${npcLabel ? `${npcLabel}: ` : ''}${name} cleared`,
           key: `cond-rm-${name}-${npcLabel}`,
         });
       });
@@ -140,10 +116,10 @@ function StatusBadges({ stateChanges, inventoryItems }) {
         const isNpc = isNpcCondition(item);
         const isCon = !isNpc && (typeof item === 'object' && item !== null) ? (item.stat || '').toLowerCase() === 'con' : false;
         const npcLabel = isNpc ? (item.targetName || item.target || '') : '';
-        const icon = isNpc ? '\u2694' : '\u26A0';
+        const icon = isNpc ? '⚔' : '⚠';
         badges.push({
           type: isNpc ? 'condEnemy' : (isCon ? 'condConDanger' : 'condModified'),
-          text: `${icon} ${npcLabel ? `${npcLabel}: ` : ''}${name}${(typeof item === 'object' && item?.previousName) ? ` \u2192 ${item.name}` : ' escalated'}`,
+          text: `${icon} ${npcLabel ? `${npcLabel}: ` : ''}${name}${(typeof item === 'object' && item?.previousName) ? ` → ${item.name}` : ' escalated'}`,
           key: `cond-mod-${name}-${npcLabel}`,
         });
       });
@@ -168,7 +144,7 @@ function StatusBadges({ stateChanges, inventoryItems }) {
         const name = getItemName(item, inventoryItems);
         badges.push({
           type: 'invRemoved',
-          text: `\u2013 ${name}`,
+          text: `– ${name}`,
           key: `inv-rm-${name}`,
         });
       });
@@ -220,42 +196,21 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
   const shouldAnimate = isNew && hasResolution;
   const [showContent, setShowContent] = useState(!shouldAnimate);
 
-  const timeStr = formatTime(turn.clock);
-  const timeEmoji = getTimeEmoji(turn.clock);
+  const timeStr = format24h(turn.clock);
   const day = turn.clock?.day ?? turn.clock?.currentDay;
-  const weatherEmoji = getWeatherEmoji(turn.weather);
+  // Zero-pad the turn number to 3 digits — "042" reads as a chapter marker rather than a running count.
+  const turnLabel = turn.number != null ? `TURN ${String(turn.number).padStart(3, '0')}` : null;
+  const metaParts = [];
+  if (day != null) metaParts.push(`DAY ${String(day).padStart(2, '0')}`);
+  if (timeStr) metaParts.push(timeStr);
+  const metaStr = metaParts.join(' · '); // middle dot separator
 
   return (
-    <div className={styles.turnBlock} ref={ref}>
+    <div className={`${styles.turnBlock} ${isNew ? styles.turnIn : ''}`} ref={ref}>
       <div className={styles.turnHeader}>
-        {turn.location && (
-          <span className={styles.headerChip}>
-            <span className={styles.headerEmoji}>{'\u{1F4CD}'}</span>
-            <span className={styles.headerValue}>{turn.location}</span>
-          </span>
-        )}
-        {day && (
-          <span className={styles.headerChip}>
-            <span className={styles.headerEmoji}>{'\u{1F4C5}'}</span>
-            <span className={styles.headerValue}>Day {day}</span>
-          </span>
-        )}
-        {timeStr && (
-          <span className={styles.headerChip}>
-            <span className={styles.headerEmoji}>{timeEmoji}</span>
-            <span className={styles.headerValue}>{timeStr}</span>
-          </span>
-        )}
-        {turn.weather && (
-          <span className={styles.headerChip}>
-            {weatherEmoji && <span className={styles.headerEmoji}>{weatherEmoji}</span>}
-            <span className={styles.headerValue}>{turn.weather}</span>
-          </span>
-        )}
-        <span className={styles.headerChip}>
-          <span className={styles.headerEmoji}>{'\u{1F504}'}</span>
-          <span className={styles.headerValue}>Turn {turn.number}</span>
-        </span>
+        {turnLabel && <span className={styles.turnLabel}>{turnLabel}</span>}
+        {metaStr && <span className={styles.turnMeta}>{metaStr}</span>}
+        <div className={styles.turnRule} />
       </div>
 
       {turn.playerAction && (

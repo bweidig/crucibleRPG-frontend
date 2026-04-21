@@ -188,6 +188,37 @@ function PlayPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Keyboard shortcuts: A/B/C → corresponding choice button (delegating to its click
+  // handler so selected/disabled logic is shared). Skipped when any modal/panel is
+  // open or when focus is inside an editable element (input/textarea/contenteditable).
+  useEffect(() => {
+    function onKey(e) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      const el = document.activeElement;
+      const isEditable = el && (
+        el.tagName === 'INPUT' ||
+        el.tagName === 'TEXTAREA' ||
+        el.isContentEditable
+      );
+      if (isEditable) return;
+
+      if (settingsOpen || entityPopup || reportMode || galleryOpen || lightboxImage) return;
+      if (document.querySelector('[data-talk-to-gm-open="true"]')) return;
+
+      const key = e.key?.toUpperCase();
+      if (key === 'A' || key === 'B' || key === 'C') {
+        const btn = document.querySelector(`[data-choice-id="${key}"]`);
+        if (btn && !btn.disabled) {
+          e.preventDefault();
+          btn.click();
+        }
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [settingsOpen, entityPopup, reportMode, galleryOpen, lightboxImage]);
+
   // Save display settings when they change
   const handleSettingsChange = useCallback((newSettings) => {
     setDisplaySettings(newSettings);
@@ -301,19 +332,23 @@ function PlayPage() {
     // Extract reflection from mechanicalResults (Long Rest end-of-day reflection)
     const reflection = response.mechanicalResults?.reflection || response.stateChanges?.reflection || null;
 
-    setTurns(prev => [...prev, {
-      number: response.turn.number,
-      sessionTurn: response.turn.sessionTurn,
-      narrative: response.narrative,
-      resolution: response.resolution || null,
-      stateChanges: response.stateChanges || null,
-      reflection,
-      playerAction: playerActionText,
-      clock: turnClock,
-      weather: turnClock?.weather || null,
-      location: gameState?.world?.currentLocation || null,
-      _isNew: true,
-    }]);
+    // Clear _isNew from prior turns so only the newest plays the entrance animation.
+    setTurns(prev => [
+      ...prev.map(t => t._isNew ? { ...t, _isNew: false } : t),
+      {
+        number: response.turn.number,
+        sessionTurn: response.turn.sessionTurn,
+        narrative: response.narrative,
+        resolution: response.resolution || null,
+        stateChanges: response.stateChanges || null,
+        reflection,
+        playerAction: playerActionText,
+        clock: turnClock,
+        weather: turnClock?.weather || null,
+        location: gameState?.world?.currentLocation || null,
+        _isNew: true,
+      },
+    ]);
 
     if (response.nextActions) {
       setActions(response.nextActions);
@@ -365,6 +400,7 @@ function PlayPage() {
       });
     }
   }, [addNotifications, refetchCharacter, refetchGlossary, gameState, addDirectiveToast, refetchDirectiveState]);
+
 
   // ─── Meta Response Handler (My Story tab → GM aside in narrative) ───
   const handleMetaResponse = useCallback((content) => {
@@ -814,6 +850,12 @@ function PlayPage() {
       <TopBar
         setting={gameState?.setting}
         clock={gameState?.clock}
+        turnNumber={(() => {
+          for (let i = turns.length - 1; i >= 0; i--) {
+            if (turns[i].type !== 'gm_aside' && turns[i].number != null) return turns[i].number;
+          }
+          return null;
+        })()}
         sseConnected={sseConnected}
         sidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen(prev => !prev)}
@@ -1160,10 +1202,11 @@ export default function Page() {
   );
 }
 
+
 // ============================================================
 // FILE: app/play/components/ActionPanel.js
 // ============================================================
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import styles from './ActionPanel.module.css';
 
 // ─── Paintbrush SVG Icon (Visualize) ───
@@ -1176,6 +1219,17 @@ function PaintbrushIcon({ size = 18 }) {
   );
 }
 
+// Render the optional stat/flavor tag on a choice button.
+// Backend is rolling out `stat` (lowercase abbrev) and `flavor` (short approach tag)
+// per AD-6xx — both optional. Nothing renders if neither field is present.
+function OptionTag({ stat, flavor }) {
+  if (!stat && !flavor) return null;
+  const parts = [];
+  if (stat) parts.push(stat.toUpperCase());
+  if (flavor) parts.push(flavor);
+  return <span className={styles.optionTag}>{parts.join(' · ')}</span>;
+}
+
 export default function ActionPanel({
   actions, submitting, error, onSubmit,
   rewindAvailable, rewinding, onRewind,
@@ -1183,8 +1237,11 @@ export default function ActionPanel({
 }) {
   const [customText, setCustomText] = useState('');
   const [rewindConfirm, setRewindConfirm] = useState(false);
+  const [selectedChoice, setSelectedChoice] = useState(null);
+  const panelRef = useRef(null);
 
   const handleChoice = useCallback((id) => {
+    setSelectedChoice(id);
     onSubmit({ choice: id });
   }, [onSubmit]);
 
@@ -1202,6 +1259,28 @@ export default function ActionPanel({
     }
   }, [handleCustom]);
 
+  // Clear the "selected" highlight once submitting ends (new turn arrived or error).
+  useEffect(() => {
+    if (!submitting) setSelectedChoice(null);
+  }, [submitting]);
+
+  // Track dock height as a CSS variable so the narrative scroll can reserve
+  // bottom padding and the latest turn never hides behind this panel.
+  useEffect(() => {
+    const el = panelRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const setVar = () => {
+      document.documentElement.style.setProperty('--dock-h', `${el.offsetHeight}px`);
+    };
+    setVar();
+    const ro = new ResizeObserver(setVar);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.removeProperty('--dock-h');
+    };
+  }, []);
+
   // Nothing to show if no actions loaded yet
   if (!actions) return null;
 
@@ -1209,7 +1288,7 @@ export default function ActionPanel({
   const customAllowed = actions.customAllowed !== false;
 
   return (
-    <div className={styles.actionPanel}>
+    <div className={styles.actionPanel} ref={panelRef}>
       <div className={styles.actionInner}>
         {error && <div className={styles.errorText}>{error}</div>}
 
@@ -1226,19 +1305,32 @@ export default function ActionPanel({
         ) : (
           <>
             {options.length > 0 && (
-              <div className={styles.options}>
-                {options.map(opt => (
-                  <button
-                    key={opt.id}
-                    className={styles.optionButton}
-                    onClick={() => handleChoice(opt.id)}
-                    disabled={submitting}
-                  >
-                    <span className={styles.optionKey}>{opt.id}</span>
-                    <span className={styles.optionText}>{opt.text}</span>
-                  </button>
-                ))}
-              </div>
+              <>
+                <div className={styles.yourMoveRow}>
+                  <div className={styles.yourMoveRule} />
+                  <span className={styles.yourMoveLabel}>YOUR MOVE</span>
+                  <div className={`${styles.yourMoveRule} ${styles.yourMoveRuleRight}`} />
+                </div>
+                <div className={styles.options}>
+                  {options.map(opt => {
+                    const isSelected = selectedChoice === opt.id;
+                    const isDimmed = selectedChoice && !isSelected;
+                    return (
+                      <button
+                        key={opt.id}
+                        className={`${styles.optionButton} ${isSelected ? styles.optionSelected : ''} ${isDimmed ? styles.optionDimmed : ''}`}
+                        onClick={() => handleChoice(opt.id)}
+                        disabled={submitting}
+                        data-choice-id={opt.id}
+                      >
+                        <span className={styles.optionKey}>{opt.id}</span>
+                        <span className={styles.optionText}>{opt.text}</span>
+                        <OptionTag stat={opt.stat} flavor={opt.flavor} />
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
             )}
 
             {customAllowed && (
@@ -1246,7 +1338,7 @@ export default function ActionPanel({
                 <input
                   type="text"
                   className={styles.customInput}
-                  placeholder="Or describe your own action..."
+                  placeholder="Or write your own action — the GM adapts"
                   value={customText}
                   onChange={e => setCustomText(e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -1285,7 +1377,7 @@ export default function ActionPanel({
                     aria-label="Undo last turn"
                     title="Undo last turn"
                   >
-                    {'\u21A9'}
+                    {'↩'}
                   </button>
                 )}
               </div>
@@ -1316,6 +1408,7 @@ export default function ActionPanel({
     </div>
   );
 }
+
 
 // ============================================================
 // FILE: app/play/components/CharacterTab.js
@@ -1526,6 +1619,7 @@ export default function CharacterTab({ data, onEntityClick }) {
     </div>
   );
 }
+
 
 // ============================================================
 // FILE: app/play/components/DebugPanel.js
@@ -2478,6 +2572,7 @@ export default function DebugPanel({ entries, onClear }) {
   );
 }
 
+
 // ============================================================
 // FILE: app/play/components/EntityPopup.js
 // ============================================================
@@ -2660,6 +2755,7 @@ export default function EntityPopup({ entity, glossaryData, glossaryTerms, notes
   );
 }
 
+
 // ============================================================
 // FILE: app/play/components/GalleryModal.js
 // ============================================================
@@ -2775,6 +2871,7 @@ function formatPreset(preset) {
   };
   return map[preset] || preset;
 }
+
 
 // ============================================================
 // FILE: app/play/components/GlossaryTab.js
@@ -2895,6 +2992,7 @@ export default function GlossaryTab({ data, characterData, glossaryTerms, onEnti
   );
 }
 
+
 // ============================================================
 // FILE: app/play/components/ImageLightbox.js
 // ============================================================
@@ -2932,6 +3030,7 @@ export default function ImageLightbox({ imageUrl, blurb, turnNumber, onClose }) 
     </div>
   );
 }
+
 
 // ============================================================
 // FILE: app/play/components/InlineDicePanel.js
@@ -3312,6 +3411,7 @@ export default function InlineDicePanel({ resolution, animate = false, onComplet
   );
 }
 
+
 // ============================================================
 // FILE: app/play/components/InventoryTab.js
 // ============================================================
@@ -3465,6 +3565,7 @@ export default function InventoryTab({ data, onEntityClick }) {
     </div>
   );
 }
+
 
 // ============================================================
 // FILE: app/play/components/MapTab.js
@@ -4186,22 +4287,23 @@ export default function MapTab({ data: initialData, gameId, onEntityClick }) {
   );
 }
 
+
 // ============================================================
 // FILE: app/play/components/NarrativePanel.js
 // ============================================================
-import { useRef, useEffect, forwardRef } from 'react';
+import React, { useRef, useEffect, forwardRef } from 'react';
 import TurnBlock from './TurnBlock';
 import TalkToGM from './TalkToGM';
 import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './NarrativePanel.module.css';
 
-// Small compass icon for GM aside header
-function AsideCompassIcon() {
+// Info-circle icon for GM aside header
+function InfoCircleIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 18 18" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
-      <circle cx="9" cy="9" r="7.5" stroke="currentColor" strokeWidth="1.2" />
-      <polygon points="9,3 10.5,8 9,7 7.5,8" fill="currentColor" />
-      <polygon points="9,15 10.5,10 9,11 7.5,10" fill="currentColor" opacity="0.4" />
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2" />
+      <circle cx="8" cy="5" r="0.9" fill="currentColor" />
+      <path d="M8 7.5V12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -4258,8 +4360,8 @@ const NarrativePanel = forwardRef(function NarrativePanel({
               return (
                 <div key={`aside-${turn.timestamp ?? i}`} className={styles.gmAside}>
                   <div className={styles.gmAsideHeader}>
-                    <AsideCompassIcon />
-                    <span className={styles.gmAsideLabel}>GM</span>
+                    <InfoCircleIcon />
+                    <span className={styles.gmAsideLabel}>GM ASIDE</span>
                   </div>
                   <div className={styles.gmAsideBody}>{renderLinkedText(turn.content, glossaryTerms, onEntityClick)}</div>
                 </div>
@@ -4270,8 +4372,10 @@ const NarrativePanel = forwardRef(function NarrativePanel({
             const showRecap = isLast && sessionRecap && !recapShownRef.current && !isNew;
             if (showRecap) recapShownRef.current = true;
 
+            // Fragment (not wrapper div) so TurnBlock elements are adjacent siblings in the DOM.
+            // The .turnBlock + .turnBlock hairline selector in TurnBlock.module.css depends on this.
             return (
-              <div key={turn.number ?? i}>
+              <React.Fragment key={turn.number ?? i}>
                 {showRecap && (
                   <div className={styles.sessionRecap}>
                     <div className={styles.recapHeader}>PREVIOUSLY...</div>
@@ -4287,7 +4391,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
                   onImageClick={onImageClick}
                   ref={isLast && isNew ? newTurnRef : undefined}
                 />
-              </div>
+              </React.Fragment>
             );
           })}
 
@@ -4312,6 +4416,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
 });
 
 export default NarrativePanel;
+
 
 // ============================================================
 // FILE: app/play/components/NotesTab.js
@@ -4448,6 +4553,7 @@ export default function NotesTab({ data, gameId, onNotesChange }) {
   );
 }
 
+
 // ============================================================
 // FILE: app/play/components/NPCTab.js
 // ============================================================
@@ -4488,6 +4594,7 @@ export default function NPCTab({ glossaryData, glossaryTerms, onEntityClick }) {
   );
 }
 
+
 // ============================================================
 // FILE: app/play/components/PanelSection.js
 // ============================================================
@@ -4506,6 +4613,7 @@ export default function PanelSection({ title, children, defaultOpen = true }) {
     </div>
   );
 }
+
 
 // ============================================================
 // FILE: app/play/components/ReflectionBlock.js
@@ -4596,6 +4704,7 @@ export default function ReflectionBlock({ reflection, glossaryTerms, onEntityCli
     </div>
   );
 }
+
 
 // ============================================================
 // FILE: app/play/components/ReportModal.js
@@ -5003,6 +5112,7 @@ export default function ReportModal({ mode, gameId, gameState, turns, characterD
   );
 }
 
+
 // ============================================================
 // FILE: app/play/components/ResolutionBlock.js
 // ============================================================
@@ -5124,6 +5234,7 @@ export default function ResolutionBlock({ resolution }) {
     </div>
   );
 }
+
 
 // ============================================================
 // FILE: app/play/components/SettingsModal.js
@@ -6424,6 +6535,7 @@ export default function SettingsModal({ settings, onSave, onClose, gameId, gameS
   );
 }
 
+
 // ============================================================
 // FILE: app/play/components/Sidebar.js
 // ============================================================
@@ -6706,6 +6818,7 @@ export default function Sidebar({
     </div>
   );
 }
+
 
 // ============================================================
 // FILE: app/play/components/TalkToGM.js
@@ -7333,7 +7446,7 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
 
   // ─── Expanded panel ───
   return (
-    <div className={styles.panel}>
+    <div className={styles.panel} data-talk-to-gm-open="true">
       <div className={styles.header}>
         <span className={styles.title}>Talk to the GM</span>
         <button className={styles.closeButton} onClick={handleClose} aria-label="Close">&times;</button>
@@ -7537,6 +7650,7 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
   );
 }
 
+
 // ============================================================
 // FILE: app/play/components/TopBar.js
 // ============================================================
@@ -7579,8 +7693,9 @@ function formatTopBarClock(clock) {
   return { day, timeStr, weather: clock.weather || null };
 }
 
-export default function TopBar({ setting, clock, sseConnected, sidebarOpen, onToggleSidebar, onOpenSettings, debugMode }) {
+export default function TopBar({ setting, clock, turnNumber, sseConnected, sidebarOpen, onToggleSidebar, onOpenSettings, debugMode }) {
   const clockData = formatTopBarClock(clock);
+  const turnDisplay = turnNumber != null ? String(turnNumber).padStart(3, '0') : null;
 
   return (
     <header className={styles.topBar}>
@@ -7608,6 +7723,12 @@ export default function TopBar({ setting, clock, sseConnected, sidebarOpen, onTo
                 <span className={styles.clockWeather}>{clockData.weather}</span>
               </>
             )}
+          </div>
+        )}
+        {turnDisplay && (
+          <div className={styles.turnPill} title={`Turn ${turnDisplay}`}>
+            <span className={styles.turnPillLabel}>TURN</span>
+            <span className={styles.turnPillNumber}>{turnDisplay}</span>
           </div>
         )}
         {debugMode && (
@@ -7643,7 +7764,7 @@ export default function TopBar({ setting, clock, sseConnected, sidebarOpen, onTo
         <AuthAvatar size={28} />
         <div
           className={styles.connectionDot}
-          style={{ background: sseConnected ? '#8aba7a' : '#e8845a' }}
+          style={{ background: sseConnected ? 'rgba(201, 168, 76, 0.6)' : '#e8845a' }}
           title={sseConnected ? 'Connected' : 'Disconnected'}
           aria-label={sseConnected ? 'Server connected' : 'Server disconnected'}
         />
@@ -7651,6 +7772,7 @@ export default function TopBar({ setting, clock, sseConnected, sidebarOpen, onTo
     </header>
   );
 }
+
 
 // ============================================================
 // FILE: app/play/components/TurnBlock.js
@@ -7662,36 +7784,12 @@ import ReflectionBlock from './ReflectionBlock';
 import { renderNarrative } from '@/lib/renderLinkedText';
 import styles from './TurnBlock.module.css';
 
-// Format clock fields for display
-function formatTime(clock) {
+// 24h time for the turn header (e.g. "14:22")
+function format24h(clock) {
   if (!clock) return null;
   const hour = clock.hour ?? Math.floor((clock.globalClock || 0) / 60);
   const minute = clock.minute ?? ((clock.globalClock || 0) % 60);
-  const period = hour >= 12 ? 'PM' : 'AM';
-  const displayHour = hour % 12 || 12;
-  return `${displayHour}:${String(minute).padStart(2, '0')} ${period}`;
-}
-
-function getTimeEmoji(clock) {
-  if (!clock) return null;
-  const hour = clock.hour ?? Math.floor((clock.globalClock || 0) / 60);
-  if (hour >= 5 && hour < 8) return '\u{1F305}';   // sunrise
-  if (hour >= 8 && hour < 18) return '\u2600\uFE0F'; // sun
-  if (hour >= 18 && hour < 21) return '\u{1F307}';  // sunset
-  return '\u{1F319}';                                 // night
-}
-
-function getWeatherEmoji(weather) {
-  if (!weather) return null;
-  const w = weather.toLowerCase();
-  if (w.includes('clear') || w.includes('sunny')) return '\u2600\uFE0F';
-  if (w.includes('cloud') || w.includes('overcast')) return '\u2601\uFE0F';
-  if (w.includes('storm') || w.includes('thunder')) return '\u26C8\uFE0F';
-  if (w.includes('rain') || w.includes('drizzle')) return '\u{1F327}\uFE0F';
-  if (w.includes('snow') || w.includes('blizzard')) return '\u2744\uFE0F';
-  if (w.includes('fog') || w.includes('mist')) return '\u{1F32B}\uFE0F';
-  if (w.includes('wind')) return '\u{1F32C}\uFE0F';
-  return null;
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
 
 // ─── Status Change Badges ───
@@ -7738,10 +7836,10 @@ function NpcWoundStates({ npcStates }) {
         let cls, icon;
         if (defeated) {
           cls = styles.badgeNpcDefeated;
-          icon = '\u2620'; // ☠
+          icon = '☠'; // ☠
         } else if (npc.woundState === 'desperate') {
           cls = styles.badgeNpcDesperate;
-          icon = '\u26A0'; // ⚠
+          icon = '⚠'; // ⚠
         } else {
           cls = styles.badgeNpcBloodied;
           icon = '\u{1FA78}'; // 🩸
@@ -7771,7 +7869,7 @@ function StatusBadges({ stateChanges, inventoryItems }) {
         const isNpc = isNpcCondition(item);
         const isCon = !isNpc && (typeof item === 'object' && item !== null) ? (item.stat || '').toLowerCase() === 'con' : false;
         const npcLabel = isNpc ? (item.targetName || item.target || '') : '';
-        const icon = isNpc ? '\u2694' : '\u26A0'; // ⚔ for enemy, ⚠ for player
+        const icon = isNpc ? '⚔' : '⚠'; // ⚔ for enemy, ⚠ for player
         badges.push({
           type: isNpc ? 'condEnemy' : (isCon ? 'condConDanger' : 'condAdded'),
           text: `${icon} ${npcLabel ? `${npcLabel}: ` : ''}${name}${(typeof item === 'object' && item?.penalty) ? `: ${item.penalty} ${(item.stat || '').toUpperCase()}` : ''}`,
@@ -7786,7 +7884,7 @@ function StatusBadges({ stateChanges, inventoryItems }) {
         const npcLabel = isNpc ? (item.targetName || item.target || '') : '';
         badges.push({
           type: isNpc ? 'condEnemyCleared' : 'condRemoved',
-          text: `\u2713 ${npcLabel ? `${npcLabel}: ` : ''}${name} cleared`,
+          text: `✓ ${npcLabel ? `${npcLabel}: ` : ''}${name} cleared`,
           key: `cond-rm-${name}-${npcLabel}`,
         });
       });
@@ -7797,10 +7895,10 @@ function StatusBadges({ stateChanges, inventoryItems }) {
         const isNpc = isNpcCondition(item);
         const isCon = !isNpc && (typeof item === 'object' && item !== null) ? (item.stat || '').toLowerCase() === 'con' : false;
         const npcLabel = isNpc ? (item.targetName || item.target || '') : '';
-        const icon = isNpc ? '\u2694' : '\u26A0';
+        const icon = isNpc ? '⚔' : '⚠';
         badges.push({
           type: isNpc ? 'condEnemy' : (isCon ? 'condConDanger' : 'condModified'),
-          text: `${icon} ${npcLabel ? `${npcLabel}: ` : ''}${name}${(typeof item === 'object' && item?.previousName) ? ` \u2192 ${item.name}` : ' escalated'}`,
+          text: `${icon} ${npcLabel ? `${npcLabel}: ` : ''}${name}${(typeof item === 'object' && item?.previousName) ? ` → ${item.name}` : ' escalated'}`,
           key: `cond-mod-${name}-${npcLabel}`,
         });
       });
@@ -7825,7 +7923,7 @@ function StatusBadges({ stateChanges, inventoryItems }) {
         const name = getItemName(item, inventoryItems);
         badges.push({
           type: 'invRemoved',
-          text: `\u2013 ${name}`,
+          text: `– ${name}`,
           key: `inv-rm-${name}`,
         });
       });
@@ -7877,42 +7975,21 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
   const shouldAnimate = isNew && hasResolution;
   const [showContent, setShowContent] = useState(!shouldAnimate);
 
-  const timeStr = formatTime(turn.clock);
-  const timeEmoji = getTimeEmoji(turn.clock);
+  const timeStr = format24h(turn.clock);
   const day = turn.clock?.day ?? turn.clock?.currentDay;
-  const weatherEmoji = getWeatherEmoji(turn.weather);
+  // Zero-pad the turn number to 3 digits — "042" reads as a chapter marker rather than a running count.
+  const turnLabel = turn.number != null ? `TURN ${String(turn.number).padStart(3, '0')}` : null;
+  const metaParts = [];
+  if (day != null) metaParts.push(`DAY ${String(day).padStart(2, '0')}`);
+  if (timeStr) metaParts.push(timeStr);
+  const metaStr = metaParts.join(' · '); // middle dot separator
 
   return (
-    <div className={styles.turnBlock} ref={ref}>
+    <div className={`${styles.turnBlock} ${isNew ? styles.turnIn : ''}`} ref={ref}>
       <div className={styles.turnHeader}>
-        {turn.location && (
-          <span className={styles.headerChip}>
-            <span className={styles.headerEmoji}>{'\u{1F4CD}'}</span>
-            <span className={styles.headerValue}>{turn.location}</span>
-          </span>
-        )}
-        {day && (
-          <span className={styles.headerChip}>
-            <span className={styles.headerEmoji}>{'\u{1F4C5}'}</span>
-            <span className={styles.headerValue}>Day {day}</span>
-          </span>
-        )}
-        {timeStr && (
-          <span className={styles.headerChip}>
-            <span className={styles.headerEmoji}>{timeEmoji}</span>
-            <span className={styles.headerValue}>{timeStr}</span>
-          </span>
-        )}
-        {turn.weather && (
-          <span className={styles.headerChip}>
-            {weatherEmoji && <span className={styles.headerEmoji}>{weatherEmoji}</span>}
-            <span className={styles.headerValue}>{turn.weather}</span>
-          </span>
-        )}
-        <span className={styles.headerChip}>
-          <span className={styles.headerEmoji}>{'\u{1F504}'}</span>
-          <span className={styles.headerValue}>Turn {turn.number}</span>
-        </span>
+        {turnLabel && <span className={styles.turnLabel}>{turnLabel}</span>}
+        {metaStr && <span className={styles.turnMeta}>{metaStr}</span>}
+        <div className={styles.turnRule} />
       </div>
 
       {turn.playerAction && (

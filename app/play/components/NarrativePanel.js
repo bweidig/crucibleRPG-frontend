@@ -1,16 +1,16 @@
-import { useRef, useEffect, forwardRef } from 'react';
+import React, { useRef, useEffect, forwardRef } from 'react';
 import TurnBlock from './TurnBlock';
 import TalkToGM from './TalkToGM';
 import { renderLinkedText } from '@/lib/renderLinkedText';
 import styles from './NarrativePanel.module.css';
 
-// Small compass icon for GM aside header
-function AsideCompassIcon() {
+// Info-circle icon for GM aside header
+function InfoCircleIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 18 18" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
-      <circle cx="9" cy="9" r="7.5" stroke="currentColor" strokeWidth="1.2" />
-      <polygon points="9,3 10.5,8 9,7 7.5,8" fill="currentColor" />
-      <polygon points="9,15 10.5,10 9,11 7.5,10" fill="currentColor" opacity="0.4" />
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2" />
+      <circle cx="8" cy="5" r="0.9" fill="currentColor" />
+      <path d="M8 7.5V12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -67,8 +67,8 @@ const NarrativePanel = forwardRef(function NarrativePanel({
               return (
                 <div key={`aside-${turn.timestamp ?? i}`} className={styles.gmAside}>
                   <div className={styles.gmAsideHeader}>
-                    <AsideCompassIcon />
-                    <span className={styles.gmAsideLabel}>GM</span>
+                    <InfoCircleIcon />
+                    <span className={styles.gmAsideLabel}>GM ASIDE</span>
                   </div>
                   <div className={styles.gmAsideBody}>{renderLinkedText(turn.content, glossaryTerms, onEntityClick)}</div>
                 </div>
@@ -79,8 +79,10 @@ const NarrativePanel = forwardRef(function NarrativePanel({
             const showRecap = isLast && sessionRecap && !recapShownRef.current && !isNew;
             if (showRecap) recapShownRef.current = true;
 
+            // Fragment (not wrapper div) so TurnBlock elements are adjacent siblings in the DOM.
+            // The .turnBlock + .turnBlock hairline selector in TurnBlock.module.css depends on this.
             return (
-              <div key={turn.number ?? i}>
+              <React.Fragment key={turn.number ?? i}>
                 {showRecap && (
                   <div className={styles.sessionRecap}>
                     <div className={styles.recapHeader}>PREVIOUSLY...</div>
@@ -96,7 +98,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
                   onImageClick={onImageClick}
                   ref={isLast && isNew ? newTurnRef : undefined}
                 />
-              </div>
+              </React.Fragment>
             );
           })}
 

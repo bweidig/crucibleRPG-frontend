@@ -33,7 +33,63 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-20)
+## Recent Work (This Session: 2026-04-21)
+
+### /play visual polish pass — atmosphere, turn identity, dock elevation, GM breathing halo
+
+A multi-section upgrade to close the atmospheric gap between the loading overlay and the game layout itself. No API calls, state management patterns, or data flow were touched — purely visual, structural, and interaction work on existing components.
+
+**1. Atmospheric background layers** (`play.module.css`, `Sidebar.module.css`)
+- Vignette (`::before`) and inline-SVG turbulence noise (`::after`) at z-index 0 on `.narrativeColumn`; content pulled to z-index 1 via `> *` selector. `isolation: isolate` scopes the stacking context.
+- Sidebar gets a narrower-tuned version of the same layers, plus an inset left-edge shadow (`inset 8px 0 16px -8px rgba(0,0,0,0.55)`) so the transition between columns reads as depth, not just a divider.
+
+**2. Turn block identity** (`TurnBlock.js`, `TurnBlock.module.css`, `NarrativePanel.js`)
+- Each turn is now a container with `24px 20px 24px 28px` padding, a faint gold left border, a vertical gold gradient streak on the left (`::after`), and a very faint warm tint.
+- Consecutive turns get a horizontal gold-gradient hairline between them via `.turnBlock + .turnBlock::before` (12% insets). GM asides and recap cards break the chain, which is intentional. Required flattening the turn wrappers from `<div>` to `React.Fragment` so TurnBlocks are adjacent siblings in the DOM.
+- Turn header: all emoji removed. New structure is `"TURN 042"` (Cinzel 11px/700, gold, 0.28em tracking) + `"DAY 08 · 14:22"` (JetBrains Mono 10px, dim) + a gold-to-transparent gradient rule filling the remaining width.
+- Narrative paragraph spacing bumped from 12px to 18px.
+- GM aside label changed from "GM" to "GM ASIDE", compass icon swapped for an info-circle SVG, left border opacity 0.30 → 0.35.
+- New-turn entrance animation (`turnIn` keyframes, 380ms, `cubic-bezier(0.4,0,0.2,1)`) applied when `isNew` is true. `_isNew` is cleared from prior turns when a new one arrives so only the newest plays the animation.
+
+**3. Action dock elevation** (`ActionPanel.js`, `ActionPanel.module.css`)
+- Dock surface is now its own layer: `#0c1220` bg, three stacked shadows (hairline, subtle glow, inset highlight), and a gold gradient hairline `::before` across the top with 12% insets.
+- 48px `::after` fade mask bleeds the narrative into the dock instead of hard-clipping.
+- "YOUR MOVE" label (Cinzel 10px/700, gold, 0.28em) centered above the choices, flanked by gradient rules on both sides.
+- Choice buttons: default background changed from `--bg-main` to `--bg-card` so they read as distinct interactive surfaces. Optional stat/flavor tags render right-aligned in JetBrains Mono 10px when the backend sends `opt.stat` and/or `opt.flavor` (backwards compatible — absent fields = no tag).
+- Custom input border: `--border-gold-faint` → `--border-primary` (visible at rest). Gold focus ring `box-shadow: 0 0 0 2px rgba(201,168,76,0.25)`. Placeholder changed from "Or describe your own action..." to "Or write your own action — the GM adapts".
+- GO button: three-stop gold gradient with `dockShimmer` animation (3.4s infinite) + diagonal sheen sweep via `::after`. Disabled state pauses both. `prefers-reduced-motion` halts them.
+- `ResizeObserver` in ActionPanel writes the live panel height to `--dock-h` on `document.documentElement`. `.narrativeScroll` consumes it as `padding-bottom: calc(var(--dock-h, 140px) + 32px)` so the latest turn is never hidden behind the dock.
+
+**4. TopBar warmth + turn counter** (`TopBar.js`, `TopBar.module.css`, `page.js`)
+- Bottom border `#2a2418` (gold-tinted dark) + underglow shadow `0 8px 24px -12px rgba(201,168,76,0.08)`.
+- New `turnPill` component: zero-padded `"TURN 042"` with Cinzel label + JetBrains Mono number in a rounded-12px bordered pill. Turn number sourced from the latest non-aside turn via page.js.
+- Connection status dot: green `--color-success` → gold-tinted `rgba(201,168,76,0.6)` (green was the only bright green in the entire product and read as an engineering artifact).
+
+**5. Sidebar tab treatment** (`Sidebar.module.css`)
+- Tab strip bottom border mirrors TopBar warmth (`#2a2418` + gold underglow). Active tab icon tinting was already handled via the inline-SVG color prop.
+
+**6. Talk to GM breathing halo + entrance** (`TalkToGM.js`, `TalkToGM.module.css`)
+- Two concentric breathing rings on the floating gold button — `::before` runs the `gmBreathe` keyframes at 4.2s, `::after` at 6.2s with a 1.4s delay. Out-of-phase timing makes the glow feel alive rather than metronomic. `prefers-reduced-motion` disables both.
+- Panel entrance animation: opacity 0 + translateY(8px) + scale(0.98) → final over 320ms with `cubic-bezier(0.4,0,0.2,1)`. `transform-origin: bottom right` anchors the scale to the button it emerged from.
+- Added `data-talk-to-gm-open="true"` to the panel root so the page-level keyboard handler knows when to skip its shortcuts.
+
+**7. Keyboard shortcuts** (`page.js`)
+- A / B / C trigger the corresponding choice button. Implemented via `document.querySelector('[data-choice-id="X"]').click()` on the rendered option buttons, so the selected/disabled logic is shared with mouse clicks.
+- Skipped when focus is in an editable element (input/textarea/contenteditable), when any named modal is open (settings, entity popup, report, gallery, lightbox), or when the Talk to GM panel is open.
+- Modifier-guarded (ctrl/meta/alt held = skipped) so it doesn't collide with browser shortcuts.
+- Enter-in-custom-input submit already worked. Escape-closes-Talk-to-GM already worked (handled inside `TalkToGM.js`).
+
+**8. Interaction polish** (`ActionPanel.js`, `ActionPanel.module.css`)
+- When a choice is clicked, the selected option gets a gold border + `--bg-card-elevated` background + 1px gold shadow ring. Siblings dim to 40% opacity. State clears once `submitting` returns false.
+- Rewind button: distinct `1px solid rgba(232,90,90,0.3)` border so its destructive nature is visually signaled; hover deepens to `rgba(232,90,90,0.55)` with danger-red icon color.
+
+**9. FRONTEND_STATUS deferred items** — seven new entries logged under Deferred Items → Design: scene headers, sidebar content redesign, three-column choice grid, roll prompt text, turn aging, jump-to-latest pill, dice roller redesign.
+
+**Files modified:** `app/play/page.js`, `app/play/play.module.css`, `app/play/components/TurnBlock.js`, `app/play/components/TurnBlock.module.css`, `app/play/components/NarrativePanel.js`, `app/play/components/NarrativePanel.module.css`, `app/play/components/ActionPanel.js`, `app/play/components/ActionPanel.module.css`, `app/play/components/TopBar.js`, `app/play/components/TopBar.module.css`, `app/play/components/Sidebar.module.css`, `app/play/components/TalkToGM.js`, `app/play/components/TalkToGM.module.css`
+
+**Files synced:** `claude-upload/play-full.js` (regenerated from page.js + all components), `claude-upload/play-page.js`, `claude-upload/play-play.module.css`, `claude-upload/component-TurnBlock.module.css`, `claude-upload/component-NarrativePanel.module.css`, `claude-upload/component-ActionPanel.module.css`, `claude-upload/component-TopBar.module.css`, `claude-upload/component-Sidebar.module.css`, `claude-upload/component-Sidebar.js`, `claude-upload/component-TalkToGM.module.css`, `claude-upload/FRONTEND_STATUS.md`
+
+---
 
 ### Passive mastery unlock → Character tab notification (AD-666 partial)
 Backend now emits `mechanicalResults.passive_mastery_unlocked` on advancing turns where a T1-3 success crossed the randomized mastery-unlock threshold (XI.4.1). The sidebar's `CharacterTab` already has a "Passive Masteries" section (it filters `skills` by `type === 'passive'`), and `handleTurnResponse` already calls `refetchCharacter()` after every turn with stateChanges — so newly-unlocked masteries will appear in the list automatically with no UI work needed.
@@ -2146,6 +2202,13 @@ Items flagged for post-launch or future sessions. Not blocking progress.
 - ~~Interactive node map~~ (done: MapTab rewrite 2026-03-19)
 - Community section on main menu
 - Tutorial card on main menu
+- **Scene headers** — full-width "SCENE · TITLE" breaks between turns when the backend signals a scene change. Needs backend feature: scene-break detection (location change, time skip, major narrative shift) + AI-generated scene kicker. Cinzel 11px kicker + 28px title. Gold gradient rules. Deferred pending backend implementation.
+- **Sidebar content redesign** — portrait card with initials, attribute section with progress bars matching menu page quality, directive bullets, inventory polish. Separate design pass needed.
+- **Three-column choice grid** — requires stat/flavor tags on options (backend work in progress) + responsive testing. Current vertical stack works; grid is a future upgrade.
+- **Roll prompt text** — italic narrative framing of dice challenges ("The commander's eyes betray nothing..."). Needs backend feature: narrator generates a one-line roll prompt alongside mechanical data.
+- **Visual aging of older turns** — turns older than N-3 render at reduced opacity. Design decision needed on whether this is opt-in or default.
+- **"Jump to latest" floating pill** — appears when scrolled up past the current turn. Small button that scrolls to the newest turn.
+- **Dice roller redesign** — full spec exists in Claude Design handoff (README). New hexagonal SVG d20 with throw/tumble/land animation, tap-to-roll interaction, compact chip for historical turns. Separate implementation round.
 
 ### Content
 - ~~FAQ page~~ (done: 6-category, 32-question FAQ at /faq, 2026-03-30)

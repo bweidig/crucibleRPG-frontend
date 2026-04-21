@@ -14,6 +14,8 @@ import SettingsModal, { THEMES, FONTS, SIZES } from './components/SettingsModal'
 import EntityPopup from './components/EntityPopup';
 import DebugPanel from './components/DebugPanel';
 import ReportModal from './components/ReportModal';
+import ImageLightbox from './components/ImageLightbox';
+import GalleryModal from './components/GalleryModal';
 import { buildGlossaryTermSet } from '@/lib/renderLinkedText';
 import styles from './play.module.css';
 
@@ -88,12 +90,41 @@ function PlayPage() {
   // ─── Entity Popup ───
   const [entityPopup, setEntityPopup] = useState(null);
 
+  // Enrich item entities with inventory mechanical data before opening popup.
+  // Narrative links only pass { term, type }, missing durability/damage/etc.
+  // This mirrors the pattern GlossaryTab uses, but centralized for all click sources.
+  const handleEntityClick = useCallback((entity) => {
+    if (entity && characterData && (entity.type || '').toLowerCase() === 'item' && !entity.equipmentCategory) {
+      const allItems = [
+        ...(characterData.inventory?.equipped || []),
+        ...(characterData.inventory?.carried || []),
+      ];
+      const match = allItems.find(i =>
+        (i.name || '').toLowerCase() === (entity.term || entity.name || '').toLowerCase()
+      );
+      if (match) {
+        setEntityPopup({ ...match, ...entity, term: entity.term || match.name, type: 'item' });
+        return;
+      }
+    }
+    setEntityPopup(entity);
+  }, [characterData]);
+
   // ─── Report Modal ───
   const [reportMode, setReportMode] = useState(null); // null | 'bug' | 'suggest'
 
-  // ─── Compass ───
-  const [compassOpen, setCompassOpen] = useState(false);
-  const [hintLoading, setHintLoading] = useState(false);
+  // ─── Rewind ───
+  const [rewindAvailable, setRewindAvailable] = useState(false);
+  const [rewinding, setRewinding] = useState(false);
+
+  // ─── Visualization ───
+  const [visualizing, setVisualizing] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState(null);
+
+  // ─── Directives ───
+  const [directiveState, setDirectiveState] = useState(null);
+  const [directiveToasts, setDirectiveToasts] = useState([]);
 
   // ─── Loading Overlay ───
   const [overlayDismissed, setOverlayDismissed] = useState(false);
@@ -154,6 +185,37 @@ function PlayPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Keyboard shortcuts: A/B/C → corresponding choice button (delegating to its click
+  // handler so selected/disabled logic is shared). Skipped when any modal/panel is
+  // open or when focus is inside an editable element (input/textarea/contenteditable).
+  useEffect(() => {
+    function onKey(e) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      const el = document.activeElement;
+      const isEditable = el && (
+        el.tagName === 'INPUT' ||
+        el.tagName === 'TEXTAREA' ||
+        el.isContentEditable
+      );
+      if (isEditable) return;
+
+      if (settingsOpen || entityPopup || reportMode || galleryOpen || lightboxImage) return;
+      if (document.querySelector('[data-talk-to-gm-open="true"]')) return;
+
+      const key = e.key?.toUpperCase();
+      if (key === 'A' || key === 'B' || key === 'C') {
+        const btn = document.querySelector(`[data-choice-id="${key}"]`);
+        if (btn && !btn.disabled) {
+          e.preventDefault();
+          btn.click();
+        }
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [settingsOpen, entityPopup, reportMode, galleryOpen, lightboxImage]);
+
   // Save display settings when they change
   const handleSettingsChange = useCallback((newSettings) => {
     setDisplaySettings(newSettings);
@@ -204,6 +266,56 @@ function PlayPage() {
     }
   }, []);
 
+  // ─── Directive Handlers ───
+  // (Must be declared before handleTurnResponse which references them)
+  const refetchDirectiveState = useCallback(async () => {
+    if (!gameId) return;
+    try {
+      const state = await api.get(`/api/game/${gameId}/state`);
+      setDirectiveState(state.directives || state.directiveState || null);
+    } catch (err) {
+      console.error('Failed to refetch directive state:', err);
+    }
+  }, [gameId]);
+
+  const handleDeleteDirective = useCallback(async ({ lane, index }) => {
+    if (!gameId) return;
+    try {
+      const res = await api.del(`/api/game/${gameId}/talk-to-gm/meta/directive?lane=${lane}&index=${index}`);
+      setDirectiveState(res.directives || res);
+    } catch (err) {
+      console.error('Failed to remove directive:', err);
+    }
+  }, [gameId]);
+
+  const handleRestoreDirective = useCallback(async (text) => {
+    if (!gameId) return;
+    try {
+      await api.post(`/api/game/${gameId}/talk-to-gm/meta`, { question: `Please restore my directive: ${text}` });
+      refetchDirectiveState();
+    } catch (err) {
+      console.error('Failed to restore directive:', err);
+    }
+  }, [gameId, refetchDirectiveState]);
+
+  const addDirectiveToast = useCallback((removed) => {
+    const id = Date.now() + Math.random();
+    setDirectiveToasts(prev => [...prev, { id, ...removed }]);
+    setTimeout(() => {
+      setDirectiveToasts(prev => prev.map(t => t.id === id ? { ...t, fading: true } : t));
+      setTimeout(() => {
+        setDirectiveToasts(prev => prev.filter(t => t.id !== id));
+      }, 300);
+    }, 8000);
+  }, []);
+
+  const dismissDirectiveToast = useCallback((id) => {
+    setDirectiveToasts(prev => prev.map(t => t.id === id ? { ...t, fading: true } : t));
+    setTimeout(() => {
+      setDirectiveToasts(prev => prev.filter(t => t.id !== id));
+    }, 300);
+  }, []);
+
   // ─── Shared turn response handler (used by submitAction + TalkToGM escalation) ───
   const handleTurnResponse = useCallback((response, playerActionText = null) => {
     if (!response.turnAdvanced) return;
@@ -217,19 +329,23 @@ function PlayPage() {
     // Extract reflection from mechanicalResults (Long Rest end-of-day reflection)
     const reflection = response.mechanicalResults?.reflection || response.stateChanges?.reflection || null;
 
-    setTurns(prev => [...prev, {
-      number: response.turn.number,
-      sessionTurn: response.turn.sessionTurn,
-      narrative: response.narrative,
-      resolution: response.resolution || null,
-      stateChanges: response.stateChanges || null,
-      reflection,
-      playerAction: playerActionText,
-      clock: turnClock,
-      weather: turnClock?.weather || null,
-      location: gameState?.world?.currentLocation || null,
-      _isNew: true,
-    }]);
+    // Clear _isNew from prior turns so only the newest plays the entrance animation.
+    setTurns(prev => [
+      ...prev.map(t => t._isNew ? { ...t, _isNew: false } : t),
+      {
+        number: response.turn.number,
+        sessionTurn: response.turn.sessionTurn,
+        narrative: response.narrative,
+        resolution: response.resolution || null,
+        stateChanges: response.stateChanges || null,
+        reflection,
+        playerAction: playerActionText,
+        clock: turnClock,
+        weather: turnClock?.weather || null,
+        location: gameState?.world?.currentLocation || null,
+        _isNew: true,
+      },
+    ]);
 
     if (response.nextActions) {
       setActions(response.nextActions);
@@ -246,10 +362,30 @@ function PlayPage() {
       return { ...prev, ...updates };
     });
 
+    // Update rewind availability from turn response
+    if (response.rewindAvailable != null) {
+      setRewindAvailable(response.rewindAvailable);
+    }
+
     if (response.stateChanges) {
       addNotifications(response.stateChanges);
       refetchCharacter();
       refetchGlossary();
+    }
+
+    // AD-666: flag the Character tab when a passive mastery unlocks so the
+    // new row in the Passive Masteries list (populated by the refetch above)
+    // doesn't go unnoticed.
+    if (response.mechanicalResults?.passive_mastery_unlocked) {
+      setNotifications(prev => ({ ...prev, character: (prev.character || 0) + 1 }));
+    }
+
+    // Check for directive fulfillment
+    if (response.directivesRemoved && response.directivesRemoved.length > 0) {
+      for (const removed of response.directivesRemoved) {
+        addDirectiveToast(removed);
+      }
+      refetchDirectiveState();
     }
 
     // Enrich latest debug entry with turn number
@@ -260,30 +396,8 @@ function PlayPage() {
         return [{ ...latest, turnNumber: response.turn.number }, ...rest];
       });
     }
-  }, [addNotifications, refetchCharacter, refetchGlossary, gameState]);
+  }, [addNotifications, refetchCharacter, refetchGlossary, gameState, addDirectiveToast, refetchDirectiveState]);
 
-  // ─── Compass Escalation Handler ───
-  const handleCompassEscalate = useCallback(async () => {
-    if (!gameId || hintLoading) return;
-    setHintLoading(true);
-    setCompassOpen(false);
-    setSubmitting(true);
-
-    try {
-      const res = await api.post(`/api/game/${gameId}/talk-to-gm/escalate`, {
-        question: 'What should I do next? What are my options right now?',
-      });
-      if (res.turnAdvanced) {
-        handleTurnResponse(res, '[GM Guidance]');
-      }
-    } catch (err) {
-      console.error('Compass escalation failed:', err);
-      setError(err.message || 'Failed to get guidance from the GM.');
-    } finally {
-      setHintLoading(false);
-      setSubmitting(false);
-    }
-  }, [gameId, hintLoading, handleTurnResponse]);
 
   // ─── Meta Response Handler (My Story tab → GM aside in narrative) ───
   const handleMetaResponse = useCallback((content) => {
@@ -293,6 +407,92 @@ function PlayPage() {
       timestamp: Date.now(),
     }]);
   }, []);
+
+  // ─── Rewind Handler ───
+  const handleRewind = useCallback(async () => {
+    if (!gameId || rewinding) return;
+    setRewinding(true);
+    setError(null);
+
+    try {
+      const res = await api.post(`/api/game/${gameId}/rewind`);
+
+      if (res.rewound) {
+        // Remove last real turn (skip trailing gm_aside entries)
+        setTurns(prev => {
+          const reversed = [...prev];
+          let cutIndex = reversed.length;
+          for (let i = reversed.length - 1; i >= 0; i--) {
+            cutIndex = i;
+            if (reversed[i].type !== 'gm_aside') break;
+          }
+          return reversed.slice(0, cutIndex);
+        });
+
+        // Update all state from the returned game state
+        const state = res.state || res;
+        if (state.narrative?.availableActions) {
+          setActions(state.narrative.availableActions);
+        }
+        if (state.world) {
+          setGameState(prev => prev ? { ...prev, world: state.world } : prev);
+        }
+        if (state.clock) {
+          setGameState(prev => prev ? { ...prev, clock: state.clock } : prev);
+        }
+        setRewindAvailable(false);
+
+        // Refetch character/glossary to pick up restored state
+        refetchCharacter();
+        refetchGlossary();
+      }
+    } catch (err) {
+      console.error('Rewind failed:', err);
+      if (err.status === 400) {
+        setError(err.message || 'No turn to rewind');
+        setRewindAvailable(false);
+      } else {
+        setError(err.message || 'Rewind failed. Please try again.');
+      }
+    } finally {
+      setRewinding(false);
+    }
+  }, [gameId, rewinding, refetchCharacter, refetchGlossary]);
+
+  // ─── Visualize Handler ───
+  const handleVisualize = useCallback(async () => {
+    if (!gameId || visualizing) return;
+    setVisualizing(true);
+    try {
+      const res = await api.post(`/api/game/${gameId}/visualize`, {});
+      // Attach image to the latest real turn
+      const sceneImage = {
+        imageUrl: res.imageUrl,
+        blurb: res.blurb || null,
+        turnNumber: res.turnNumber,
+        resolution: res.resolution,
+        createdAt: res.createdAt,
+      };
+      setTurns(prev => {
+        const updated = [...prev];
+        // Find last real turn (not gm_aside)
+        for (let i = updated.length - 1; i >= 0; i--) {
+          if (updated[i].type !== 'gm_aside') {
+            updated[i] = { ...updated[i], sceneImage };
+            break;
+          }
+        }
+        return updated;
+      });
+    } catch (err) {
+      console.error('Visualize failed:', err);
+      if (err.status !== 403) {
+        setError(err.message || 'Failed to generate scene image.');
+      }
+    } finally {
+      setVisualizing(false);
+    }
+  }, [gameId, visualizing]);
 
   // ─── Compute lastResolution and lastStateChanges for TalkToGM contextual chip ───
   const lastResolutionTurn = turns.slice().reverse().find(t => t.resolution);
@@ -405,6 +605,12 @@ function PlayPage() {
           if (state?.world) {
             setGameState(prev => prev ? { ...prev, world: state.world } : prev);
           }
+          if (state?.rewindAvailable != null) {
+            setRewindAvailable(state.rewindAvailable);
+          }
+          if (state?.directives || state?.directiveState) {
+            setDirectiveState(state.directives || state.directiveState);
+          }
         }).catch(err => console.error('Failed to load game state:', err));
 
         api.get(`/api/game/${gameId}/character`).then(data => {
@@ -489,6 +695,9 @@ function PlayPage() {
                   ...prev,
                   clock: { ...prev.clock, ...res.stateChanges.clock }
                 } : prev);
+              }
+              if (res.rewindAvailable != null) {
+                setRewindAvailable(res.rewindAvailable);
               }
             }
           } catch (err) {
@@ -596,7 +805,14 @@ function PlayPage() {
 
   function handleEnterWorld() {
     setOverlayFading(true);
-    setTimeout(() => setOverlayDismissed(true), 600);
+    window.scrollTo(0, 0);
+    setTimeout(() => {
+      setOverlayDismissed(true);
+      // Scroll narrative to top for new games so player reads the prologue
+      if (!isReturningGame && narrativeRef.current) {
+        narrativeRef.current.scrollTo(0, 0);
+      }
+    }, 600);
   }
 
   // Read summary from sessionStorage
@@ -631,6 +847,12 @@ function PlayPage() {
       <TopBar
         setting={gameState?.setting}
         clock={gameState?.clock}
+        turnNumber={(() => {
+          for (let i = turns.length - 1; i >= 0; i--) {
+            if (turns[i].type !== 'gm_aside' && turns[i].number != null) return turns[i].number;
+          }
+          return null;
+        })()}
         sseConnected={sseConnected}
         sidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen(prev => !prev)}
@@ -650,25 +872,49 @@ function PlayPage() {
             lastStateChanges={lastStateChanges}
             onMetaResponse={handleMetaResponse}
             glossaryTerms={glossaryTerms}
-            onEntityClick={setEntityPopup}
+            onEntityClick={handleEntityClick}
+            inventoryItems={[...(characterData?.inventory?.equipped || []), ...(characterData?.inventory?.carried || [])]}
+            directiveState={directiveState}
+            onDeleteDirective={handleDeleteDirective}
+            onRestoreDirective={handleRestoreDirective}
+            onImageClick={setLightboxImage}
           />
           <ActionPanel
             actions={actions}
             submitting={submitting}
             error={error}
             onSubmit={submitAction}
-            compassOpen={compassOpen}
-            onToggleCompass={() => setCompassOpen(prev => !prev)}
-            objectives={gameState?.world}
-            currentLocation={gameState?.world?.currentLocation}
-            onEscalate={handleCompassEscalate}
-            hintLoading={hintLoading}
-            glossaryTerms={glossaryTerms}
-            onEntityClick={setEntityPopup}
+            rewindAvailable={rewindAvailable}
+            rewinding={rewinding}
+            onRewind={handleRewind}
+            onVisualize={handleVisualize}
+            visualizing={visualizing}
+            isPlaytester={!!api.getUser()?.isPlaytester}
           />
+          {directiveToasts.length > 0 && (
+            <div className={styles.toastContainer}>
+              {directiveToasts.map(toast => (
+                <div key={toast.id} className={`${styles.directiveToast} ${toast.fading ? styles.directiveToastFading : ''}`}>
+                  <div className={styles.directiveToastContent}>
+                    <span className={styles.directiveToastText}>
+                      Goal completed: {toast.text}
+                    </span>
+                    <button
+                      className={styles.directiveToastRestore}
+                      onClick={() => { handleRestoreDirective(toast.text); dismissDirectiveToast(toast.id); }}
+                    >
+                      Removed in error?
+                    </button>
+                  </div>
+                  <button className={styles.directiveToastClose} onClick={() => dismissDirectiveToast(toast.id)}>&times;</button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <Sidebar
           collapsed={!sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen(prev => !prev)}
           characterData={characterData}
           glossaryData={glossaryData}
           glossaryTerms={glossaryTerms}
@@ -678,8 +924,10 @@ function PlayPage() {
           notifications={notifications}
           onClearNotification={(tabId) => setNotifications(prev => ({ ...prev, [tabId]: 0 }))}
           onNotesChange={refetchNotes}
-          onEntityClick={setEntityPopup}
+          onEntityClick={handleEntityClick}
           onOpenReport={setReportMode}
+          onOpenGallery={() => setGalleryOpen(true)}
+          isPlaytester={!!api.getUser()?.isPlaytester}
           debugMode={debugMode}
           isDebugUser={!!api.getUser()?.isDebug}
           onToggleDebug={() => {
@@ -723,7 +971,7 @@ function PlayPage() {
           gameId={gameId}
           onClose={() => setEntityPopup(null)}
           onNotesChange={refetchNotes}
-          onEntityClick={setEntityPopup}
+          onEntityClick={handleEntityClick}
         />
       )}
 
@@ -737,6 +985,24 @@ function PlayPage() {
           characterData={characterData}
           debugLog={debugLog}
           onClose={() => setReportMode(null)}
+        />
+      )}
+
+      {/* Gallery Modal */}
+      {galleryOpen && (
+        <GalleryModal
+          gameId={gameId}
+          onClose={() => setGalleryOpen(false)}
+        />
+      )}
+
+      {/* Image Lightbox */}
+      {lightboxImage && (
+        <ImageLightbox
+          imageUrl={lightboxImage.imageUrl}
+          blurb={lightboxImage.blurb}
+          turnNumber={lightboxImage.turnNumber}
+          onClose={() => setLightboxImage(null)}
         />
       )}
 
@@ -849,6 +1115,14 @@ function PlayPage() {
                 {dataReady ? (isReturningGame ? 'Your story continues...' : 'Your story begins...') : LORE_FRAGMENTS[loreIndex]}
               </span>
             </div>
+
+            {/* Wait message */}
+            {!dataReady && (
+              <p style={{
+                fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
+                color: 'var(--text-dim)', marginTop: 16,
+              }}>This may take a minute or two.</p>
+            )}
 
             {/* ENTER button */}
             <div style={{

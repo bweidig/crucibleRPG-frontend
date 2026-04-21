@@ -9,8 +9,13 @@
   height: 44px;
   padding: 0 16px;
   background: var(--bg-card);
-  border-bottom: 1px solid var(--border-primary);
+  /* Warm gold-tinted bottom border + subtle underglow, to match the design system
+     warmth added in the dock and turn-block treatments. */
+  border-bottom: 1px solid #2a2418;
+  box-shadow: 0 8px 24px -12px rgba(201, 168, 76, 0.08);
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
 }
 
 .left {
@@ -125,6 +130,46 @@
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+/* ─── Turn Counter Pill ─── */
+
+.turnPill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 12px;
+  background: var(--bg-main);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+}
+
+.turnPillLabel {
+  font-family: var(--font-cinzel);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--gold-muted);
+  letter-spacing: 0.18em;
+}
+
+.turnPillNumber {
+  font-family: var(--font-jetbrains);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent-gold);
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 768px) {
+  .turnPill {
+    padding: 3px 8px;
+  }
+  .turnPillLabel {
+    font-size: 8px;
+  }
+  .turnPillNumber {
+    font-size: 10px;
+  }
 }
 
 /* ─── Mobile Responsive ─── */

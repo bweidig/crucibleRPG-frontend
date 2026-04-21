@@ -185,6 +185,37 @@ function PlayPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Keyboard shortcuts: A/B/C → corresponding choice button (delegating to its click
+  // handler so selected/disabled logic is shared). Skipped when any modal/panel is
+  // open or when focus is inside an editable element (input/textarea/contenteditable).
+  useEffect(() => {
+    function onKey(e) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      const el = document.activeElement;
+      const isEditable = el && (
+        el.tagName === 'INPUT' ||
+        el.tagName === 'TEXTAREA' ||
+        el.isContentEditable
+      );
+      if (isEditable) return;
+
+      if (settingsOpen || entityPopup || reportMode || galleryOpen || lightboxImage) return;
+      if (document.querySelector('[data-talk-to-gm-open="true"]')) return;
+
+      const key = e.key?.toUpperCase();
+      if (key === 'A' || key === 'B' || key === 'C') {
+        const btn = document.querySelector(`[data-choice-id="${key}"]`);
+        if (btn && !btn.disabled) {
+          e.preventDefault();
+          btn.click();
+        }
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [settingsOpen, entityPopup, reportMode, galleryOpen, lightboxImage]);
+
   // Save display settings when they change
   const handleSettingsChange = useCallback((newSettings) => {
     setDisplaySettings(newSettings);
@@ -298,19 +329,23 @@ function PlayPage() {
     // Extract reflection from mechanicalResults (Long Rest end-of-day reflection)
     const reflection = response.mechanicalResults?.reflection || response.stateChanges?.reflection || null;
 
-    setTurns(prev => [...prev, {
-      number: response.turn.number,
-      sessionTurn: response.turn.sessionTurn,
-      narrative: response.narrative,
-      resolution: response.resolution || null,
-      stateChanges: response.stateChanges || null,
-      reflection,
-      playerAction: playerActionText,
-      clock: turnClock,
-      weather: turnClock?.weather || null,
-      location: gameState?.world?.currentLocation || null,
-      _isNew: true,
-    }]);
+    // Clear _isNew from prior turns so only the newest plays the entrance animation.
+    setTurns(prev => [
+      ...prev.map(t => t._isNew ? { ...t, _isNew: false } : t),
+      {
+        number: response.turn.number,
+        sessionTurn: response.turn.sessionTurn,
+        narrative: response.narrative,
+        resolution: response.resolution || null,
+        stateChanges: response.stateChanges || null,
+        reflection,
+        playerAction: playerActionText,
+        clock: turnClock,
+        weather: turnClock?.weather || null,
+        location: gameState?.world?.currentLocation || null,
+        _isNew: true,
+      },
+    ]);
 
     if (response.nextActions) {
       setActions(response.nextActions);
@@ -812,6 +847,12 @@ function PlayPage() {
       <TopBar
         setting={gameState?.setting}
         clock={gameState?.clock}
+        turnNumber={(() => {
+          for (let i = turns.length - 1; i >= 0; i--) {
+            if (turns[i].type !== 'gm_aside' && turns[i].number != null) return turns[i].number;
+          }
+          return null;
+        })()}
         sseConnected={sseConnected}
         sidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen(prev => !prev)}
