@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-04-20
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -33,7 +33,22 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-18)
+## Recent Work (This Session: 2026-04-20)
+
+### NPC wound state rename (AD-670)
+Backend renamed the `woundState` vocabulary on `npcStates` entries: `fresh` → `engaged`, `staggering` → `desperate`, `incapacitated` → `defeated` (`bloodied` unchanged). The frontend was matching on the old values in two places; without the rename, every NPC would have shown in the Enemy Status row (the filter was `!== 'fresh'`), the warning-red "Staggering" badge styling would not apply, and defeat detection via `woundState === 'incapacitated'` would silently fail.
+
+Updates:
+- `app/play/components/TurnBlock.js` — filter now hides `'engaged'` (default); defeat branch checks `'defeated'`; warning branch checks `'desperate'` and uses a renamed `.badgeNpcDesperate` class. Display labels flow from the raw value (auto-capitalized) so enemies now show "Bloodied", "Desperate", "Defeated".
+- `app/play/components/TurnBlock.module.css` — `.badgeNpcStaggering` renamed to `.badgeNpcDesperate` (comment updated; colors unchanged).
+- `app/admin/page.js` — NPC card woundState color map rekeyed to the new vocabulary.
+
+Deferred (not blocking): AD-666 adds a `[Use Skill: Name]` bracket command with a new response shape (cooldown/error states) and an optional `mechanicalResults.passive_mastery_unlocked` field on advancing turns. Both are additive — the frontend doesn't send or handle them yet, and each warrants its own design pass before wiring.
+
+**Files modified:** `app/play/components/TurnBlock.js`, `app/play/components/TurnBlock.module.css`, `app/admin/page.js`
+**Files synced:** `claude-upload/play-full.js`, `claude-upload/component-TurnBlock.module.css`, `claude-upload/admin-page.js`, `claude-upload/API_CONTRACT.md` (already in sync via user edit), `claude-upload/FRONTEND_STATUS.md`
+
+---
 
 ### Play page: remove GM-guidance compass button
 The small compass icon next to the GO button in `ActionPanel` (and its popover — current location, bearings list, "Ask the GM for guidance" escalate button) has been removed. It was the only entry point into the compass feature, so the popover, the `/api/game/:id/talk-to-gm/escalate` call, and all supporting plumbing were deleted along with it.

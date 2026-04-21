@@ -7719,21 +7719,21 @@ function getItemName(item, inventoryItems) {
 function NpcWoundStates({ npcStates }) {
   if (!Array.isArray(npcStates) || npcStates.length === 0) return null;
 
-  // Only show non-fresh NPCs
-  const visible = npcStates.filter(npc => npc.woundState && npc.woundState !== 'fresh');
+  // Only show wounded-or-worse NPCs — hide the default "engaged" state
+  const visible = npcStates.filter(npc => npc.woundState && npc.woundState !== 'engaged');
   if (visible.length === 0) return null;
 
   return (
     <div className={styles.badges} style={{ marginTop: 8 }}>
       <span className={styles.npcStatesLabel}>Enemy Status</span>
       {visible.map(npc => {
-        const defeated = npc.defeated || npc.woundState === 'incapacitated';
+        const defeated = npc.defeated || npc.woundState === 'defeated';
         let cls, icon;
         if (defeated) {
           cls = styles.badgeNpcDefeated;
           icon = '\u2620'; // ☠
-        } else if (npc.woundState === 'staggering') {
-          cls = styles.badgeNpcStaggering;
+        } else if (npc.woundState === 'desperate') {
+          cls = styles.badgeNpcDesperate;
           icon = '\u26A0'; // ⚠
         } else {
           cls = styles.badgeNpcBloodied;

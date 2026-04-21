@@ -981,8 +981,8 @@ function GamesTab({ data, loading, onRefresh, pendingGameId, onClearPending, pen
                     {npcData.npcs.map(npc => {
                       const expanded = expandedNpcs[npc.id];
                       const dead = npc.alive === false;
-                      const ws = npc.durability?.woundState || 'fresh';
-                      const wsColor = ws === 'fresh' ? '#8aba7a' : ws === 'bloodied' ? '#e8c45a' : ws === 'staggering' ? '#e8845a' : ws === 'incapacitated' ? '#e85a5a' : '#8a94a8';
+                      const ws = npc.durability?.woundState || 'engaged';
+                      const wsColor = ws === 'engaged' ? '#8aba7a' : ws === 'bloodied' ? '#e8c45a' : ws === 'desperate' ? '#e8845a' : ws === 'defeated' ? '#e85a5a' : '#8a94a8';
                       const tierColors = { minion: '#7082a4', standard: '#8a94a8', professional: '#c9a84c', elite: '#e8c45a', boss: '#e85a5a' };
                       const dispColors = { friendly: '#8aba7a', neutral: '#8a94a8', wary: '#e8c45a', hostile: '#e85a5a', fearful: '#7ab4e8' };
                       return (

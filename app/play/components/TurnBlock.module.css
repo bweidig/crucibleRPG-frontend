@@ -209,8 +209,8 @@
   opacity: 0.75;
 }
 
-/* Staggering — red/warning */
-.badgeNpcStaggering {
+/* Desperate — red/warning */
+.badgeNpcDesperate {
   color: #e85a5a;
   background: #1e1214;
   border: 1px solid #3a1820;

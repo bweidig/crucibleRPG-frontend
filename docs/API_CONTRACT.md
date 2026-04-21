@@ -1298,7 +1298,7 @@ Unified action endpoint — player choices, custom actions, and bracket commands
 | Field | Type | Notes |
 |-------|------|-------|
 | `choice` | string | `"A"`, `"B"`, or `"C"` — select a presented option. `"D"` is rejected (use `custom` instead). |
-| `custom` | string | Free-text action, max 500 chars. Bracket-wrapped text (`[Short Rest]`, `[Long Rest]`, `[Status Report]`, `[Briefing]`, `[Help]`) is auto-translated to the equivalent structured `command` before dispatch (AD-592). |
+| `custom` | string | Free-text action, max 500 chars. Bracket-wrapped text (`[Short Rest]`, `[Long Rest]`, `[Status Report]`, `[Briefing]`, `[Help]`, `[Use Skill: Name]`) is auto-translated to the equivalent structured `command` before dispatch (AD-592, AD-666). |
 | `command` | string | Bracket command name (see below) |
 | `target` | string | For `travel_to`, `forced_march`, `restore_checkpoint`, `delete_checkpoint` |
 | `text` | string | For `set_objective`, `checkpoint` |
@@ -1319,6 +1319,7 @@ Unified action endpoint — player choices, custom actions, and bracket commands
 | `delete_checkpoint` | no | — | Delete a checkpoint |
 | `short_rest` | no | — | Mechanical Short Rest — reduces condition penalties by 0.3, +0.5 POT (1/day), advances clock 1h. Bypasses AI. (AD-592) |
 | `long_rest` | no | — | Mechanical Long Rest — threshold recovery, Wellspring POT, resets strain counter, companion/group recovery, advances clock 6h. Bypasses AI. (AD-592) |
+| `use_skill` | no | `target` (skill name) | Invoke an Active Skill by name. Fuzzy-matches `target` against `narrativeSkin` or the template name. Applies cooldown via `useActiveSkill`. Template 11 (Assess) rejected with `error: 'assess_requires_context'` — needs a dedicated flow. Bracket form: `[Use Skill: Name]` (AD-666). |
 | `travel_to` | **yes** | `target` (location) | Travel to location |
 | `forced_march` | **yes** | `target` (location) | Forced march to location |
 
@@ -1330,6 +1331,30 @@ Unified action endpoint — player choices, custom actions, and bracket commands
   "data": { ... }
 }
 ```
+
+**Response — `use_skill` command (AD-666):**
+```json
+{
+  "turnAdvanced": false,
+  "command": "use_skill",
+  "data": {
+    "used": true,
+    "skillId": 42,
+    "skillName": "Precision Strike",
+    "templateId": 3,
+    "templateName": "Precision Strike",
+    "cooldownType": "tactical_sequence",
+    "cooldownState": "on_cooldown",
+    "chargesRemaining": null,
+    "enhanced": false,
+    "effectAppliedToResolution": false,
+    "note": "Active Skill declared. Cooldown applied. Template effect-to-resolution wiring is a known follow-up (see AD-666 notes)."
+  }
+}
+```
+Error variants (200, `used: false`, `error` populated): `on_cooldown`, `disoriented` (XVI.12 blocks Active Skills), `skill_not_found` (no match for `target`), `assess_requires_context` (Template 11 invoked without the dedicated flow).
+
+**`mechanicalResults.passive_mastery_unlocked` (AD-666):** Advancing turns may include `passive_mastery_unlocked: { templateId, templateName, scope, domainStat }` in the resolution payload when a T1-3 success crossed the randomized threshold (XI.4.1) and a mastery was unlocked server-side. Absent when no unlock fires. Template derivation follows `(domainStat, domainCategory)`: combat → Armor Breaker (#2), medical → Medical Mastery #4 option A, social → Social Leverage (#5), crafting → Craft Excellence (#8), counseling → Social Leverage (#5), default → Efficiency Gain (#1).
 
 **Response — Advancing action (200):**
 ```json
@@ -1381,7 +1406,7 @@ Unified action endpoint — player choices, custom actions, and bracket commands
 - `resolution.stat` is always lowercase (`"cha"`, `"str"`, etc.).
 - `stateChanges.stats` contains post-commit effective stats (base minus condition penalties) with lowercase keys. This is the authoritative stat snapshot after the turn resolves.
 - `stateChanges.conditions.added` entries include a `target` field: `"player"` for player conditions, or the NPC's display name (e.g. `"Enforcer"`) for enemy conditions. (AD-550)
-- `npcStates` (array, optional) — Present only on combat turns. Each entry: `{ name, npcId, woundState: "fresh"|"bloodied"|"staggering"|"incapacitated", defeated: boolean }`. (AD-550)
+- `npcStates` (array, optional) — Present only on combat turns. Each entry: `{ name, npcId, woundState: "engaged"|"bloodied"|"desperate"|"defeated", defeated: boolean }`. (AD-550, AD-670 rename: fresh→engaged, staggering→desperate, incapacitated→defeated)
 - SSE path sends `npcStates` as a separate `turn:npc_states` event.
 - `rewindAvailable` (boolean) — `true` after any successful advancing turn. Frontend uses to enable/disable the Rewind button. (AD-553)
 - `directivesRemoved` (array or null) — Auto-fulfilled directives removed this turn. Each entry: `{ text, lane, reason }`. `null` when nothing was removed. Only present on advancing turns after Turn 6 (when summarization fires). (AD-554)
@@ -1395,8 +1420,8 @@ Unified action endpoint — player choices, custom actions, and bracket commands
 ```json
 {
   "npcStates": [
-    { "name": "Aethelforge Enforcer", "npcId": 42, "woundState": "staggering", "defeated": false },
-    { "name": "Squad Leader", "npcId": 43, "woundState": "incapacitated", "defeated": true }
+    { "name": "Aethelforge Enforcer", "npcId": 42, "woundState": "desperate", "defeated": false },
+    { "name": "Squad Leader", "npcId": 43, "woundState": "defeated", "defeated": true }
   ]
 }
 ```
