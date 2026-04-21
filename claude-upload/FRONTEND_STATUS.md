@@ -35,6 +35,20 @@
 
 ## Recent Work (This Session: 2026-04-21)
 
+### Fix: narrative never appearing on /play (TurnRoll timing-effect cleanup bug)
+
+After the dice roller redesign shipped, narrative text stopped appearing on new turns. Root cause was in `TurnRoll.js`: the `useEffect` that schedules the phase-timing `setTimeout`s had `stage` in its dependency array and returned a cleanup that cleared all timers. When the effect ran at mount (`stage === 'rolling'`), it scheduled all six steps including the final `{ at: 2650, stage: 'compact' }` step that fires `onResolved`. But at `t=2100ms` the `collapsing` step fired, which called `setStage('collapsing')`. That state change caused React to re-run the effect with new deps — which ran the cleanup from the previous invocation, **clearing every remaining timer including the `compact` one**. `onResolved` never fired, `showContent` stayed `false`, and the narrative stayed hidden.
+
+Fix:
+- Route `onResolved` through a ref (`onResolvedRef`) so timer callbacks don't need it in their closure deps.
+- Guard the timing effect with a `rollingStartedRef` boolean so it schedules timers exactly once per roll cycle, even as the effect re-runs on stage transitions.
+- Drop the cleanup that cleared timers. An unmount-guard ref (`mountedRef`) short-circuits any stray timer callback that fires after the component has unmounted, so we don't leak state-setter calls on dead components.
+
+**Files modified:** `app/play/components/TurnRoll.js`
+**Files synced:** `claude-upload/component-TurnRoll.js`, `claude-upload/play-full.js`, `claude-upload/FRONTEND_STATUS.md`
+
+---
+
 ### Dice roller redesign — hexagonal d20, throw/tumble/land, compact chip
 
 Full replacement of the previous `InlineDicePanel` + `ResolutionBlock` pair with a new dice system spec'd in the Claude Design handoff. No API or state-management changes — the new system consumes the same `resolution` payload via an adapter in `TurnBlock.js`.
