@@ -1,0 +1,137 @@
+/* ==============================================
+   TurnRoll — challenge panel + collapse animation
+   ============================================== */
+
+@keyframes challengeIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.challenge {
+  position: relative;
+  padding: 28px 24px 24px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(201, 168, 76, 0.25);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #0e1425 0%, #0a0e1a 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(201, 168, 76, 0.15),
+    0 0 60px rgba(201, 168, 76, 0.08);
+  animation: challengeIn 500ms ease-out;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* Collapse-to-chip animation (see TurnRoll timing table). Negative top margin
+   at end pulls the following prose up, creating the illusion that the panel
+   was vacuumed into the narrative. */
+@keyframes challengeCollapse {
+  0%   { transform: scale(1) translateY(0); opacity: 1; }
+  100% {
+    transform: scale(0.35) translateY(-30px);
+    opacity: 0;
+    height: 0;
+    padding: 0;
+    margin: -30px 0 0;
+    border-width: 0;
+  }
+}
+
+.challengeCollapsing {
+  animation: challengeCollapse 550ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .challenge { animation: none; }
+  .challengeCollapsing {
+    animation: none;
+    opacity: 0;
+    height: 0;
+    padding: 0;
+    margin: 0;
+    border-width: 0;
+    transition: opacity 0.3s ease;
+  }
+}
+
+.kicker {
+  font-family: var(--font-cinzel);
+  font-size: 10px;
+  font-weight: 700;
+  color: #9a8545;
+  letter-spacing: 0.3em;
+  margin-bottom: 12px;
+}
+
+.prompt {
+  font-family: var(--font-alegreya);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--text-secondary);
+  max-width: 460px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.actionLabel {
+  font-family: var(--font-cinzel);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-heading);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.metaPill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 5px 14px;
+  border: 1px solid var(--border-card);
+  border-radius: 14px;
+  background: var(--bg-main);
+  margin-bottom: 4px;
+  font-family: var(--font-jetbrains);
+  font-size: 10px;
+}
+
+.metaPillKey {
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.metaPillValue {
+  color: var(--text-secondary);
+}
+
+.metaPillMode {
+  color: var(--accent-gold);
+  letter-spacing: 0.1em;
+}
+
+.metaPillDot {
+  color: var(--text-dim);
+  opacity: 0.6;
+}
+
+@keyframes tapPulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.8; }
+}
+
+.tapHint {
+  margin-top: 8px;
+  font-family: var(--font-cinzel);
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: var(--text-dim);
+  animation: tapPulse 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tapHint { animation: none; opacity: 0.6; }
+}

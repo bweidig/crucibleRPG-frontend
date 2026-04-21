@@ -1,9 +1,80 @@
-import React, { useState, forwardRef } from 'react';
-import InlineDicePanel from './InlineDicePanel';
-import ResolutionBlock from './ResolutionBlock';
+import React, { useState, forwardRef, useMemo } from 'react';
+import TurnRoll from './TurnRoll';
 import ReflectionBlock from './ReflectionBlock';
 import { renderNarrative } from '@/lib/renderLinkedText';
 import styles from './TurnBlock.module.css';
+
+// ─── Map resolution → TurnRoll challenge + result ───
+// Done here so TurnRoll can stay ignorant of the backend payload shape.
+function buildTurnRollProps(resolution, playerAction, stateChanges) {
+  if (!resolution) return null;
+  const diceRolled = Array.isArray(resolution.diceRolled) ? resolution.diceRolled : [];
+  const mode = (resolution.fortunesBalance || 'matched').toLowerCase();
+  const isCrit = resolution.crucibleExtreme === 'nat20' || resolution.crucibleRoll === 20;
+  const isFumble = resolution.crucibleExtreme === 'nat1' || resolution.crucibleRoll === 1;
+
+  // Mortal dice (outmatched/dominant only). Backend sends either 1 value (matched)
+  // or 2 values. Extremes are resolved on the crucible alone with no mortals.
+  const mortal1 = diceRolled.length >= 2 ? diceRolled[0] : null;
+  const mortal2 = diceRolled.length >= 2 ? diceRolled[1] : null;
+
+  // Winner (kept value) from the backend — used to know which mortal side "won".
+  let winner = 1;
+  if (mortal1 != null && mortal2 != null) {
+    if (mode === 'dominant') {
+      winner = (mortal1 <= mortal2) ? 1 : 2;
+    } else {
+      winner = (mortal1 >= mortal2) ? 1 : 2;
+    }
+  }
+
+  // Stat value from the turn's stateChanges snapshot (falls back to N/A).
+  const statKey = (resolution.stat || '').toLowerCase();
+  const stateStats = stateChanges?.stats;
+  let statValue = null;
+  if (stateStats && statKey) {
+    const entry = stateStats[statKey];
+    if (typeof entry === 'number') statValue = entry;
+    else if (entry && typeof entry === 'object') {
+      statValue = entry.effective ?? entry.base ?? null;
+    }
+  }
+
+  // Action label — prefer explicit resolution.action, fall back to the raw player action.
+  const rawAction = resolution.action || playerAction || null;
+  const actionLabel = rawAction ? rawAction.split(':').pop().trim() : null;
+
+  const challenge = {
+    stat: resolution.stat || null,
+    statValue,
+    skill: resolution.skillUsed || null,
+    skillValue: resolution.skillModifier ?? null,
+    mode,
+    prompt: resolution.prompt || null, // not sent by backend yet — render-when-present
+    actionLabel,
+  };
+
+  const result = {
+    kept: resolution.dieSelected,
+    total: resolution.total,
+    crucible: resolution.crucibleRoll,
+    mortal1,
+    mortal2,
+    winner,
+    isCrit,
+    isFumble,
+    mode,
+    crucibleRoll: resolution.crucibleRoll,
+    dieSelected: resolution.dieSelected,
+    diceRolled,
+    tier: resolution.tier,
+    tierName: resolution.tierName,
+    dc: resolution.dc,
+    margin: resolution.margin,
+  };
+
+  return { challenge, result };
+}
 
 // 24h time for the turn header (e.g. "14:22")
 function format24h(clock) {
@@ -205,6 +276,11 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
   if (timeStr) metaParts.push(timeStr);
   const metaStr = metaParts.join(' · '); // middle dot separator
 
+  const rollProps = useMemo(
+    () => hasResolution ? buildTurnRollProps(turn.resolution, turn.playerAction, turn.stateChanges) : null,
+    [hasResolution, turn.resolution, turn.playerAction, turn.stateChanges]
+  );
+
   return (
     <div className={`${styles.turnBlock} ${isNew ? styles.turnIn : ''}`} ref={ref}>
       <div className={styles.turnHeader}>
@@ -217,20 +293,20 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
         <div className={styles.playerAction}>{turn.playerAction}</div>
       )}
 
-      {/* Dice display — shows Fortune's Balance, animated d20s. Only render on turns with a resolution. */}
-      {hasResolution && (
-        <InlineDicePanel
-          resolution={turn.resolution}
+      {/* Dice: TurnRoll plays the animated challenge → CompactChip flow on new turns,
+          or renders CompactChip directly for historical turns (animate={false}). */}
+      {hasResolution && rollProps && (
+        <TurnRoll
+          challenge={rollProps.challenge}
+          result={rollProps.result}
           animate={shouldAnimate}
-          onComplete={() => setShowContent(true)}
+          onResolved={() => setShowContent(true)}
         />
       )}
 
-      {/* Resolution + narrative appear after dice animation completes */}
+      {/* Narrative + consequences appear after the dice animation completes */}
       {showContent && (
         <>
-          {hasResolution && <ResolutionBlock resolution={turn.resolution} />}
-
           <ReflectionBlock reflection={turn.reflection} glossaryTerms={glossaryTerms} onEntityClick={onEntityClick} />
 
           <div className={styles.narrativeText}>

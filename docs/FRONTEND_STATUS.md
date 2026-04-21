@@ -35,6 +35,31 @@
 
 ## Recent Work (This Session: 2026-04-21)
 
+### Dice roller redesign — hexagonal d20, throw/tumble/land, compact chip
+
+Full replacement of the previous `InlineDicePanel` + `ResolutionBlock` pair with a new dice system spec'd in the Claude Design handoff. No API or state-management changes — the new system consumes the same `resolution` payload via an adapter in `TurnBlock.js`.
+
+**New components** (all in `app/play/components/`):
+- `Die.js` — atomic hexagonal SVG d20 (viewBox 0..100, hex radius 48, six vertices at `(π/3)·i − π/2`). Interior triangle facets from center to each adjacent vertex pair; upper-left edge highlight polyline at vertices 4→5→0→1 suggests an overhead light source. Gradient fill is inlined in the SVG via a per-instance `<defs>` with a `useId()`-based id (no app-root defs needed). Ten states drive CSS animations: `ready` (3.4s float, "20" @ 30% opacity, pointer cursor), `throw` (180ms lift + scale), `tumble` (550ms rotate 540°→940° + 0.5px motion blur), `land` (420ms bounce-settle with squash via `cubic-bezier(0.34, 1.56, 0.64, 1)` + number fade-in over final 200ms), `kept`, `discarded`, `crit` (gold flash 600ms), `fumble` (red shake ±4px × 3 + flash), `drop-in` (enter from above), `crucible-exit` (550ms opacity + blur + scale-out).
+- `Tray.js` — roll stage. Renders the crucible (88px) during phase 1 and the two mortal dice (72px each) during phase 2. Phase-to-state mapping is explicit: `p1-settled` → `crit`/`fumble`/`kept` depending on extremes; `p2-settled` → winner gets `kept`, loser gets `discarded`. Winner logic: `outmatched` takes highest, `dominant` takes lowest. Result tag ("CRUCIBLE FAVORS YOU" / "CRUCIBLE TURNS") appears centered above the tray after `p1-settled` on extremes, with a gold or red underline rule that fades in over 300ms.
+- `CompactChip.js` — inline historical result card. Thin gold-bordered row with the kept die (28px) on the left plus the optional discarded mortal (24px, only for outmatched/dominant), followed by stat/skill/kept/total meta in JetBrains Mono 11px and a tier pill (Cinzel 11px/700 with color tied to tier: success green / costly amber / mercy gold / failure orange / crit bright gold). Entrance animation `chip-in` (600ms `cubic-bezier(0.34, 1.56, 0.64, 1)`) plays when collapsing from the full challenge panel.
+- `TurnRoll.js` — top-level orchestrator. Stage machine: `ready` → `rolling` → `collapsing` → `compact`. Two timing tables drive the roll: extreme-or-matched stops at phase 1 (2.65s total); non-extreme outmatched/dominant plays both phases (5.15s total). Fires `onResolved` when transitioning to `compact`, which is what the parent uses to ungate narrative + consequence rendering. The challenge panel (gold border, gradient `#0e1425→#0a0e1a`, inset gold highlight, 60px ambient glow) holds the kicker ("A ROLL IS REQUIRED"), optional prompt (italic, rendered only if backend sends it), action label, meta pill, and tray. When the stage transitions to `collapsing`, the whole panel plays a 550ms scale-down + negative-top-margin animation that vacuums it into the following prose, then switches render output to `CompactChip` without remounting — critically, the component is not re-keyed between stages, so the collapse never interrupts.
+
+**Click-to-roll setting:** read from `localStorage.crucible_display_settings.clickToRoll`. When enabled, `TurnRoll` starts in `ready` (idle float + tap hint). When disabled or absent, it auto-rolls on mount. Historical turns always skip straight to `compact`.
+
+**Backend-payload adapter** lives in `TurnBlock.js` as `buildTurnRollProps(resolution, playerAction, stateChanges)`. It unpacks the existing resolution payload (`fortunesBalance`, `crucibleRoll`, `crucibleExtreme`, `diceRolled`, `dieSelected`, `stat`, `skillUsed`, `skillModifier`, `action`, `tier`, `tierName`, `dc`, `margin`) into the `challenge` and `result` prop shapes the new system expects. Stat value is sourced from `stateChanges.stats[stat].effective|base` where available.
+
+**Deleted:** `InlineDicePanel.js`, `InlineDicePanel.module.css`, `ResolutionBlock.js`, `ResolutionBlock.module.css`. All references removed from `TurnBlock.js`. `MiniD20` sub-component went with `InlineDicePanel` (it was only used there).
+
+**Reduced-motion:** all die-state animations, the challenge entrance/collapse, the chip entrance, the tap-hint pulse, and the result-tag fade-in are guarded by `@media (prefers-reduced-motion: reduce)` — they collapse to simple opacity fades or no-ops.
+
+**Files modified:** `app/play/components/TurnBlock.js`
+**Files created:** `app/play/components/Die.js`, `app/play/components/Die.module.css`, `app/play/components/Tray.js`, `app/play/components/Tray.module.css`, `app/play/components/CompactChip.js`, `app/play/components/CompactChip.module.css`, `app/play/components/TurnRoll.js`, `app/play/components/TurnRoll.module.css`
+**Files deleted:** `app/play/components/InlineDicePanel.js`, `app/play/components/InlineDicePanel.module.css`, `app/play/components/ResolutionBlock.js`, `app/play/components/ResolutionBlock.module.css`
+**Files synced:** `claude-upload/play-full.js` (regenerated), `claude-upload/component-Die.js`, `claude-upload/component-Die.module.css`, `claude-upload/component-Tray.js`, `claude-upload/component-Tray.module.css`, `claude-upload/component-CompactChip.js`, `claude-upload/component-CompactChip.module.css`, `claude-upload/component-TurnRoll.js`, `claude-upload/component-TurnRoll.module.css`, `claude-upload/FRONTEND_STATUS.md`
+
+---
+
 ### /play visual polish pass — atmosphere, turn identity, dock elevation, GM breathing halo
 
 A multi-section upgrade to close the atmospheric gap between the loading overlay and the game layout itself. No API calls, state management patterns, or data flow were touched — purely visual, structural, and interaction work on existing components.

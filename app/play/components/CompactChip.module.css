@@ -1,0 +1,98 @@
+/* ==============================================
+   CompactChip — inline roll result card
+   ============================================== */
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  background: var(--bg-resolution, #0e1420);
+  border: 1px solid var(--border-card);
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+@keyframes chipIn {
+  0%   { opacity: 0; transform: translateY(-10px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.chipIn {
+  animation: chipIn 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chipIn { animation: none; }
+}
+
+.dice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--font-jetbrains);
+  font-size: 11px;
+}
+
+.metaItem {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.metaKey {
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.metaValue {
+  color: var(--text-secondary);
+}
+
+.tier {
+  font-family: var(--font-cinzel);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+
+.tierSuccess {
+  color: #8aba7a;
+  background: #101e14;
+}
+
+.tierCostly {
+  color: #d4a84c;
+  background: #1a1810;
+}
+
+.tierMercy {
+  color: #c9a84c;
+  background: #1a1810;
+}
+
+.tierFailure {
+  color: #e8845a;
+  background: #1e1410;
+}
+
+.tierCrit {
+  color: #e8c870;
+  background: #1f1708;
+}
+
+.tierNeutral {
+  color: var(--text-secondary);
+  background: #141a24;
+}

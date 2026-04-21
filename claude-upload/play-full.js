@@ -1622,6 +1622,97 @@ export default function CharacterTab({ data, onEntityClick }) {
 
 
 // ============================================================
+// FILE: app/play/components/CompactChip.js
+// ============================================================
+import React from 'react';
+import Die from './Die';
+import styles from './CompactChip.module.css';
+
+// Formats a number for display, trimming trailing .0 for integers.
+function fmt(n) {
+  if (n == null) return '?';
+  if (typeof n !== 'number') return String(n);
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+function tierColorClass(tier, isCrit, isFumble) {
+  if (isCrit) return styles.tierCrit;
+  if (isFumble) return styles.tierFailure;
+  // Tier numbers: 1–3 = success variants, 4 = small mercy, 5+ = failure
+  if (tier == null) return styles.tierNeutral;
+  if (tier <= 2) return styles.tierSuccess;
+  if (tier === 3) return styles.tierCostly;
+  if (tier === 4) return styles.tierMercy;
+  return styles.tierFailure;
+}
+
+// mode: 'matched' | 'outmatched' | 'dominant'
+// For matched, only the kept die is shown.
+// For outmatched/dominant, kept mortal + discarded mortal are shown side-by-side.
+export default function CompactChip({
+  kept,
+  total,
+  stat,
+  statValue,
+  skill,
+  skillValue,
+  tier,
+  tierName,
+  mode = 'matched',
+  isCrit = false,
+  isFumble = false,
+  keptDie,        // value to render on the kept die face (dieSelected)
+  discardedDie,   // optional discarded mortal value (outmatched/dominant only)
+  animate = false, // play entrance animation when collapsing into this
+}) {
+  const keptState = isCrit ? 'crit' : isFumble ? 'fumble' : 'kept';
+  const statDisplay = (stat || '').toUpperCase();
+
+  return (
+    <div className={`${styles.chip} ${animate ? styles.chipIn : ''}`}>
+      <div className={styles.dice}>
+        <Die n={keptDie != null ? keptDie : kept} size={28} state={keptState} />
+        {discardedDie != null && mode !== 'matched' && (
+          <Die n={discardedDie} size={24} state="discarded" />
+        )}
+      </div>
+      <div className={styles.meta}>
+        {statDisplay && (
+          <span className={styles.metaItem}>
+            <span className={styles.metaKey}>{statDisplay}</span>
+            <span className={styles.metaValue}>{fmt(statValue)}</span>
+          </span>
+        )}
+        {skill && (
+          <span className={styles.metaItem}>
+            <span className={styles.metaKey}>{skill}</span>
+            <span className={styles.metaValue}>+{fmt(skillValue)}</span>
+          </span>
+        )}
+        {kept != null && (
+          <span className={styles.metaItem}>
+            <span className={styles.metaKey}>kept</span>
+            <span className={styles.metaValue}>{kept}</span>
+          </span>
+        )}
+        {total != null && (
+          <span className={styles.metaItem}>
+            <span className={styles.metaKey}>Total</span>
+            <span className={styles.metaValue}>{fmt(total)}</span>
+          </span>
+        )}
+        {tierName && (
+          <span className={`${styles.tier} ${tierColorClass(tier, isCrit, isFumble)}`}>
+            {tierName}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+// ============================================================
 // FILE: app/play/components/DebugPanel.js
 // ============================================================
 'use client';
@@ -2574,6 +2665,170 @@ export default function DebugPanel({ entries, onClear }) {
 
 
 // ============================================================
+// FILE: app/play/components/Die.js
+// ============================================================
+import React, { useId, useMemo } from 'react';
+import styles from './Die.module.css';
+
+// ─── Hex geometry ───
+// viewBox 0..100, center at (50, 50), hex radius 48.
+// Six vertices at angles (π/3)·i − π/2 (pointy top).
+const CENTER = { x: 50, y: 50 };
+const RADIUS = 48;
+
+function hexVertex(i) {
+  const a = (Math.PI / 3) * i - Math.PI / 2;
+  return { x: CENTER.x + RADIUS * Math.cos(a), y: CENTER.y + RADIUS * Math.sin(a) };
+}
+
+const VERTS = Array.from({ length: 6 }, (_, i) => hexVertex(i));
+const HEX_POINTS = VERTS.map(v => `${v.x.toFixed(2)},${v.y.toFixed(2)}`).join(' ');
+// Six triangular facets from center to each pair of adjacent vertices
+const FACETS = VERTS.map((v, i) => {
+  const next = VERTS[(i + 1) % 6];
+  return `${CENTER.x},${CENTER.y} ${v.x.toFixed(2)},${v.y.toFixed(2)} ${next.x.toFixed(2)},${next.y.toFixed(2)}`;
+});
+// Upper-left edge highlight — vertices 4 → 5 → 0 → 1
+const HIGHLIGHT_POINTS = [VERTS[4], VERTS[5], VERTS[0], VERTS[1]]
+  .map(v => `${v.x.toFixed(2)},${v.y.toFixed(2)}`).join(' ');
+
+// ─── Palette per state ───
+// Each gradient is rendered inline via <defs> with an instance-unique id.
+
+const GRADIENTS = {
+  default:    { from: '#131a2c', to: '#0e1322' },
+  ready:      { from: '#181f34', to: '#11172a' }, // faint warm gold tint
+  kept:       { from: '#1a1a10', to: '#141218' },
+  crit:       { from: '#2a2010', to: '#1a1508' },
+  fumble:     { from: '#1a1015', to: '#140e12' },
+  discarded:  { from: '#111318', to: '#0d0f14' },
+};
+
+function gradientKey(state) {
+  if (state === 'kept') return 'kept';
+  if (state === 'crit') return 'crit';
+  if (state === 'fumble') return 'fumble';
+  if (state === 'discarded') return 'discarded';
+  if (state === 'ready') return 'ready';
+  return 'default';
+}
+
+function edgeStroke(state) {
+  if (state === 'crit') return '#e8c870';
+  if (state === 'fumble') return '#e85a5a';
+  if (state === 'kept') return '#c9a84c';
+  if (state === 'discarded') return '#2e3240';
+  if (state === 'ready') return '#5a4f30';
+  return '#2a3048';
+}
+
+function numberColor(state) {
+  if (state === 'crit') return '#fff5d4';
+  if (state === 'fumble') return '#ffd0c4';
+  if (state === 'kept') return '#e8c870';
+  if (state === 'discarded') return '#7a7060';
+  return '#c8c0b0';
+}
+
+function numberStroke(state) {
+  // Dark stroke for crisp separation against the gradient facet
+  return state === 'discarded' ? '#141414' : '#0a0e1a';
+}
+
+// ─── Die component ───
+
+export default function Die({
+  n,
+  size = 80,
+  state = 'default',
+  onClick,
+}) {
+  const uid = useId();
+  const gradId = `dieGrad-${uid}`.replace(/[:#]/g, '');
+  const gKey = gradientKey(state);
+  const { from, to } = GRADIENTS[gKey];
+
+  const interactive = state === 'ready' && typeof onClick === 'function';
+  const display = state === 'ready' ? 20 : n;
+
+  // State-driven wrapper class for CSS animations (float/throw/tumble/land/etc).
+  const stateClass = useMemo(() => {
+    switch (state) {
+      case 'ready':          return styles.stateReady;
+      case 'throw':          return styles.stateThrow;
+      case 'tumble':         return styles.stateTumble;
+      case 'land':           return styles.stateLand;
+      case 'kept':           return styles.stateKept;
+      case 'discarded':      return styles.stateDiscarded;
+      case 'crit':           return styles.stateCrit;
+      case 'fumble':         return styles.stateFumble;
+      case 'drop-in':        return styles.stateDropIn;
+      case 'crucible-exit':  return styles.stateCrucibleExit;
+      default:               return '';
+    }
+  }, [state]);
+
+  const hideNumber = state === 'throw' || state === 'tumble' || state === 'drop-in';
+
+  return (
+    <div
+      className={`${styles.die} ${stateClass} ${interactive ? styles.dieInteractive : ''}`}
+      style={{ width: size, height: size }}
+      onClick={interactive ? onClick : undefined}
+      role={interactive ? 'button' : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      aria-label={interactive ? 'Throw the Crucible die' : undefined}
+      onKeyDown={interactive ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); }
+      } : undefined}
+    >
+      <svg viewBox="0 0 100 100" width={size} height={size} className={styles.svg}>
+        <defs>
+          <linearGradient id={gradId} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor={from} />
+            <stop offset="100%" stopColor={to} />
+          </linearGradient>
+        </defs>
+        {/* Base hex filled with gradient */}
+        <polygon points={HEX_POINTS} fill={`url(#${gradId})`} stroke={edgeStroke(state)} strokeWidth="1.5" strokeLinejoin="round" />
+        {/* Interior triangle facets — subtle separator strokes */}
+        {FACETS.map((pts, i) => (
+          <polygon key={i} points={pts} fill="none" stroke="#00000022" strokeWidth="0.6" />
+        ))}
+        {/* Upper-left edge highlight suggesting overhead light */}
+        <polyline
+          points={HIGHLIGHT_POINTS}
+          fill="none"
+          stroke={state === 'kept' || state === 'crit' ? '#f0d490' : '#ffffff22'}
+          strokeWidth={state === 'kept' || state === 'crit' ? 1.2 : 0.9}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        {!hideNumber && (
+          <text
+            x="50"
+            y="50"
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontFamily="var(--font-cinzel)"
+            fontWeight="700"
+            fontSize="38"
+            fill={numberColor(state)}
+            stroke={numberStroke(state)}
+            strokeWidth="0.8"
+            paintOrder="stroke"
+            opacity={state === 'ready' ? 0.3 : 1}
+          >
+            {display}
+          </text>
+        )}
+      </svg>
+    </div>
+  );
+}
+
+
+// ============================================================
 // FILE: app/play/components/EntityPopup.js
 // ============================================================
 import { useState, useEffect, useCallback } from 'react';
@@ -3027,386 +3282,6 @@ export default function ImageLightbox({ imageUrl, blurb, turnNumber, onClose }) 
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-
-// ============================================================
-// FILE: app/play/components/InlineDicePanel.js
-// ============================================================
-import { useState, useEffect, useRef, useCallback } from 'react';
-import styles from './InlineDicePanel.module.css';
-
-// ─── MiniD20 SVG (from mockup pattern) ───
-
-function MiniD20({ value, size = 42, glow = 'none', spinning = false, ghostFaces = false, desaturated = false }) {
-  const glowColors = { none: 'transparent', gold: '#c9a84c', tarnished: '#8a6a3a', crimson: '#c84a4a' };
-  const gc = glowColors[glow] || 'transparent';
-
-  return (
-    <div className={spinning ? styles.dieSpinning : undefined} style={{
-      width: size, height: size, position: 'relative', display: 'inline-flex',
-      filter: desaturated ? 'saturate(0) brightness(0.6)' : undefined,
-      transition: 'opacity 0.4s, transform 0.3s',
-    }}>
-      {glow !== 'none' && (
-        <div style={{
-          position: 'absolute', inset: -3, borderRadius: '50%',
-          boxShadow: `0 0 12px 3px ${gc}44, 0 0 5px 2px ${gc}33`,
-          border: `1.5px solid ${gc}`,
-        }} />
-      )}
-      <svg viewBox="0 0 100 100" width={size} height={size}>
-        <polygon
-          points="50,5 95,35 82,90 18,90 5,35"
-          fill={desaturated ? '#2a2520' : '#1a1714'}
-          stroke={glow !== 'none' ? gc : '#3a3328'}
-          strokeWidth="2.5"
-        />
-        <line x1="50" y1="5" x2="18" y2="90" stroke="#2a252033" strokeWidth="1" />
-        <line x1="50" y1="5" x2="82" y2="90" stroke="#2a252033" strokeWidth="1" />
-        <line x1="5" y1="35" x2="82" y2="90" stroke="#2a252033" strokeWidth="1" />
-        <line x1="95" y1="35" x2="18" y2="90" stroke="#2a252033" strokeWidth="1" />
-        <text
-          x="50" y="58" textAnchor="middle" dominantBaseline="middle"
-          style={{ fontFamily: "var(--font-jetbrains)" }}
-          fontSize={size > 50 ? '28' : size > 35 ? '24' : '18'}
-          fontWeight="600"
-          fill={
-            spinning ? '#5a5040' :
-            value === 20 ? '#c9a84c' :
-            value === 1 ? '#e85a5a' :
-            desaturated ? '#5a5040' :
-            '#d0c098'
-          }
-        >
-          {spinning ? '?' : value}
-        </text>
-        {ghostFaces && !spinning && (
-          <>
-            <text x="22" y="32" textAnchor="middle" fontSize="9" fill="#3a3328" style={{ fontFamily: "var(--font-jetbrains)", textDecoration: 'line-through' }}>1</text>
-            <text x="78" y="32" textAnchor="middle" fontSize="9" fill="#3a3328" style={{ fontFamily: "var(--font-jetbrains)", textDecoration: 'line-through' }}>20</text>
-          </>
-        )}
-      </svg>
-    </div>
-  );
-}
-
-// ─── Category Tag ───
-
-function CategoryTag({ category }) {
-  const upper = (category || 'matched').toUpperCase();
-  const tagClass = upper === 'OUTMATCHED' ? styles.categoryTagOutmatched
-    : upper === 'DOMINANT' ? styles.categoryTagDominant
-    : styles.categoryTagMatched;
-  const labelClass = upper === 'OUTMATCHED' ? styles.categoryLabelOutmatched
-    : upper === 'DOMINANT' ? styles.categoryLabelDominant
-    : styles.categoryLabelMatched;
-  const icon = upper === 'OUTMATCHED' ? '\u2191' : upper === 'DOMINANT' ? '\u2193' : '\u2014';
-  const desc = upper === 'MATCHED' ? '1d20 (full range)'
-    : upper === 'OUTMATCHED' ? '2d20 take highest'
-    : '2d20 take lowest';
-
-  return (
-    <div className={`${styles.categoryTag} ${tagClass}`}>
-      <span className={`${styles.categoryLabel} ${labelClass}`}>{upper} {icon}</span>
-      <span className={styles.categoryDesc}>{desc}</span>
-    </div>
-  );
-}
-
-// ─── Main Component ───
-// resolution fields from API_CONTRACT.md:
-//   fortunesBalance: "matched" | "outmatched" | "dominant"
-//   crucibleRoll: number | null
-//   crucibleExtreme: "nat20" | "nat1" | null
-//   diceRolled: number[] (1 elem for matched, 2 for outmatched/dominant)
-//   dieSelected: number (the kept value)
-//   debtPenalty: number
-
-export default function InlineDicePanel({ resolution, animate = false, onComplete }) {
-  if (!resolution) { onComplete?.(); return null; }
-
-  const [phase, setPhase] = useState(animate ? -1 : 99);
-  const [extremeFlash, setExtremeFlash] = useState(false);
-  const [transitioning, setTransitioning] = useState(false);
-  const panelRef = useRef(null);
-  const completedRef = useRef(false);
-
-  const category = (resolution.fortunesBalance || 'matched').toLowerCase();
-  const isMatched = category === 'matched';
-  const isOutmatched = category === 'outmatched';
-  const isDominant = category === 'dominant';
-  const hasCC = resolution.crucibleRoll != null;
-  const isExtreme = resolution.crucibleExtreme != null;
-  const isNat20 = resolution.crucibleExtreme === 'nat20';
-  const isNat1 = resolution.crucibleExtreme === 'nat1';
-  const diceRolled = Array.isArray(resolution.diceRolled) ? resolution.diceRolled : [];
-  const hasMortal = diceRolled.length >= 2 && !isExtreme;
-
-  // Determine kept/discarded for Outmatched/Dominant
-  let keptVal = null;
-  let discVal = null;
-  if (hasMortal && diceRolled.length >= 2) {
-    if (isOutmatched) {
-      keptVal = Math.max(diceRolled[0], diceRolled[1]);
-      discVal = Math.min(diceRolled[0], diceRolled[1]);
-    } else if (isDominant) {
-      keptVal = Math.min(diceRolled[0], diceRolled[1]);
-      discVal = Math.max(diceRolled[0], diceRolled[1]);
-    }
-  }
-
-  const fireComplete = useCallback(() => {
-    if (!completedRef.current) {
-      completedRef.current = true;
-      onComplete?.();
-    }
-  }, [onComplete]);
-
-  // Animation phases with timeouts
-  // phase -1 = waiting for visibility, 0 = spinning, 1+ = landing phases, 99 = done (no animation)
-  const [visible, setVisible] = useState(!animate);
-
-  // Step 1: Wait for IntersectionObserver to confirm visibility (scroll handled by NarrativePanel)
-  useEffect(() => {
-    if (!animate) {
-      setVisible(true);
-      return;
-    }
-
-    completedRef.current = false;
-    setPhase(-1);
-    setVisible(false);
-    setTransitioning(false);
-
-    const el = panelRef.current;
-    if (!el) { setVisible(true); return; }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          observer.disconnect();
-          setVisible(true);
-        }
-      },
-      { threshold: 0.5 }
-    );
-    observer.observe(el);
-
-    // Safety fallback: if observer never fires (e.g. element is in a hidden panel), start after 1.5s
-    const fallback = setTimeout(() => { observer.disconnect(); setVisible(true); }, 1500);
-
-    return () => { observer.disconnect(); clearTimeout(fallback); };
-  }, [resolution.dieSelected, resolution.crucibleRoll, animate]);
-
-  // Step 2: Once visible, run the animation phase sequence
-  // After resolved hold, transition the dice panel out before firing onComplete
-  useEffect(() => {
-    if (!animate || !visible) return;
-
-    const timers = [];
-    const t = (fn, d) => timers.push(setTimeout(fn, d));
-
-    // Short pause after becoming visible so the player registers the dice before they spin
-    const pause = 200;
-
-    if (isMatched) {
-      t(() => setPhase(0), pause);
-      t(() => setPhase(1), pause + 800);
-      if (isExtreme) {
-        t(() => setExtremeFlash(true), pause + 800);
-        t(() => setExtremeFlash(false), pause + 1400);
-      }
-      t(() => setTransitioning(true), pause + 800 + 1000);
-      t(() => fireComplete(), pause + 800 + 1000 + 450);
-    } else if (hasCC && isExtreme) {
-      t(() => setPhase(0), pause);
-      t(() => setPhase(1), pause + 800);
-      t(() => setExtremeFlash(true), pause + 800);
-      t(() => setExtremeFlash(false), pause + 1500);
-      t(() => setTransitioning(true), pause + 800 + 1200);
-      t(() => fireComplete(), pause + 800 + 1200 + 450);
-    } else if (hasCC && hasMortal) {
-      t(() => setPhase(0), pause);
-      t(() => setPhase(1), pause + 600);
-      t(() => setPhase(2), pause + 1000);
-      t(() => setPhase(3), pause + 1600);
-      t(() => setPhase(4), pause + 2100);
-      t(() => setTransitioning(true), pause + 2100 + 1000);
-      t(() => fireComplete(), pause + 2100 + 1000 + 450);
-    } else {
-      t(() => setPhase(0), pause);
-      t(() => setPhase(1), pause + 600);
-      t(() => setTransitioning(true), pause + 600 + 1000);
-      t(() => fireComplete(), pause + 600 + 1000 + 450);
-    }
-
-    return () => timers.forEach(clearTimeout);
-  }, [visible, animate, fireComplete]);
-
-  // Non-animated: show final state immediately
-  useEffect(() => {
-    if (!animate) {
-      setPhase(99);
-      fireComplete();
-    }
-  }, [animate, fireComplete]);
-
-  // For non-animated (historical) turns, treat any phase >= 1 as "show final state"
-  const p = phase === 99 ? 99 : phase;
-  const showFinal = p >= 1;
-  const showMortalSpin = p >= 2;
-  const showMortalLand = p >= 3;
-  const showResolved = p >= 4;
-  const isSpinning = p === 0 || p === -1;
-
-  // Large dice during animation, compact for historical turns
-  const isLarge = animate && !transitioning && phase !== 99;
-
-  // Extreme flash class
-  const flashClass = extremeFlash ? (isNat20 ? styles.extremeFlashGold : styles.extremeFlashRed) : '';
-
-  // Panel classes: transition support for animated turns
-  const panelClass = [
-    styles.dicePanel,
-    flashClass,
-    animate ? styles.dicePanelAnimated : '',
-    transitioning ? styles.dicePanelShrunk : '',
-  ].filter(Boolean).join(' ');
-
-  // Dice area classes: larger spacing during animation
-  const diceAreaClass = `${styles.diceArea}${isLarge ? ` ${styles.diceAreaAnimated}` : ''}`;
-
-  // ─── Matched: single d20 ───
-  if (isMatched) {
-    const val = resolution.dieSelected;
-    const isRollNat20 = val === 20;
-    const isRollNat1 = val === 1;
-
-    return (
-      <div ref={panelRef} className={panelClass}>
-        <CategoryTag category={category} />
-        <div className={diceAreaClass}>
-          <MiniD20
-            value={val}
-            size={isLarge ? 80 : 52}
-            spinning={isSpinning}
-            glow={showFinal ? (isRollNat20 ? 'gold' : isRollNat1 ? 'crimson' : 'none') : 'none'}
-          />
-        </div>
-        {showFinal && (isRollNat20 || isRollNat1) && (
-          <div className={`${styles.extremeCallout} ${isRollNat20 ? styles.extremeNat20 : styles.extremeNat1}`}>
-            {isRollNat20 ? 'NATURAL 20' : 'NATURAL 1'}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // ─── Outmatched / Dominant ───
-
-  const keptGlow = isOutmatched ? 'gold' : 'tarnished';
-  const discGlow = isDominant ? 'gold' : 'none';
-
-  // Extreme on crucible: no mortal dice, just the crucible
-  if (hasCC && isExtreme) {
-    return (
-      <div ref={panelRef} className={panelClass}>
-        <CategoryTag category={category} />
-        <div className={diceAreaClass}>
-          <MiniD20
-            value={resolution.crucibleRoll}
-            size={isLarge ? 80 : 52}
-            spinning={isSpinning}
-            glow={showFinal ? (isNat20 ? 'gold' : 'crimson') : 'none'}
-          />
-        </div>
-        {showFinal && (
-          <div className={`${styles.extremeCallout} ${isNat20 ? styles.extremeNat20 : styles.extremeNat1}`}>
-            {isNat20 ? 'FATE INTERVENES' : 'FATE STRIKES'}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Normal Outmatched/Dominant with mortal dice
-  return (
-    <div ref={panelRef} className={panelClass}>
-      <CategoryTag category={category} />
-      <div className={diceAreaClass}>
-        {/* Left mortal die */}
-        {hasMortal && (
-          <div style={{
-            opacity: !showMortalSpin ? 0.1 : showResolved ? (diceRolled[0] === discVal ? 0.2 : 1) : 1,
-            transition: 'opacity 0.4s, transform 0.3s',
-            transform: showResolved && diceRolled[0] === keptVal ? 'scale(1.08)' : 'scale(1)',
-          }}>
-            <MiniD20
-              value={diceRolled[0]}
-              size={isLarge ? 72 : 42}
-              spinning={showMortalSpin && !showMortalLand}
-              ghostFaces={showMortalLand}
-              glow={showResolved ? (diceRolled[0] === keptVal ? keptGlow : discGlow) : 'none'}
-              desaturated={showResolved && diceRolled[0] === discVal && isOutmatched}
-            />
-          </div>
-        )}
-
-        {/* Center crucible die */}
-        <div style={{
-          opacity: showMortalSpin ? 0.15 : showFinal ? 0.4 : 1,
-          transition: 'opacity 0.4s',
-        }}>
-          <MiniD20
-            value={resolution.crucibleRoll}
-            size={isLarge ? (showMortalSpin ? 56 : 80) : (showMortalSpin ? 32 : 42)}
-            spinning={isSpinning}
-          />
-          {showFinal && !showMortalSpin && (
-            <div className={styles.crucibleLabel}>Crucible: {resolution.crucibleRoll}</div>
-          )}
-        </div>
-
-        {/* Right mortal die */}
-        {hasMortal && (
-          <div style={{
-            opacity: !showMortalSpin ? 0.1 : showResolved ? (diceRolled[1] === discVal ? 0.2 : 1) : 1,
-            transition: 'opacity 0.4s, transform 0.3s',
-            transform: showResolved && diceRolled[1] === keptVal ? 'scale(1.08)' : 'scale(1)',
-          }}>
-            <MiniD20
-              value={diceRolled[1]}
-              size={isLarge ? 72 : 42}
-              spinning={showMortalSpin && !showMortalLand}
-              ghostFaces={showMortalLand}
-              glow={showResolved ? (diceRolled[1] === keptVal ? keptGlow : discGlow) : 'none'}
-              desaturated={showResolved && diceRolled[1] === discVal && isOutmatched}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Mortal dice kept/discarded label */}
-      {hasMortal && showResolved && (
-        <div className={styles.mortalLabel}>
-          Mortal Dice: <span className={styles.mortalKept}>[{keptVal}]</span>{' '}
-          <span className={styles.mortalDiscarded}>{discVal}</span>
-          {isDominant && <span className={styles.dominantNote}>fortune humbles the expert</span>}
-        </div>
-      )}
-
-      {/* Debt of Effort indicator */}
-      {resolution.debtPenalty > 0 && showResolved && (
-        <div style={{ textAlign: 'center', marginTop: 4 }}>
-          <span className={styles.debtTag}>
-            -{resolution.debtPenalty.toFixed(1)} DEBT
-          </span>
-        </div>
-      )}
     </div>
   );
 }
@@ -5108,129 +4983,6 @@ export default function ReportModal({ mode, gameId, gameState, turns, characterD
           </>
         )}
       </div>
-    </div>
-  );
-}
-
-
-// ============================================================
-// FILE: app/play/components/ResolutionBlock.js
-// ============================================================
-import { useState } from 'react';
-import styles from './ResolutionBlock.module.css';
-
-function fmt(n) {
-  if (n == null) return '?';
-  return typeof n === 'number' ? n.toFixed(1) : String(n);
-}
-
-export default function ResolutionBlock({ resolution }) {
-  const [expanded, setExpanded] = useState(false);
-
-  if (!resolution) return null;
-
-  const stat = (resolution.stat || '').toUpperCase();
-  const skill = resolution.skillUsed || null;
-  const modifier = resolution.skillModifier;
-  const isSuccess = resolution.margin >= 0;
-  const marginSign = resolution.margin > 0 ? '+' : '';
-  const balance = (resolution.fortunesBalance || 'matched');
-  const balanceDisplay = balance.charAt(0).toUpperCase() + balance.slice(1);
-
-  return (
-    <div className={styles.resolutionBlock}>
-      {/* Compressed summary — click to toggle */}
-      <div
-        className={styles.compressed}
-        onClick={() => setExpanded(prev => !prev)}
-        style={expanded ? { borderRadius: '6px 6px 0 0' } : undefined}
-      >
-        <div className={styles.summaryText}>
-          <span className={styles.summaryAction}>{resolution.action ? resolution.action.split(':').pop().trim() : 'Action'}</span>
-          <span className={styles.summaryDivider}>{' | '}</span>
-          <span className={styles.summaryStat}>{stat} {fmt(resolution.total != null ? resolution.total - (resolution.dieSelected || 0) - (modifier || 0) : null)}</span>
-          {skill && <span>{` + ${skill} ${fmt(modifier)}`}</span>}
-          <span className={styles.summaryDice}>{` + d20(${resolution.dieSelected})`}</span>
-          <span className={styles.summaryCalc}>{` = ${fmt(resolution.total)} vs DC ${fmt(resolution.dc)}`}</span>
-          <span className={styles.summaryDivider}>{' | '}</span>
-          <span className={isSuccess ? styles.summarySuccess : styles.summaryFailure}>
-            {marginSign}{fmt(resolution.margin)}: {resolution.tierName}
-          </span>
-        </div>
-        <button
-          className={styles.toggleButton}
-          onClick={(e) => { e.stopPropagation(); setExpanded(prev => !prev); }}
-          title="Roll breakdown"
-          aria-label={expanded ? 'Hide roll details' : 'Show roll details'}
-        >
-          ?
-        </button>
-      </div>
-
-      {/* Expanded detail */}
-      {expanded && (
-        <div className={styles.expanded}>
-          <div className={styles.detailGrid}>
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>Action:</span>
-              <span className={styles.detailValue}>{resolution.action || 'Unknown'}</span>
-            </div>
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>Stat:</span>
-              <span className={styles.detailValue}>{stat}</span>
-            </div>
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>Skill:</span>
-              <span className={styles.detailValue}>
-                {skill ? `${skill} (+${fmt(modifier)})` : 'None'}
-              </span>
-            </div>
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>Equipment:</span>
-              <span className={styles.detailValueNum}>
-                {resolution.equipmentQuality != null ? `${resolution.equipmentQuality > 0 ? '+' : ''}${fmt(resolution.equipmentQuality)}` : 'None'}
-              </span>
-            </div>
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>Fortune:</span>
-              <span className={styles.detailValue}>{balanceDisplay}</span>
-            </div>
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>Crucible Roll:</span>
-              <span className={styles.detailValueNum}>
-                {resolution.crucibleRoll != null
-                  ? `d20(${resolution.crucibleRoll})${resolution.crucibleExtreme ? ` \u2014 ${resolution.crucibleExtreme === 'nat20' ? 'Natural 20!' : 'Natural 1'}` : ''}`
-                  : 'N/A'
-                }
-              </span>
-            </div>
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>d20 Roll:</span>
-              <span className={styles.detailValueNum}>{resolution.dieSelected}</span>
-            </div>
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>DC:</span>
-              <span className={styles.detailValueNum}>{fmt(resolution.dc)}</span>
-            </div>
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>Total:</span>
-              <span className={styles.detailValueNum}>{fmt(resolution.total)}</span>
-            </div>
-            <div className={styles.detailRow}>
-              <span className={styles.detailLabel}>Result:</span>
-              <span className={isSuccess ? styles.summarySuccess : styles.summaryFailure}>
-                {marginSign}{fmt(resolution.margin)}: {resolution.tierName} ({resolution.tier})
-              </span>
-            </div>
-            {resolution.debtPenalty > 0 && (
-              <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>Debt:</span>
-                <span className={styles.detailDebt}>-{fmt(resolution.debtPenalty)}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -7775,14 +7527,181 @@ export default function TopBar({ setting, clock, turnNumber, sseConnected, sideb
 
 
 // ============================================================
+// FILE: app/play/components/Tray.js
+// ============================================================
+import React from 'react';
+import Die from './Die';
+import styles from './Tray.module.css';
+
+// ─── Phase → state mapping ───
+// The Tray renders the crucible die during phase 1 and the two mortal dice
+// during phase 2. State on each die is derived from the current phase plus
+// extreme / winner logic.
+
+function crucibleState(phase, isCrit, isFumble) {
+  switch (phase) {
+    case 'ready':        return 'ready';
+    case 'p1-throw':     return 'throw';
+    case 'p1-tumble':    return 'tumble';
+    case 'p1-land':      return 'land';
+    case 'p1-settled':   return isCrit ? 'crit' : isFumble ? 'fumble' : 'kept';
+    case 'p1-exit':      return 'crucible-exit';
+    default:             return 'kept';
+  }
+}
+
+function mortalState(phase, isWinner) {
+  switch (phase) {
+    case 'p2-drop':      return 'drop-in';
+    case 'p2-tumble':    return 'tumble';
+    case 'p2-land':      return 'land';
+    case 'p2-settled':   return isWinner ? 'kept' : 'discarded';
+    default:             return 'kept';
+  }
+}
+
+function computeWinner(mode, mortal1, mortal2) {
+  if (mortal1 == null || mortal2 == null) return 1;
+  if (mode === 'dominant') return (mortal1 <= mortal2) ? 1 : 2;
+  // outmatched (and fallback): take highest
+  return (mortal1 >= mortal2) ? 1 : 2;
+}
+
+export default function Tray({
+  mode = 'matched',
+  crucible,
+  mortal1,
+  mortal2,
+  phase = 'ready',
+  onTap,
+  isCrit = false,
+  isFumble = false,
+}) {
+  const showCrucible = phase === 'ready' || phase.startsWith('p1');
+  const showMortals = phase.startsWith('p2');
+  const winner = computeWinner(mode, mortal1, mortal2);
+
+  const showResultTag = phase === 'p1-settled' && (isCrit || isFumble);
+
+  return (
+    <div className={styles.tray}>
+      {showResultTag && (
+        <div className={`${styles.resultTag} ${isCrit ? styles.resultTagCrit : styles.resultTagFumble}`}>
+          <span className={styles.resultTagText}>
+            {isCrit ? 'CRUCIBLE FAVORS YOU' : 'CRUCIBLE TURNS'}
+          </span>
+          <div className={`${styles.resultTagRule} ${isCrit ? styles.resultTagRuleCrit : styles.resultTagRuleFumble}`} />
+        </div>
+      )}
+
+      {showCrucible && (
+        <Die
+          n={crucible}
+          size={88}
+          state={crucibleState(phase, isCrit, isFumble)}
+          onClick={phase === 'ready' ? onTap : undefined}
+        />
+      )}
+
+      {showMortals && (
+        <>
+          <Die
+            n={mortal1}
+            size={72}
+            state={mortalState(phase, winner === 1)}
+          />
+          <Die
+            n={mortal2}
+            size={72}
+            state={mortalState(phase, winner === 2)}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+
+// ============================================================
 // FILE: app/play/components/TurnBlock.js
 // ============================================================
-import React, { useState, forwardRef } from 'react';
-import InlineDicePanel from './InlineDicePanel';
-import ResolutionBlock from './ResolutionBlock';
+import React, { useState, forwardRef, useMemo } from 'react';
+import TurnRoll from './TurnRoll';
 import ReflectionBlock from './ReflectionBlock';
 import { renderNarrative } from '@/lib/renderLinkedText';
 import styles from './TurnBlock.module.css';
+
+// ─── Map resolution → TurnRoll challenge + result ───
+// Done here so TurnRoll can stay ignorant of the backend payload shape.
+function buildTurnRollProps(resolution, playerAction, stateChanges) {
+  if (!resolution) return null;
+  const diceRolled = Array.isArray(resolution.diceRolled) ? resolution.diceRolled : [];
+  const mode = (resolution.fortunesBalance || 'matched').toLowerCase();
+  const isCrit = resolution.crucibleExtreme === 'nat20' || resolution.crucibleRoll === 20;
+  const isFumble = resolution.crucibleExtreme === 'nat1' || resolution.crucibleRoll === 1;
+
+  // Mortal dice (outmatched/dominant only). Backend sends either 1 value (matched)
+  // or 2 values. Extremes are resolved on the crucible alone with no mortals.
+  const mortal1 = diceRolled.length >= 2 ? diceRolled[0] : null;
+  const mortal2 = diceRolled.length >= 2 ? diceRolled[1] : null;
+
+  // Winner (kept value) from the backend — used to know which mortal side "won".
+  let winner = 1;
+  if (mortal1 != null && mortal2 != null) {
+    if (mode === 'dominant') {
+      winner = (mortal1 <= mortal2) ? 1 : 2;
+    } else {
+      winner = (mortal1 >= mortal2) ? 1 : 2;
+    }
+  }
+
+  // Stat value from the turn's stateChanges snapshot (falls back to N/A).
+  const statKey = (resolution.stat || '').toLowerCase();
+  const stateStats = stateChanges?.stats;
+  let statValue = null;
+  if (stateStats && statKey) {
+    const entry = stateStats[statKey];
+    if (typeof entry === 'number') statValue = entry;
+    else if (entry && typeof entry === 'object') {
+      statValue = entry.effective ?? entry.base ?? null;
+    }
+  }
+
+  // Action label — prefer explicit resolution.action, fall back to the raw player action.
+  const rawAction = resolution.action || playerAction || null;
+  const actionLabel = rawAction ? rawAction.split(':').pop().trim() : null;
+
+  const challenge = {
+    stat: resolution.stat || null,
+    statValue,
+    skill: resolution.skillUsed || null,
+    skillValue: resolution.skillModifier ?? null,
+    mode,
+    prompt: resolution.prompt || null, // not sent by backend yet — render-when-present
+    actionLabel,
+  };
+
+  const result = {
+    kept: resolution.dieSelected,
+    total: resolution.total,
+    crucible: resolution.crucibleRoll,
+    mortal1,
+    mortal2,
+    winner,
+    isCrit,
+    isFumble,
+    mode,
+    crucibleRoll: resolution.crucibleRoll,
+    dieSelected: resolution.dieSelected,
+    diceRolled,
+    tier: resolution.tier,
+    tierName: resolution.tierName,
+    dc: resolution.dc,
+    margin: resolution.margin,
+  };
+
+  return { challenge, result };
+}
 
 // 24h time for the turn header (e.g. "14:22")
 function format24h(clock) {
@@ -7984,6 +7903,11 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
   if (timeStr) metaParts.push(timeStr);
   const metaStr = metaParts.join(' · '); // middle dot separator
 
+  const rollProps = useMemo(
+    () => hasResolution ? buildTurnRollProps(turn.resolution, turn.playerAction, turn.stateChanges) : null,
+    [hasResolution, turn.resolution, turn.playerAction, turn.stateChanges]
+  );
+
   return (
     <div className={`${styles.turnBlock} ${isNew ? styles.turnIn : ''}`} ref={ref}>
       <div className={styles.turnHeader}>
@@ -7996,20 +7920,20 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
         <div className={styles.playerAction}>{turn.playerAction}</div>
       )}
 
-      {/* Dice display — shows Fortune's Balance, animated d20s. Only render on turns with a resolution. */}
-      {hasResolution && (
-        <InlineDicePanel
-          resolution={turn.resolution}
+      {/* Dice: TurnRoll plays the animated challenge → CompactChip flow on new turns,
+          or renders CompactChip directly for historical turns (animate={false}). */}
+      {hasResolution && rollProps && (
+        <TurnRoll
+          challenge={rollProps.challenge}
+          result={rollProps.result}
           animate={shouldAnimate}
-          onComplete={() => setShowContent(true)}
+          onResolved={() => setShowContent(true)}
         />
       )}
 
-      {/* Resolution + narrative appear after dice animation completes */}
+      {/* Narrative + consequences appear after the dice animation completes */}
       {showContent && (
         <>
-          {hasResolution && <ResolutionBlock resolution={turn.resolution} />}
-
           <ReflectionBlock reflection={turn.reflection} glossaryTerms={glossaryTerms} onEntityClick={onEntityClick} />
 
           <div className={styles.narrativeText}>
@@ -8044,3 +7968,196 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
 });
 
 export default TurnBlock;
+
+
+// ============================================================
+// FILE: app/play/components/TurnRoll.js
+// ============================================================
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import Tray from './Tray';
+import CompactChip from './CompactChip';
+import styles from './TurnRoll.module.css';
+
+// ─── Timing tables (all in ms from tap moment) ───
+// Extreme (nat20/nat1) or matched mode stops at phase 1.
+const TIMING_PHASE_1_ONLY = [
+  { at: 0,    phase: 'p1-throw' },
+  { at: 180,  phase: 'p1-tumble' },
+  { at: 730,  phase: 'p1-land' },
+  { at: 1150, phase: 'p1-settled' },
+  { at: 2100, stage: 'collapsing' },
+  { at: 2650, stage: 'compact' },
+];
+
+// Non-extreme outmatched/dominant plays both phases.
+const TIMING_FULL = [
+  { at: 0,    phase: 'p1-throw' },
+  { at: 180,  phase: 'p1-tumble' },
+  { at: 730,  phase: 'p1-land' },
+  { at: 1150, phase: 'p1-settled' },
+  { at: 1650, phase: 'p1-exit' },
+  { at: 2200, phase: 'p2-drop' },
+  { at: 2680, phase: 'p2-tumble' },
+  { at: 3180, phase: 'p2-land' },
+  { at: 3600, phase: 'p2-settled' },
+  { at: 4600, stage: 'collapsing' },
+  { at: 5150, stage: 'compact' },
+];
+
+const SETTINGS_KEY = 'crucible_display_settings';
+
+function readClickToRoll() {
+  if (typeof window === 'undefined') return false;
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    return !!parsed?.clickToRoll;
+  } catch {
+    return false;
+  }
+}
+
+function fmt(n) {
+  if (n == null) return '?';
+  if (typeof n !== 'number') return String(n);
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+// Challenge panel — visible during ready + rolling stages.
+function ChallengePanel({ challenge, stage, onTap, tray }) {
+  const {
+    stat, statValue, skill, skillValue, mode, prompt, actionLabel,
+  } = challenge || {};
+
+  return (
+    <div className={`${styles.challenge} ${stage === 'collapsing' ? styles.challengeCollapsing : ''}`}>
+      <div className={styles.kicker}>A ROLL IS REQUIRED</div>
+      {prompt && <div className={styles.prompt}>{prompt}</div>}
+      {actionLabel && <div className={styles.actionLabel}>{actionLabel}</div>}
+      <div className={styles.metaPill}>
+        {stat && (
+          <>
+            <span className={styles.metaPillKey}>{stat.toUpperCase()}</span>
+            <span className={styles.metaPillValue}>{fmt(statValue)}</span>
+          </>
+        )}
+        {skill && (
+          <>
+            <span className={styles.metaPillDot}>·</span>
+            <span className={styles.metaPillKey}>{skill}</span>
+            <span className={styles.metaPillValue}>+{fmt(skillValue)}</span>
+          </>
+        )}
+        {mode && (
+          <>
+            <span className={styles.metaPillDot}>·</span>
+            <span className={styles.metaPillMode}>{mode.toUpperCase()}</span>
+          </>
+        )}
+      </div>
+      {tray}
+      {stage === 'ready' && (
+        <div className={styles.tapHint}>TAP THE CRUCIBLE TO THROW</div>
+      )}
+    </div>
+  );
+}
+
+export default function TurnRoll({ challenge, result, onResolved, animate = true }) {
+  // Stage machine: ready → rolling → collapsing → compact
+  // If click-to-roll is off (default) or animate is false, skip straight past ready.
+  const clickToRoll = useRef(readClickToRoll()).current;
+  const initialStage = !animate ? 'compact' : (clickToRoll ? 'ready' : 'rolling');
+  const [stage, setStage] = useState(initialStage);
+  const [phase, setPhase] = useState(clickToRoll && animate ? 'ready' : 'ready');
+
+  const resolvedFiredRef = useRef(false);
+  const fireResolved = useCallback(() => {
+    if (!resolvedFiredRef.current) {
+      resolvedFiredRef.current = true;
+      onResolved?.();
+    }
+  }, [onResolved]);
+
+  // If we started in compact mode (historical turn or animate=false), fire onResolved
+  // immediately so the parent ungates the narrative.
+  useEffect(() => {
+    if (!animate) {
+      fireResolved();
+    }
+  }, [animate, fireResolved]);
+
+  const { crucible, mortal1, mortal2, isCrit, isFumble, mode } = result || {};
+
+  // Matched mode has no mortal dice; extreme (nat20/nat1) stops at phase 1 regardless.
+  const isPhaseOneOnly = mode === 'matched' || isCrit || isFumble;
+
+  // Drive the timing table once we're in the rolling stage.
+  useEffect(() => {
+    if (stage !== 'rolling') return;
+    const table = isPhaseOneOnly ? TIMING_PHASE_1_ONLY : TIMING_FULL;
+    const timers = table.map(step =>
+      setTimeout(() => {
+        if (step.phase != null) setPhase(step.phase);
+        if (step.stage != null) {
+          setStage(step.stage);
+          if (step.stage === 'compact') fireResolved();
+        }
+      }, step.at)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [stage, isPhaseOneOnly, fireResolved]);
+
+  const handleTap = useCallback(() => {
+    if (stage !== 'ready') return;
+    setStage('rolling');
+  }, [stage]);
+
+  // ─── Historical / auto-compact render ───
+  if (stage === 'compact') {
+    return (
+      <CompactChip
+        kept={result?.kept}
+        total={result?.total}
+        stat={challenge?.stat}
+        statValue={challenge?.statValue}
+        skill={challenge?.skill}
+        skillValue={challenge?.skillValue}
+        tier={result?.tier}
+        tierName={result?.tierName}
+        mode={mode}
+        isCrit={isCrit}
+        isFumble={isFumble}
+        keptDie={result?.kept}
+        discardedDie={(mode !== 'matched' && !isCrit && !isFumble)
+          ? (result?.winner === 1 ? mortal2 : mortal1)
+          : null}
+        animate={animate && !resolvedFiredRef.current}
+      />
+    );
+  }
+
+  // ─── Challenge panel (ready or rolling or collapsing) ───
+  const tray = (
+    <Tray
+      mode={mode}
+      crucible={crucible}
+      mortal1={mortal1}
+      mortal2={mortal2}
+      phase={phase}
+      onTap={handleTap}
+      isCrit={isCrit}
+      isFumble={isFumble}
+    />
+  );
+
+  return (
+    <ChallengePanel
+      challenge={challenge}
+      stage={stage}
+      onTap={handleTap}
+      tray={tray}
+    />
+  );
+}

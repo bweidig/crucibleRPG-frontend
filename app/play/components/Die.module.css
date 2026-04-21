@@ -1,0 +1,176 @@
+/* ==============================================
+   Die — hexagonal d20 with state-driven animations
+   ============================================== */
+
+.die {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: filter 0.3s ease;
+  /* Shadow under the die — transforms with the die for a natural feel */
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.35));
+  will-change: transform;
+}
+
+.dieInteractive {
+  cursor: pointer;
+}
+
+.dieInteractive:focus-visible {
+  outline: 2px solid rgba(201, 168, 76, 0.6);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.svg {
+  display: block;
+  overflow: visible;
+}
+
+/* ─── State: ready (idle float) ─── */
+
+@keyframes dieFloat {
+  0%, 100% { transform: translateY(-3px); }
+  50%      { transform: translateY(3px); }
+}
+
+.stateReady {
+  animation: dieFloat 3.4s ease-in-out infinite;
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.35)) drop-shadow(0 0 6px rgba(201, 168, 76, 0.15));
+}
+
+/* ─── State: throw (lift + scale) ─── */
+
+@keyframes dieThrow {
+  from { transform: translateY(0) scale(1); }
+  to   { transform: translateY(-12px) scale(1.06); }
+}
+
+.stateThrow {
+  animation: dieThrow 180ms ease-out forwards;
+  filter: drop-shadow(0 14px 14px rgba(0, 0, 0, 0.45));
+}
+
+/* ─── State: tumble (spin + blur) ─── */
+
+@keyframes dieTumble {
+  from { transform: translateY(-12px) rotate(540deg) scale(1.06); }
+  to   { transform: translateY(-10px) rotate(940deg) scale(1.06); }
+}
+
+.stateTumble {
+  animation: dieTumble 550ms linear forwards;
+  filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.45)) blur(0.5px);
+}
+
+/* ─── State: land (bounce-settle with squash) ─── */
+
+@keyframes dieLand {
+  0%   { transform: translateY(-10px) rotate(940deg) scale(1.06); }
+  40%  { transform: translateY(4px) scaleY(0.92) scaleX(1.06); }
+  70%  { transform: translateY(-2px) scaleY(1.04) scaleX(0.98); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes dieLandNumberFade {
+  0%, 50% { opacity: 0; }
+  100%    { opacity: 1; }
+}
+
+.stateLand {
+  animation: dieLand 420ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.stateLand text {
+  animation: dieLandNumberFade 420ms ease-out forwards;
+}
+
+/* ─── State: kept (gold glow) ─── */
+
+.stateKept {
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 18px rgba(201, 168, 76, 0.4));
+}
+
+/* ─── State: discarded (tarnished, shrunk) ─── */
+
+.stateDiscarded {
+  transform: scale(0.95);
+  filter: saturate(0.35) brightness(0.75) drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+}
+
+/* ─── State: crit (gold flash pulse) ─── */
+
+@keyframes dieCritFlash {
+  0%   { filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 24px rgba(201, 168, 76, 0.6)); }
+  50%  { filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 36px rgba(201, 168, 76, 0.9)); }
+  100% { filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 24px rgba(201, 168, 76, 0.6)); }
+}
+
+.stateCrit {
+  animation: dieCritFlash 600ms ease-out;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 24px rgba(201, 168, 76, 0.6));
+}
+
+/* ─── State: fumble (red shake + flash) ─── */
+
+@keyframes dieFumbleShake {
+  0%, 100% { transform: translateX(0); }
+  16%      { transform: translateX(-4px); }
+  33%      { transform: translateX(4px); }
+  50%      { transform: translateX(-4px); }
+  66%      { transform: translateX(4px); }
+  83%      { transform: translateX(-2px); }
+}
+
+.stateFumble {
+  animation: dieFumbleShake 600ms ease-out;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 24px rgba(232, 90, 90, 0.5));
+}
+
+/* ─── State: drop-in (enter from above) ─── */
+
+@keyframes dieDropIn {
+  from { transform: translateY(-40px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+.stateDropIn {
+  animation: dieDropIn 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ─── State: crucible-exit (fade + blur + shrink) ─── */
+
+@keyframes dieCrucibleExit {
+  from { opacity: 1; filter: blur(0) drop-shadow(0 4px 6px rgba(0,0,0,0.4)); transform: scale(1); }
+  to   { opacity: 0; filter: blur(4px) drop-shadow(0 0 0 transparent); transform: scale(0.85); }
+}
+
+.stateCrucibleExit {
+  animation: dieCrucibleExit 550ms ease-out forwards;
+}
+
+/* ─── Reduced motion: collapse all animations to simple opacity fades ─── */
+
+@media (prefers-reduced-motion: reduce) {
+  .stateReady,
+  .stateThrow,
+  .stateTumble,
+  .stateLand,
+  .stateCrit,
+  .stateFumble,
+  .stateDropIn,
+  .stateCrucibleExit {
+    animation: none !important;
+  }
+  .stateCrucibleExit {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .stateDropIn {
+    opacity: 1;
+  }
+  .die {
+    transition: opacity 0.3s ease;
+  }
+}
