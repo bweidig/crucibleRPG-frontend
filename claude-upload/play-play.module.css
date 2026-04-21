@@ -6,17 +6,35 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
+  min-height: 820px;
   background: var(--bg-main);
   overflow: hidden;
   font-family: var(--body-font);
   overscroll-behavior: contain;
 }
 
+/* Desktop: CSS grid with a fixed 360px sidebar and 1fr narrative column,
+   per the README layout spec. On tablet/mobile the sidebar becomes a
+   drawer (see Sidebar.module.css) and the narrative column takes full width. */
 .mainContent {
   flex: 1;
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: 1fr 360px;
   overflow: hidden;
+}
+
+/* Sidebar collapsed: the narrative column gets the full width. */
+.mainContentNoSidebar {
+  grid-template-columns: 1fr;
+}
+
+@media (max-width: 1023px) {
+  .pageContainer {
+    min-height: 0;
+  }
+  .mainContent {
+    grid-template-columns: 1fr;
+  }
 }
 
 .narrativeColumn {

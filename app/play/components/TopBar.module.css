@@ -6,7 +6,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 44px;
+  height: 48px;
   padding: 0 16px;
   background: var(--bg-card);
   /* Warm gold-tinted bottom border + subtle underglow, to match the design system
@@ -49,11 +49,12 @@
 .separator {
   width: 1px;
   height: 20px;
-  background: var(--border-primary);
+  background: rgba(201, 168, 76, 0.25);
 }
 
 .settingName {
-  font-family: var(--font-alegreya-sans);
+  font-family: var(--font-alegreya);
+  font-style: italic;
   font-size: 14px;
   color: var(--text-secondary);
 }
@@ -101,6 +102,13 @@
   color: var(--text-dim);
 }
 
+.clockDay {
+  font-family: var(--font-jetbrains);
+  font-size: 11px;
+  color: var(--accent-gold);
+  letter-spacing: 0.06em;
+}
+
 .clockDot {
   font-size: 10px;
   color: var(--text-dim);
@@ -108,9 +116,11 @@
 }
 
 .clockWeather {
-  font-family: var(--font-alegreya-sans);
-  font-size: 11px;
-  color: var(--text-dim);
+  /* Weather is part of the world voice — prose-like, italic serif. */
+  font-family: var(--font-alegreya);
+  font-style: italic;
+  font-size: 12px;
+  color: var(--text-secondary-bright);
 }
 
 .debugBadge {

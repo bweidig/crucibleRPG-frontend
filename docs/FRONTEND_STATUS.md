@@ -35,6 +35,34 @@
 
 ## Recent Work (This Session: 2026-04-21)
 
+### /play spec-compliance pass — grid layout, 3-col choices, tap-to-roll, minor polish
+
+Targeted round against the README (1).md handoff spec. Brings the page visibly closer to the reference while deferring items that need backend support.
+
+- **Grid layout (desktop).** `.mainContent` is now `display: grid; grid-template-columns: 1fr 360px` with `min-height: 820px` on the page container. Sidebar is fixed at 360px (resize handle removed — matched the spec's high-fidelity layout). Below 1023px the grid collapses to a single column and the sidebar becomes a drawer (existing behavior). `.mainContentNoSidebar` variant collapses to 1fr when the sidebar is toggled closed on desktop so the narrative takes the whole row.
+- **3-column choice grid.** `.options` is now `grid-template-columns: 1fr 1fr 1fr; gap: 8px` on desktop, collapsing to `1fr` on mobile. Each `.optionButton` stacks vertically (Cinzel key → main text → JetBrains Mono meta tag) with a 92px min-height so the three cards align.
+- **Post-roll staggered fade.** `TurnBlock` wraps its post-roll children (reflection, narrative, scene image, consequences, NPC states) in a `.postRoll` div when `shouldAnimate` is true. Children fade up with 150 / 300 / 450ms delays via the `postRollFadeUp` keyframes. Historical turns skip the animation and render immediately. `prefers-reduced-motion` disables it.
+- **Consequences row has a "THIS TURN" label.** Rendered above the status badges when stateChanges contains any entries (new helper `hasAnyStateChange` prevents empty-label rows). Cinzel 10px, gold-muted, 0.14em tracking.
+- **GM FAB repositioned.** Moved from `position: absolute` inside the narrative wrapper to `position: fixed` at `right: 384px; bottom: 180px` (clears the 360px sidebar, sits above the dock). Bumped from 38px to 48px per spec. Panel follows the FAB (`bottom: 240px`). Media query at 1023px pulls the offset in to `right: 20px` for tablet/mobile.
+- **Dice default to tap-to-roll.** `TurnRoll`'s `readClickToRoll` default flipped to `true`. Opt-out via `localStorage.crucible_display_settings.autoRoll = true` (or the legacy `clickToRoll: false`). Players now read the challenge panel and tap the crucible to throw — the idle float + tap hint + breathing presence are reachable by default.
+- **Topbar polish.** Height 44→48px per spec. Left-side `separator` switched from navy to gold-tinted `rgba(201,168,76,0.25)`. Clock: `DAY XX` rendered in gold-accent JetBrains Mono (new `.clockDay` class), time stays dim mono, weather switched to italic Alegreya in brighter secondary text (prose voice, not UI voice). Campaign `settingName` switched to italic Alegreya.
+- **Narrative column polish.** `max-width` 900→720 (novelistic reading measure per spec). `.stream` gap 16→32px (hairline sits centered in the larger gap). Scroll padding `24px 16px` → `36px 64px` on desktop. Scrollbar thumb 6px `#3a3328` → 10px `#1a1f32` with a 2px `--bg-main` border. `scroll-behavior: smooth`.
+- **Composer "OR" label.** Cinzel 10px gold-muted tracked 0.2em, sits between the options grid and the input. Placeholder rewritten to drop the redundant "Or" prefix now that the label handles it.
+- **Recap label.** "PREVIOUSLY..." → "LAST TIME".
+- **Easing tokens in globals.css.** `--ease-standard: cubic-bezier(0.4, 0, 0.2, 1)` and `--ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1)` are now design tokens (available for any future animation work; existing animations continue to use inline curves).
+
+**Deferred (needs backend support):**
+- **Pre/post narrative split.** The README wants pre-roll setup prose above the dice and post-roll reveal prose below. This requires the backend to emit `narrative: { preRoll, postRoll }` on roll-required turns (the AI must split its response in two). Backend prompt drafted and handed off.
+- **Inline GM asides.** Asides should render inside the turn block that caused them, not as standalone entries between turns. Requires backend to include `gmAside` on the turn response when the turn generated one. Backend prompt drafted and handed off.
+
+**Still deferred (previous session):** scene headers, sidebar content redesign, visual aging of older turns, jump-to-latest pill, roll prompt text. Logged under Deferred Items → Design.
+
+**Files modified:** `app/globals.css`, `app/play/page.js`, `app/play/play.module.css`, `app/play/components/TurnBlock.js`, `app/play/components/TurnBlock.module.css`, `app/play/components/NarrativePanel.js`, `app/play/components/NarrativePanel.module.css`, `app/play/components/ActionPanel.js`, `app/play/components/ActionPanel.module.css`, `app/play/components/TopBar.js`, `app/play/components/TopBar.module.css`, `app/play/components/Sidebar.js`, `app/play/components/Sidebar.module.css` (orphaned resize-handle class left for cleanup), `app/play/components/TalkToGM.module.css`, `app/play/components/TurnRoll.js`
+
+**Files synced:** `claude-upload/globals.css`, `claude-upload/play-page.js`, `claude-upload/play-play.module.css`, `claude-upload/component-TurnBlock.js`, `claude-upload/component-TurnBlock.module.css`, `claude-upload/component-NarrativePanel.js`, `claude-upload/component-NarrativePanel.module.css`, `claude-upload/component-ActionPanel.js`, `claude-upload/component-ActionPanel.module.css`, `claude-upload/component-TopBar.js`, `claude-upload/component-TopBar.module.css`, `claude-upload/component-Sidebar.js`, `claude-upload/component-Sidebar.module.css`, `claude-upload/component-TalkToGM.module.css`, `claude-upload/component-TurnRoll.js`, `claude-upload/play-full.js` (regenerated), `claude-upload/FRONTEND_STATUS.md`
+
+---
+
 ### Fix: narrative never appearing on /play (TurnRoll timing-effect cleanup bug)
 
 After the dice roller redesign shipped, narrative text stopped appearing on new turns. Root cause was in `TurnRoll.js`: the `useEffect` that schedules the phase-timing `setTimeout`s had `stage` in its dependency array and returned a cleanup that cleared all timers. When the effect ran at mount (`stage === 'rolling'`), it scheduled all six steps including the final `{ at: 2650, stage: 'compact' }` step that fires `onResolved`. But at `t=2100ms` the `collapsing` step fired, which called `setStage('collapsing')`. That state change caused React to re-run the effect with new deps — which ran the cleanup from the previous invocation, **clearing every remaining timer including the `compact` one**. `onResolved` never fired, `showContent` stayed `false`, and the narrative stayed hidden.

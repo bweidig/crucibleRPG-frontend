@@ -76,12 +76,11 @@ export default function Sidebar({
   onToggleDebug,
 }) {
   const [activeTab, setActiveTab] = useState('character');
-  const [width, setWidth] = useState(380);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Track mobile breakpoint
+  // Track mobile breakpoint (the sidebar becomes a drawer below 1024px)
   useEffect(() => {
-    const mql = window.matchMedia('(max-width: 768px)');
+    const mql = window.matchMedia('(max-width: 1023px)');
     setIsMobile(mql.matches);
     const handler = (e) => setIsMobile(e.matches);
     mql.addEventListener('change', handler);
@@ -94,24 +93,6 @@ export default function Sidebar({
       onClearNotification?.(tabId);
     }
   }, [notifications, onClearNotification]);
-
-  // ─── Resize Handle ───
-  const handleMouseDown = useCallback((e) => {
-    e.preventDefault();
-    const startX = e.clientX;
-    const startWidth = width;
-
-    const onMove = (moveE) => {
-      const delta = startX - moveE.clientX;
-      setWidth(Math.max(280, Math.min(600, startWidth + delta)));
-    };
-    const onUp = () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  }, [width]);
 
   // On mobile, collapsed means drawer is closed — don't render at all on desktop when collapsed
   if (collapsed && !isMobile) return null;
@@ -212,10 +193,10 @@ export default function Sidebar({
     );
   }
 
-  // Desktop: render inline as before
+  // Desktop: render inline as before (width is fixed at 360px by the grid layout
+  // on .mainContent — no resize handle needed per the design spec).
   return (
-    <div className={styles.sidebar} style={{ width }}>
-      <div className={styles.resizeHandle} onMouseDown={handleMouseDown} />
+    <div className={styles.sidebar}>
       <div className={styles.tabBar}>
         {TABS.map(tab => (
           <button

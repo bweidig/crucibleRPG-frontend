@@ -859,7 +859,7 @@ function PlayPage() {
         onOpenSettings={() => setSettingsOpen(true)}
         debugMode={debugMode}
       />
-      <div className={styles.mainContent}>
+      <div className={`${styles.mainContent} ${!sidebarOpen ? styles.mainContentNoSidebar : ''}`}>
         <div className={`${styles.narrativeColumn} ${!sidebarOpen ? styles.narrativeExpanded : ''}`}>
           <NarrativePanel
             ref={narrativeRef}

@@ -31,15 +31,21 @@ const TIMING_FULL = [
 
 const SETTINGS_KEY = 'crucible_display_settings';
 
+// Default behavior: tap-to-roll. The player reads the challenge panel,
+// then taps the crucible to throw. Set `autoRoll: true` in
+// localStorage.crucible_display_settings to opt into auto-rolling.
 function readClickToRoll() {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === 'undefined') return true;
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return false;
+    if (!raw) return true;
     const parsed = JSON.parse(raw);
-    return !!parsed?.clickToRoll;
+    if (parsed?.autoRoll === true) return false;
+    // Backwards-compat: honor an explicit clickToRoll: false to opt out.
+    if (parsed?.clickToRoll === false) return false;
+    return true;
   } catch {
-    return false;
+    return true;
   }
 }
 

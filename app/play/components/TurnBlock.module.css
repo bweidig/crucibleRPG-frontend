@@ -64,6 +64,43 @@
   animation: turnIn 380ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Post-roll stagger: after the dice collapse into the compact chip, the
+   narrative, scene image, and consequences fade up in sequence. Only
+   applied on turns that animated — historical turns render immediately. */
+@keyframes postRollFadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.postRoll > * {
+  animation: postRollFadeUp 500ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.postRoll > *:nth-child(1) { animation-delay: 0.15s; }
+.postRoll > *:nth-child(2) { animation-delay: 0.30s; }
+.postRoll > *:nth-child(3) { animation-delay: 0.45s; }
+.postRoll > *:nth-child(n+4) { animation-delay: 0.45s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .postRoll > * { animation: none; }
+}
+
+/* ─── Consequences Row ─── */
+
+.consequences {
+  margin-top: 16px;
+}
+
+.consequencesLabel {
+  font-family: var(--font-cinzel);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--gold-muted);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
 /* ─── Turn Header ─── */
 
 .turnHeader {

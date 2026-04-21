@@ -89,18 +89,26 @@
 /* ─── Option Buttons ─── */
 
 .options {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
   margin-bottom: 12px;
 }
 
+@media (max-width: 767px) {
+  .options {
+    grid-template-columns: 1fr;
+  }
+}
+
 .optionButton {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
   width: 100%;
-  padding: 12px 16px;
+  min-height: 92px;
+  padding: 12px 14px;
   /* Default background is --bg-card so buttons read as distinct interactive surfaces. */
   background: var(--bg-card);
   border: 1px solid var(--border-primary);
@@ -110,7 +118,11 @@
   font-size: var(--narrative-size, 15px);
   cursor: pointer;
   text-align: left;
-  transition: border-color 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
+  transition: border-color 0.2s ease, background-color 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+}
+
+.optionButton:hover:not(:disabled) {
+  transform: translateY(-1px);
 }
 
 .optionButton:hover:not(:disabled) {
@@ -144,29 +156,38 @@
   font-size: 13px;
   font-weight: 700;
   color: var(--accent-gold);
-  min-width: 20px;
-  flex-shrink: 0;
+  letter-spacing: 0.12em;
 }
 
 .optionText {
-  flex: 1;
+  font-size: 14px;
+  line-height: 1.35;
 }
 
 .optionTag {
-  flex-shrink: 0;
   font-family: var(--font-jetbrains);
   font-size: 10px;
   color: var(--text-dim);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding-left: 8px;
+  margin-top: auto;
 }
 
 /* ─── Custom Input Row ─── */
 
 .customRow {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
+}
+
+.customOrLabel {
+  font-family: var(--font-cinzel);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--gold-muted);
+  letter-spacing: 0.2em;
+  flex-shrink: 0;
 }
 
 .customInput {

@@ -862,7 +862,7 @@ function PlayPage() {
         onOpenSettings={() => setSettingsOpen(true)}
         debugMode={debugMode}
       />
-      <div className={styles.mainContent}>
+      <div className={`${styles.mainContent} ${!sidebarOpen ? styles.mainContentNoSidebar : ''}`}>
         <div className={`${styles.narrativeColumn} ${!sidebarOpen ? styles.narrativeExpanded : ''}`}>
           <NarrativePanel
             ref={narrativeRef}
@@ -1335,10 +1335,11 @@ export default function ActionPanel({
 
             {customAllowed && (
               <div className={styles.customRow}>
+                <span className={styles.customOrLabel}>OR</span>
                 <input
                   type="text"
                   className={styles.customInput}
-                  placeholder="Or write your own action — the GM adapts"
+                  placeholder="Write your own action — the GM adapts"
                   value={customText}
                   onChange={e => setCustomText(e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -4253,7 +4254,7 @@ const NarrativePanel = forwardRef(function NarrativePanel({
               <React.Fragment key={turn.number ?? i}>
                 {showRecap && (
                   <div className={styles.sessionRecap}>
-                    <div className={styles.recapHeader}>PREVIOUSLY...</div>
+                    <div className={styles.recapHeader}>LAST TIME</div>
                     <div className={styles.recapText}>{renderLinkedText(sessionRecap, glossaryTerms, onEntityClick)}</div>
                   </div>
                 )}
@@ -6369,12 +6370,11 @@ export default function Sidebar({
   onToggleDebug,
 }) {
   const [activeTab, setActiveTab] = useState('character');
-  const [width, setWidth] = useState(380);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Track mobile breakpoint
+  // Track mobile breakpoint (the sidebar becomes a drawer below 1024px)
   useEffect(() => {
-    const mql = window.matchMedia('(max-width: 768px)');
+    const mql = window.matchMedia('(max-width: 1023px)');
     setIsMobile(mql.matches);
     const handler = (e) => setIsMobile(e.matches);
     mql.addEventListener('change', handler);
@@ -6387,24 +6387,6 @@ export default function Sidebar({
       onClearNotification?.(tabId);
     }
   }, [notifications, onClearNotification]);
-
-  // ─── Resize Handle ───
-  const handleMouseDown = useCallback((e) => {
-    e.preventDefault();
-    const startX = e.clientX;
-    const startWidth = width;
-
-    const onMove = (moveE) => {
-      const delta = startX - moveE.clientX;
-      setWidth(Math.max(280, Math.min(600, startWidth + delta)));
-    };
-    const onUp = () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  }, [width]);
 
   // On mobile, collapsed means drawer is closed — don't render at all on desktop when collapsed
   if (collapsed && !isMobile) return null;
@@ -6505,10 +6487,10 @@ export default function Sidebar({
     );
   }
 
-  // Desktop: render inline as before
+  // Desktop: render inline as before (width is fixed at 360px by the grid layout
+  // on .mainContent — no resize handle needed per the design spec).
   return (
-    <div className={styles.sidebar} style={{ width }}>
-      <div className={styles.resizeHandle} onMouseDown={handleMouseDown} />
+    <div className={styles.sidebar}>
       <div className={styles.tabBar}>
         {TABS.map(tab => (
           <button
@@ -7466,7 +7448,7 @@ export default function TopBar({ setting, clock, turnNumber, sseConnected, sideb
       <div className={styles.right}>
         {clockData && (
           <div className={styles.clockDisplay}>
-            {clockData.day && <span className={styles.clockSegment}>Day {clockData.day}</span>}
+            {clockData.day && <span className={styles.clockDay}>DAY {String(clockData.day).padStart(2, '0')}</span>}
             <span className={styles.clockDot}>{'\u00b7'}</span>
             <span className={styles.clockSegment}>{clockData.timeStr}</span>
             {clockData.weather && (
@@ -7726,6 +7708,19 @@ function isNpcCondition(item) {
   return t && t !== 'player' && t !== 'self';
 }
 
+// Returns true if stateChanges has any condition or inventory entries worth
+// showing. Prevents rendering the "THIS TURN" label over an empty chip row.
+function hasAnyStateChange(stateChanges) {
+  if (!stateChanges) return false;
+  for (const g of [stateChanges.conditions, stateChanges.inventory]) {
+    if (!g) continue;
+    if ((g.added?.length || 0) > 0) return true;
+    if ((g.removed?.length || 0) > 0) return true;
+    if ((g.modified?.length || 0) > 0) return true;
+  }
+  return false;
+}
+
 // Extract item name from stateChanges inventory entries.
 // Backend may send strings, objects with `name`, or objects with `itemName`.
 function getItemName(item, inventoryItems) {
@@ -7931,9 +7926,12 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
         />
       )}
 
-      {/* Narrative + consequences appear after the dice animation completes */}
+      {/* Narrative + consequences appear after the dice animation completes.
+          When shouldAnimate is true, wrap in .postRoll so children fade up in
+          staggered sequence (150/300/450ms delays). Historical turns skip the
+          animation — they render immediately. */}
       {showContent && (
-        <>
+        <div className={shouldAnimate ? styles.postRoll : undefined}>
           <ReflectionBlock reflection={turn.reflection} glossaryTerms={glossaryTerms} onEntityClick={onEntityClick} />
 
           <div className={styles.narrativeText}>
@@ -7959,9 +7957,14 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
             </div>
           )}
 
-          <StatusBadges stateChanges={turn.stateChanges} inventoryItems={inventoryItems} />
+          {hasAnyStateChange(turn.stateChanges) && (
+            <div className={styles.consequences}>
+              <div className={styles.consequencesLabel}>THIS TURN</div>
+              <StatusBadges stateChanges={turn.stateChanges} inventoryItems={inventoryItems} />
+            </div>
+          )}
           <NpcWoundStates npcStates={turn.npcStates} />
-        </>
+        </div>
       )}
     </div>
   );
@@ -8006,15 +8009,21 @@ const TIMING_FULL = [
 
 const SETTINGS_KEY = 'crucible_display_settings';
 
+// Default behavior: tap-to-roll. The player reads the challenge panel,
+// then taps the crucible to throw. Set `autoRoll: true` in
+// localStorage.crucible_display_settings to opt into auto-rolling.
 function readClickToRoll() {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === 'undefined') return true;
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return false;
+    if (!raw) return true;
     const parsed = JSON.parse(raw);
-    return !!parsed?.clickToRoll;
+    if (parsed?.autoRoll === true) return false;
+    // Backwards-compat: honor an explicit clickToRoll: false to opt out.
+    if (parsed?.clickToRoll === false) return false;
+    return true;
   } catch {
-    return false;
+    return true;
   }
 }
 
