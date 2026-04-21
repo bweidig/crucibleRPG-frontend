@@ -35,6 +35,32 @@
 
 ## Recent Work (This Session: 2026-04-21)
 
+### AD-673 narrative split + AD-674 inline gmAside — frontend wiring
+
+Backend ships both contract changes in commits `2eac3a1` and `6cf9d2d`. Frontend now consumes both.
+
+**AD-673 (narrative split):**
+- `response.narrative` is now either a flat string (no-roll turns + fallback) or an object `{ preRoll, postRoll }` (roll turns where the AI split the response).
+- New helper `splitNarrative(narrative)` in `TurnBlock.js` normalizes both shapes into `{ pre, post }`.
+- **Render placement:** `preRoll` renders immediately above the `<TurnRoll>` component (not gated by `showContent`), so the player reads the challenge setup before the dice appear. `postRoll` renders inside the existing `.postRoll` wrapper below the dice, which means it participates in the staggered fade-up after `onResolved` fires.
+- On no-roll turns (flat string), the narrative flows into the post-roll slot as before. Historical turns continue to show the full narrative immediately.
+- `page.js` passes `response.narrative` through unchanged on both the action-response path and the fresh-game first-turn path; the string-vs-object handling is entirely in `TurnBlock`.
+
+**AD-674 (optional gmAside):**
+- `page.js` picks up `response.gmAside` on both turn-response paths and stores it on the turn object (`gmAside: response.gmAside || null`).
+- `TurnBlock.js` renders an inline gold-bordered card between `postRoll` narrative and the consequences row when `turn.gmAside` is present — navy background, 2px gold-accent left border, "GM ASIDE" Cinzel label with info-circle icon, italic Alegreya body. Styled via `.inlineGmAside*` classes in `TurnBlock.module.css` (distinct from the pre-existing `.gmAside` in `NarrativePanel.module.css` which handles standalone asides from `/talk-to-gm/meta`).
+- Sits inside the `.postRoll` wrapper, so on animated new turns it participates in the staggered fade-up sequence.
+- Gracefully absent when the backend omits the field.
+
+**SSE: not wired this pass.** The contract adds an optional `phase: "pre"|"post"` field to `turn:narrative` chunk events and a new `turn:gm_aside` SSE event. This frontend currently only subscribes to `connected` and `command:response` on the SSE stream — it reads full turns from the POST `/action` response. When/if streaming narrative is added, the handlers go in at that time; for now both AD-673 and AD-674 are fully covered by the response-body path.
+
+**Fallback safety:** If the backend returns a flat string despite `resolution !== null` (AI failed to split), `splitNarrative` maps that to `{ pre: null, post: "the string" }` — the narrative renders below the dice (legacy placement), the pacing pause between pre and post is lost, but nothing breaks.
+
+**Files modified:** `app/play/page.js`, `app/play/components/TurnBlock.js`, `app/play/components/TurnBlock.module.css`
+**Files synced:** `claude-upload/play-page.js`, `claude-upload/component-TurnBlock.js`, `claude-upload/component-TurnBlock.module.css`, `claude-upload/play-full.js` (regenerated), `claude-upload/API_CONTRACT.md`, `claude-upload/FRONTEND_STATUS.md`, `docs/API_CONTRACT.md`
+
+---
+
 ### /play spec-compliance pass — grid layout, 3-col choices, tap-to-roll, minor polish
 
 Targeted round against the README (1).md handoff spec. Brings the page visibly closer to the reference while deferring items that need backend support.

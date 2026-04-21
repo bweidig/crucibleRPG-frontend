@@ -101,6 +101,44 @@
   margin-bottom: 6px;
 }
 
+/* ─── Inline GM Aside (AD-674) ───
+   Rendered inside a turn block, between the post-roll narrative and the
+   consequences row. Distinct from the standalone GM asides that appear
+   between turns (those come from /talk-to-gm/meta and live in NarrativePanel). */
+
+.inlineGmAside {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-left: 2px solid rgba(201, 168, 76, 0.35);
+  border-radius: 8px;
+}
+
+.inlineGmAsideHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-gold);
+  margin-bottom: 6px;
+}
+
+.inlineGmAsideLabel {
+  font-family: var(--font-cinzel);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-gold);
+  letter-spacing: 0.18em;
+}
+
+.inlineGmAsideBody {
+  font-family: var(--font-alegreya);
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
 /* ─── Turn Header ─── */
 
 .turnHeader {

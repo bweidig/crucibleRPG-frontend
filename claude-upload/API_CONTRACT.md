@@ -1390,7 +1390,11 @@ Error variants (200, `used: false`, `error` populated): `on_cooldown`, `disorien
     "tierName": "Strong Success",
     "isCombat": false
   },
-  "narrative": "The merchant eyes you warily...",
+  "narrative": {
+    "preRoll": "The commander's eyes lock on yours. Her hand rests near the pistol at her hip, but it hasn't moved.",
+    "postRoll": "You catch the flicker at her jaw - a second of calculation, then resignation. She sees you've read her."
+  },
+  "gmAside": "Your reputation with the Wardens has dropped to Suspicious.",
   "stateChanges": {
     "conditions": { "added": [], "removed": [], "modified": [] },
     "inventory": { "added": [], "removed": [], "modified": [] },
@@ -1413,6 +1417,13 @@ Error variants (200, `used: false`, `error` populated): `on_cooldown`, `disorien
 **Notes:**
 - `resolution` is `null` when the turn involves no mechanical check (pure narrative turns, e.g. long rest).
 - `resolution.stat` is always lowercase (`"cha"`, `"str"`, etc.).
+- `narrative` shape varies by `resolution` (AD-673, **breaking for roll turns, additive for no-roll turns**):
+  - When `resolution !== null` and the AI narrator produced both halves, `narrative` is an object `{ "preRoll": string, "postRoll": string }`. The frontend renders `preRoll` above the dice component and `postRoll` below it, with the roll animation between. `preRoll` sets up the challenge and leads into the implicit question the roll answers; `postRoll` reveals the outcome grounded in the tier, never naming dice or numbers.
+  - When `resolution === null` (no roll), `narrative` is a flat string — unchanged from pre-AD-673 behavior.
+  - Graceful fallback: if `resolution !== null` but the AI failed to emit both halves (e.g. only the flat `narrative` is populated), the server returns the flat string instead of the object. Frontend's existing `hasResolution` gate handles this by rendering the narrative above/below the dice without the pacing pause.
+- SSE `turn:narrative` chunk events gained an optional `phase` field (AD-673). On resolved-roll turns where the AI split the narrative, each chunk's payload is `{ chunk: string, phase: "pre" | "post" }` — `phase` indicates which half the chunk belongs to so clients can route around the dice animation. On no-roll turns or split fallbacks, the payload stays `{ chunk: string }` (no `phase` field).
+- `gmAside` (string, optional — AD-674, **additive**) — A short out-of-prose GM note surfacing a mechanical consequence of this turn (faction tier shift, quest unlock, reputation crossing, threshold event). Frontend renders as a gold-bordered inline card inside the turn block, between the narrative and the dice/consequences. **Omitted when no aside applies** — the field is not present at all on turns without a note. The existing `/api/game/:id/talk-to-gm/meta` endpoint's response — used by the "/My Story" tab as the source of standalone gm_aside entries on the frontend — is unrelated to this field and continues to return its existing `{ response, turnAdvanced, directiveStored, directiveLane }` shape unchanged.
+- SSE path sends `gmAside` as a single `turn:gm_aside` event with payload `{ aside: string }`, fired after `turn:state_changes` and `turn:npc_states` (when present) but before `turn:actions`. The event is not emitted at all when no aside applies.
 - `nextActions.options[].stat` (AD-671, **additive**) — lowercase stat abbreviation (`"str"|"dex"|"con"|"int"|"wis"|"cha"|"pot"`) the AI predicts the rules engine would most likely test for this option, or `null` when no check applies. Display hint only — the actual resolution stat is decided at action-processing time, not bound by this value. Same field appears on `GET /state` `narrative.availableActions.options[]`.
 - `nextActions.options[].flavor` (AD-671, **additive**) — one or two lowercase words describing the approach as a vibe tag (e.g. `"combat"`, `"stealth"`, `"social"`, `"investigation"`, `"diplomatic"`, `"risky"`, `"cautious"`, `"safe"`, `"narrative"`). The AI narrator picks the tag; the tag list is open-ended, not an enum. `null` if the narrator omits or malforms the field — frontend should render no tag in that case. Same field appears on `GET /state` `narrative.availableActions.options[]`.
 - `stateChanges.stats` contains post-commit effective stats (base minus condition penalties) with lowercase keys. This is the authoritative stat snapshot after the turn resolves.

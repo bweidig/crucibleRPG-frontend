@@ -338,7 +338,8 @@ function PlayPage() {
       {
         number: response.turn.number,
         sessionTurn: response.turn.sessionTurn,
-        narrative: response.narrative,
+        narrative: response.narrative, // string OR { preRoll, postRoll } per AD-673
+        gmAside: response.gmAside || null, // AD-674 — optional inline mechanical note
         resolution: response.resolution || null,
         stateChanges: response.stateChanges || null,
         reflection,
@@ -679,7 +680,8 @@ function PlayPage() {
               setTurns([{
                 number: res.turn.number,
                 sessionTurn: res.turn.sessionTurn,
-                narrative: res.narrative,
+                narrative: res.narrative, // AD-673 shape: string OR { preRoll, postRoll }
+                gmAside: res.gmAside || null, // AD-674
                 resolution: res.resolution || null,
                 stateChanges: res.stateChanges || null,
                 playerAction: null,
@@ -7613,6 +7615,37 @@ import ReflectionBlock from './ReflectionBlock';
 import { renderNarrative } from '@/lib/renderLinkedText';
 import styles from './TurnBlock.module.css';
 
+// AD-673: narrative may arrive as { preRoll, postRoll } on resolved-roll turns,
+// or as a flat string on no-roll turns (and as a fallback when the AI didn't split).
+// Normalize into { pre, post } so the render path is uniform.
+//   - object with both halves → pre = preRoll, post = postRoll
+//   - object with only one half → that half populated, the other null
+//   - flat string on a roll turn → post gets the full string (legacy placement)
+//   - flat string on a no-roll turn → post gets the full string (narrative lives after player action)
+//   - null/undefined → both null
+function splitNarrative(narrative) {
+  if (narrative == null) return { pre: null, post: null };
+  if (typeof narrative === 'string') return { pre: null, post: narrative };
+  if (typeof narrative === 'object') {
+    return {
+      pre: narrative.preRoll || null,
+      post: narrative.postRoll || null,
+    };
+  }
+  return { pre: null, post: null };
+}
+
+// Info-circle icon for the inline GM aside header (AD-674)
+function InfoCircleIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2" />
+      <circle cx="8" cy="5" r="0.9" fill="currentColor" />
+      <path d="M8 7.5V12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 // ─── Map resolution → TurnRoll challenge + result ───
 // Done here so TurnRoll can stay ignorant of the backend payload shape.
 function buildTurnRollProps(resolution, playerAction, stateChanges) {
@@ -7903,6 +7936,8 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
     [hasResolution, turn.resolution, turn.playerAction, turn.stateChanges]
   );
 
+  const { pre: preRoll, post: postRoll } = splitNarrative(turn.narrative);
+
   return (
     <div className={`${styles.turnBlock} ${isNew ? styles.turnIn : ''}`} ref={ref}>
       <div className={styles.turnHeader}>
@@ -7913,6 +7948,15 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
 
       {turn.playerAction && (
         <div className={styles.playerAction}>{turn.playerAction}</div>
+      )}
+
+      {/* Pre-roll narrative (AD-673) — setup prose above the dice on roll turns
+          where the AI split the narrative. Renders immediately (not gated by
+          showContent) so the player reads the challenge context before rolling. */}
+      {preRoll && (
+        <div className={styles.narrativeText}>
+          {renderNarrative(preRoll, glossaryTerms, onEntityClick)}
+        </div>
       )}
 
       {/* Dice: TurnRoll plays the animated challenge → CompactChip flow on new turns,
@@ -7926,17 +7970,18 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
         />
       )}
 
-      {/* Narrative + consequences appear after the dice animation completes.
-          When shouldAnimate is true, wrap in .postRoll so children fade up in
-          staggered sequence (150/300/450ms delays). Historical turns skip the
-          animation — they render immediately. */}
+      {/* Post-roll content appears after the dice animation completes (or
+          immediately on no-roll turns / historical renders). Wrapped in
+          .postRoll for staggered fade-up when shouldAnimate is true. */}
       {showContent && (
         <div className={shouldAnimate ? styles.postRoll : undefined}>
           <ReflectionBlock reflection={turn.reflection} glossaryTerms={glossaryTerms} onEntityClick={onEntityClick} />
 
-          <div className={styles.narrativeText}>
-            {renderNarrative(turn.narrative, glossaryTerms, onEntityClick)}
-          </div>
+          {postRoll && (
+            <div className={styles.narrativeText}>
+              {renderNarrative(postRoll, glossaryTerms, onEntityClick)}
+            </div>
+          )}
 
           {turn.sceneImage && (
             <div className={styles.sceneImageBlock}>
@@ -7954,6 +7999,16 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
               {turn.sceneImage.blurb && (
                 <div className={styles.sceneCaption}>{turn.sceneImage.blurb}</div>
               )}
+            </div>
+          )}
+
+          {turn.gmAside && (
+            <div className={styles.inlineGmAside}>
+              <div className={styles.inlineGmAsideHeader}>
+                <InfoCircleIcon />
+                <span className={styles.inlineGmAsideLabel}>GM ASIDE</span>
+              </div>
+              <div className={styles.inlineGmAsideBody}>{turn.gmAside}</div>
             </div>
           )}
 

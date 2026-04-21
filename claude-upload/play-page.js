@@ -335,7 +335,8 @@ function PlayPage() {
       {
         number: response.turn.number,
         sessionTurn: response.turn.sessionTurn,
-        narrative: response.narrative,
+        narrative: response.narrative, // string OR { preRoll, postRoll } per AD-673
+        gmAside: response.gmAside || null, // AD-674 — optional inline mechanical note
         resolution: response.resolution || null,
         stateChanges: response.stateChanges || null,
         reflection,
@@ -676,7 +677,8 @@ function PlayPage() {
               setTurns([{
                 number: res.turn.number,
                 sessionTurn: res.turn.sessionTurn,
-                narrative: res.narrative,
+                narrative: res.narrative, // AD-673 shape: string OR { preRoll, postRoll }
+                gmAside: res.gmAside || null, // AD-674
                 resolution: res.resolution || null,
                 stateChanges: res.stateChanges || null,
                 playerAction: null,
