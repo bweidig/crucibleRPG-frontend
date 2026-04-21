@@ -35,6 +35,26 @@
 
 ## Recent Work (This Session: 2026-04-20)
 
+### Passive mastery unlock → Character tab notification (AD-666 partial)
+Backend now emits `mechanicalResults.passive_mastery_unlocked` on advancing turns where a T1-3 success crossed the randomized mastery-unlock threshold (XI.4.1). The sidebar's `CharacterTab` already has a "Passive Masteries" section (it filters `skills` by `type === 'passive'`), and `handleTurnResponse` already calls `refetchCharacter()` after every turn with stateChanges — so newly-unlocked masteries will appear in the list automatically with no UI work needed.
+
+The only missing piece was the notification badge on the Character tab: `addNotifications` currently only bumps the Character tab when `conditions` change, so a mastery unlock with no condition change would be silent. Added a second bump in `handleTurnResponse`:
+
+```js
+if (response.mechanicalResults?.passive_mastery_unlocked) {
+  setNotifications(prev => ({ ...prev, character: (prev.character || 0) + 1 }));
+}
+```
+
+This mirrors the existing "stat/ability gains show up in the sidebar after refetch + badge on Character tab" pattern — no toast, no special UI. If a more prominent celebration is wanted later (e.g. a one-shot banner with the mastery name), the `templateName` field is available in the payload.
+
+Still deferred from AD-666: the `[Use Skill: Name]` bracket command (new response shape with cooldown/error states — `on_cooldown`, `disoriented`, `skill_not_found`, `assess_requires_context`). That one needs a design pass.
+
+**Files modified:** `app/play/page.js`
+**Files synced:** `claude-upload/play-full.js`, `claude-upload/FRONTEND_STATUS.md`
+
+---
+
 ### NPC wound state rename (AD-670)
 Backend renamed the `woundState` vocabulary on `npcStates` entries: `fresh` → `engaged`, `staggering` → `desperate`, `incapacitated` → `defeated` (`bloodied` unchanged). The frontend was matching on the old values in two places; without the rename, every NPC would have shown in the Enemy Status row (the filter was `!== 'fresh'`), the warning-red "Staggering" badge styling would not apply, and defeat detection via `woundState === 'incapacitated'` would silently fail.
 

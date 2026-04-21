@@ -338,6 +338,13 @@ function PlayPage() {
       refetchGlossary();
     }
 
+    // AD-666: flag the Character tab when a passive mastery unlocks so the
+    // new row in the Passive Masteries list (populated by the refetch above)
+    // doesn't go unnoticed.
+    if (response.mechanicalResults?.passive_mastery_unlocked) {
+      setNotifications(prev => ({ ...prev, character: (prev.character || 0) + 1 }));
+    }
+
     // Check for directive fulfillment
     if (response.directivesRemoved && response.directivesRemoved.length > 0) {
       for (const removed of response.directivesRemoved) {
