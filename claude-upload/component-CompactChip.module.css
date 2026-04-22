@@ -96,3 +96,12 @@
   color: var(--text-secondary);
   background: #141a24;
 }
+
+/* Margin accent — green if success, orange if failure. Matches the tier pill colors. */
+.marginPositive .metaValue {
+  color: var(--color-success);
+}
+
+.marginNegative .metaValue {
+  color: var(--color-danger);
+}

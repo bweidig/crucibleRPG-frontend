@@ -1638,6 +1638,15 @@ function fmt(n) {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
+// Signed margin (e.g. "+8.4", "-2.5"). 0 returns "±0".
+function fmtMargin(n) {
+  if (n == null) return '?';
+  if (typeof n !== 'number') return String(n);
+  if (n === 0) return '±0';
+  const sign = n > 0 ? '+' : '';
+  return `${sign}${Number.isInteger(n) ? n : n.toFixed(1)}`;
+}
+
 function tierColorClass(tier, isCrit, isFumble) {
   if (isCrit) return styles.tierCrit;
   if (isFumble) return styles.tierFailure;
@@ -1659,6 +1668,8 @@ export default function CompactChip({
   statValue,
   skill,
   skillValue,
+  dc,
+  margin,
   tier,
   tierName,
   mode = 'matched',
@@ -1670,6 +1681,7 @@ export default function CompactChip({
 }) {
   const keptState = isCrit ? 'crit' : isFumble ? 'fumble' : 'kept';
   const statDisplay = (stat || '').toUpperCase();
+  const marginPositive = typeof margin === 'number' && margin >= 0;
 
   return (
     <div className={`${styles.chip} ${animate ? styles.chipIn : ''}`}>
@@ -1702,6 +1714,17 @@ export default function CompactChip({
           <span className={styles.metaItem}>
             <span className={styles.metaKey}>Total</span>
             <span className={styles.metaValue}>{fmt(total)}</span>
+          </span>
+        )}
+        {dc != null && (
+          <span className={styles.metaItem}>
+            <span className={styles.metaKey}>vs DC</span>
+            <span className={styles.metaValue}>{fmt(dc)}</span>
+          </span>
+        )}
+        {margin != null && (
+          <span className={`${styles.metaItem} ${marginPositive ? styles.marginPositive : styles.marginNegative}`}>
+            <span className={styles.metaValue}>{fmtMargin(margin)}</span>
           </span>
         )}
         {tierName && (
@@ -7431,7 +7454,7 @@ function formatTopBarClock(clock) {
 
 export default function TopBar({ setting, clock, turnNumber, sseConnected, sidebarOpen, onToggleSidebar, onOpenSettings, debugMode }) {
   const clockData = formatTopBarClock(clock);
-  const turnDisplay = turnNumber != null ? String(turnNumber).padStart(3, '0') : null;
+  const turnDisplay = turnNumber != null ? String(turnNumber) : null;
 
   return (
     <header className={styles.topBar}>
@@ -7450,7 +7473,7 @@ export default function TopBar({ setting, clock, turnNumber, sseConnected, sideb
       <div className={styles.right}>
         {clockData && (
           <div className={styles.clockDisplay}>
-            {clockData.day && <span className={styles.clockDay}>DAY {String(clockData.day).padStart(2, '0')}</span>}
+            {clockData.day && <span className={styles.clockDay}>DAY {clockData.day}</span>}
             <span className={styles.clockDot}>{'\u00b7'}</span>
             <span className={styles.clockSegment}>{clockData.timeStr}</span>
             {clockData.weather && (
@@ -7916,18 +7939,23 @@ function StatusBadges({ stateChanges, inventoryItems }) {
 }
 
 const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, onEntityClick, inventoryItems, onImageClick }, ref) {
-  // A turn has a resolution only when the backend sent a non-null object.
-  // SKIP turns (no-roll actions) send resolution: null — don't render the dice/DC panels.
-  const hasResolution = turn.resolution != null && typeof turn.resolution === 'object';
+  // A turn has a real resolution only when the backend sends a populated object
+  // with at least a `stat` string. SKIP turns and the "Begin the adventure"
+  // prologue can arrive with `resolution: null`, `resolution: {}`, or a stub
+  // object with null/empty fields — all of which should NOT render dice.
+  // The `stat` string is the minimal signal that a mechanical check actually ran.
+  const hasResolution = turn.resolution != null
+    && typeof turn.resolution === 'object'
+    && typeof turn.resolution.stat === 'string'
+    && turn.resolution.stat.length > 0;
   const shouldAnimate = isNew && hasResolution;
   const [showContent, setShowContent] = useState(!shouldAnimate);
 
   const timeStr = format24h(turn.clock);
   const day = turn.clock?.day ?? turn.clock?.currentDay;
-  // Zero-pad the turn number to 3 digits — "042" reads as a chapter marker rather than a running count.
-  const turnLabel = turn.number != null ? `TURN ${String(turn.number).padStart(3, '0')}` : null;
+  const turnLabel = turn.number != null ? `TURN ${turn.number}` : null;
   const metaParts = [];
-  if (day != null) metaParts.push(`DAY ${String(day).padStart(2, '0')}`);
+  if (day != null) metaParts.push(`DAY ${day}`);
   if (timeStr) metaParts.push(timeStr);
   const metaStr = metaParts.join(' · '); // middle dot separator
 
@@ -8206,6 +8234,8 @@ export default function TurnRoll({ challenge, result, onResolved, animate = true
         statValue={challenge?.statValue}
         skill={challenge?.skill}
         skillValue={challenge?.skillValue}
+        dc={result?.dc}
+        margin={result?.margin}
         tier={result?.tier}
         tierName={result?.tierName}
         mode={mode}

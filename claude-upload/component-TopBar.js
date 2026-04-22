@@ -39,7 +39,7 @@ function formatTopBarClock(clock) {
 
 export default function TopBar({ setting, clock, turnNumber, sseConnected, sidebarOpen, onToggleSidebar, onOpenSettings, debugMode }) {
   const clockData = formatTopBarClock(clock);
-  const turnDisplay = turnNumber != null ? String(turnNumber).padStart(3, '0') : null;
+  const turnDisplay = turnNumber != null ? String(turnNumber) : null;
 
   return (
     <header className={styles.topBar}>
@@ -58,7 +58,7 @@ export default function TopBar({ setting, clock, turnNumber, sseConnected, sideb
       <div className={styles.right}>
         {clockData && (
           <div className={styles.clockDisplay}>
-            {clockData.day && <span className={styles.clockDay}>DAY {String(clockData.day).padStart(2, '0')}</span>}
+            {clockData.day && <span className={styles.clockDay}>DAY {clockData.day}</span>}
             <span className={styles.clockDot}>{'\u00b7'}</span>
             <span className={styles.clockSegment}>{clockData.timeStr}</span>
             {clockData.weather && (

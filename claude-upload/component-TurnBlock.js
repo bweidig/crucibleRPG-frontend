@@ -305,18 +305,23 @@ function StatusBadges({ stateChanges, inventoryItems }) {
 }
 
 const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, onEntityClick, inventoryItems, onImageClick }, ref) {
-  // A turn has a resolution only when the backend sent a non-null object.
-  // SKIP turns (no-roll actions) send resolution: null — don't render the dice/DC panels.
-  const hasResolution = turn.resolution != null && typeof turn.resolution === 'object';
+  // A turn has a real resolution only when the backend sends a populated object
+  // with at least a `stat` string. SKIP turns and the "Begin the adventure"
+  // prologue can arrive with `resolution: null`, `resolution: {}`, or a stub
+  // object with null/empty fields — all of which should NOT render dice.
+  // The `stat` string is the minimal signal that a mechanical check actually ran.
+  const hasResolution = turn.resolution != null
+    && typeof turn.resolution === 'object'
+    && typeof turn.resolution.stat === 'string'
+    && turn.resolution.stat.length > 0;
   const shouldAnimate = isNew && hasResolution;
   const [showContent, setShowContent] = useState(!shouldAnimate);
 
   const timeStr = format24h(turn.clock);
   const day = turn.clock?.day ?? turn.clock?.currentDay;
-  // Zero-pad the turn number to 3 digits — "042" reads as a chapter marker rather than a running count.
-  const turnLabel = turn.number != null ? `TURN ${String(turn.number).padStart(3, '0')}` : null;
+  const turnLabel = turn.number != null ? `TURN ${turn.number}` : null;
   const metaParts = [];
-  if (day != null) metaParts.push(`DAY ${String(day).padStart(2, '0')}`);
+  if (day != null) metaParts.push(`DAY ${day}`);
   if (timeStr) metaParts.push(timeStr);
   const metaStr = metaParts.join(' · '); // middle dot separator
 

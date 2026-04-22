@@ -35,6 +35,24 @@
 
 ## Recent Work (This Session: 2026-04-21)
 
+### /play bug round — turn counter, stray dice, land animation, DC in chip
+
+Four player-reported bugs after testing on prod.
+
+1. **Turn counter zero-padding.** Topbar pill read "001" / "002" instead of plain "1" / "2". Dropped the `padStart(3, '0')` in `TopBar.js:turnDisplay`. Also removed padding from the `TURN N` label in `TurnBlock` header and from `DAY N` in the clock for consistency.
+
+2. **Dice roller rendered on the prologue turn with no real roll.** The "Begin the adventure" turn can arrive from the backend with `resolution: {}` (or a stub object with null fields) instead of `resolution: null`, which made `hasResolution` true under the old `turn.resolution != null && typeof turn.resolution === 'object'` check. Tightened the gate in `TurnBlock` to also require `typeof resolution.stat === 'string' && resolution.stat.length > 0` — a real mechanical check always populates `stat`, a SKIP/prologue turn doesn't.
+
+3. **Dice don't appear to land — roll skips straight to the compact chip.** Root cause was a CSS interpolation bug in the `dieLand` keyframes: the 40% / 70% / 100% keyframes didn't specify `rotate`, so CSS interpolated back to `rotate(0)` mid-bounce, making the die visually un-wind in the last 420ms instead of bouncing into place. Compounded by the kept/crit/fumble states having no `transform`, so at state change the die snapped from `rotate(940deg)` back to `rotate(0)` — erasing whatever bounce motion had played.
+   Fix: tumble now ends at `rotate(1080deg)` (a multiple of 360, so `rotate(0)` on the kept state looks identical), and every land keyframe explicitly preserves `rotate(1080deg)`. The bounce itself is also more exaggerated now (25% / 45% / 65% / 82% / 100% keyframes with squash scaleY ratios varying from 0.82 to 1.10) so the settle reads clearly.
+
+4. **Compact chip missing DC + margin.** The old `ResolutionBlock` showed `vs DC 25.0` and the signed margin (`+8.4`). New `CompactChip` had dropped them. Re-added both: `vs DC` row + a color-coded margin row (green for positive, danger-orange for negative) alongside the existing STAT · Skill · kept · Total · Tier. `TurnRoll` passes `result.dc` and `result.margin` into the chip.
+
+**Files modified:** `app/play/components/TopBar.js`, `app/play/components/TurnBlock.js`, `app/play/components/Die.module.css`, `app/play/components/CompactChip.js`, `app/play/components/CompactChip.module.css`, `app/play/components/TurnRoll.js`
+**Files synced:** `claude-upload/component-TopBar.js`, `claude-upload/component-TurnBlock.js`, `claude-upload/component-Die.module.css`, `claude-upload/component-CompactChip.js`, `claude-upload/component-CompactChip.module.css`, `claude-upload/component-TurnRoll.js`, `claude-upload/play-full.js` (regenerated), `claude-upload/FRONTEND_STATUS.md`
+
+---
+
 ### AD-673 narrative split + AD-674 inline gmAside — frontend wiring
 
 Backend ships both contract changes in commits `2eac3a1` and `6cf9d2d`. Frontend now consumes both.

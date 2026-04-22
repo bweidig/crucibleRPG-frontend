@@ -52,11 +52,14 @@
   filter: drop-shadow(0 14px 14px rgba(0, 0, 0, 0.45));
 }
 
-/* ─── State: tumble (spin + blur) ─── */
+/* ─── State: tumble (spin + blur) ───
+   Rotation ends at a multiple of 360 (1080deg = 3 full turns) so that when
+   subsequent states have no transform — rotate(0) — the die doesn't snap
+   visually at the state change. 540→1080 = 540 degrees of visible rotation. */
 
 @keyframes dieTumble {
   from { transform: translateY(-12px) rotate(540deg) scale(1.06); }
-  to   { transform: translateY(-10px) rotate(940deg) scale(1.06); }
+  to   { transform: translateY(-10px) rotate(1080deg) scale(1.06); }
 }
 
 .stateTumble {
@@ -64,17 +67,24 @@
   filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.45)) blur(0.5px);
 }
 
-/* ─── State: land (bounce-settle with squash) ─── */
+/* ─── State: land (bounce-settle with squash) ───
+   Rotation is preserved at 940deg across keyframes so the die holds the
+   orientation it ended tumble on; without explicit rotate(940deg) in every
+   keyframe CSS interpolates back to 0deg mid-bounce, which reads as the die
+   un-winding instead of actually landing. The bounce is exaggerated so the
+   settled moment is unmistakable. */
 
 @keyframes dieLand {
-  0%   { transform: translateY(-10px) rotate(940deg) scale(1.06); }
-  40%  { transform: translateY(4px) scaleY(0.92) scaleX(1.06); }
-  70%  { transform: translateY(-2px) scaleY(1.04) scaleX(0.98); }
-  100% { transform: translateY(0) scale(1); }
+  0%   { transform: translateY(-10px) rotate(1080deg) scale(1.06, 1.06); }
+  25%  { transform: translateY(8px)   rotate(1080deg) scale(1.14, 0.82); }
+  45%  { transform: translateY(-4px)  rotate(1080deg) scale(0.94, 1.10); }
+  65%  { transform: translateY(3px)   rotate(1080deg) scale(1.04, 0.96); }
+  82%  { transform: translateY(-1px)  rotate(1080deg) scale(0.99, 1.02); }
+  100% { transform: translateY(0)     rotate(1080deg) scale(1, 1); }
 }
 
 @keyframes dieLandNumberFade {
-  0%, 50% { opacity: 0; }
+  0%, 40% { opacity: 0; }
   100%    { opacity: 1; }
 }
 

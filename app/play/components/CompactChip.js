@@ -9,6 +9,15 @@ function fmt(n) {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
+// Signed margin (e.g. "+8.4", "-2.5"). 0 returns "±0".
+function fmtMargin(n) {
+  if (n == null) return '?';
+  if (typeof n !== 'number') return String(n);
+  if (n === 0) return '±0';
+  const sign = n > 0 ? '+' : '';
+  return `${sign}${Number.isInteger(n) ? n : n.toFixed(1)}`;
+}
+
 function tierColorClass(tier, isCrit, isFumble) {
   if (isCrit) return styles.tierCrit;
   if (isFumble) return styles.tierFailure;
@@ -30,6 +39,8 @@ export default function CompactChip({
   statValue,
   skill,
   skillValue,
+  dc,
+  margin,
   tier,
   tierName,
   mode = 'matched',
@@ -41,6 +52,7 @@ export default function CompactChip({
 }) {
   const keptState = isCrit ? 'crit' : isFumble ? 'fumble' : 'kept';
   const statDisplay = (stat || '').toUpperCase();
+  const marginPositive = typeof margin === 'number' && margin >= 0;
 
   return (
     <div className={`${styles.chip} ${animate ? styles.chipIn : ''}`}>
@@ -73,6 +85,17 @@ export default function CompactChip({
           <span className={styles.metaItem}>
             <span className={styles.metaKey}>Total</span>
             <span className={styles.metaValue}>{fmt(total)}</span>
+          </span>
+        )}
+        {dc != null && (
+          <span className={styles.metaItem}>
+            <span className={styles.metaKey}>vs DC</span>
+            <span className={styles.metaValue}>{fmt(dc)}</span>
+          </span>
+        )}
+        {margin != null && (
+          <span className={`${styles.metaItem} ${marginPositive ? styles.marginPositive : styles.marginNegative}`}>
+            <span className={styles.metaValue}>{fmtMargin(margin)}</span>
           </span>
         )}
         {tierName && (
