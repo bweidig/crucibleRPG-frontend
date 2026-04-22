@@ -564,7 +564,9 @@ function PlayPage() {
 
         setGameState(game);
 
-        // Convert recentNarrative to turn blocks
+        // Convert recentNarrative to turn blocks (this gives us the most recent
+        // chunks with full role/content fidelity, which we use as the canonical
+        // source for those turns).
         if (game.recentNarrative && game.recentNarrative.length > 0) {
           const turnMap = new Map();
           for (const entry of game.recentNarrative) {
@@ -595,6 +597,61 @@ function PlayPage() {
             Array.from(turnMap.values()).sort((a, b) => a.number - b.number)
           );
         }
+
+        // Full history: fetch paginated /history and merge in any older turns
+        // not already covered by recentNarrative. recentNarrative is bounded
+        // by the backend; /history returns everything. Without this step, the
+        // narrative would start at whatever cutoff the backend uses for "recent"
+        // and prior-session turns wouldn't appear on rejoin.
+        (async () => {
+          try {
+            const collected = [];
+            let page = 1;
+            const pageSize = 50;
+            while (page <= 20) { // safety cap at 1000 turns
+              const data = await api.get(`/api/game/${gameId}/history?page=${page}&pageSize=${pageSize}`);
+              if (cancelled) return;
+              const pageTurns = Array.isArray(data?.turns) ? data.turns : [];
+              if (pageTurns.length === 0) break;
+              collected.push(...pageTurns);
+              const total = typeof data?.total === 'number' ? data.total : collected.length;
+              if (collected.length >= total) break;
+              page++;
+            }
+            if (cancelled || collected.length === 0) return;
+
+            setTurns(prev => {
+              const realTurns = prev.filter(t => t.type !== 'gm_aside');
+              const asides = prev.filter(t => t.type === 'gm_aside');
+              const existingNumbers = new Set(realTurns.map(t => t.number));
+              // Map /history entries (structured per-turn) into our internal turn shape.
+              // /history doesn't include resolution/stateChanges — historical turns
+              // render with no dice and no consequences, which is fine.
+              const additions = collected
+                .filter(h => h?.number != null && !existingNumbers.has(h.number))
+                .map(h => ({
+                  number: h.number,
+                  playerAction: h.playerAction || null,
+                  narrative: h.narrative || null,
+                  resolution: null,
+                  stateChanges: null,
+                  clock: h.timestamp ? {
+                    day: h.timestamp.day,
+                    hour: h.timestamp.hour,
+                    minute: h.timestamp.minute,
+                  } : null,
+                  location: h.location || null,
+                }));
+              if (additions.length === 0) return prev;
+              const merged = [...realTurns, ...additions].sort(
+                (a, b) => (a.number || 0) - (b.number || 0)
+              );
+              return [...merged, ...asides];
+            });
+          } catch (err) {
+            console.error('Failed to load full game history:', err);
+          }
+        })();
 
         // Step 2: Load supplementary data (parallel, fire-and-forget)
         api.get(`/api/game/${gameId}/state`).then(state => {

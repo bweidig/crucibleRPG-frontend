@@ -6,7 +6,11 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  min-height: 820px;
+  /* NOTE: the handoff spec called for min-height: 820px, but on laptop viewports
+     shorter than that, the container overflowed the viewport and the action
+     dock dropped below the fold — focusing a sidebar input (e.g. the glossary
+     search) then caused the body to scroll and "hide" the dock. Fitting the
+     viewport avoids that class of bug. */
   background: var(--bg-main);
   overflow: hidden;
   font-family: var(--body-font);

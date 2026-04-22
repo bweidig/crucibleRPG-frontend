@@ -35,6 +35,21 @@
 
 ## Recent Work (This Session: 2026-04-21)
 
+### /play bug round — viewport min-height, full history loading, glossary leak
+
+Three issues reported together.
+
+1. **Opening the glossary tab hid the action dock / scrolled to the prologue.** Root cause: the page container enforced `min-height: 820px` (from the handoff spec). On any laptop viewport shorter than that, the container was taller than the viewport — the body scrolled, the action dock dropped below the fold, and focusing the glossary search input caused the browser to auto-scroll the body to reveal the input, hiding the dock. Dropped the `min-height` entirely; `height: 100vh` is sufficient. Left a comment explaining why we deviate from the spec.
+
+2. **Old turns from prior play sessions didn't appear on rejoin.** `GET /api/games/:id` only returns `recentNarrative` — a bounded window of recent entries — so everything before that window was invisible even though the backend has the full history. Added a second-pass load in `page.js` that calls `GET /api/game/:id/history?page=N&pageSize=50` after the initial `recentNarrative`-based render, paginates up to 20 pages (safety cap at 1000 turns), and merges any turns not already in state. Turns from `/history` use that endpoint's structured shape (number, narrative string, playerAction, location, timestamp) mapped into our internal turn format; resolution + stateChanges aren't available so historical turns render with no dice and no consequences (which was the existing behavior for recentNarrative-sourced turns anyway). Failures are logged but don't block the initial render.
+
+3. **Glossary entries showed backend taxonomy tags.** Entries like "Roric the Fen-Grown" had the raw AI taxonomy tag (e.g. `potential_ally`) leaking in as the first word of the definition. Added a `cleanDefinition` helper in `GlossaryTab.js` that strips a leading snake_case word — pattern `^[a-z][a-z0-9]*(?:_[a-z0-9]+)+\s+` — before rendering. The pattern only matches lowercase snake_case prefixes with at least one underscore segment, so properly capitalized or single-word definitions are untouched. This is a defensive frontend strip — the proper fix is backend prompt tightening so the narrator doesn't emit the taxonomy tag in the first place (backend task, not done here).
+
+**Files modified:** `app/play/page.js`, `app/play/play.module.css`, `app/play/components/GlossaryTab.js`
+**Files synced:** `claude-upload/play-page.js`, `claude-upload/play-play.module.css`, `claude-upload/component-GlossaryTab.js`, `claude-upload/play-full.js` (regenerated), `claude-upload/FRONTEND_STATUS.md`
+
+---
+
 ### /play bug round — turn counter, stray dice, land animation, DC in chip
 
 Four player-reported bugs after testing on prod.
