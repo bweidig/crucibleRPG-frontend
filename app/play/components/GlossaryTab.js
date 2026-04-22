@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { renderLinkedText } from '@/lib/renderLinkedText';
+import { renderLinkedText, cleanDefinition } from '@/lib/renderLinkedText';
 import styles from './GlossaryTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
 
@@ -13,17 +13,6 @@ const TABS = [
 ];
 
 const KNOWN_CATEGORIES = new Set(['npc', 'location', 'faction', 'item']);
-
-// Strip a leading backend taxonomy tag from a glossary definition.
-// The AI narrator sometimes prepends a snake_case role tag (e.g.
-// "potential_ally Gaunt man in his 40s...") which is internal bookkeeping,
-// not player-facing prose. Matches: start, lowercase word, at least one
-// underscore-separated segment, then whitespace.
-// Leaves single-word or properly-capitalized definitions untouched.
-function cleanDefinition(def) {
-  if (!def || typeof def !== 'string') return def;
-  return def.replace(/^[a-z][a-z0-9]*(?:_[a-z0-9]+)+\s+/, '');
-}
 
 export default function GlossaryTab({ data, characterData, glossaryTerms, onEntityClick }) {
   const [search, setSearch] = useState('');

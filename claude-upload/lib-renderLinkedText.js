@@ -86,3 +86,25 @@ export function buildGlossaryTermSet(glossaryData) {
   if (!glossaryData?.entries) return new Set();
   return new Set(glossaryData.entries.map(e => (e.term || '').toLowerCase()));
 }
+
+/**
+ * Strip a leading backend taxonomy tag from a glossary/NPC/entity definition.
+ * The AI narrator sometimes emits internal snake_case role tags at the start
+ * of the definition ("potential_ally Gaunt man...") that are bookkeeping,
+ * not player-facing prose. Handles the common surface variants:
+ *   potential_ally Gaunt man...
+ *   "potential_ally" Gaunt man...
+ *   [potential_ally] Gaunt man...
+ *   potential_ally: Gaunt man...
+ *   potential_ally - Gaunt man...
+ * The snake_case pattern requires at least one underscore segment, so single
+ * lowercase words and properly capitalized definitions are untouched.
+ * The proper fix is backend prompt tightening — this is a defensive strip.
+ */
+export function cleanDefinition(def) {
+  if (!def || typeof def !== 'string') return def;
+  return def.replace(
+    /^["\[]?([a-z][a-z0-9]*(?:_[a-z0-9]+)+)["\]]?\s*[:\-]?\s+/,
+    ''
+  );
+}

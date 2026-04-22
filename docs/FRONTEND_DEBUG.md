@@ -12,6 +12,54 @@ Tracks bugs investigated in the frontend, what was tried, what worked, and what 
 
 ## Log
 
+### FE-8: Backend taxonomy tags leaking in entity definitions (2026-04-21) — RESOLVED (defensive)
+
+**Symptom:** Glossary entries for NPCs showed backend taxonomy tags like `potential_ally` as the first word of the definition. User reported: `"Roric the Fen-Grown"` displayed `potential_ally Gaunt man in his 40s...`.
+
+**Investigation:**
+- Source of the leak is the AI narrator — on entity-creation prompts, it emits an internal role tag at the start of the definition string. That's bookkeeping, not player prose.
+- Three places render `entity.definition` / `npc.definition` / `match.definition` raw: `GlossaryTab.js:106`, `NPCTab.js:28`, `EntityPopup.js:75`. First fix attempt touched only GlossaryTab — user confirmed the leak still appeared, meaning it was either NPCTab or EntityPopup surfacing it (or the GlossaryTab regex didn't match the actual surface form, e.g. `"potential_ally"` quoted, `potential_ally:` colon-separated).
+- Broadened the regex to handle `potential_ally`, `"potential_ally"`, `[potential_ally]`, `potential_ally: ...`, `potential_ally - ...` — all require at least one underscore segment so single lowercase words and Capital-case definitions are untouched.
+
+**Fix:**
+- Moved `cleanDefinition` from `GlossaryTab.js` into `lib/renderLinkedText.js` as a named export.
+- Applied it in all three render sites: `GlossaryTab`, `NPCTab`, `EntityPopup`.
+- Broadened the regex to `^["\[]?(snake_case)["\]]?\s*[:\-]?\s+`.
+
+**Root cause is backend** — narrator prompt should not emit the taxonomy tag in player-facing text. This is a frontend defensive strip. Flag to backend team if they want it fixed upstream.
+
+---
+
+### FE-7: Glossary tab hides action dock / scrolls narrative to top (2026-04-21) — RESOLVED
+
+**Symptom:** Opening the Glossary sidebar tab hid the action dock (it dropped below the visible viewport) and the narrative column scrolled to the top (showing the prologue). Other sidebar tabs didn't trigger this. User asked to compare what was different about GlossaryTab vs the other tabs.
+
+**First-pass fix (insufficient):** Dropped `min-height: 820px` on `.pageContainer` on the theory that short laptop viewports were making the body scroll and hiding the dock on focus. User reported the issue still happened after that fix, so the min-height was related but not the whole story.
+
+**Second investigation — the real root cause:**
+Compared GlossaryTab, CharacterTab, NPCTab, InventoryTab. The distinctive thing about GlossaryTab was **how much content it renders** — 20–30+ entries is typical — not the search input or the category filter row. The other tabs show only a handful of items.
+
+The layout bug was in `Sidebar.module.css`:
+```css
+.tabContent {
+  flex: 1;
+  overflow-y: auto;
+  ...
+}
+```
+This is a flex child inside `.sidebar` (a flex column), and it's supposed to scroll internally when the content is tall. But **flex children default to `min-height: auto`**, which equals the content's intrinsic height. So when `.tabContent` had 2000px of glossary content, its minimum height became 2000px — `flex: 1` couldn't shrink below that, the sidebar itself grew to 2000px to contain it, the grid row on `.mainContent` stretched to match (grid implicit row auto-sizes to the tallest child), `.narrativeColumn` therefore also stretched to 2000px, and the `ActionPanel` at the bottom of the narrative column sat at y≈2000 — far below the viewport.
+
+Tabs like CharacterTab didn't trigger this because their content was short enough to fit in the natural `.tabContent` height.
+
+**Fix:**
+- Added `min-height: 0` to both `.sidebar` and `.tabContent` so flex children can shrink below content height and `overflow-y: auto` on `.tabContent` actually engages.
+- Added `overflow: hidden` on `.sidebar` as a safety rail.
+- Added `contain: layout paint` on `.tabContent` so internal reflows can't cascade to ancestors.
+
+**Lesson:** Any flex child that has `overflow` (and therefore needs to scroll internally) MUST also set `min-height: 0` (or `min-width: 0` for row direction). Without it, the flex child refuses to shrink below its content size, which defeats the whole point of overflow scrolling in a flex layout. This is one of the more common flexbox gotchas and worth a CLAUDE.md note for future components.
+
+---
+
 ### FE-6: Debug panel on /play shows no entries (2026-04-18) — OPEN (backend)
 
 **Symptom:** On `/play` with debug mode toggled on, the DebugPanel drawer renders but the entry count stays at 0. No turn cards or API entries appear, even after taking advancing actions.

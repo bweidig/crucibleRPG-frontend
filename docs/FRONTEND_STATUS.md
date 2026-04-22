@@ -35,6 +35,26 @@
 
 ## Recent Work (This Session: 2026-04-21)
 
+### Glossary dock-hiding + taxonomy leak (FE-7 + FE-8)
+
+Two of the three bugs from the prior round weren't fully fixed. Investigated both and logged in FRONTEND_DEBUG as FE-7 and FE-8.
+
+**FE-7: Glossary tab hid the action dock and scrolled the narrative to the prologue.** First-pass fix (dropping `min-height: 820px`) was related but not the root cause. Real issue was a flexbox gotcha: `.tabContent` is a flex child with `overflow-y: auto`, but flex children default to `min-height: auto` = content intrinsic height. With 20–30+ glossary entries, `.tabContent` refused to shrink below its 2000px content height, the sidebar grew to match, the grid row on `.mainContent` auto-sized to the tallest child, the narrative column stretched to 2000px, and the ActionPanel at the bottom was pushed far below the viewport. Other tabs have much less content, so they didn't expose the bug.
+
+Fix: added `min-height: 0` to both `.sidebar` and `.tabContent` (standard flex-overflow pattern), plus `overflow: hidden` on `.sidebar` and `contain: layout paint` on `.tabContent` for defensive isolation.
+
+**FE-8: "potential_ally" taxonomy tag still leaked through.** First-pass fix only touched `GlossaryTab.js` — the same raw `.definition` rendering also lives in `NPCTab.js` and `EntityPopup.js`, and the original regex was too narrow to catch quoted, bracketed, or colon-separated variants. Broadened:
+- Moved `cleanDefinition` out of `GlossaryTab.js` and into `lib/renderLinkedText.js` as a named export.
+- Applied it in all three render sites (`GlossaryTab`, `NPCTab`, `EntityPopup`).
+- Broadened regex to `^["\[]?(snake_case)["\]]?\s*[:\-]?\s+` — strips `potential_ally`, `"potential_ally"`, `[potential_ally]`, `potential_ally: `, `potential_ally - `.
+
+Root cause for FE-8 is backend (narrator prompt emits the taxonomy tag) — the frontend strip is defensive. Proper fix needs backend prompt tightening.
+
+**Files modified:** `app/play/components/Sidebar.module.css`, `app/play/components/GlossaryTab.js`, `app/play/components/NPCTab.js`, `app/play/components/EntityPopup.js`, `lib/renderLinkedText.js`, `docs/FRONTEND_DEBUG.md` (FE-7, FE-8 entries added)
+**Files synced:** `claude-upload/component-Sidebar.module.css`, `claude-upload/component-GlossaryTab.js`, `claude-upload/component-NPCTab.js`, `claude-upload/component-EntityPopup.js`, `claude-upload/play-full.js`, `claude-upload/FRONTEND_DEBUG.md`, `claude-upload/FRONTEND_STATUS.md`
+
+---
+
 ### /play bug round — viewport min-height, full history loading, glossary leak
 
 Three issues reported together.

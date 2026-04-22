@@ -2916,7 +2916,7 @@ export default function Die({
 // ============================================================
 import { useState, useEffect, useCallback } from 'react';
 import * as api from '@/lib/api';
-import { renderLinkedText } from '@/lib/renderLinkedText';
+import { renderLinkedText, cleanDefinition } from '@/lib/renderLinkedText';
 import styles from './EntityPopup.module.css';
 
 function getDurabilityColor(dur, max) {
@@ -2988,7 +2988,7 @@ export default function EntityPopup({ entity, glossaryData, glossaryTerms, notes
           {match ? (
             <>
               <div className={styles.category}>{match.category}</div>
-              <div className={styles.definition}>{renderLinkedText(match.definition, glossaryTerms, onEntityClick)}</div>
+              <div className={styles.definition}>{renderLinkedText(cleanDefinition(match.definition), glossaryTerms, onEntityClick)}</div>
             </>
           ) : (
             <div className={styles.notFound}>
@@ -3215,7 +3215,7 @@ function formatPreset(preset) {
 // FILE: app/play/components/GlossaryTab.js
 // ============================================================
 import { useState, useMemo } from 'react';
-import { renderLinkedText } from '@/lib/renderLinkedText';
+import { renderLinkedText, cleanDefinition } from '@/lib/renderLinkedText';
 import styles from './GlossaryTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
 
@@ -3229,17 +3229,6 @@ const TABS = [
 ];
 
 const KNOWN_CATEGORIES = new Set(['npc', 'location', 'faction', 'item']);
-
-// Strip a leading backend taxonomy tag from a glossary definition.
-// The AI narrator sometimes prepends a snake_case role tag (e.g.
-// "potential_ally Gaunt man in his 40s...") which is internal bookkeeping,
-// not player-facing prose. Matches: start, lowercase word, at least one
-// underscore-separated segment, then whitespace.
-// Leaves single-word or properly-capitalized definitions untouched.
-function cleanDefinition(def) {
-  if (!def || typeof def !== 'string') return def;
-  return def.replace(/^[a-z][a-z0-9]*(?:_[a-z0-9]+)+\s+/, '');
-}
 
 export default function GlossaryTab({ data, characterData, glossaryTerms, onEntityClick }) {
   const [search, setSearch] = useState('');
@@ -4526,7 +4515,7 @@ export default function NotesTab({ data, gameId, onNotesChange }) {
 // ============================================================
 // FILE: app/play/components/NPCTab.js
 // ============================================================
-import { renderLinkedText } from '@/lib/renderLinkedText';
+import { renderLinkedText, cleanDefinition } from '@/lib/renderLinkedText';
 import styles from './NPCTab.module.css';
 import sidebarStyles from './Sidebar.module.css';
 
@@ -4553,7 +4542,7 @@ export default function NPCTab({ glossaryData, glossaryTerms, onEntityClick }) {
             <span className={styles.npcName}>{npc.term}</span>
             <span className={styles.npcCategory}>NPC</span>
           </div>
-          <div className={styles.npcDefinition}>{renderLinkedText(npc.definition, glossaryTerms, onEntityClick)}</div>
+          <div className={styles.npcDefinition}>{renderLinkedText(cleanDefinition(npc.definition), glossaryTerms, onEntityClick)}</div>
           {npc.discoveredAt && (
             <div className={styles.npcDiscovered}>Discovered: {npc.discoveredAt}</div>
           )}
