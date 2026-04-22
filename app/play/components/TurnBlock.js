@@ -333,7 +333,7 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
   const { pre: preRoll, post: postRoll } = splitNarrative(turn.narrative);
 
   return (
-    <div className={`${styles.turnBlock} ${isNew ? styles.turnIn : ''}`} ref={ref}>
+    <div className={`${styles.turnBlock} ${isNew ? styles.turnIn : ''}`} ref={ref} data-turn-number={turn.number ?? undefined}>
       <div className={styles.turnHeader}>
         {turnLabel && <span className={styles.turnLabel}>{turnLabel}</span>}
         {metaStr && <span className={styles.turnMeta}>{metaStr}</span>}

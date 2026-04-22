@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import AuthAvatar from '@/components/AuthAvatar';
 import styles from './TopBar.module.css';
@@ -37,9 +38,50 @@ function formatTopBarClock(clock) {
   return { day, timeStr, weather: clock.weather || null };
 }
 
+// Turn scrubber — drag the slider to scroll the narrative to any prior turn.
+// Sits in place of the old plain turn pill so the live turn number stays
+// visible in the topbar. Finds the target turn via `data-turn-number`
+// attributes on TurnBlock root elements.
+function TurnScrubber({ turnNumber }) {
+  const [value, setValue] = useState(turnNumber ?? 1);
+
+  // When a new turn arrives (turnNumber grows), follow it so the slider
+  // always lands at "latest" unless the user drags it.
+  useEffect(() => {
+    if (turnNumber != null) setValue(turnNumber);
+  }, [turnNumber]);
+
+  const handleInput = useCallback((e) => {
+    const n = Number(e.target.value);
+    setValue(n);
+    const el = document.querySelector(`[data-turn-number="${n}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
+
+  if (turnNumber == null || turnNumber < 1) return null;
+
+  return (
+    <div className={styles.scrubber} title={`Scrub to turn · currently at ${value}`}>
+      <span className={styles.scrubberLabel}>TURN</span>
+      <input
+        type="range"
+        className={styles.scrubberRange}
+        min={1}
+        max={turnNumber}
+        value={value}
+        onChange={handleInput}
+        onInput={handleInput}
+        aria-label="Scrub to turn"
+      />
+      <span className={styles.scrubberValue}>{value}/{turnNumber}</span>
+    </div>
+  );
+}
+
 export default function TopBar({ setting, clock, turnNumber, sseConnected, sidebarOpen, onToggleSidebar, onOpenSettings, debugMode }) {
   const clockData = formatTopBarClock(clock);
-  const turnDisplay = turnNumber != null ? String(turnNumber) : null;
 
   return (
     <header className={styles.topBar}>
@@ -59,22 +101,17 @@ export default function TopBar({ setting, clock, turnNumber, sseConnected, sideb
         {clockData && (
           <div className={styles.clockDisplay}>
             {clockData.day && <span className={styles.clockDay}>DAY {clockData.day}</span>}
-            <span className={styles.clockDot}>{'\u00b7'}</span>
+            <span className={styles.clockDot}>{'·'}</span>
             <span className={styles.clockSegment}>{clockData.timeStr}</span>
             {clockData.weather && (
               <>
-                <span className={styles.clockDot}>{'\u00b7'}</span>
+                <span className={styles.clockDot}>{'·'}</span>
                 <span className={styles.clockWeather}>{clockData.weather}</span>
               </>
             )}
           </div>
         )}
-        {turnDisplay && (
-          <div className={styles.turnPill} title={`Turn ${turnDisplay}`}>
-            <span className={styles.turnPillLabel}>TURN</span>
-            <span className={styles.turnPillNumber}>{turnDisplay}</span>
-          </div>
-        )}
+        <TurnScrubber turnNumber={turnNumber} />
         {debugMode && (
           <div className={styles.debugBadge} title="Debug mode active (Ctrl+Shift+D to toggle)">
             DEBUG

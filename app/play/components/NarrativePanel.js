@@ -26,20 +26,45 @@ const NarrativePanel = forwardRef(function NarrativePanel({
   const bottomRef = useRef(null);
   const scrollRef = useRef(null);
   const recapShownRef = useRef(false);
+  // Tracks whether the initial historical-load scroll has already happened.
+  // Prevents the /history async fetch (which adds older turns to the top)
+  // from yanking the user back to the bottom if they've scrolled up to read.
+  const hasInitialScrolledRef = useRef(false);
 
-  // Auto-scroll: first turn of new game → top; subsequent new turns → turn header; saved game load → bottom
   useEffect(() => {
     if (turns.length === 0) return;
     const lastTurn = turns[turns.length - 1];
-    if (lastTurn._isNew && turns.length === 1) {
-      // New game: first turn just arrived — scroll to top so player sees prologue
-      if (scrollRef.current) scrollRef.current.scrollTop = 0;
-    } else if (lastTurn._isNew && newTurnRef.current) {
+
+    if (lastTurn._isNew) {
+      // A new turn just arrived. First-turn-of-a-new-game → scroll to top so
+      // the player reads the prologue. Subsequent new turns → smooth-scroll
+      // to the new turn's header.
+      if (turns.length === 1 && scrollRef.current) {
+        scrollRef.current.scrollTop = 0;
+      } else if (newTurnRef.current) {
+        requestAnimationFrame(() => {
+          newTurnRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
+      return;
+    }
+
+    // Non-new last turn → this is either the initial historical load or a
+    // later /history merge. Only jump to the bottom on the INITIAL load;
+    // later merges (which prepend older turns) must not disturb the user's
+    // scroll position.
+    if (!hasInitialScrolledRef.current) {
+      hasInitialScrolledRef.current = true;
+      // Double RAF so the layout (including dice/consequences/images) has
+      // settled before we measure scrollHeight; a single RAF sometimes
+      // measures a too-small height and leaves us short of the true bottom.
       requestAnimationFrame(() => {
-        newTurnRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        requestAnimationFrame(() => {
+          if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+          }
+        });
       });
-    } else {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [turns.length]);
 

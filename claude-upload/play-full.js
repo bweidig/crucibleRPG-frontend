@@ -4279,20 +4279,45 @@ const NarrativePanel = forwardRef(function NarrativePanel({
   const bottomRef = useRef(null);
   const scrollRef = useRef(null);
   const recapShownRef = useRef(false);
+  // Tracks whether the initial historical-load scroll has already happened.
+  // Prevents the /history async fetch (which adds older turns to the top)
+  // from yanking the user back to the bottom if they've scrolled up to read.
+  const hasInitialScrolledRef = useRef(false);
 
-  // Auto-scroll: first turn of new game → top; subsequent new turns → turn header; saved game load → bottom
   useEffect(() => {
     if (turns.length === 0) return;
     const lastTurn = turns[turns.length - 1];
-    if (lastTurn._isNew && turns.length === 1) {
-      // New game: first turn just arrived — scroll to top so player sees prologue
-      if (scrollRef.current) scrollRef.current.scrollTop = 0;
-    } else if (lastTurn._isNew && newTurnRef.current) {
+
+    if (lastTurn._isNew) {
+      // A new turn just arrived. First-turn-of-a-new-game → scroll to top so
+      // the player reads the prologue. Subsequent new turns → smooth-scroll
+      // to the new turn's header.
+      if (turns.length === 1 && scrollRef.current) {
+        scrollRef.current.scrollTop = 0;
+      } else if (newTurnRef.current) {
+        requestAnimationFrame(() => {
+          newTurnRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
+      return;
+    }
+
+    // Non-new last turn → this is either the initial historical load or a
+    // later /history merge. Only jump to the bottom on the INITIAL load;
+    // later merges (which prepend older turns) must not disturb the user's
+    // scroll position.
+    if (!hasInitialScrolledRef.current) {
+      hasInitialScrolledRef.current = true;
+      // Double RAF so the layout (including dice/consequences/images) has
+      // settled before we measure scrollHeight; a single RAF sometimes
+      // measures a too-small height and leaves us short of the true bottom.
       requestAnimationFrame(() => {
-        newTurnRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        requestAnimationFrame(() => {
+          if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+          }
+        });
       });
-    } else {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [turns.length]);
 
@@ -7472,6 +7497,7 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
 // ============================================================
 // FILE: app/play/components/TopBar.js
 // ============================================================
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import AuthAvatar from '@/components/AuthAvatar';
 import styles from './TopBar.module.css';
@@ -7511,9 +7537,50 @@ function formatTopBarClock(clock) {
   return { day, timeStr, weather: clock.weather || null };
 }
 
+// Turn scrubber — drag the slider to scroll the narrative to any prior turn.
+// Sits in place of the old plain turn pill so the live turn number stays
+// visible in the topbar. Finds the target turn via `data-turn-number`
+// attributes on TurnBlock root elements.
+function TurnScrubber({ turnNumber }) {
+  const [value, setValue] = useState(turnNumber ?? 1);
+
+  // When a new turn arrives (turnNumber grows), follow it so the slider
+  // always lands at "latest" unless the user drags it.
+  useEffect(() => {
+    if (turnNumber != null) setValue(turnNumber);
+  }, [turnNumber]);
+
+  const handleInput = useCallback((e) => {
+    const n = Number(e.target.value);
+    setValue(n);
+    const el = document.querySelector(`[data-turn-number="${n}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
+
+  if (turnNumber == null || turnNumber < 1) return null;
+
+  return (
+    <div className={styles.scrubber} title={`Scrub to turn · currently at ${value}`}>
+      <span className={styles.scrubberLabel}>TURN</span>
+      <input
+        type="range"
+        className={styles.scrubberRange}
+        min={1}
+        max={turnNumber}
+        value={value}
+        onChange={handleInput}
+        onInput={handleInput}
+        aria-label="Scrub to turn"
+      />
+      <span className={styles.scrubberValue}>{value}/{turnNumber}</span>
+    </div>
+  );
+}
+
 export default function TopBar({ setting, clock, turnNumber, sseConnected, sidebarOpen, onToggleSidebar, onOpenSettings, debugMode }) {
   const clockData = formatTopBarClock(clock);
-  const turnDisplay = turnNumber != null ? String(turnNumber) : null;
 
   return (
     <header className={styles.topBar}>
@@ -7533,22 +7600,17 @@ export default function TopBar({ setting, clock, turnNumber, sseConnected, sideb
         {clockData && (
           <div className={styles.clockDisplay}>
             {clockData.day && <span className={styles.clockDay}>DAY {clockData.day}</span>}
-            <span className={styles.clockDot}>{'\u00b7'}</span>
+            <span className={styles.clockDot}>{'·'}</span>
             <span className={styles.clockSegment}>{clockData.timeStr}</span>
             {clockData.weather && (
               <>
-                <span className={styles.clockDot}>{'\u00b7'}</span>
+                <span className={styles.clockDot}>{'·'}</span>
                 <span className={styles.clockWeather}>{clockData.weather}</span>
               </>
             )}
           </div>
         )}
-        {turnDisplay && (
-          <div className={styles.turnPill} title={`Turn ${turnDisplay}`}>
-            <span className={styles.turnPillLabel}>TURN</span>
-            <span className={styles.turnPillNumber}>{turnDisplay}</span>
-          </div>
-        )}
+        <TurnScrubber turnNumber={turnNumber} />
         {debugMode && (
           <div className={styles.debugBadge} title="Debug mode active (Ctrl+Shift+D to toggle)">
             DEBUG
@@ -8026,7 +8088,7 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
   const { pre: preRoll, post: postRoll } = splitNarrative(turn.narrative);
 
   return (
-    <div className={`${styles.turnBlock} ${isNew ? styles.turnIn : ''}`} ref={ref}>
+    <div className={`${styles.turnBlock} ${isNew ? styles.turnIn : ''}`} ref={ref} data-turn-number={turn.number ?? undefined}>
       <div className={styles.turnHeader}>
         {turnLabel && <span className={styles.turnLabel}>{turnLabel}</span>}
         {metaStr && <span className={styles.turnMeta}>{metaStr}</span>}

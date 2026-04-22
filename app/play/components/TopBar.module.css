@@ -142,19 +142,19 @@
   flex-shrink: 0;
 }
 
-/* ─── Turn Counter Pill ─── */
+/* ─── Turn Scrubber ─── */
 
-.turnPill {
+.scrubber {
   display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 4px 12px;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
   background: var(--bg-main);
   border: 1px solid var(--border-card);
   border-radius: 12px;
 }
 
-.turnPillLabel {
+.scrubberLabel {
   font-family: var(--font-cinzel);
   font-size: 9px;
   font-weight: 700;
@@ -162,23 +162,87 @@
   letter-spacing: 0.18em;
 }
 
-.turnPillNumber {
+.scrubberValue {
   font-family: var(--font-jetbrains);
   font-size: 11px;
   font-weight: 500;
   color: var(--accent-gold);
   letter-spacing: 0.04em;
+  min-width: 38px;
+  text-align: right;
+}
+
+.scrubberRange {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 140px;
+  height: 4px;
+  background: #2a2418;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.scrubberRange::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: var(--accent-gold);
+  border-radius: 50%;
+  border: 1px solid #2a2418;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+}
+
+.scrubberRange::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 0 4px rgba(201, 168, 76, 0.2);
+}
+
+.scrubberRange::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  box-shadow: 0 0 0 6px rgba(201, 168, 76, 0.25);
+}
+
+.scrubberRange::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: var(--accent-gold);
+  border-radius: 50%;
+  border: 1px solid #2a2418;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+}
+
+.scrubberRange::-moz-range-thumb:hover {
+  box-shadow: 0 0 0 4px rgba(201, 168, 76, 0.2);
+}
+
+.scrubberRange:focus-visible {
+  outline: 2px solid rgba(201, 168, 76, 0.55);
+  outline-offset: 4px;
+}
+
+@media (max-width: 1023px) {
+  .scrubberRange {
+    width: 100px;
+  }
 }
 
 @media (max-width: 768px) {
-  .turnPill {
+  .scrubber {
     padding: 3px 8px;
+    gap: 6px;
   }
-  .turnPillLabel {
+  .scrubberLabel {
     font-size: 8px;
   }
-  .turnPillNumber {
+  .scrubberValue {
     font-size: 10px;
+    min-width: 28px;
+  }
+  .scrubberRange {
+    width: 70px;
   }
 }
 
