@@ -507,7 +507,7 @@ export default function MenuPage() {
       {/* ═══ MAIN CONTENT ═══ */}
       <div style={{
         flex: 1, position: 'relative', zIndex: 1,
-        maxWidth: 680, width: '100%', margin: '0 auto',
+        maxWidth: 760, width: '100%', margin: '0 auto',
         padding: '0 clamp(20px, 5vw, 32px)',
         boxSizing: 'border-box',
         display: 'flex', flexDirection: 'column',
