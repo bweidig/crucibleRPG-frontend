@@ -22,7 +22,7 @@ export default function NPCTab({ glossaryData, glossaryTerms, onEntityClick }) {
       {npcs.map(npc => (
         <div key={npc.id || npc.term} className={styles.npcCard} onClick={() => onEntityClick?.({ term: npc.term, type: 'npc', id: npc.id })} style={{ cursor: 'pointer' }}>
           <div className={styles.npcHeader}>
-            <span className={styles.npcName}>{npc.term}</span>
+            <span className={styles.npcName}>{cleanDefinition(npc.term)}</span>
             <span className={styles.npcCategory}>NPC</span>
           </div>
           <div className={styles.npcDefinition}>{renderLinkedText(cleanDefinition(npc.definition), glossaryTerms, onEntityClick)}</div>

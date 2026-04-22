@@ -12,21 +12,30 @@ Tracks bugs investigated in the frontend, what was tried, what worked, and what 
 
 ## Log
 
-### FE-8: Backend taxonomy tags leaking in entity definitions (2026-04-21) — RESOLVED (defensive)
+### FE-8: Backend taxonomy tags leaking in entity definitions (2026-04-21) — RESOLVED (defensive, after 2 rounds)
 
-**Symptom:** Glossary entries for NPCs showed backend taxonomy tags like `potential_ally` as the first word of the definition. User reported: `"Roric the Fen-Grown"` displayed `potential_ally Gaunt man in his 40s...`.
+**Symptom:** Glossary entries for NPCs showed backend taxonomy tags like `potential_ally` as the first word. User reported: `"Roric the Fen-Grown"` displayed `potential_ally Gaunt man in his 40s...`.
 
-**Investigation:**
-- Source of the leak is the AI narrator — on entity-creation prompts, it emits an internal role tag at the start of the definition string. That's bookkeeping, not player prose.
-- Three places render `entity.definition` / `npc.definition` / `match.definition` raw: `GlossaryTab.js:106`, `NPCTab.js:28`, `EntityPopup.js:75`. First fix attempt touched only GlossaryTab — user confirmed the leak still appeared, meaning it was either NPCTab or EntityPopup surfacing it (or the GlossaryTab regex didn't match the actual surface form, e.g. `"potential_ally"` quoted, `potential_ally:` colon-separated).
-- Broadened the regex to handle `potential_ally`, `"potential_ally"`, `[potential_ally]`, `potential_ally: ...`, `potential_ally - ...` — all require at least one underscore segment so single lowercase words and Capital-case definitions are untouched.
+**Round 1 attempt:**
+- Added `cleanDefinition` helper to `GlossaryTab.js` stripping `^[a-z][a-z0-9]*(?:_[a-z0-9]+)+\s+`.
+- User confirmed the leak still appeared.
 
-**Fix:**
-- Moved `cleanDefinition` from `GlossaryTab.js` into `lib/renderLinkedText.js` as a named export.
-- Applied it in all three render sites: `GlossaryTab`, `NPCTab`, `EntityPopup`.
-- Broadened the regex to `^["\[]?(snake_case)["\]]?\s*[:\-]?\s+`.
+**Round 2 investigation:**
+- Broadened the regex to catch quoted, bracketed, colon- or dash-separated variants: `^["\[]?(snake_case)["\]]?\s*[:\-]?\s+`.
+- Moved the helper to `lib/renderLinkedText.js` and applied it in `GlossaryTab`, `NPCTab`, and `EntityPopup`.
+- User confirmed the leak STILL appeared even after the broadened regex and multi-site application.
 
-**Root cause is backend** — narrator prompt should not emit the taxonomy tag in player-facing text. This is a frontend defensive strip. Flag to backend team if they want it fixed upstream.
+**Round 3 investigation — the real scope:**
+- Tag wasn't (only) in `definition` — it was also in `term` (the entry name itself). Backend was storing the NPC as `"potential_ally Roric the Fen-Grown"` in the `term` field, so `entry.term` displayed the tag too. The `definition` strip worked fine, it just wasn't the only surface.
+- Also meant `buildGlossaryTermSet` was putting tagged terms into the narrative-bracket-link Set, so `[Roric the Fen-Grown]` in narrative text wouldn't match a glossary term stored as `"potential_ally Roric the Fen-Grown"` — bracket links silently failed.
+- And `EntityPopup` looked up the clicked entity via `e.term.toLowerCase() === entity.term.toLowerCase()` — which could fail or succeed based on whether the click path preserved the raw tagged term.
+
+**Fix (round 3):**
+- Applied `cleanDefinition` to `term` fields too — `entry.term` in GlossaryTab, `npc.term` in NPCTab, `entity.term`/`entity.name` in EntityPopup header.
+- Updated `buildGlossaryTermSet` to run each term through `cleanDefinition` before lowercasing.
+- Updated `EntityPopup`'s glossary-match and notes-match logic to normalize both sides via `cleanDefinition` before comparing.
+
+**Root cause is backend** — the narrator's glossary-entry generation prompt shouldn't emit the taxonomy tag in either `term` or `definition`. The frontend strips are defensive only. Flag to backend team.
 
 ---
 

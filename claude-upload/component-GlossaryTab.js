@@ -96,7 +96,7 @@ export default function GlossaryTab({ data, characterData, glossaryTerms, onEnti
           }
           onEntityClick?.(entity);
         }}>
-          <div className={styles.entryTerm}>{entry.term}</div>
+          <div className={styles.entryTerm}>{cleanDefinition(entry.term)}</div>
           <div className={styles.entryMeta}>
             <span className={styles.entryCategory}>{entry.category}</span>
             {entry.discoveredAt && (

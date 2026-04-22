@@ -2940,15 +2940,17 @@ export default function EntityPopup({ entity, glossaryData, glossaryTerms, notes
     return () => window.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
-  // Look up entity in glossary
+  // Look up entity in glossary. Compare via cleanDefinition on both sides so
+  // a tagged glossary term like "potential_ally Roric" still matches a click
+  // on "Roric" (or vice-versa).
   const entries = glossaryData?.entries || [];
-  const match = entries.find(e =>
-    (e.term || '').toLowerCase() === (entity.term || '').toLowerCase()
-  );
+  const normalizeTerm = (s) => (cleanDefinition(s) || '').toLowerCase();
+  const entityTermNorm = normalizeTerm(entity.term || entity.name);
+  const match = entries.find(e => normalizeTerm(e.term) === entityTermNorm);
 
   // Find existing notes for this entity
   const notes = (notesData?.notes || []).filter(n =>
-    (n.entityName || '').toLowerCase() === (entity.term || '').toLowerCase() ||
+    normalizeTerm(n.entityName) === entityTermNorm ||
     (n.entityType === entity.type && n.entityId === entity.id)
   );
 
@@ -2980,7 +2982,7 @@ export default function EntityPopup({ entity, glossaryData, glossaryTerms, notes
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
         <div className={styles.header}>
-          <span className={styles.entityName}>{entity.term || entity.name || 'Unknown'}</span>
+          <span className={styles.entityName}>{cleanDefinition(entity.term || entity.name) || 'Unknown'}</span>
           <button className={styles.closeButton} onClick={onClose} aria-label="Close">&times;</button>
         </div>
 
@@ -3312,7 +3314,7 @@ export default function GlossaryTab({ data, characterData, glossaryTerms, onEnti
           }
           onEntityClick?.(entity);
         }}>
-          <div className={styles.entryTerm}>{entry.term}</div>
+          <div className={styles.entryTerm}>{cleanDefinition(entry.term)}</div>
           <div className={styles.entryMeta}>
             <span className={styles.entryCategory}>{entry.category}</span>
             {entry.discoveredAt && (
@@ -4539,7 +4541,7 @@ export default function NPCTab({ glossaryData, glossaryTerms, onEntityClick }) {
       {npcs.map(npc => (
         <div key={npc.id || npc.term} className={styles.npcCard} onClick={() => onEntityClick?.({ term: npc.term, type: 'npc', id: npc.id })} style={{ cursor: 'pointer' }}>
           <div className={styles.npcHeader}>
-            <span className={styles.npcName}>{npc.term}</span>
+            <span className={styles.npcName}>{cleanDefinition(npc.term)}</span>
             <span className={styles.npcCategory}>NPC</span>
           </div>
           <div className={styles.npcDefinition}>{renderLinkedText(cleanDefinition(npc.definition), glossaryTerms, onEntityClick)}</div>
