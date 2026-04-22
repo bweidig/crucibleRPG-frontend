@@ -64,11 +64,10 @@ function DiffBadge({ difficulty }) {
 
 function SectionLabel({ text, count }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 16 }}>
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 14 }}>
       <span style={{
-        fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, fontWeight: 700,
-        color: 'rgba(201,168,76,0.7)', letterSpacing: '0.12em',
-        textTransform: 'uppercase', lineHeight: 1.15,
+        fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600,
+        color: 'var(--accent-gold)', letterSpacing: '0.15em',
       }}>{text}</span>
       {count != null && (
         <span style={{
@@ -102,32 +101,19 @@ function CharacterSnapshot({ detail }) {
 
   return (
     <div style={{ padding: '14px 0', borderTop: '1px solid var(--border-card-separator)', borderBottom: '1px solid var(--border-card-separator)' }}>
-      {/* Stats grid — 6 columns desktop, 3 on mobile via page.module.css */}
-      <div data-stats-grid style={{
-        display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6,
-        marginBottom: (conditions.length > 0 || skills.length > 0) ? 18 : 0,
-      }}>
+      {/* Stats grid */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: conditions.length > 0 || skills.length > 0 ? 14 : 0 }}>
         {Object.entries(stats).map(([key, val]) => {
           const base = typeof val === 'object' ? (val.base ?? val.effective ?? 0) : val;
           const effective = typeof val === 'object' ? (val.effective ?? val.base ?? 0) : val;
-          const color = effective < base ? 'var(--color-danger)'
-                      : effective > base ? 'var(--color-success)'
-                      : 'var(--text-stat-bright)';
+          const color = effective < base ? 'var(--color-danger)' : effective > base ? 'var(--color-success)' : 'var(--text-primary)';
           return (
             <div key={key} style={{
-              background: 'rgba(10,14,26,0.5)',
-              border: '1px solid var(--border-primary)',
-              borderRadius: 4, padding: '8px 6px', textAlign: 'center',
+              minWidth: 52, padding: '6px 8px', textAlign: 'center',
+              background: 'var(--bg-main)', borderRadius: 5, border: '1px solid var(--border-primary)',
             }}>
-              <div style={{
-                fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 600,
-                color: 'var(--accent-gold)', letterSpacing: '0.15em',
-                opacity: 0.85, marginBottom: 4,
-              }}>{key.toUpperCase()}</div>
-              <div style={{
-                fontFamily: 'var(--font-jetbrains)', fontSize: 15, fontWeight: 500,
-                color, lineHeight: 1.15,
-              }}>{Number(effective).toFixed(1)}</div>
+              <div style={{ fontFamily: 'var(--font-cinzel)', fontSize: 11, fontWeight: 700, color: '#9a8545', letterSpacing: '0.08em' }}>{key.toUpperCase()}</div>
+              <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 15, fontWeight: 500, color }}>{Number(effective).toFixed(1)}</div>
             </div>
           );
         })}
@@ -144,25 +130,15 @@ function CharacterSnapshot({ detail }) {
               const stat = typeof c === 'object' ? c.stat : null;
               return (
                 <span key={i} style={{
-                  display: 'inline-flex', alignItems: 'center',
-                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, fontWeight: 500,
-                  letterSpacing: '0.04em', lineHeight: 1.15,
-                  padding: '6px 10px', borderRadius: 4,
+                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 12,
+                  padding: '3px 10px', borderRadius: 10,
                   color: isBuff ? 'var(--color-success)' : 'var(--color-danger)',
-                  background: isBuff ? 'rgba(138,186,122,0.06)' : 'rgba(232,132,90,0.08)',
-                  border: `1px solid ${isBuff ? 'rgba(138,186,122,0.25)' : 'rgba(232,132,90,0.3)'}`,
+                  background: isBuff ? '#142018' : '#201416',
+                  border: `1px solid ${isBuff ? '#8aba7a33' : '#e8845a33'}`,
                 }}>
                   {name}
-                  {penalty != null && (
-                    <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, marginLeft: 4 }}>
-                      {isBuff ? `+${Math.abs(penalty)}` : `\u2212${Math.abs(penalty)}`}
-                    </span>
-                  )}
-                  {stat && (
-                    <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, marginLeft: 4, opacity: 0.7 }}>
-                      {stat}
-                    </span>
-                  )}
+                  {penalty != null && <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, marginLeft: 4 }}>{isBuff ? `+${Math.abs(penalty)}` : `\u2212${Math.abs(penalty)}`}</span>}
+                  {stat && <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, marginLeft: 2, opacity: 0.7 }}>{stat}</span>}
                 </span>
               );
             })}
@@ -185,20 +161,12 @@ function CharacterSnapshot({ detail }) {
               const mod = typeof sk === 'object' ? sk.modifier : null;
               return (
                 <span key={i} style={{
-                  display: 'inline-flex', alignItems: 'center',
-                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, fontWeight: 500,
-                  letterSpacing: '0.04em', lineHeight: 1.15,
-                  padding: '6px 10px', borderRadius: 4,
-                  color: 'var(--color-success)',
-                  background: 'rgba(138,186,122,0.06)',
-                  border: '1px solid rgba(138,186,122,0.25)',
+                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, color: 'var(--text-secondary)',
+                  padding: '3px 10px', borderRadius: 10,
+                  background: 'var(--bg-main)', border: '1px solid var(--border-primary)',
                 }}>
                   {name}
-                  {mod != null && (
-                    <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, marginLeft: 4 }}>
-                      +{mod}
-                    </span>
-                  )}
+                  {mod != null && <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, color: 'var(--accent-gold)', marginLeft: 4 }}>+{mod}</span>}
                 </span>
               );
             })}
@@ -310,14 +278,7 @@ function GameDetailModal({ game, onClose, onNavigate, onDelete }) {
 // ─── METADATA LINE ───
 
 function MetaLine({ game, small }) {
-  const sep = (
-    <span style={{
-      width: 2, height: 2, borderRadius: '50%',
-      background: 'var(--text-muted)', opacity: 0.5,
-      display: 'inline-block',
-      margin: '0 6px',
-    }} />
-  );
+  const sep = <span style={{ color: 'var(--border-primary)', margin: '0 6px' }}>{'\u00B7'}</span>;
   return (
     <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
       {game.storyteller && game.storyteller !== 'pending' && (
@@ -507,7 +468,7 @@ export default function MenuPage() {
       {/* ═══ MAIN CONTENT ═══ */}
       <div style={{
         flex: 1, position: 'relative', zIndex: 1,
-        maxWidth: 760, width: '100%', margin: '0 auto',
+        maxWidth: 680, width: '100%', margin: '0 auto',
         padding: '0 clamp(20px, 5vw, 32px)',
         boxSizing: 'border-box',
         display: 'flex', flexDirection: 'column',
@@ -665,7 +626,7 @@ export default function MenuPage() {
                 color: '#9a8545', marginBottom: 14,
               }}>{heroIsSetup ? 'Setting up...' : (heroGame.setting !== 'pending' ? heroGame.setting : 'New World')}</div>
 
-              {/* Blurb / Setup message */}
+              {/* Blurb / Setup message — clamps to 3 lines; full text in detail modal */}
               {heroIsSetup ? (
                 <p className={styles.heroCardBlurb} style={{
                   fontFamily: 'var(--font-alegreya)', fontSize: 16, fontStyle: 'italic',
@@ -681,24 +642,21 @@ export default function MenuPage() {
               {/* Stats / Conditions / Skills (only for non-setup games) */}
               {!heroIsSetup && heroDetail && <CharacterSnapshot detail={heroDetail} />}
 
-              {/* Resume button — full-width hero CTA */}
-              <button className={styles.resumeBtnHero} onClick={() => navigateToGame(heroGame)} style={{
-                display: 'block', width: '100%', minHeight: 48,
-                background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
-                fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
-                color: 'var(--bg-main)', letterSpacing: '0.2em', lineHeight: 1.15,
-                padding: 14, marginTop: 16, marginBottom: 16,
-                borderRadius: 6, border: 'none',
-                boxShadow: '0 2px 16px rgba(201,168,76,0.15)',
-              }}>{heroIsSetup ? 'CONTINUE SETUP' : 'RESUME'}</button>
-
-              {/* Meta row — below the Resume button */}
+              {/* Footer row */}
               <div style={{
-                display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
-                fontFamily: 'var(--font-alegreya-sans)', fontSize: 12, fontWeight: 400,
-                color: 'var(--text-muted)', lineHeight: 1.5,
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                flexWrap: 'wrap', gap: 12, marginTop: 14,
               }}>
-                <MetaLine game={heroGame} />
+                <button className={styles.resumeBtn} onClick={() => navigateToGame(heroGame)} style={{
+                  background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-bright))',
+                  fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
+                  color: 'var(--bg-main)', padding: '11px 32px', borderRadius: 6,
+                  border: 'none', letterSpacing: '0.08em',
+                  boxShadow: '0 2px 16px rgba(201,168,76,0.2)',
+                }}>{heroIsSetup ? 'CONTINUE SETUP' : 'RESUME'}</button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <MetaLine game={heroGame} />
+                </div>
               </div>
             </div>
 
@@ -716,7 +674,7 @@ export default function MenuPage() {
                 color: 'var(--accent-gold)',
                 fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
                 letterSpacing: '0.25em', lineHeight: 1.15,
-                padding: 18, marginBottom: 56, cursor: 'pointer',
+                padding: 18, marginBottom: 32, cursor: 'pointer',
                 opacity: loaded ? 1 : 0,
                 transform: loaded ? 'translateY(0)' : 'translateY(10px)',
                 transition: 'opacity 1s cubic-bezier(0.16, 1, 0.3, 1) 0.35s, transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.35s, background 0.25s ease, border-color 0.25s ease, color 0.25s ease',
@@ -779,7 +737,7 @@ export default function MenuPage() {
                           color: '#9a8545', marginBottom: 10,
                         }}>{isSetup ? 'Setting up...' : (game.setting !== 'pending' ? game.setting : 'New World')}</div>
 
-                        {/* Blurb — clamps to 2 lines, full text shown in detail modal */}
+                        {/* Blurb — clamps to 2 lines; full text in detail modal */}
                         {isSetup ? (
                           <p className={styles.narrativeCardBlurb} style={{
                             fontFamily: 'var(--font-alegreya)', fontSize: 15, fontStyle: 'italic',
@@ -803,7 +761,7 @@ export default function MenuPage() {
               </div>
             )}
 
-            {/* OLDER GAMES — file-list rows, games at index 3+ */}
+            {/* OLDER GAMES section (compact 2-column grid, games at index 3+) */}
             {olderGames.length > 0 && (
               <div style={{
                 marginTop: 28, marginBottom: 48,
@@ -811,36 +769,55 @@ export default function MenuPage() {
                 transition: 'opacity 1s cubic-bezier(0.16, 1, 0.3, 1) 0.5s, transform 1s cubic-bezier(0.16, 1, 0.3, 1) 0.5s',
               }}>
                 <SectionLabel text="OLDER GAMES" count={olderGames.length} />
-                <div className={styles.olderGrid}>
+                <div className={styles.compactGrid}>
                   {olderGames.map(game => {
                     const isSetup = !game.character?.name || game.status === 'initializing';
-                    const name = isSetup ? 'New Character' : (game.character?.name || 'New Character');
-                    const world = isSetup ? 'Setting up...'
-                                : (game.setting !== 'pending' ? game.setting : 'New World');
                     return (
-                      <div key={game.id} className={styles.compactRow} onClick={() => setDetailTarget(game)}>
-                        <div className={styles.compactRowMain}>
-                          <div className={styles.compactRowName}>{name}</div>
-                          <div className={styles.compactRowSub}>
-                            <span className={styles.compactRowWorld}>{world}</span>
-                            {game.turnCount > 0 && (
-                              <>
-                                <span className={styles.compactRowDot} />
-                                <span style={{ fontFamily: 'var(--font-jetbrains)' }}>{game.turnCount} turns</span>
-                              </>
-                            )}
-                          </div>
+                      <div key={game.id} className={styles.compactCard} onClick={() => setDetailTarget(game)} style={{
+                        background: 'var(--bg-card-elevated)', borderRadius: 6, padding: '16px 18px',
+                        borderTop: '1px solid var(--border-card)',
+                        borderRight: '1px solid var(--border-card)',
+                        borderBottom: '1px solid var(--border-card)',
+                        borderLeft: '3px solid var(--border-card)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                        cursor: 'pointer',
+                        display: 'flex', flexDirection: 'column',
+                        position: 'relative', overflow: 'hidden',
+                      }}>
+                        <CardNoise opacity={0.025} />
+                        {/* Name */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                          <span className={styles.compactCardName} style={{
+                            fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 700,
+                            color: 'var(--text-heading)', transition: 'color 0.2s',
+                          }}>{isSetup ? 'New Character' : (game.character?.name || 'New Character')}</span>
+                          {isSetup && (
+                            <span style={{
+                              fontFamily: 'var(--font-jetbrains)', fontSize: 10, color: 'var(--text-secondary)',
+                              background: 'var(--bg-main)', padding: '1px 5px', borderRadius: 3,
+                              border: '1px solid var(--border-primary)',
+                            }}>SETUP</span>
+                          )}
                         </div>
-                        {isSetup ? (
-                          <span className={`${styles.compactRowPill} ${styles.pillSetup}`}>SETUP</span>
-                        ) : game.difficulty ? (
-                          <span className={`${styles.compactRowPill} ${styles[`pill${game.difficulty}`]}`}>
-                            {game.difficulty.toUpperCase()}
-                          </span>
-                        ) : null}
-                        <span className={styles.compactRowTs}>
-                          {formatTimeAgo(game.lastPlayedAt || game.createdAt)}
-                        </span>
+
+                        {/* World */}
+                        <div style={{
+                          fontFamily: 'var(--font-alegreya-sans)', fontSize: 12,
+                          color: '#9a8545',
+                        }}>{isSetup ? 'Setting up...' : (game.setting !== 'pending' ? game.setting : 'New World')}</div>
+
+                        {/* Footer */}
+                        <div style={{
+                          marginTop: 'auto', paddingTop: 10,
+                          borderTop: '1px solid var(--border-card-separator)',
+                          display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4,
+                        }}>
+                          <MetaLine game={game} small />
+                          <span style={{
+                            fontFamily: 'var(--font-jetbrains)', fontSize: 12,
+                            color: 'var(--text-secondary)', marginLeft: 'auto',
+                          }}>{formatTimeAgo(game.lastPlayedAt || game.createdAt)}</span>
+                        </div>
                       </div>
                     );
                   })}

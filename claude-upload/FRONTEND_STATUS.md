@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-21
+**Last Updated:** 2026-04-22
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -33,23 +33,17 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-21)
+## Recent Work (This Session: 2026-04-22)
 
-### /menu visual polish pass
+### /menu — NEW GAME ghost CTA + blurb clamping
 
-Applied the Menu Page implementation spec — typography, hero card, ghost CTA, and older-games file-list conversion. No copy changes, no data-model changes, no modal changes.
+Started from a larger visual polish pass against the Menu Page spec, then reverted most of it when the user wanted to keep the existing typography, hero layout, stats/chip styling, and file-list treatment. Three pieces were kept:
 
-**Changes:**
-- **Section labels** (`CONTINUE YOUR ADVENTURE`, `YOUR GAMES`, `OLDER GAMES`): switched from Cinzel 14/600/gold-100 to Alegreya Sans 12/700/0.12em uppercase in `rgba(201,168,76,0.7)` (gold-70).
-- **Hero card — stats strip:** replaced the flex-wrap of pill-shaped stat pills with a 6-column CSS grid of bordered tiles (rgba(10,14,26,0.5) fill, 4px radius, Cinzel 10/600 gold labels, JetBrains 15/500 values). Tagged with `data-stats-grid` so the mobile rule (`@media max-width 640px`) can drop it to a 3-column grid inside `.heroCard`.
-- **Hero card — condition/skill chips:** tightened radius 10 → 4, added 6×10px padding, switched to `var(--color-danger)` / `var(--color-success)` text on low-alpha tinted bg+border chips (0.06/0.08 bg, 0.25/0.30 border). Chip name Alegreya Sans 12/500/0.04em; modifier JetBrains 11px.
-- **Hero card — resume button:** now `styles.resumeBtnHero`, full-width block, 48px min-height, Cinzel 13/700/0.2em, gradient gold fill. Meta row (storyteller · turns · difficulty) moved onto its own row beneath the button.
-- **MetaLine separator:** middle-dot `·` swapped for a 2×2 round dot in `var(--text-muted)` at 0.5 opacity. Change propagates to narrative cards and the detail modal.
-- **NEW GAME button:** converted from an elevated `<div role="button">` to a real `<button>` with transparent background, 1px `--accent-gold` border, 56px min-height, 0.25em letter-spacing, a leading `+` glyph. Hover fills to `rgba(201,168,76,0.08)` and shifts border + text to `--accent-bright`. `CardNoise` removed.
-- **YOUR GAMES narrative cards:** blurb now clamps to 2 lines via `.narrativeCardBlurb` (3-line webkit-box with reserved `min-height: calc(15px * 1.7 * 2)`). Full blurb is available in the detail modal.
-- **Hero card blurb:** clamps to 3 lines via `.heroCardBlurb`.
-- **OLDER GAMES:** replaced the 2-column compact-card grid with 60px-tall file-list rows. Each row: name (Cinzel 14/600, ellipsised) + world (uppercase muted) + optional turn count, difficulty/SETUP pill, and mono timestamp. New classes `olderGrid`, `compactRow`, `compactRowMain/Name/Sub/World/Dot/Ts/Pill`, and difficulty-specific pill variants (`pillForgiving/Standard/Harsh/Brutal/Setup`). Collapses to single column at ≤479px.
-- **Empty state:** confirmed copy unchanged. No eyebrow.
+- **NEW GAME button** — converted from an elevated `<div role="button">` to a real `<button>` with transparent background, 1px `--accent-gold` border, 56px min-height, Cinzel 13/700/0.25em, and a leading `+` glyph. Hover fills to `rgba(201,168,76,0.08)` and shifts border + text to `--accent-bright`. `CardNoise` dropped from this button.
+- **Hero card blurb** — clamps to 3 lines via `.heroCardBlurb` (webkit-box line-clamp). Full text is still visible in the detail modal.
+- **Narrative cards (YOUR GAMES) blurb** — clamps to 2 lines via `.narrativeCardBlurb`, with a reserved `min-height: calc(15px * 1.7 * 2)` so short blurbs don't make short cards taller neighbors look misaligned. Full text is still visible in the detail modal.
+
+The earlier polish work (section-label typography, 6-column stats grid, tinted condition/skill chips, full-width hero Resume button, round-dot MetaLine separator, older-games file-list rows, 760px main-column widening) was rolled back in-place — `app/menu/page.js` and `app/menu/page.module.css` were restored to `f4e19f5` then the three retained changes were layered back on.
 
 **Files modified:** `app/menu/page.js`, `app/menu/page.module.css`
 **Files synced:** `claude-upload/menu-page.js`, `claude-upload/menu-page.module.css`
