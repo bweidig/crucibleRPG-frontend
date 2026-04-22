@@ -1,7 +1,7 @@
 import React, { useState, forwardRef, useMemo } from 'react';
 import TurnRoll from './TurnRoll';
 import ReflectionBlock from './ReflectionBlock';
-import { renderNarrative } from '@/lib/renderLinkedText';
+import { renderNarrative, cleanPlayerAction } from '@/lib/renderLinkedText';
 import styles from './TurnBlock.module.css';
 
 // AD-673: narrative may arrive as { preRoll, postRoll } on resolved-roll turns,
@@ -341,7 +341,7 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
       </div>
 
       {turn.playerAction && (
-        <div className={styles.playerAction}>{turn.playerAction}</div>
+        <div className={styles.playerAction}>{cleanPlayerAction(turn.playerAction)}</div>
       )}
 
       {/* Pre-roll narrative (AD-673) — setup prose above the dice on roll turns

@@ -117,3 +117,26 @@ export function cleanDefinition(def) {
     ''
   );
 }
+
+/**
+ * Strip leading "I choose option A/B/C:" style prefixes from a player-action
+ * string. The frontend never adds this prefix (submitAction posts the raw
+ * choice id), but some historical turn records from /history or
+ * recentNarrative have it baked in — likely from an older client or an LLM
+ * echo. This normalizes the display so all choice rows read as the action
+ * itself, never the framing.
+ *
+ * Matches (case-insensitive):
+ *   "I choose option A: ..."
+ *   "I choose A: ..."
+ *   "I chose option B. ..."
+ *   "I chose C - ..."
+ * Leaves custom actions (which don't start with "I chose/choose") untouched.
+ */
+export function cleanPlayerAction(text) {
+  if (!text || typeof text !== 'string') return text;
+  return text.replace(
+    /^\s*i\s+cho(?:o|i)se\s+(?:option\s+)?[a-c]\s*[.,;:\-]?\s+/i,
+    ''
+  );
+}
