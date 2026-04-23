@@ -35,7 +35,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Do unused turns roll over?',
-    a: 'No. Your turn allotment resets on your billing date each month. Use them or lose them.',
+    a: 'Your monthly subscription turns reset on your billing date — use them or lose them. Top-up pack turns are yours to keep. They never expire and stack on top of your monthly allotment.',
   },
   {
     q: 'What counts as a world creation?',
