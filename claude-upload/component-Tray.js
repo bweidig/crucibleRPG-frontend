@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Die from './Die';
 import styles from './Tray.module.css';
 
@@ -52,6 +52,20 @@ export default function Tray({
 
   const showResultTag = phase === 'p1-settled' && (isCrit || isFumble);
 
+  // Shrink dice on phones so multi-die rolls don't wrap or overflow.
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mql = window.matchMedia('(max-width: 767px)');
+    setIsMobile(mql.matches);
+    const handler = (e) => setIsMobile(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
+
+  const crucibleSize = isMobile ? 64 : 88;
+  const mortalSize = isMobile ? 54 : 72;
+
   return (
     <div className={styles.tray}>
       {showResultTag && (
@@ -66,7 +80,7 @@ export default function Tray({
       {showCrucible && (
         <Die
           n={crucible}
-          size={88}
+          size={crucibleSize}
           state={crucibleState(phase, isCrit, isFumble)}
           onClick={phase === 'ready' ? onTap : undefined}
         />
@@ -76,12 +90,12 @@ export default function Tray({
         <>
           <Die
             n={mortal1}
-            size={72}
+            size={mortalSize}
             state={mortalState(phase, winner === 1)}
           />
           <Die
             n={mortal2}
-            size={72}
+            size={mortalSize}
             state={mortalState(phase, winner === 2)}
           />
         </>

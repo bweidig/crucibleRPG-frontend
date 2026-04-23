@@ -83,7 +83,10 @@ function PlayPage() {
   const [glossaryData, setGlossaryData] = useState(null);
   const [mapData, setMapData] = useState(null);
   const [notesData, setNotesData] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return !window.matchMedia('(max-width: 1023px)').matches;
+  });
   const [notifications, setNotifications] = useState({});
 
   // ─── Display Settings ───
@@ -1544,14 +1547,23 @@ export default function ActionPanel({
   const [selectedChoice, setSelectedChoice] = useState(null);
   const panelRef = useRef(null);
 
+  // Two-tap commit: first tap (or tap on a different option) highlights the
+  // option, second tap on the same option submits. Prevents fat-finger commits
+  // on mobile. Mirrors the two-step rewindConfirm pattern below.
   const handleChoice = useCallback((id) => {
-    setSelectedChoice(id);
-    onSubmit({ choice: id });
+    setSelectedChoice(prev => {
+      if (prev === id) {
+        onSubmit({ choice: id });
+        return id;
+      }
+      return id;
+    });
   }, [onSubmit]);
 
   const handleCustom = useCallback(() => {
     const text = customText.trim();
     if (!text) return;
+    setSelectedChoice(null);
     onSubmit({ custom: text });
     setCustomText('');
   }, [customText, onSubmit]);
@@ -1563,10 +1575,11 @@ export default function ActionPanel({
     }
   }, [handleCustom]);
 
-  // Clear the "selected" highlight once submitting ends (new turn arrived or error).
+  // Clear the "selected" highlight once submitting ends (new turn arrived or error)
+  // or when a new set of options arrives.
   useEffect(() => {
     if (!submitting) setSelectedChoice(null);
-  }, [submitting]);
+  }, [submitting, actions]);
 
   // Track dock height as a CSS variable so the narrative scroll can reserve
   // bottom padding and the latest turn never hides behind this panel.
@@ -1625,6 +1638,7 @@ export default function ActionPanel({
                         className={`${styles.optionButton} ${isSelected ? styles.optionSelected : ''} ${isDimmed ? styles.optionDimmed : ''}`}
                         onClick={() => handleChoice(opt.id)}
                         disabled={submitting}
+                        aria-pressed={isSelected}
                         data-choice-id={opt.id}
                       >
                         <span className={styles.optionKey}>{opt.id}</span>
@@ -1646,6 +1660,7 @@ export default function ActionPanel({
                   placeholder="Write your own action — the GM adapts"
                   value={customText}
                   onChange={e => setCustomText(e.target.value)}
+                  onFocus={() => setSelectedChoice(null)}
                   onKeyDown={handleKeyDown}
                   disabled={submitting}
                   maxLength={500}
@@ -6790,9 +6805,11 @@ export default function Sidebar({
           className={`${styles.drawer} ${!collapsed ? styles.drawerOpen : ''}`}
           onClick={(e) => e.stopPropagation()}
         >
-          <button className={styles.drawerClose} onClick={onToggleSidebar} aria-label="Close sidebar">
-            &times;
-          </button>
+          <div className={styles.drawerHeader}>
+            <button className={styles.drawerClose} onClick={onToggleSidebar} aria-label="Close sidebar">
+              &times;
+            </button>
+          </div>
           <div className={styles.tabBar}>
             {TABS.map(tab => (
               <button
@@ -7917,7 +7934,7 @@ export default function TopBar({ setting, clock, turnNumber, sseConnected, sideb
 // ============================================================
 // FILE: app/play/components/Tray.js
 // ============================================================
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Die from './Die';
 import styles from './Tray.module.css';
 
@@ -7971,6 +7988,20 @@ export default function Tray({
 
   const showResultTag = phase === 'p1-settled' && (isCrit || isFumble);
 
+  // Shrink dice on phones so multi-die rolls don't wrap or overflow.
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mql = window.matchMedia('(max-width: 767px)');
+    setIsMobile(mql.matches);
+    const handler = (e) => setIsMobile(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
+
+  const crucibleSize = isMobile ? 64 : 88;
+  const mortalSize = isMobile ? 54 : 72;
+
   return (
     <div className={styles.tray}>
       {showResultTag && (
@@ -7985,7 +8016,7 @@ export default function Tray({
       {showCrucible && (
         <Die
           n={crucible}
-          size={88}
+          size={crucibleSize}
           state={crucibleState(phase, isCrit, isFumble)}
           onClick={phase === 'ready' ? onTap : undefined}
         />
@@ -7995,12 +8026,12 @@ export default function Tray({
         <>
           <Die
             n={mortal1}
-            size={72}
+            size={mortalSize}
             state={mortalState(phase, winner === 1)}
           />
           <Die
             n={mortal2}
-            size={72}
+            size={mortalSize}
             state={mortalState(phase, winner === 2)}
           />
         </>
@@ -8615,6 +8646,26 @@ export default function TurnRoll({ challenge, result, onResolved, animate = true
   const handleTap = useCallback(() => {
     if (stage !== 'ready') return;
     setStage('rolling');
+  }, [stage]);
+
+  // While the ChallengePanel is visible (ready/rolling/collapsing), publish a
+  // body attribute that the ActionPanel listens to on phones to collapse the
+  // dock — so the dice, which render inline in the narrative scroll, get the
+  // full available height. Compact stage (the chip) doesn't need the collapse.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (stage === 'compact') {
+      if (document.body.dataset.diceRolling) {
+        delete document.body.dataset.diceRolling;
+      }
+      return;
+    }
+    document.body.dataset.diceRolling = 'true';
+    return () => {
+      if (document.body.dataset.diceRolling) {
+        delete document.body.dataset.diceRolling;
+      }
+    };
   }, [stage]);
 
   // ─── Historical / auto-compact render ───

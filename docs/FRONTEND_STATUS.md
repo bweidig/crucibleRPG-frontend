@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-23
+**Last Updated:** 2026-04-23 (mobile /play fixes)
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -34,6 +34,37 @@
 ---
 
 ## Recent Work (This Session: 2026-04-23)
+
+### /play mobile layout fixes + two-tap option commit + dice-time dock collapse
+
+Addressed four broken mobile behaviors reported on iPhone mini, plus three follow-on polish items the player requested after the initial fix list.
+
+**Mobile fixes.**
+- **Narrative no longer hidden behind the action dock.** `NarrativePanel.module.css` had two competing mobile padding rules; the `@media (max-width: 768px)` block (written later in the file) was overwriting the `(max-width: 767px)` block with `padding: 16px 12px 12px` — zero reserve for the dock. Replaced with `calc(var(--dock-h, 200px) + 24px)` matching the formula used elsewhere in the file, and removed the now-redundant 767 px rule.
+- **Sidebar no longer starts open on phones.** `app/play/page.js` initialized `sidebarOpen` to `true` for every viewport. Changed the initializer to read `window.matchMedia('(max-width: 1023px)')` (same threshold `Sidebar.js` uses for drawer-vs-inline), so drawer-mode viewports start closed and inline-sidebar viewports (≥ 1024 px) still start open. SSR default stays `true` (desktop bias).
+- **Drawer close "×" no longer overlaps the tab row.** In `Sidebar.js` the drawer close button was absolutely positioned over the top-right corner and overlapped the tab icon row. Wrapped it in a new `.drawerHeader` flex row that sits above the tab bar and a thin border-bottom; dropped the `position: absolute` from `.drawerClose`.
+- **Directive-fulfillment toast no longer hides behind the dock.** `play.module.css` anchored the toast with a fixed `bottom: 80px` (70 px on mobile). On a tall mobile dock the toast rendered underneath. Switched to `bottom: calc(var(--dock-h, …) + 12px)` at both breakpoints; the existing `ResizeObserver` in `ActionPanel.js` keeps `--dock-h` in sync so this tracks live dock height.
+
+**Polish items.**
+- **Dock is bounded and scrollable on phones with a bottom fade cue.** `ActionPanel.module.css` mobile block now caps `.actionPanel` at `max-height: 45vh` and turns `.actionInner` into a flex scroll region (so "YOUR MOVE", options, and custom input all scroll as one column — no standalone option-list scroll). The bottom 18 px dissolves via `mask-image`, matching the dissolve already used where narrative meets the dock (`.actionPanel::after`).
+- **Two-tap commit on option buttons.** `ActionPanel.js` `handleChoice` no longer submits on a single tap. First tap sets `selectedChoice`; second tap on the same option submits. Tapping a different option moves the highlight; focusing the custom input clears it. Re-uses the existing `.optionSelected` / `.optionDimmed` design-system styles that were already in the CSS. Added `aria-pressed={isSelected}` for screen readers. This mirrors the Rewind button's two-tap confirmation pattern that already lived in the file.
+- **Dock auto-collapses on phones while a dice roll resolves.** `TurnRoll.js` sets `document.body.dataset.diceRolling = 'true'` whenever its stage is anything other than `compact` (i.e. the ChallengePanel is visible). A scoped CSS rule in the `ActionPanel` mobile block shrinks the dock to a 48 px strip and fades its non-label contents out while that attribute is present. Because `--dock-h` updates live through the ResizeObserver, the narrative padding and toast position reflow automatically — giving the inline-rendered dice maximum room without any extra plumbing. Desktop is unaffected (the rule is inside `@media (max-width: 768px)`).
+- **Dice scaled down on phones.** `Tray.js` now reads a `(max-width: 767px)` match-media once on mount and shrinks the crucible die from 88 → 64 px and the mortal dice from 72 → 54 px. `Tray.module.css` also tightens the tray padding, gap, and min-height on phones and adds `flex-wrap: wrap` so multi-die rolls don't overflow horizontally. `TurnRoll.module.css` trims the challenge panel's padding/margins on phones so the whole challenge block is easier to parse on a small screen.
+
+**Files modified:**
+- `app/play/page.js`
+- `app/play/play.module.css`
+- `app/play/components/ActionPanel.js`
+- `app/play/components/ActionPanel.module.css`
+- `app/play/components/NarrativePanel.module.css`
+- `app/play/components/Sidebar.js`
+- `app/play/components/Sidebar.module.css`
+- `app/play/components/TurnRoll.js`
+- `app/play/components/TurnRoll.module.css`
+- `app/play/components/Tray.js`
+- `app/play/components/Tray.module.css`
+
+**claude-upload synced:** `play-full.js` (regenerated), `play-page.js`, `play-play.module.css`, and the `component-*` mirrors for ActionPanel, NarrativePanel (CSS only), Sidebar, TurnRoll, and Tray.
 
 ### SSE narrative streaming wired up
 

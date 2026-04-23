@@ -163,6 +163,26 @@ export default function TurnRoll({ challenge, result, onResolved, animate = true
     setStage('rolling');
   }, [stage]);
 
+  // While the ChallengePanel is visible (ready/rolling/collapsing), publish a
+  // body attribute that the ActionPanel listens to on phones to collapse the
+  // dock — so the dice, which render inline in the narrative scroll, get the
+  // full available height. Compact stage (the chip) doesn't need the collapse.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (stage === 'compact') {
+      if (document.body.dataset.diceRolling) {
+        delete document.body.dataset.diceRolling;
+      }
+      return;
+    }
+    document.body.dataset.diceRolling = 'true';
+    return () => {
+      if (document.body.dataset.diceRolling) {
+        delete document.body.dataset.diceRolling;
+      }
+    };
+  }, [stage]);
+
   // ─── Historical / auto-compact render ───
   if (stage === 'compact') {
     return (

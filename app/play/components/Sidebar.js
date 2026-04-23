@@ -127,9 +127,11 @@ export default function Sidebar({
           className={`${styles.drawer} ${!collapsed ? styles.drawerOpen : ''}`}
           onClick={(e) => e.stopPropagation()}
         >
-          <button className={styles.drawerClose} onClick={onToggleSidebar} aria-label="Close sidebar">
-            &times;
-          </button>
+          <div className={styles.drawerHeader}>
+            <button className={styles.drawerClose} onClick={onToggleSidebar} aria-label="Close sidebar">
+              &times;
+            </button>
+          </div>
           <div className={styles.tabBar}>
             {TABS.map(tab => (
               <button

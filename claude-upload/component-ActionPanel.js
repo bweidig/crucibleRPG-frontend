@@ -32,14 +32,23 @@ export default function ActionPanel({
   const [selectedChoice, setSelectedChoice] = useState(null);
   const panelRef = useRef(null);
 
+  // Two-tap commit: first tap (or tap on a different option) highlights the
+  // option, second tap on the same option submits. Prevents fat-finger commits
+  // on mobile. Mirrors the two-step rewindConfirm pattern below.
   const handleChoice = useCallback((id) => {
-    setSelectedChoice(id);
-    onSubmit({ choice: id });
+    setSelectedChoice(prev => {
+      if (prev === id) {
+        onSubmit({ choice: id });
+        return id;
+      }
+      return id;
+    });
   }, [onSubmit]);
 
   const handleCustom = useCallback(() => {
     const text = customText.trim();
     if (!text) return;
+    setSelectedChoice(null);
     onSubmit({ custom: text });
     setCustomText('');
   }, [customText, onSubmit]);
@@ -51,10 +60,11 @@ export default function ActionPanel({
     }
   }, [handleCustom]);
 
-  // Clear the "selected" highlight once submitting ends (new turn arrived or error).
+  // Clear the "selected" highlight once submitting ends (new turn arrived or error)
+  // or when a new set of options arrives.
   useEffect(() => {
     if (!submitting) setSelectedChoice(null);
-  }, [submitting]);
+  }, [submitting, actions]);
 
   // Track dock height as a CSS variable so the narrative scroll can reserve
   // bottom padding and the latest turn never hides behind this panel.
@@ -113,6 +123,7 @@ export default function ActionPanel({
                         className={`${styles.optionButton} ${isSelected ? styles.optionSelected : ''} ${isDimmed ? styles.optionDimmed : ''}`}
                         onClick={() => handleChoice(opt.id)}
                         disabled={submitting}
+                        aria-pressed={isSelected}
                         data-choice-id={opt.id}
                       >
                         <span className={styles.optionKey}>{opt.id}</span>
@@ -134,6 +145,7 @@ export default function ActionPanel({
                   placeholder="Write your own action — the GM adapts"
                   value={customText}
                   onChange={e => setCustomText(e.target.value)}
+                  onFocus={() => setSelectedChoice(null)}
                   onKeyDown={handleKeyDown}
                   disabled={submitting}
                   maxLength={500}

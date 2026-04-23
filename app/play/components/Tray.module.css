@@ -10,6 +10,15 @@
   min-height: 130px;
   align-items: flex-end;
   justify-content: center;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 767px) {
+  .tray {
+    gap: 10px;
+    padding: 18px 12px 22px;
+    min-height: 96px;
+  }
 }
 
 /* ─── Result Tag (extreme callouts, above the tray) ─── */

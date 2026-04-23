@@ -12,6 +12,7 @@
     0 -1px 0 rgba(201, 168, 76, 0.15),
     0 -1px 40px -8px rgba(201, 168, 76, 0.08),
     inset 0 1px 0 rgba(201, 168, 76, 0.04);
+  transition: max-height 0.35s ease, padding 0.35s ease;
 }
 
 /* Top gold hairline — frames the dock as the decision zone. */
@@ -478,12 +479,30 @@
 @media (max-width: 768px) {
   .actionPanel {
     padding: 10px 12px;
+    max-height: 45vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* The whole dock interior scrolls as one region on phones, so the custom
+     input / submit are always reachable by scrolling past the options. The
+     mask-image dissolves the bottom edge as a scroll cue — matches the
+     .actionPanel::after fade used where the narrative meets the dock. */
+  .actionInner {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 18px), transparent 100%);
+            mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 18px), transparent 100%);
   }
 
   .options {
-    max-height: 40vh;
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    max-height: none;
+    overflow: visible;
   }
 
   .optionButton {
@@ -508,5 +527,21 @@
   .rewindButton {
     width: 44px;
     height: 44px;
+  }
+
+  /* Dock collapse during a dice roll (see TurnRoll). The body[data-dice-rolling]
+     attribute is set while the ChallengePanel is visible, so the narrative
+     (where the dice render inline) gets the full available height. */
+  :global(body[data-dice-rolling="true"]) .actionPanel {
+    max-height: 48px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    overflow: hidden;
+  }
+
+  :global(body[data-dice-rolling="true"]) .actionInner > *:not(.yourMoveRow) {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
   }
 }

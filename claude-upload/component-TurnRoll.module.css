@@ -135,3 +135,17 @@
 @media (prefers-reduced-motion: reduce) {
   .tapHint { animation: none; opacity: 0.6; }
 }
+
+@media (max-width: 767px) {
+  .challenge {
+    padding: 18px 14px 16px;
+    margin-bottom: 12px;
+  }
+  .prompt {
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  .actionLabel {
+    margin-bottom: 10px;
+  }
+}

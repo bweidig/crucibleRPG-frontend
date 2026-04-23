@@ -80,7 +80,10 @@ function PlayPage() {
   const [glossaryData, setGlossaryData] = useState(null);
   const [mapData, setMapData] = useState(null);
   const [notesData, setNotesData] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return !window.matchMedia('(max-width: 1023px)').matches;
+  });
   const [notifications, setNotifications] = useState({});
 
   // ─── Display Settings ───

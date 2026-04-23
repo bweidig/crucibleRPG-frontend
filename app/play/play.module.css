@@ -175,7 +175,7 @@
 
 .toastContainer {
   position: absolute;
-  bottom: 80px;
+  bottom: calc(var(--dock-h, 140px) + 12px);
   left: 50%;
   transform: translateX(-50%);
   z-index: 20;
@@ -185,6 +185,7 @@
   width: 90%;
   max-width: 420px;
   pointer-events: none;
+  transition: bottom 0.35s ease;
 }
 
 .directiveToast {
@@ -276,7 +277,7 @@
   }
 
   .toastContainer {
-    bottom: 70px;
+    bottom: calc(var(--dock-h, 200px) + 12px);
     width: 95%;
   }
 }

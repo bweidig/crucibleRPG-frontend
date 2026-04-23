@@ -275,11 +275,16 @@
   transform: translateX(0);
 }
 
+.drawerHeader {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 6px 8px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-card);
+}
+
 .drawerClose {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  z-index: 5;
   background: none;
   border: none;
   color: var(--text-muted);
