@@ -250,7 +250,7 @@ export default function PricingPage() {
           <p style={{
             fontFamily: 'var(--font-alegreya-sans)', fontSize: 16, fontWeight: 400,
             color: 'var(--text-secondary)', marginTop: 10, lineHeight: 1.6,
-          }}>Top-up packs for when the story can&apos;t wait. Available to subscribers anytime.</p>
+          }}>Top-up packs for when the story can&apos;t wait. Yours to keep — they never expire. Available to subscribers anytime.</p>
         </div>
         </ScrollReveal>
 
