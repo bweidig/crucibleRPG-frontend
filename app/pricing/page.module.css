@@ -33,14 +33,123 @@
   color: var(--accent-gold);
 }
 
-/* Pricing card */
+/* Focus-visible rings (gold outline + offset) */
+.btnPrimary:focus-visible,
+.btnSecondary:focus-visible,
+.topupCard:focus-visible {
+  outline: 2px solid rgba(201, 168, 76, 0.6);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Pricing card (Free) */
 .priceCard {}
+
+/* ─── Hero card — visually differentiated from Free ───
+   Materially distinct object: layered dark gradient bg, gradient gold
+   border via a mask-composited pseudo, layered shadows, and a subtle
+   translateY lift on desktop. */
+.heroCard {
+  position: relative;
+  background: linear-gradient(180deg, rgba(28, 32, 50, 0.85) 0%, rgba(20, 24, 40, 0.95) 100%);
+  background-clip: padding-box;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 40px 32px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-shadow:
+    0 16px 60px rgba(201, 168, 76, 0.14),
+    0 2px 0 rgba(201, 168, 76, 0.08) inset,
+    0 -1px 0 rgba(10, 14, 26, 0.6) inset;
+  transform: translateY(-8px);
+  transition: transform 0.3s ease;
+}
+
+/* Gradient gold border via mask compositing — the mask trick shows only
+   the 1px band at the edge, revealing the underlying card bg in the middle. */
+.heroCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  padding: 1px;
+  background: linear-gradient(
+    180deg,
+    rgba(201, 168, 76, 0.55) 0%,
+    rgba(201, 168, 76, 0.12) 45%,
+    rgba(201, 168, 76, 0.05) 100%
+  );
+  pointer-events: none;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+}
+
+/* Gold ribbon along the top inside edge of the hero card. */
+.heroRibbon {
+  position: absolute;
+  top: -1px;
+  left: 32px;
+  right: 32px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, rgba(201, 168, 76, 0.9) 50%, transparent 100%);
+  border-radius: 0 0 3px 3px;
+}
+
+/* Hero price — $ as a quieter marker, numerals dominate */
+.heroPriceDollar {
+  font-family: var(--font-cinzel);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text-muted);
+  line-height: 1.15;
+  align-self: flex-start;
+  margin-top: 0.22em;
+}
+
+.heroPriceAmount {
+  font-family: var(--font-cinzel);
+  font-size: 48px;
+  font-weight: 900;
+  color: var(--text-heading);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.priceUsd {
+  font-family: var(--font-cinzel);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.2em;
+  line-height: 1.15;
+  margin-left: 6px;
+  align-self: center;
+  opacity: 0.6;
+}
+
+/* Pricing grid — desktop grid, mobile flex column so `order` works */
+.pricingGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 360px));
+  justify-content: center;
+  gap: 24px;
+  padding: 48px 24px 32px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Card wrappers — order matters on mobile (hero first). */
+.cardWrapperFree { order: 0; }
+.cardWrapperHero { order: 0; }
 
 /* Top-up card */
 .topupCard {
   background: var(--bg-gold-faint);
   border: 1px solid var(--border-gold-subtle);
-  cursor: pointer;
   transition: border-color 0.3s ease, background 0.3s ease;
 }
 
@@ -57,7 +166,8 @@
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .btnPrimary,
-  .btnSecondary {
+  .btnSecondary,
+  .heroCard {
     transition: none;
   }
 
@@ -69,7 +179,8 @@
 /* ===== TABLET RESPONSIVE ===== */
 
 @media (max-width: 1023px) {
-  .priceCard {
+  .priceCard,
+  .heroCard {
     width: 280px !important;
   }
 }
@@ -77,10 +188,26 @@
 /* ===== MOBILE RESPONSIVE ===== */
 
 @media (max-width: 767px) {
-  .priceCard {
+  .pricingGrid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Hero first, then Free — visually promote the subscription on mobile. */
+  .cardWrapperHero { order: -1; }
+  .cardWrapperFree { order: 0; }
+
+  .priceCard,
+  .heroCard {
     width: 100% !important;
     max-width: 400px !important;
     padding: 28px 24px !important;
+  }
+
+  /* Lift only on desktop — on mobile the cards stack cleanly. */
+  .heroCard {
+    transform: none;
   }
 
   .topupCard {

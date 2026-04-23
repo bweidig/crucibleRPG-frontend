@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-22
+**Last Updated:** 2026-04-23
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -33,7 +33,46 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-22)
+## Recent Work (This Session: 2026-04-23)
+
+### Pricing Page Design Audit v2
+
+Polish and copy pass on `/pricing` against a Claude Design mockup. No other pages touched.
+
+**Hero card visual differentiation.** The subscription card was nearly identical to Free — flat tinted background, 1px static border. Now materially distinct:
+- New `.heroCard` class in `page.module.css` with layered dark gradient background (`linear-gradient(180deg, rgba(28,32,50,0.85), rgba(20,24,40,0.95))`), three-layer shadow (14% gold soft glow + inset gold highlight + inset darker bottom), and `translateY(-8px)` lift on desktop.
+- Gradient gold border via mask-composited `::before` — `mask-composite: exclude` on an outer `linear-gradient(#000 0 0)` vs inner `content-box` mask cuts the fill into a 1px band at the edge, so the gradient shows only as the border.
+- `.heroRibbon` div as the first child — a 3px gold gradient stripe inset from the top edge by 32px on each side, with a soft fade into transparent at both ends.
+- Padding bumped to `40px 32px` on desktop; collapses to `28px 24px` on mobile.
+- Lift resets to `transform: none` at `max-width: 767px`.
+
+**Hero price typography.** The `$` is now a quieter marker at Cinzel 22px/500 in `--text-muted` with `align-self: flex-start` and `margin-top: 0.22em` so it sits as a small glyph to the upper-left of the numerals. Amount bumped from 40px/900 to **48px/900** with `letter-spacing: -0.01em` and `line-height: 1.1`. A `USD` label (Cinzel 10px, `--text-muted`, 0.2em tracked, 0.6 opacity) sits after `/month`.
+
+**Mobile card order.** The grid switches to `display: flex; flex-direction: column; align-items: center;` below 768px. Hero's wrapper gets `order: -1`, Free's gets `order: 0`, so Hero renders first on phones — visually promoting the subscription when the cards stack.
+
+**Line-height audit.** Every text element on the page now has an explicit line-height — no element relies on browser default `normal`. Cinzel labels / badges / prices / buttons / headers: `1.15`. Alegreya Sans body text: `1.5` (or `1.6`–`1.7` where already set for prose blocks). The H1 uses `1.25` as an italic-serif heading value. Audited every inline `style={{}}` block and every CSS class.
+
+**Focus-visible rings.** Added `.btnPrimary:focus-visible`, `.btnSecondary:focus-visible`, and `.topupCard:focus-visible` selectors — 2px gold ring at 0.6 opacity, 3px offset, 6px radius.
+
+**Top-up card cursor fix.** Removed `cursor: pointer` from `.topupCard` — cards aren't clickable yet and the pointer was signalling affordance that doesn't exist.
+
+**H1 color bump.** From `#9a9480` to `#b5ae94`. No other H1 changes — stays Alegreya italic 500.
+
+**Copy changes (verbatim):**
+- Sub-tagline: "Every storyteller. Every setting. Start free or own the whole world."
+- Free card description: "One click and you're playing. See what your story becomes."
+- Free card first bullet: "Every feature. Every setting."
+- Hero card bullets (all five, new order): "Room for the stories that take time to tell" / "Unlimited saved campaigns" / "225 turns every month" / "Top-up packs when you need more" / "Cancel anytime. No contracts."
+- Hero card description: "Your monthly turns. Combat, conversation, exploration. Spend them any way you like. Resets every billing cycle. Cancel anytime."
+- Bottom CTA supporting text: "Every choice leaves a mark. Start making yours."
+
+**Unchanged by design:** All prices stay Cinzel (no swap to JetBrains Mono). No "≈ 15 sessions" turn anchoring. FAQ content untouched. Top-up section copy untouched. Bottom CTA heading untouched. No "RECOMMENDED" badge — the ribbon + elevation carry that role.
+
+**Files modified:** `app/pricing/page.js`, `app/pricing/page.module.css`
+**Files synced:** `claude-upload/pricing-page.js`, `claude-upload/pricing-page.module.css`
+**Build:** `npx next build` — passes.
+
+---
 
 ### /menu — NEW GAME ghost CTA + blurb clamping
 

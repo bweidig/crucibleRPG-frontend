@@ -110,31 +110,28 @@ export default function PricingPage() {
           <span style={{
             fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600,
             color: 'var(--accent-gold)', letterSpacing: '0.25em',
+            lineHeight: 1.15,
           }}>PRICING</span>
 
           <h1 style={{
             fontFamily: 'var(--font-alegreya)', fontSize: 'clamp(28px, 4vw, 36px)',
-            fontStyle: 'italic', fontWeight: 500, color: '#9a9480',
+            fontStyle: 'italic', fontWeight: 500, color: '#b5ae94',
+            lineHeight: 1.25,
             marginTop: 20, marginBottom: 14,
           }}>No locked features. No premium content. Just the whole world for one price.</h1>
 
           <p style={{
             fontFamily: 'var(--font-alegreya-sans)', fontSize: 18, fontWeight: 400,
             color: 'var(--text-secondary)', maxWidth: 480, margin: '0 auto', lineHeight: 1.7,
-          }}>Every storyteller. Every setting. Start free or jump right in.</p>
+          }}>Every storyteller. Every setting. Start free or own the whole world.</p>
         </ScrollReveal>
       </div>
 
       {/* Pricing cards */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 360px))',
-        justifyContent: 'center', gap: 24,
-        padding: '48px 24px 32px',
-        position: 'relative', zIndex: 1,
-      }}>
+      <div className={styles.pricingGrid}>
 
         {/* Free Trial */}
-        <ScrollReveal delay={0}>
+        <ScrollReveal delay={0} className={styles.cardWrapperFree}>
         <div className={styles.priceCard} style={{
           background: 'var(--bg-gold-faint)',
           border: '1px solid var(--border-gold-subtle)',
@@ -144,28 +141,30 @@ export default function PricingPage() {
         }}>
           <div style={{
             fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
-            color: 'var(--gold-muted)', letterSpacing: '0.2em', marginBottom: 16,
+            color: 'var(--gold-muted)', letterSpacing: '0.2em',
+            lineHeight: 1.15, marginBottom: 16,
           }}>FREE TRIAL</div>
 
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 6 }}>
             <span style={{
-              fontFamily: 'var(--font-cinzel)', fontSize: 40, fontWeight: 900, color: 'var(--text-heading)',
+              fontFamily: 'var(--font-cinzel)', fontSize: 40, fontWeight: 900,
+              color: 'var(--text-heading)', lineHeight: 1.15,
             }}>Free</span>
           </div>
 
           <div style={{
             fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
-            color: 'var(--accent-gold)', marginBottom: 24,
+            color: 'var(--accent-gold)', lineHeight: 1.5, marginBottom: 24,
           }}>{PRICING.trial.turns} turns</div>
 
           <div style={{
             fontFamily: 'var(--font-alegreya-sans)', fontSize: 16, fontWeight: 400,
             color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 28,
             paddingBottom: 24, borderBottom: '1px solid var(--border-gold-faint)',
-          }}>No credit card. No commitment. Just jump in.</div>
+          }}>One click and you&apos;re playing. See what your story becomes.</div>
 
           <div style={{ flex: 1 }}>
-            <Feature text="Full game. No locked features." />
+            <Feature text="Every feature. Every setting." />
             <Feature text="1 world creation" />
             <Feature text="All storytellers and settings" />
             <Feature text="Saves carry over when you subscribe" />
@@ -175,7 +174,7 @@ export default function PricingPage() {
             className={styles.btnSecondary}
             style={{
               fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
-              letterSpacing: '0.1em',
+              letterSpacing: '0.1em', lineHeight: 1.15,
               borderRadius: 5, padding: '14px 24px', width: '100%',
               marginTop: 24,
             }}
@@ -183,49 +182,43 @@ export default function PricingPage() {
         </div>
         </ScrollReveal>
 
-        {/* Subscription */}
-        <ScrollReveal delay={0.1}>
-        <div className={styles.priceCard} style={{
-          background: 'var(--bg-gold-subtle)',
-          border: '1px solid var(--border-card-separator)',
-          borderRadius: 10, padding: '36px 32px',
-          display: 'flex', flexDirection: 'column',
-          height: '100%',
-        }}>
+        {/* Subscription — Hero card (visually differentiated) */}
+        <ScrollReveal delay={0.1} className={styles.cardWrapperHero}>
+        <div className={styles.heroCard}>
+          <div className={styles.heroRibbon} />
+
           <div style={{
             fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
-            color: 'var(--gold-muted)', letterSpacing: '0.2em', marginBottom: 16,
+            color: 'var(--gold-muted)', letterSpacing: '0.2em',
+            lineHeight: 1.15, marginBottom: 16,
           }}>{PRICING.subscription.label.toUpperCase()}</div>
 
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 6 }}>
-            <span style={{
-              fontFamily: 'var(--font-cinzel)', fontSize: 18, fontWeight: 700, color: 'var(--text-heading)',
-            }}>$</span>
-            <span style={{
-              fontFamily: 'var(--font-cinzel)', fontSize: 40, fontWeight: 900, color: 'var(--text-heading)',
-            }}>{PRICING.subscription.price}</span>
+            <span className={styles.heroPriceDollar}>$</span>
+            <span className={styles.heroPriceAmount}>{PRICING.subscription.price}</span>
             <span style={{
               fontFamily: 'var(--font-alegreya-sans)', fontSize: 15,
-              fontWeight: 400, color: 'var(--text-muted)',
+              fontWeight: 400, color: 'var(--text-muted)', lineHeight: 1.15,
             }}>/month</span>
+            <span className={styles.priceUsd}>USD</span>
           </div>
 
           <div style={{
             fontFamily: 'var(--font-alegreya-sans)', fontSize: 14,
-            color: 'var(--accent-gold)', marginBottom: 24,
+            color: 'var(--accent-gold)', lineHeight: 1.5, marginBottom: 24,
           }}>{PRICING.subscription.turns} turns included</div>
 
           <div style={{
             fontFamily: 'var(--font-alegreya-sans)', fontSize: 16, fontWeight: 400,
             color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 28,
             paddingBottom: 24, borderBottom: '1px solid var(--border-gold-faint)',
-          }}>Your monthly turns. Spend them however you want. Resets every billing cycle. Cancel anytime.</div>
+          }}>Your monthly turns. Combat, conversation, exploration. Spend them any way you like. Resets every billing cycle. Cancel anytime.</div>
 
           <div style={{ flex: 1 }}>
-            <Feature text="Full game: every feature, every setting" />
-            <Feature text="5 world creations per month" />
+            <Feature text="Room for the stories that take time to tell" />
             <Feature text="Unlimited saved campaigns" />
-            <Feature text="Buy extra turns if you need more" />
+            <Feature text="225 turns every month" />
+            <Feature text="Top-up packs when you need more" />
             <Feature text="Cancel anytime. No contracts." />
           </div>
 
@@ -233,7 +226,7 @@ export default function PricingPage() {
             className={styles.btnPrimary}
             style={{
               fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
-              letterSpacing: '0.1em',
+              letterSpacing: '0.1em', lineHeight: 1.15,
               borderRadius: 5, padding: '14px 24px', width: '100%',
               marginTop: 24,
             }}
@@ -252,12 +245,12 @@ export default function PricingPage() {
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <span style={{
               fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
-              color: 'var(--gold-muted)', letterSpacing: '0.2em',
+              color: 'var(--gold-muted)', letterSpacing: '0.2em', lineHeight: 1.15,
             }}>NEED MORE TURNS?</span>
           <p style={{
             fontFamily: 'var(--font-alegreya-sans)', fontSize: 16, fontWeight: 400,
             color: 'var(--text-secondary)', marginTop: 10, lineHeight: 1.6,
-          }}>Top-up packs for when the story can't wait. Available to subscribers anytime.</p>
+          }}>Top-up packs for when the story can&apos;t wait. Available to subscribers anytime.</p>
         </div>
         </ScrollReveal>
 
@@ -272,15 +265,17 @@ export default function PricingPage() {
               }}>
                 <div style={{
                   fontFamily: 'var(--font-cinzel)', fontSize: 22,
-                  fontWeight: 700, color: 'var(--text-heading)', marginBottom: 4,
+                  fontWeight: 700, color: 'var(--text-heading)',
+                  lineHeight: 1.15, marginBottom: 4,
                 }}>{pack.turns}</div>
                 <div style={{
                   fontFamily: 'var(--font-cinzel)', fontSize: 14,
-                  fontWeight: 600, color: 'var(--text-muted)', marginBottom: 12,
+                  fontWeight: 600, color: 'var(--text-muted)',
+                  lineHeight: 1.15, marginBottom: 12,
                 }}>turns</div>
                 <div style={{
                   fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700,
-                  color: 'var(--accent-gold)',
+                  color: 'var(--accent-gold)', lineHeight: 1.15,
                 }}>${pack.price}</div>
               </div>
             </ScrollReveal>
@@ -298,7 +293,7 @@ export default function PricingPage() {
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <span style={{
               fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
-              color: 'var(--gold-muted)', letterSpacing: '0.2em',
+              color: 'var(--gold-muted)', letterSpacing: '0.2em', lineHeight: 1.15,
             }}>COMMON QUESTIONS</span>
           </div>
         </ScrollReveal>
@@ -312,7 +307,7 @@ export default function PricingPage() {
             }}>
               <div style={{
                 fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600,
-                color: 'var(--text-heading)', marginBottom: 8,
+                color: 'var(--text-heading)', lineHeight: 1.15, marginBottom: 8,
               }}>{item.q}</div>
               <div style={{
                 fontFamily: 'var(--font-alegreya-sans)', fontSize: 16,
@@ -335,18 +330,19 @@ export default function PricingPage() {
         }} />
         <h2 style={{
           fontFamily: 'var(--font-cinzel)', fontSize: 'clamp(22px, 3vw, 27px)',
-          fontWeight: 700, color: 'var(--text-heading)', marginBottom: 14, position: 'relative',
+          fontWeight: 700, color: 'var(--text-heading)',
+          lineHeight: 1.15, marginBottom: 14, position: 'relative',
         }}>Every Hero Needs a Crucible. Yours is waiting.</h2>
         <p style={{
           fontFamily: 'var(--font-alegreya-sans)', fontSize: 16, fontWeight: 400,
           color: 'var(--text-secondary)', lineHeight: 1.7, maxWidth: 420, margin: '0 auto 32px',
           position: 'relative',
-        }}>No group required. No prep time. Just you and a world waiting to see what you'll do.</p>
+        }}>Every choice leaves a mark. Start making yours.</p>
         <button
           className={styles.btnPrimary}
           style={{
             fontFamily: 'var(--font-cinzel)', fontSize: 15, fontWeight: 700,
-            letterSpacing: '0.1em',
+            letterSpacing: '0.1em', lineHeight: 1.15,
             borderRadius: 6, padding: '16px 44px',
             position: 'relative',
           }}
