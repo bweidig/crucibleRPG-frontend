@@ -35,6 +35,54 @@
 
 ## Recent Work (This Session: 2026-04-23)
 
+### SSE narrative streaming wired up
+
+The backend is moving turn narrative from synchronous POST responses to progressive streaming over the existing SSE channel. The POST still returns immediately with `{ streaming: true, turn, resolution }`; narrative text then arrives chunk-by-chunk through the stream and the turn is finalized on `turn:complete`. Frontend now listens for those events and renders text progressively.
+
+**Backward compatible.** When the backend hasn't shipped streaming (or streaming is disabled), the POST response comes back without `streaming: true` and the existing `handleTurnResponse` path runs unchanged. The new SSE listeners register at mount and stay idle until events arrive.
+
+**page.js — new refs and listeners.**
+- `streamingTurnRef` — a `useRef(null)` holding the turn number currently being streamed. A ref (not state) because SSE handlers are registered once at mount and close over mount-time state; refs let them read the live value without stale closures.
+- `gameStateRef` — mirrors `gameState` via a small `useEffect`. The `turn:complete` handler needs the current clock to merge weather/`currentDay` into the finalized turn; without the ref it would see `null` from mount.
+- Seven SSE event listeners added in the load effect's Step 3, alongside the existing `connected` and `command:response` handlers:
+  - `turn:start` — safety sync; warns if the `turnNumber` doesn't match the streaming placeholder.
+  - `turn:narrative` — appends `data.chunk` into the streaming turn's `narrative.preRoll` or `narrative.postRoll` based on `data.phase` (default `postRoll` when phase is absent, per AD-673 fallback rules).
+  - `turn:gm_aside` — attaches `data.aside` (also tolerates `data.content`) to the turn.
+  - `turn:npc_states` — attaches combat wound-state array.
+  - `turn:complete` — finalizes: merges `stateChanges`, clears `_isStreaming`, merges clock into the turn and into gameState, sets `nextActions`, clears session recap, updates `rewindAvailable`, fires `addNotifications` + `refetchCharacter` + `refetchGlossary`, shows directive toasts, enriches latest debug entry with `turnNumber` + `_debug`, then flips `submitting` off.
+  - `turn:discard` — backend validation failed mid-stream; removes the partial placeholder and waits for auto-retry (does NOT touch `streamingTurnRef` or `submitting`).
+  - `turn:error` — unrecoverable; removes placeholder, surfaces `setError`, clears streamingTurnRef + `submitting`.
+- Teardown resets `streamingTurnRef.current = null` alongside closing the EventSource.
+
+**page.js — `handleTurnResponse` branched.** The shared handler now has a streaming path at the top: if `response.streaming` is true it creates a placeholder turn with `_isStreaming: true` and empty `{ preRoll: '', postRoll: '' }` narrative, sets `streamingTurnRef`, and returns. Callers (submitAction, TalkToGM escalation, fresh-game first-turn) invoke `handleTurnResponse` uniformly.
+
+**page.js — `submitAction` guards the `finally`.** After awaiting the POST response, we forward both `streaming` and `turnAdvanced` cases to `handleTurnResponse`. The `finally` block only clears `submitting` when `streamingTurnRef.current` is null — for streaming turns, `turn:complete` or `turn:error` owns that flip so the action panel stays disabled for the entire stream.
+
+**page.js — fresh-game first-turn handles streaming.** The Step 4 "Begin the adventure" trigger now branches on `res.streaming`. Because `setGameState(game)` was just called and the `gameStateRef`-syncing `useEffect` hasn't fired yet, we prime `gameStateRef.current = game` inline before the POST so the streaming placeholder picks up the correct clock/world.
+
+**TalkToGM.js — escalation supports streaming.** The rules-phase-2 `handleEscalate` now forwards `res.streaming || res.turnAdvanced` through `onTurnResponse`. The page-level `handleTurnResponse` does the rest.
+
+**NarrativePanel.js — streaming auto-scroll.** The existing scroll effect is keyed on `turns.length`, which doesn't change while a streaming turn grows in place. Added a second effect that watches the full `turns` array and, when the last turn is `_isStreaming`, RAF-coalesces scroll-to-bottom writes (new chunks can arrive every few ms). Scroll is skipped if the user is more than 200px above the bottom — if they've scrolled up to re-read, incoming text won't yank them back.
+
+**TurnBlock.js — postRoll stagger skipped during streaming + cursor.** The `.postRoll` wrapper class (which fires a 500ms stagger animation on each direct child) is now conditional: `shouldAnimate && !turn._isStreaming`. Without this guard, every incoming chunk would restart the stagger and the paragraph text would jitter. A `<span class={styles.streamingCursor} />` now tails whichever narrative half is rendering — preRoll while that half streams without a postRoll yet, postRoll once that half begins, and a lone cursor in the narrative slot if neither half has text yet (e.g. mid-dice on a roll turn before the first postRoll chunk).
+
+**TurnBlock.module.css — streaming cursor styles.** `.streamingCursor` is a 2px × 1em gold bar (uses `var(--accent-gold)`) with `display: inline-block` and a `streamingCursorBlink` keyframe (step-end, 0.8s). `prefers-reduced-motion` clamps the animation off and pins opacity at 1.
+
+**Stale-closure safety.** The SSE listeners register once at mount and close over initial values. All live state they need is read through refs (`streamingTurnRef`, `gameStateRef`) or through `useCallback`-stable helpers (`addNotifications`, `refetchCharacter`, `refetchGlossary`, `addDirectiveToast`, `refetchDirectiveState`) that live on the page component.
+
+**Performance.** Each `turn:narrative` chunk triggers one `setTurns` update and re-render; for typical turn lengths this is fine. Chunk batching via a RAF-guarded buffer is available as a fallback if rendering gets choppy — not wired up yet.
+
+**Files modified:**
+- `app/play/page.js`
+- `app/play/components/NarrativePanel.js`
+- `app/play/components/TurnBlock.js`
+- `app/play/components/TurnBlock.module.css`
+- `app/play/components/TalkToGM.js`
+
+**Files created:** none. No changes to `lib/api.js` or `lib/renderLinkedText.js`.
+
+---
+
 ### Pricing Page Design Audit v2
 
 Polish and copy pass on `/pricing` against a Claude Design mockup. No other pages touched.

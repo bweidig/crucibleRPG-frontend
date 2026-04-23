@@ -30,6 +30,9 @@ const NarrativePanel = forwardRef(function NarrativePanel({
   // Prevents the /history async fetch (which adds older turns to the top)
   // from yanking the user back to the bottom if they've scrolled up to read.
   const hasInitialScrolledRef = useRef(false);
+  // RAF handle for debounced scroll-to-bottom during streaming — a fresh chunk
+  // arrives every few ms, so we coalesce updates to one scroll per animation frame.
+  const streamScrollRAF = useRef(null);
 
   useEffect(() => {
     if (turns.length === 0) return;
@@ -67,6 +70,36 @@ const NarrativePanel = forwardRef(function NarrativePanel({
       });
     }
   }, [turns.length]);
+
+  // Auto-scroll during streaming: the streaming turn grows in place, so the
+  // length-keyed effect above doesn't fire. We watch the full turns array so
+  // this runs on every chunk, coalescing bursts of chunks into one scroll per
+  // animation frame. Only scrolls if the user was already near the bottom —
+  // if they've scrolled up to re-read, streaming text won't yank them back.
+  useEffect(() => {
+    if (turns.length === 0) return;
+    const last = turns[turns.length - 1];
+    if (!last._isStreaming) return;
+    const scroller = scrollRef.current;
+    if (!scroller) return;
+    const distanceFromBottom = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
+    if (distanceFromBottom > 200) return; // user has scrolled up — leave them alone
+
+    if (streamScrollRAF.current) cancelAnimationFrame(streamScrollRAF.current);
+    streamScrollRAF.current = requestAnimationFrame(() => {
+      streamScrollRAF.current = null;
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
+    });
+
+    return () => {
+      if (streamScrollRAF.current) {
+        cancelAnimationFrame(streamScrollRAF.current);
+        streamScrollRAF.current = null;
+      }
+    };
+  }, [turns]);
 
   return (
     <div className={styles.narrativeWrapper}>

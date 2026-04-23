@@ -142,6 +142,17 @@ function PlayPage() {
   const sseRef = useRef(null);
   const narrativeRef = useRef(null);
 
+  // Turn number of the turn currently being streamed via SSE (null when not streaming).
+  // Ref (not state) because SSE event handlers registered at mount need the live value
+  // without stale closures and without re-registering on every state change.
+  const streamingTurnRef = useRef(null);
+
+  // gameState mirror for SSE handlers: event listeners register once and close over
+  // mount-time state. turn:complete needs the current clock to merge weather/day into
+  // the finalized turn. useEffect below keeps the ref in sync.
+  const gameStateRef = useRef(null);
+  useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
+
   // Load display settings from localStorage on mount
   useEffect(() => {
     setDisplaySettings(loadSettings());
@@ -318,6 +329,32 @@ function PlayPage() {
 
   // ─── Shared turn response handler (used by submitAction + TalkToGM escalation) ───
   const handleTurnResponse = useCallback((response, playerActionText = null) => {
+    // Streaming path: backend will emit the narrative over SSE. Drop a placeholder
+    // turn with _isStreaming: true so the SSE handlers can find and append into it.
+    // turn:complete (or turn:error) is what clears `submitting` and flips the flag off.
+    if (response.streaming) {
+      streamingTurnRef.current = response.turn.number;
+      setSubmitting(true);
+      const clock = gameStateRef.current?.clock || null;
+      setTurns(prev => [
+        ...prev.map(t => t._isNew ? { ...t, _isNew: false } : t),
+        {
+          number: response.turn.number,
+          sessionTurn: response.turn.sessionTurn,
+          narrative: { preRoll: '', postRoll: '' },
+          resolution: response.resolution || null,
+          stateChanges: null,
+          playerAction: playerActionText,
+          clock,
+          weather: clock?.weather || null,
+          location: gameStateRef.current?.world?.currentLocation || null,
+          _isNew: true,
+          _isStreaming: true,
+        },
+      ]);
+      return;
+    }
+
     if (!response.turnAdvanced) return;
 
     // Merge stateChanges.clock with gameState.clock so weather, currentDay, etc.
@@ -521,7 +558,7 @@ function PlayPage() {
     try {
       const response = await api.post(`/api/game/${gameId}/action`, actionBody);
 
-      if (response.turnAdvanced) {
+      if (response.streaming || response.turnAdvanced) {
         let playerActionText = null;
         if (actionBody.choice) {
           const opt = actions?.options?.find(o => o.id === actionBody.choice);
@@ -538,7 +575,10 @@ function PlayPage() {
       console.error('Action failed:', err);
       setError(err.message || 'Action failed. Please try again.');
     } finally {
-      setSubmitting(false);
+      // Streaming path keeps `submitting` true until turn:complete or turn:error fires.
+      if (!streamingTurnRef.current) {
+        setSubmitting(false);
+      }
     }
   }, [gameId, submitting, actions, handleTurnResponse]);
 
@@ -708,6 +748,203 @@ function PlayPage() {
             }
           });
 
+          // ─── Narrative streaming events ───────────────────────────────────
+          // The backend may emit narrative over SSE (POST /action returns
+          // { streaming: true, turn, resolution } immediately, then streams chunks).
+          // Listeners are registered once per mount and rely on refs (streamingTurnRef,
+          // gameStateRef) to read live values without stale closures.
+
+          // Safety sync — should match the placeholder we just built in submitAction.
+          es.addEventListener('turn:start', (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              if (streamingTurnRef.current !== data.turnNumber) {
+                console.warn('turn:start turnNumber mismatch', data.turnNumber, streamingTurnRef.current);
+              }
+            } catch (err) {
+              console.error('Failed to parse turn:start:', err);
+            }
+          });
+
+          // Append a chunk into the streaming turn's preRoll or postRoll half.
+          // Payload: { turnNumber, chunk, phase?: "pre" | "post" } — phase absent
+          // on no-roll turns / split fallbacks; default to postRoll in that case.
+          es.addEventListener('turn:narrative', (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              if (streamingTurnRef.current == null) return;
+
+              setTurns(prev => {
+                const idx = prev.findIndex(t => t.number === data.turnNumber && t._isStreaming);
+                if (idx === -1) return prev;
+                const updated = [...prev];
+                const turn = { ...updated[idx] };
+                const narrative = (typeof turn.narrative === 'object' && turn.narrative !== null)
+                  ? { ...turn.narrative }
+                  : { preRoll: '', postRoll: '' };
+                if (data.phase === 'pre') {
+                  narrative.preRoll = (narrative.preRoll || '') + data.chunk;
+                } else {
+                  narrative.postRoll = (narrative.postRoll || '') + data.chunk;
+                }
+                turn.narrative = narrative;
+                updated[idx] = turn;
+                return updated;
+              });
+            } catch (err) {
+              console.error('Failed to parse turn:narrative:', err);
+            }
+          });
+
+          // Inline GM aside (AD-674) — appended to the streaming turn when present.
+          es.addEventListener('turn:gm_aside', (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              setTurns(prev => {
+                const idx = prev.findIndex(t => t.number === data.turnNumber);
+                if (idx === -1) return prev;
+                const updated = [...prev];
+                updated[idx] = { ...updated[idx], gmAside: data.aside ?? data.content };
+                return updated;
+              });
+            } catch (err) {
+              console.error('Failed to parse turn:gm_aside:', err);
+            }
+          });
+
+          // NPC wound states (combat turns).
+          es.addEventListener('turn:npc_states', (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              setTurns(prev => {
+                const idx = prev.findIndex(t => t.number === data.turnNumber);
+                if (idx === -1) return prev;
+                const updated = [...prev];
+                updated[idx] = { ...updated[idx], npcStates: data.npcStates };
+                return updated;
+              });
+            } catch (err) {
+              console.error('Failed to parse turn:npc_states:', err);
+            }
+          });
+
+          // Streaming ended successfully — finalize the turn with stateChanges /
+          // nextActions / clock merges and re-enable the action panel.
+          es.addEventListener('turn:complete', (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              if (streamingTurnRef.current == null) return;
+              streamingTurnRef.current = null;
+
+              // Mirror handleTurnResponse's clock merge: preserve weather/currentDay
+              // when backend only sent { day, hour, minute } in stateChanges.clock.
+              const turnClock = data.stateChanges?.clock
+                ? { ...gameStateRef.current?.clock, ...data.stateChanges.clock }
+                : gameStateRef.current?.clock || null;
+
+              // Extract reflection (Long Rest end-of-day) like handleTurnResponse does.
+              const reflection = data.mechanicalResults?.reflection
+                || data.stateChanges?.reflection
+                || null;
+
+              setTurns(prev => {
+                const idx = prev.findIndex(t => t.number === data.turnNumber && t._isStreaming);
+                if (idx === -1) return prev;
+                const updated = [...prev];
+                updated[idx] = {
+                  ...updated[idx],
+                  stateChanges: data.stateChanges || null,
+                  reflection,
+                  clock: turnClock,
+                  weather: turnClock?.weather || null,
+                  _isStreaming: false,
+                };
+                return updated;
+              });
+
+              if (data.nextActions) {
+                setActions(data.nextActions);
+              }
+
+              // Clear session recap + merge clock into gameState (same as handleTurnResponse).
+              setGameState(prev => {
+                if (!prev) return prev;
+                const updates = { sessionRecap: null };
+                if (data.stateChanges?.clock) {
+                  updates.clock = { ...prev.clock, ...data.stateChanges.clock };
+                }
+                return { ...prev, ...updates };
+              });
+
+              if (data.rewindAvailable != null) {
+                setRewindAvailable(data.rewindAvailable);
+              }
+
+              if (data.stateChanges) {
+                addNotifications(data.stateChanges);
+                refetchCharacter();
+                refetchGlossary();
+              }
+
+              // AD-666: flag Character tab when a passive mastery unlocks.
+              if (data.mechanicalResults?.passive_mastery_unlocked) {
+                setNotifications(prev => ({ ...prev, character: (prev.character || 0) + 1 }));
+              }
+
+              // Directive fulfillment toasts.
+              if (data.directivesRemoved && data.directivesRemoved.length > 0) {
+                for (const removed of data.directivesRemoved) {
+                  addDirectiveToast(removed);
+                }
+                refetchDirectiveState();
+              }
+
+              // Enrich latest debug entry with turn number + debug payload.
+              if (data.turnNumber != null) {
+                setDebugLog(prev => {
+                  if (prev.length === 0) return prev;
+                  const [latest, ...rest] = prev;
+                  const patched = { ...latest, turnNumber: data.turnNumber };
+                  if (data._debug) patched.debug = data._debug;
+                  return [patched, ...rest];
+                });
+              }
+
+              setSubmitting(false);
+            } catch (err) {
+              console.error('Failed to parse turn:complete:', err);
+              streamingTurnRef.current = null;
+              setSubmitting(false);
+            }
+          });
+
+          // Backend validation failed after streaming started. Drop the partial
+          // turn and wait for the auto-retry (another stream will follow).
+          es.addEventListener('turn:discard', (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              setTurns(prev => prev.filter(t => !(t.number === data.turnNumber && t._isStreaming)));
+              // Leave streamingTurnRef and `submitting` alone — retry stream is incoming.
+            } catch (err) {
+              console.error('Failed to parse turn:discard:', err);
+            }
+          });
+
+          // Unrecoverable error during streaming. Clean up and surface the error.
+          es.addEventListener('turn:error', (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              streamingTurnRef.current = null;
+              setTurns(prev => prev.filter(t => !(t.number === data.turnNumber && t._isStreaming)));
+              setError(data.error || 'Turn failed. Please try again.');
+              setSubmitting(false);
+            } catch (err) {
+              console.error('Failed to parse turn:error:', err);
+              streamingTurnRef.current = null;
+              setSubmitting(false);
+            }
+          });
+
           es.onerror = () => {
             if (!cancelled) setSseConnected(false);
           };
@@ -721,12 +958,20 @@ function PlayPage() {
         if (isFreshGame) {
           try {
             api.setNextActionLabel('custom: Begin the adventure');
+            // Prime gameStateRef so the streaming placeholder built inside
+            // handleTurnResponse picks up the freshly-loaded clock/world instead of
+            // null (the useEffect that syncs the ref from state hasn't fired yet).
+            gameStateRef.current = game;
             const res = await api.post(`/api/game/${gameId}/action`, {
               custom: 'Begin the adventure',
             });
             if (cancelled) return;
 
-            if (res.turnAdvanced) {
+            if (res.streaming) {
+              // Streaming path: handleTurnResponse creates the placeholder and
+              // keeps submitting=true; turn:complete finalizes.
+              handleTurnResponse(res, null);
+            } else if (res.turnAdvanced) {
               const firstTurnClock = res.stateChanges?.clock
                 ? { ...game.clock, ...res.stateChanges.clock }
                 : game.clock || null;
@@ -791,6 +1036,7 @@ function PlayPage() {
         sseRef.current.close();
         sseRef.current = null;
       }
+      streamingTurnRef.current = null;
     };
   }, [authReady, gameId, router]);
 

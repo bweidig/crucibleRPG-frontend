@@ -134,7 +134,10 @@ export default function TalkToGM({ gameId, onTurnResponse, lastResolution, lastS
       const res = await api.post(`/api/game/${gameId}/talk-to-gm/escalate`, {
         question: lastQuestion,
       });
-      if (res.turnAdvanced && onTurnResponse) {
+      // Forward both streaming and non-streaming turn responses — handleTurnResponse
+      // on the page handles each path (streaming=true creates a placeholder for SSE
+      // to fill in; turnAdvanced=true renders the full turn synchronously).
+      if ((res.streaming || res.turnAdvanced) && onTurnResponse) {
         onTurnResponse(res, '[GM Escalation]');
       }
       handleClose();

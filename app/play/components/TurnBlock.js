@@ -346,10 +346,13 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
 
       {/* Pre-roll narrative (AD-673) — setup prose above the dice on roll turns
           where the AI split the narrative. Renders immediately (not gated by
-          showContent) so the player reads the challenge context before rolling. */}
+          showContent) so the player reads the challenge context before rolling.
+          During streaming, the cursor tails the preRoll half until the first
+          postRoll chunk arrives. */}
       {preRoll && (
         <div className={styles.narrativeText}>
           {renderNarrative(preRoll, glossaryTerms, onEntityClick)}
+          {turn._isStreaming && !postRoll && <span className={styles.streamingCursor} />}
         </div>
       )}
 
@@ -366,14 +369,25 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
 
       {/* Post-roll content appears after the dice animation completes (or
           immediately on no-roll turns / historical renders). Wrapped in
-          .postRoll for staggered fade-up when shouldAnimate is true. */}
+          .postRoll for staggered fade-up when shouldAnimate is true — but not
+          while streaming, because each chunk would restart the stagger. */}
       {showContent && (
-        <div className={shouldAnimate ? styles.postRoll : undefined}>
+        <div className={shouldAnimate && !turn._isStreaming ? styles.postRoll : undefined}>
           <ReflectionBlock reflection={turn.reflection} glossaryTerms={glossaryTerms} onEntityClick={onEntityClick} />
 
           {postRoll && (
             <div className={styles.narrativeText}>
               {renderNarrative(postRoll, glossaryTerms, onEntityClick)}
+              {turn._isStreaming && <span className={styles.streamingCursor} />}
+            </div>
+          )}
+
+          {/* No narrative text yet but streaming is active (e.g. mid-dice on a
+              roll turn before the postRoll chunk arrives) — show a lone cursor
+              so the player sees that something is coming. */}
+          {turn._isStreaming && !preRoll && !postRoll && (
+            <div className={styles.narrativeText}>
+              <span className={styles.streamingCursor} />
             </div>
           )}
 

@@ -356,3 +356,26 @@
   background: #1e1810;
   border: 1px solid #3a2e18;
 }
+
+/* ─── Streaming cursor ──────────────────────────────────────────────────── */
+/* Blinking gold caret that tails the latest narrative paragraph while the
+   turn is actively streaming over SSE. Positioned inline after the last
+   rendered character so it reads as "more text coming". */
+.streamingCursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--accent-gold);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: streamingCursorBlink 0.8s step-end infinite;
+}
+
+@keyframes streamingCursorBlink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .streamingCursor { animation: none; opacity: 1; }
+}
