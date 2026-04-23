@@ -12,9 +12,9 @@ Tracks bugs investigated in the frontend, what was tried, what worked, and what 
 
 ## Log
 
-### FE-8: Backend taxonomy tags leaking in entity definitions (2026-04-21) — RESOLVED (defensive, after 2 rounds)
+### FE-8: Backend taxonomy tags leaking in entity definitions (2026-04-21) — RESOLVED (defensive, 4 rounds) / Backend source fixed 2026-04-22
 
-**Symptom:** Glossary entries for NPCs showed backend taxonomy tags like `potential_ally` as the first word. User reported: `"Roric the Fen-Grown"` displayed `potential_ally Gaunt man in his 40s...`.
+**Symptom:** Glossary entries for NPCs showed backend taxonomy tags like `potential_ally` as the first word. User reported: `"Roric the Fen-Grown"` displayed `potential_ally. A man built like a heap of knotted roots...`.
 
 **Round 1 attempt:**
 - Added `cleanDefinition` helper to `GlossaryTab.js` stripping `^[a-z][a-z0-9]*(?:_[a-z0-9]+)+\s+`.
@@ -35,7 +35,15 @@ Tracks bugs investigated in the frontend, what was tried, what worked, and what 
 - Updated `buildGlossaryTermSet` to run each term through `cleanDefinition` before lowercasing.
 - Updated `EntityPopup`'s glossary-match and notes-match logic to normalize both sides via `cleanDefinition` before comparing.
 
-**Root cause is backend** — the narrator's glossary-entry generation prompt shouldn't emit the taxonomy tag in either `term` or `definition`. The frontend strips are defensive only. Flag to backend team.
+**Round 4 — period separator not matched:**
+- User pasted literal content: `"potential_ally. A man built like a heap of knotted roots..."` — the separator is a period, not a colon or dash. The round-2 punctuation class `[:\-]?` didn't include it.
+- Broadened to `[.,;:\-]?` — period, comma, semicolon, colon, dash all stripped cleanly. Commit `3644961`.
+
+**Related player-action prefix (same data-hygiene class of bug):** Historical turns from `/history` and `recentNarrative` sometimes had `"I choose option A: ..."` framing baked into `playerAction`, while newer turns didn't. Added `cleanPlayerAction` helper in `lib/renderLinkedText.js` matching `^\s*i\s+cho(?:o|i)se\s+(?:option\s+)?[a-c]\s*[.,;:\-]?\s+`, applied at the TurnBlock render. Commit `dd6817c`.
+
+**Backend source fix (2026-04-22):** Backend shipped AD-677 + AD-678 in commit `a2dce13`, including DB migrations 066 (glossary-term taxonomy strip) + 067 (player-action prefix strip). Both the narrator prompt path and the legacy data have been cleaned at the source.
+
+**Frontend defensive strips retained by design** — the regex helpers are cheap, run in microseconds, and provide defense-in-depth against similar prompt drift in the future (new AI models, new write-paths, etc.). Keeping them costs essentially nothing and insures against this class of bug re-emerging. Can be revisited in 3–6 months if confidence warrants cleanup.
 
 ---
 
