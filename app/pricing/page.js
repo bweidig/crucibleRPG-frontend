@@ -35,7 +35,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Do unused turns roll over?',
-    a: 'Your monthly subscription turns reset on your billing date — use them or lose them. Top-up pack turns are yours to keep. They never expire and stack on top of your monthly allotment.',
+    a: 'Your monthly subscription turns reset on your billing date. Use them or lose them. Top-up pack turns are yours to keep. They never expire and stack on top of your monthly allotment.',
   },
   {
     q: 'What counts as a world creation?',
@@ -182,7 +182,7 @@ export default function PricingPage() {
         </div>
         </ScrollReveal>
 
-        {/* Subscription — Hero card (visually differentiated) */}
+        {/* Subscription (Hero card, visually differentiated) */}
         <ScrollReveal delay={0.1} className={styles.cardWrapperHero}>
         <div className={styles.heroCard}>
           <div className={styles.heroRibbon} />
@@ -250,7 +250,7 @@ export default function PricingPage() {
           <p style={{
             fontFamily: 'var(--font-alegreya-sans)', fontSize: 16, fontWeight: 400,
             color: 'var(--text-secondary)', marginTop: 10, lineHeight: 1.6,
-          }}>Top-up packs for when the story can&apos;t wait. Yours to keep — they never expire. Available to subscribers anytime.</p>
+          }}>Top-up packs for when the story can&apos;t wait. They never expire. Available to subscribers anytime.</p>
         </div>
         </ScrollReveal>
 
