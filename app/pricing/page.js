@@ -93,6 +93,12 @@ export default function PricingPage() {
     if (user && !user.isPlaytester) { router.replace('/'); return; }
   }, [router]);
 
+  // Playtesters viewing this page are already authenticated, so the natural
+  // next step for both cards is /menu. When a real subscription flow lands,
+  // handleSubscribe should point at that instead.
+  const handleTryFree = () => router.push('/menu');
+  const handleSubscribe = () => router.push('/menu');
+
   return (
     <div className={styles.pageContainer} style={{
       minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)',
@@ -132,13 +138,20 @@ export default function PricingPage() {
 
         {/* Free Trial */}
         <ScrollReveal delay={0} className={styles.cardWrapperFree}>
-        <div className={styles.priceCard} style={{
-          background: 'var(--bg-gold-faint)',
-          border: '1px solid var(--border-gold-subtle)',
-          borderRadius: 10, padding: '36px 32px',
-          display: 'flex', flexDirection: 'column',
-          height: '100%',
-        }}>
+        <div
+          className={styles.priceCard}
+          onClick={handleTryFree}
+          role="button"
+          tabIndex={0}
+          aria-label="Start your free trial"
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleTryFree(); } }}
+          style={{
+            background: 'var(--bg-gold-faint)',
+            border: '1px solid var(--border-gold-subtle)',
+            borderRadius: 10, padding: '36px 32px',
+            display: 'flex', flexDirection: 'column',
+            height: '100%',
+          }}>
           <div style={{
             fontFamily: 'var(--font-cinzel)', fontSize: 12, fontWeight: 600,
             color: 'var(--gold-muted)', letterSpacing: '0.2em',
@@ -172,6 +185,7 @@ export default function PricingPage() {
 
           <button
             className={styles.btnSecondary}
+            onClick={(e) => { e.stopPropagation(); handleTryFree(); }}
             style={{
               fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
               letterSpacing: '0.1em', lineHeight: 1.15,
@@ -184,7 +198,14 @@ export default function PricingPage() {
 
         {/* Subscription (Hero card, visually differentiated) */}
         <ScrollReveal delay={0.1} className={styles.cardWrapperHero}>
-        <div className={styles.heroCard}>
+        <div
+          className={styles.heroCard}
+          onClick={handleSubscribe}
+          role="button"
+          tabIndex={0}
+          aria-label="Subscribe to Hero"
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSubscribe(); } }}
+        >
           <div className={styles.heroRibbon} />
 
           <div style={{
@@ -224,6 +245,7 @@ export default function PricingPage() {
 
           <button
             className={styles.btnPrimary}
+            onClick={(e) => { e.stopPropagation(); handleSubscribe(); }}
             style={{
               fontFamily: 'var(--font-cinzel)', fontSize: 13, fontWeight: 700,
               letterSpacing: '0.1em', lineHeight: 1.15,
