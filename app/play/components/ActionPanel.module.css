@@ -98,7 +98,23 @@
 
 @media (max-width: 767px) {
   .options {
-    grid-template-columns: 1fr;
+    /* minmax(0, 1fr) — without the explicit 0 minimum, a grid item's intrinsic
+       min-content size can push the column wider than its container, which on
+       narrow phones makes long option text overflow the viewport. */
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .optionButton {
+    /* Same reasoning: a flex item's default min-width: auto can prevent the
+       item from shrinking below its content's min-content width. */
+    min-width: 0;
+  }
+
+  .optionText {
+    /* Guard against single unbreakable words (long URLs, ALLCAPS strings)
+       by allowing aggressive wrap. */
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 }
 
@@ -482,6 +498,10 @@
     max-height: 45vh;
     display: flex;
     flex-direction: column;
+    /* Safety net: any stray horizontal overflow gets clipped inside the dock
+       rather than pushing the whole panel sideways on narrow phones. */
+    overflow-x: hidden;
+    min-width: 0;
   }
 
   /* The whole dock interior scrolls as one region on phones, so the custom
@@ -492,7 +512,9 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+    min-width: 0;
     flex: 1;
+    width: 100%;
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
@@ -503,6 +525,7 @@
   .options {
     max-height: none;
     overflow: visible;
+    min-width: 0;
   }
 
   .optionButton {
