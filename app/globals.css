@@ -95,6 +95,11 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: contain;
+  /* Prevent any descendant's horizontal overflow from making the whole page
+     swipeable sideways on mobile. Belt-and-suspenders with per-container
+     overflow rules. */
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 /* Animations */

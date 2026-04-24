@@ -498,16 +498,17 @@
     max-height: 45vh;
     display: flex;
     flex-direction: column;
-    /* Safety net: any stray horizontal overflow gets clipped inside the dock
-       rather than pushing the whole panel sideways on narrow phones. */
-    overflow-x: hidden;
+    /* clip is stricter than hidden — does not create a scroll container and
+       cannot be scrolled programmatically. Paired with the html/body overflow
+       rule in globals.css, nothing about the dock can ever shift sideways. */
+    overflow: clip;
     min-width: 0;
+    max-width: 100%;
+    width: 100%;
   }
 
-  /* The whole dock interior scrolls as one region on phones, so the custom
-     input / submit are always reachable by scrolling past the options. The
-     mask-image dissolves the bottom edge as a scroll cue — matches the
-     .actionPanel::after fade used where the narrative meets the dock. */
+  /* The whole dock interior scrolls vertically as one region on phones, so
+     custom input / submit are always reachable by scrolling past the options. */
   .actionInner {
     display: flex;
     flex-direction: column;
@@ -517,16 +518,10 @@
     width: 100%;
     max-width: 100%;
     overflow-y: auto;
-    /* Explicit overflow-x: hidden — without it, setting overflow-y: auto
-       implicitly promotes overflow-x to auto per spec, so any stray
-       horizontal overflow becomes a swipeable scroll area. That let the
-       player drag the dock sideways off the screen on iPhone mini. */
-    overflow-x: hidden;
+    overflow-x: clip;
     overscroll-behavior: contain;
     touch-action: pan-y;
     scrollbar-width: thin;
-    -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 18px), transparent 100%);
-            mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 18px), transparent 100%);
   }
 
   .options {
