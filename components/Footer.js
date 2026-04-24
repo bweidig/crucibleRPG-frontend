@@ -10,15 +10,7 @@ const FOOTER_LINKS = [
   { label: 'Terms', href: '/terms' },
 ];
 
-export default function Footer({ variant = 'standard' }) {
-  if (variant === 'minimal') {
-    return (
-      <footer className={styles.minimal}>
-        &copy; 2026 CrucibleRPG &middot; Every hero needs a crucible.
-      </footer>
-    );
-  }
-
+export default function Footer() {
   return (
     <footer className={styles.standard}>
       <div className={styles.standardInner}>

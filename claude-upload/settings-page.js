@@ -418,7 +418,7 @@ export default function SettingsPage() {
         )}
       </div>
 
-      <Footer variant="minimal" />
+      <Footer />
     </div>
   );
 }

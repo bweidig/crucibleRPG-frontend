@@ -828,7 +828,7 @@ export default function MenuPage() {
         )}
       </div>
 
-      <Footer variant="minimal" />
+      <Footer />
 
       {/* ═══ MODALS ═══ */}
       {detailTarget && (

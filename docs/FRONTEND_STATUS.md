@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-24 (particle field: weighted tiers + scroll parallax)
+**Last Updated:** 2026-04-24 (standardize footer; particle tiers + scroll parallax)
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -34,6 +34,19 @@
 ---
 
 ## Recent Work (This Session: 2026-04-24)
+
+### Footer: standardize on the full footer everywhere
+
+Dropped the two-variant Footer. The `variant` prop, the minimal branch, and the `.minimal` CSS class are gone; every page now renders the same standard footer (brand mark, link row, copyright strip). Five pages that were explicitly passing `variant="minimal"` had that prop removed.
+
+**Files modified:**
+- `components/Footer.js` (removed prop + minimal branch)
+- `components/Footer.module.css` (removed `.minimal` rule)
+- `app/auth/page.js`, `app/menu/page.js`, `app/rulebook/page.js`, `app/settings/page.js`, `app/snapshot/[token]/page.js`
+
+**claude-upload synced:** `component-Footer.js`, `component-Footer.module.css`, `auth-page.js`, `menu-page.js`, `rulebook-page.js`, `settings-page.js`, `snapshot-page.js`.
+
+---
 
 ### Particle field: weighted size tiers + scroll-coupled parallax
 

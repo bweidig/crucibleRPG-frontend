@@ -326,7 +326,7 @@ export default function SnapshotLandingPage() {
         </div>
       </div>
 
-      <Footer variant="minimal" />
+      <Footer />
     </div>
   );
 }

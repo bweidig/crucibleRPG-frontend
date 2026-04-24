@@ -552,7 +552,7 @@ export default function AuthPage() {
       </form>
       </div>
 
-      <Footer variant="minimal" />
+      <Footer />
     </div>
   );
 }

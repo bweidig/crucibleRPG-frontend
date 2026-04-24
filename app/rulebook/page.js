@@ -412,7 +412,7 @@ export default function RulebookPage() {
         </div>
       </div>
 
-      <Footer variant="minimal" />
+      <Footer />
     </div>
   );
 }
