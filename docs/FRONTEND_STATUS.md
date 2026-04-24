@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-23 (mobile /play fixes)
+**Last Updated:** 2026-04-24 (smooth streaming text buffer)
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -33,7 +33,42 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-23)
+## Recent Work (This Session: 2026-04-24)
+
+### Smooth streaming text buffer
+
+Narrative text was rendering the instant each SSE chunk arrived, which gave the classic "jittery chunk" feel — words popping in groups at the speed of the model, not the speed of reading. Added a client-side drain buffer that decouples chunk arrival from screen rendering: chunks push into a ref instantly (no re-render), and a `requestAnimationFrame` loop pulls words out at a steady pace that feels like ChatGPT/Claude's typing effect.
+
+**Pacing.**
+- Base rate: **30 words/sec** — a hair above comfortable reading speed.
+- Catchup rate: **50 words/sec** — kicks in when the buffer has more than 50 words queued, so the model outrunning the render doesn't leave the player watching text trickle in long after generation finishes.
+- Flush rate: **60 words/sec** — engages once `turn:complete` fires so any remaining buffered text drains promptly without an abrupt dump.
+
+**Key implementation details.**
+- Fractional `wordDebt` accumulator gives accurate per-frame pacing (a naive `Math.round` at 60 fps would lock the base rate at 60 wps instead of 30 wps).
+- `takeWords` holds back the last partial word of each half while the stream is open so chunks that end mid-word don't flash half-written words; once the stream is complete, it flushes everything.
+- Pre-roll drains before post-roll so narrative order is preserved even if the backend interleaves chunks.
+- `generation` counter lets buffer resets retire any in-flight RAF loop from a prior turn before it can write into the new placeholder (replaces what would otherwise need AbortController plumbing).
+- Loop parks (stops RAF-ing) when the buffer is empty or stalled on a partial word, then restarts when a new `turn:narrative` chunk arrives — no wasted frames while idle.
+- `dt` clamped to 100ms so a backgrounded tab waking up doesn't dump the buffer in one frame.
+- Cleanup on unmount bumps the generation and flips `draining=false` so no orphan RAF survives navigation.
+- Cursor (the blinking caret at the end of narrative) still ties to `turn._isStreaming`, so it disappears when `turn:complete` fires even if text is still flushing — by design; the player is reading and the action panel is already back. Plan explicitly accepted this trade-off.
+
+**Handler changes (`app/play/page.js`).**
+- `turn:narrative` now appends to the buffer ref instead of `setTurns`, and kicks off the drain loop if one isn't already running.
+- `turn:complete` sets `buf.complete = true` (switches drain to FLUSH rate) and restarts a parked drain loop if the buffer is still non-empty. The rest of the handler (stateChanges, nextActions, clock merges, `setSubmitting(false)`) runs immediately as before.
+- `turn:discard` clears the buffer and bumps generation so the retry stream starts clean.
+- `turn:error` clears the buffer and retires any in-flight drain loop.
+- Fresh-game auto-trigger uses the same streaming path (via `handleTurnResponse`) and inherits buffer init.
+
+**Files modified:**
+- `app/play/page.js`
+
+**claude-upload synced:** `play-full.js` (regenerated), `play-page.js`.
+
+---
+
+## Recent Work (Prior Session: 2026-04-23)
 
 ### SSE streaming: preserve dice across silent retries
 

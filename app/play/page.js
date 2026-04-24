@@ -56,6 +56,54 @@ function buildThemeStyle(settings) {
   };
 }
 
+// ─── Streaming text drain rates (words per second) ─────────────────────────
+// Base pace is a hair above comfortable reading; CATCHUP kicks in when the
+// model is outrunning the render and we need to keep pace; FLUSH applies once
+// the stream has finished so leftover buffered text doesn't trickle in for
+// seconds after the response is "done."
+const STREAM_WPS_BASE = 30;
+const STREAM_WPS_CATCHUP = 50;
+const STREAM_WPS_FLUSH = 60;
+const STREAM_CATCHUP_WORD_THRESHOLD = 50;
+
+// Drain up to `count` whitespace-delimited words from the front of `text`.
+// Whitespace surrounding the drained words is included in `consumed` so
+// concatenation reproduces the original formatting exactly.
+//
+// When `allowPartial` is false (stream still open) and the buffer ends in the
+// middle of a word (no trailing whitespace), that partial word is held back
+// for the next tick — prevents half-written words flashing on screen between
+// chunks. When the stream is complete, `allowPartial` flips true and the
+// remainder is flushed as-is.
+function takeWords(text, count, allowPartial) {
+  if (count <= 0 || !text) return { consumed: '', rest: text || '', count: 0 };
+
+  let pos = 0;
+  let wordsTaken = 0;
+
+  while (pos < text.length && wordsTaken < count) {
+    while (pos < text.length && /\s/.test(text[pos])) pos++;
+    if (pos >= text.length) break;
+
+    const wordStart = pos;
+    while (pos < text.length && !/\s/.test(text[pos])) pos++;
+
+    const endedAtSpace = pos < text.length;
+    if (!endedAtSpace && !allowPartial) {
+      // Partial word at end of buffer — back off and wait for more data.
+      pos = wordStart;
+      break;
+    }
+    wordsTaken++;
+  }
+
+  // Carry any trailing whitespace with the emitted words so the next call
+  // starts on a clean word boundary.
+  while (pos < text.length && /\s/.test(text[pos])) pos++;
+
+  return { consumed: text.slice(0, pos), rest: text.slice(pos), count: wordsTaken };
+}
+
 // =============================================================================
 // PlayPage — Main game page with data fetching and state management
 // =============================================================================
@@ -149,6 +197,26 @@ function PlayPage() {
   // Ref (not state) because SSE event handlers registered at mount need the live value
   // without stale closures and without re-registering on every state change.
   const streamingTurnRef = useRef(null);
+
+  // Streaming text buffer — narrative chunks arrive from SSE instantly but are
+  // drained to the rendered turn state at a steady words-per-second pace, so
+  // the player sees a smooth "typing" effect instead of jittery chunk jumps.
+  //   pre/post       — unrendered text, split by AD-673 phase (pre/post roll)
+  //   complete       — true once turn:complete has fired (drain in flush mode)
+  //   draining       — guards against running two concurrent drain loops
+  //   turnNumber     — which turn the drained text belongs to
+  //   wordDebt       — fractional word accumulator for accurate WPS pacing
+  //   generation     — bumped on reset so in-flight RAF loops from a prior
+  //                    turn self-terminate before writing into the new turn
+  const streamBufferRef = useRef({
+    pre: '',
+    post: '',
+    complete: false,
+    draining: false,
+    turnNumber: null,
+    wordDebt: 0,
+    generation: 0,
+  });
 
   // gameState mirror for SSE handlers: event listeners register once and close over
   // mount-time state. turn:complete needs the current clock to merge weather/day into
@@ -337,6 +405,18 @@ function PlayPage() {
     // turn:complete (or turn:error) is what clears `submitting` and flips the flag off.
     if (response.streaming) {
       streamingTurnRef.current = response.turn.number;
+      // Reinitialize the streaming buffer for this turn. Bumping generation
+      // retires any RAF loop still in flight from a prior turn before it can
+      // write into the new placeholder.
+      streamBufferRef.current = {
+        pre: '',
+        post: '',
+        complete: false,
+        draining: false,
+        turnNumber: response.turn.number,
+        wordDebt: 0,
+        generation: streamBufferRef.current.generation + 1,
+      };
       setSubmitting(true);
       const clock = gameStateRef.current?.clock || null;
       setTurns(prev => [
@@ -769,31 +849,122 @@ function PlayPage() {
             }
           });
 
-          // Append a chunk into the streaming turn's preRoll or postRoll half.
+          // Paced drain loop — consumes buffered text at STREAM_WPS_* and writes
+          // drained words into the streaming turn's narrative state. Started
+          // lazily on the first chunk for a turn (or restarted after an idle
+          // gap). A `generation` check in each tick lets buffer resets retire
+          // stale loops without cancel-handle plumbing.
+          function startDrainLoop() {
+            const myGen = streamBufferRef.current.generation;
+            let lastTime = performance.now();
+
+            function drain(now) {
+              const buf = streamBufferRef.current;
+              if (buf.generation !== myGen || !buf.draining) return;
+
+              // Clamp dt so a backgrounded tab waking up doesn't dump half the
+              // buffer in one frame.
+              const elapsed = Math.min(0.1, (now - lastTime) / 1000);
+              lastTime = now;
+
+              // Buffer empty: either all done, or parked waiting for new data.
+              if (!buf.pre && !buf.post) {
+                buf.wordDebt = 0;
+                buf.draining = false;
+                return;
+              }
+
+              const approxWords =
+                (buf.pre ? buf.pre.split(/\s+/).filter(Boolean).length : 0) +
+                (buf.post ? buf.post.split(/\s+/).filter(Boolean).length : 0);
+              let wps = STREAM_WPS_BASE;
+              if (buf.complete) wps = STREAM_WPS_FLUSH;
+              else if (approxWords > STREAM_CATCHUP_WORD_THRESHOLD) wps = STREAM_WPS_CATCHUP;
+
+              buf.wordDebt += elapsed * wps;
+              const wordsThisFrame = Math.floor(buf.wordDebt);
+
+              let emittedPre = '';
+              let emittedPost = '';
+
+              if (wordsThisFrame > 0) {
+                buf.wordDebt -= wordsThisFrame;
+                let remaining = wordsThisFrame;
+
+                // Drain pre first so narrative order is preserved.
+                if (buf.pre) {
+                  const result = takeWords(buf.pre, remaining, buf.complete);
+                  emittedPre = result.consumed;
+                  buf.pre = result.rest;
+                  remaining -= result.count;
+                }
+                // Only advance to post once pre is fully drained.
+                if (!buf.pre && buf.post && remaining > 0) {
+                  const result = takeWords(buf.post, remaining, buf.complete);
+                  emittedPost = result.consumed;
+                  buf.post = result.rest;
+                }
+
+                if (emittedPre || emittedPost) {
+                  const targetTurnNumber = buf.turnNumber;
+                  setTurns(prev => {
+                    const idx = prev.findIndex(t => t.number === targetTurnNumber);
+                    if (idx === -1) return prev;
+                    const updated = [...prev];
+                    const turn = { ...updated[idx] };
+                    const narrative = (typeof turn.narrative === 'object' && turn.narrative !== null)
+                      ? { ...turn.narrative }
+                      : { preRoll: '', postRoll: '' };
+                    if (emittedPre) narrative.preRoll = (narrative.preRoll || '') + emittedPre;
+                    if (emittedPost) narrative.postRoll = (narrative.postRoll || '') + emittedPost;
+                    turn.narrative = narrative;
+                    updated[idx] = turn;
+                    return updated;
+                  });
+                }
+              }
+
+              // Stall: we had word budget but takeWords held back a partial
+              // word and the stream isn't done. Park the loop — the next
+              // turn:narrative chunk will restart us with fresh data.
+              const stalled = wordsThisFrame > 0 && !emittedPre && !emittedPost;
+              if (stalled && !buf.complete) {
+                buf.wordDebt = 0;
+                buf.draining = false;
+                return;
+              }
+
+              requestAnimationFrame(drain);
+            }
+
+            requestAnimationFrame(drain);
+          }
+
+          // Append a chunk into the streaming buffer (not directly into state).
           // Payload: { turnNumber, chunk, phase?: "pre" | "post" } — phase absent
-          // on no-roll turns / split fallbacks; default to postRoll in that case.
+          // on no-roll turns / split fallbacks; default to post in that case.
+          // The drain loop pulls words out at STREAM_WPS_* and updates state.
           es.addEventListener('turn:narrative', (event) => {
             try {
               const data = JSON.parse(event.data);
               if (streamingTurnRef.current == null) return;
 
-              setTurns(prev => {
-                const idx = prev.findIndex(t => t.number === data.turnNumber && t._isStreaming);
-                if (idx === -1) return prev;
-                const updated = [...prev];
-                const turn = { ...updated[idx] };
-                const narrative = (typeof turn.narrative === 'object' && turn.narrative !== null)
-                  ? { ...turn.narrative }
-                  : { preRoll: '', postRoll: '' };
-                if (data.phase === 'pre') {
-                  narrative.preRoll = (narrative.preRoll || '') + data.chunk;
-                } else {
-                  narrative.postRoll = (narrative.postRoll || '') + data.chunk;
-                }
-                turn.narrative = narrative;
-                updated[idx] = turn;
-                return updated;
-              });
+              const buf = streamBufferRef.current;
+              // Defensive: first chunk seeds the turn number if handleTurnResponse
+              // somehow hasn't set it. Mismatched turn numbers are ignored.
+              if (buf.turnNumber == null) buf.turnNumber = data.turnNumber;
+              if (data.turnNumber !== buf.turnNumber) return;
+
+              if (data.phase === 'pre') {
+                buf.pre += data.chunk;
+              } else {
+                buf.post += data.chunk;
+              }
+
+              if (!buf.draining) {
+                buf.draining = true;
+                startDrainLoop();
+              }
             } catch (err) {
               console.error('Failed to parse turn:narrative:', err);
             }
@@ -833,11 +1004,26 @@ function PlayPage() {
 
           // Streaming ended successfully — finalize the turn with stateChanges /
           // nextActions / clock merges and re-enable the action panel.
+          // Narrative text may still be flushing through the drain loop when
+          // this fires; marking the buffer complete switches it to FLUSH rate
+          // so trailing text doesn't trickle in for seconds after. The action
+          // panel re-enables immediately (see setSubmitting(false) below) —
+          // the player is still reading anyway.
           es.addEventListener('turn:complete', (event) => {
             try {
               const data = JSON.parse(event.data);
               if (streamingTurnRef.current == null) return;
               streamingTurnRef.current = null;
+
+              // Signal the drain loop to flush. If a drain loop is parked
+              // (buffer drained empty between chunks), kick it back on so any
+              // remaining bytes arriving right before close still render.
+              const buf = streamBufferRef.current;
+              buf.complete = true;
+              if ((buf.pre || buf.post) && !buf.draining) {
+                buf.draining = true;
+                startDrainLoop();
+              }
 
               // Mirror handleTurnResponse's clock merge: preserve weather/currentDay
               // when backend only sent { day, hour, minute } in stateChanges.clock.
@@ -939,7 +1125,19 @@ function PlayPage() {
                 };
                 return updated;
               });
-              // Leave streamingTurnRef and `submitting` alone — retry stream is incoming.
+              // Clear any buffered-but-not-yet-rendered text and bump generation
+              // so the in-flight drain loop self-terminates before the retry
+              // stream repopulates the buffer. streamingTurnRef and `submitting`
+              // stay set — retry stream is incoming.
+              streamBufferRef.current = {
+                pre: '',
+                post: '',
+                complete: false,
+                draining: false,
+                turnNumber: data.turnNumber,
+                wordDebt: 0,
+                generation: streamBufferRef.current.generation + 1,
+              };
             } catch (err) {
               console.error('Failed to parse turn:discard:', err);
             }
@@ -950,12 +1148,24 @@ function PlayPage() {
             try {
               const data = JSON.parse(event.data);
               streamingTurnRef.current = null;
+              // Drop anything in the buffer and retire the drain loop.
+              streamBufferRef.current = {
+                pre: '',
+                post: '',
+                complete: false,
+                draining: false,
+                turnNumber: null,
+                wordDebt: 0,
+                generation: streamBufferRef.current.generation + 1,
+              };
               setTurns(prev => prev.filter(t => !(t.number === data.turnNumber && t._isStreaming)));
               setError(data.error || 'Turn failed. Please try again.');
               setSubmitting(false);
             } catch (err) {
               console.error('Failed to parse turn:error:', err);
               streamingTurnRef.current = null;
+              streamBufferRef.current.draining = false;
+              streamBufferRef.current.generation++;
               setSubmitting(false);
             }
           });
@@ -1052,6 +1262,9 @@ function PlayPage() {
         sseRef.current = null;
       }
       streamingTurnRef.current = null;
+      // Stop the drain loop so no orphan RAF survives unmount.
+      streamBufferRef.current.draining = false;
+      streamBufferRef.current.generation++;
     };
   }, [authReady, gameId, router]);
 
