@@ -42,17 +42,11 @@
   border-radius: 6px;
 }
 
-/* Pricing card (Free) — clickable, subtle border warm on hover */
+/* Pricing card (Free) — clickable but visually flat on hover.
+   The cursor: pointer still signals the card-wide click target; no border
+   or background shift on hover per user preference. */
 .priceCard {
   cursor: pointer;
-  transition: border-color 0.3s ease, background 0.3s ease;
-}
-
-@media (hover: hover) {
-  .priceCard:hover {
-    border-color: var(--border-card-hover) !important;
-    background: var(--bg-gold-subtle) !important;
-  }
 }
 
 /* ─── Hero card — visually differentiated from Free ───
