@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-24 (smooth streaming text buffer)
+**Last Updated:** 2026-04-24 (particle field: weighted tiers + scroll parallax)
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -34,6 +34,35 @@
 ---
 
 ## Recent Work (This Session: 2026-04-24)
+
+### Particle field: weighted size tiers + scroll-coupled parallax
+
+Two visual upgrades to `components/ParticleField.js`. No API change (still just `count`).
+
+**Weighted size/brightness tiers.** The previous flat randomization over `size` and `opacity` made every particle look roughly the same. Replaced with a single `Math.random()` roll that bins each particle into one of three tiers:
+- **Dust (70%)** — 0.5–1.3 px, opacity 0.04–0.12, no blur, no twinkle. Atmospheric background.
+- **Motes (20%)** — 1.3–2.4 px, opacity 0.12–0.25, no blur, 30 % twinkle chance.
+- **Embers (10%)** — 2.4–3.8 px, opacity 0.25–0.45, `blur(0.5px)`, 80 % twinkle chance, plus a `box-shadow: 0 0 ${size*2}px ${color}4D` glow (8-digit hex alpha 0x4D ≈ 30 %). The glow uses each particle's own `EMBER_COLORS` entry, not a hardcoded tint.
+
+The existing `assignLayer(size)` thresholds (<1.4, <2.2, else) naturally sort dust into the far layer and embers into the near layer, so no layer-assignment changes were needed.
+
+**Scroll-coupled velocity.** When the user scrolls, particles drift in the opposite direction — downward scroll shifts them up — for a parallax-depth feel. Implementation:
+- A `scroll` listener computes `deltaY = window.scrollY - lastScrollY` per event and writes it into `scrollVelocity` (replace, not accumulate — the per-frame decay settles velocity back to zero on its own).
+- The existing animate rAF loop multiplies `scrollVelocity *= 0.92` each frame (drift fades to negligible in ~0.8 s at 60 fps once the user stops).
+- Per-layer offset = `clamp(-velocity × maxShift / 10, ±maxShift)` with `LAYER_SCROLL_MAX = [2, 5, 8]` px for far/mid/near. The `/ 10` reference gives each layer its full cap at a typical wheel-tick speed while still giving proportional parallax to gentler scrolls. The clamp keeps hard flicks from flinging particles offscreen.
+- Mouse parallax and scroll drift combine additively on Y: `translate(mouseX, mouseY + scrollY)`.
+- Same gate as the mouse parallax: `(hover: hover)` and not `prefers-reduced-motion`. Desktop only, accessibility-respecting.
+- `lastScrollY` is seeded from `window.scrollY` at mount so the first post-mount delta is 0 even if the user had already scrolled before the component appeared.
+- rAF cleanup (`cancelAnimationFrame` in the effect return) stops the loop on unmount; adding the scroll listener teardown here prevents listener leaks on component remount.
+
+Mobile cap (20 particles), reduced-motion CSS override, and `EMBER_COLORS` are untouched.
+
+**Files modified:**
+- `components/ParticleField.js`
+
+**claude-upload synced:** `component-ParticleField.js`, `component-ParticleField.module.css` (no CSS changes, but re-copied to keep the mirror flush).
+
+---
 
 ### Smooth streaming text buffer
 
