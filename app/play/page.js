@@ -921,12 +921,24 @@ function PlayPage() {
             }
           });
 
-          // Backend validation failed after streaming started. Drop the partial
-          // turn and wait for the auto-retry (another stream will follow).
+          // Backend silent retry — clear any narrative chunks we've rendered for
+          // this turn but keep the placeholder (and dice, which came from the
+          // synchronous POST resolution) so the player doesn't see the roll
+          // flicker out of existence. A fresh turn:narrative sequence follows.
           es.addEventListener('turn:discard', (event) => {
             try {
               const data = JSON.parse(event.data);
-              setTurns(prev => prev.filter(t => !(t.number === data.turnNumber && t._isStreaming)));
+              setTurns(prev => {
+                const idx = prev.findIndex(t => t.number === data.turnNumber && t._isStreaming);
+                if (idx === -1) return prev;
+                const updated = [...prev];
+                updated[idx] = {
+                  ...updated[idx],
+                  narrative: { preRoll: '', postRoll: '' },
+                  gmAside: null,
+                };
+                return updated;
+              });
               // Leave streamingTurnRef and `submitting` alone — retry stream is incoming.
             } catch (err) {
               console.error('Failed to parse turn:discard:', err);

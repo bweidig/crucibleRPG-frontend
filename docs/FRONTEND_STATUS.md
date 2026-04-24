@@ -35,6 +35,15 @@
 
 ## Recent Work (This Session: 2026-04-23)
 
+### SSE streaming: preserve dice across silent retries
+
+`turn:discard` was filtering the whole streaming placeholder turn out of the array, which made the dice roll flicker and disappear when the backend silently retried narrative generation. Per AD-685 the contract says "clear any already-rendered narrative chunks for that turn and prepare to receive a fresh `turn:narrative` sequence" — narrative chunks, not the resolution. The handler now resets the placeholder's `narrative` to `{ preRoll: '', postRoll: '' }` and clears any `gmAside` that streamed in, but leaves the turn (and its resolution/dice) in place. `streamingTurnRef` and `submitting` remain set because the retry stream is still incoming.
+
+**Files modified:**
+- `app/play/page.js`
+
+---
+
 ### /play mobile layout fixes + two-tap option commit + dice-time dock collapse
 
 Addressed four broken mobile behaviors reported on iPhone mini, plus three follow-on polish items the player requested after the initial fix list.
