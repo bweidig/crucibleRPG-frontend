@@ -515,8 +515,15 @@
     min-width: 0;
     flex: 1;
     width: 100%;
+    max-width: 100%;
     overflow-y: auto;
+    /* Explicit overflow-x: hidden — without it, setting overflow-y: auto
+       implicitly promotes overflow-x to auto per spec, so any stray
+       horizontal overflow becomes a swipeable scroll area. That let the
+       player drag the dock sideways off the screen on iPhone mini. */
+    overflow-x: hidden;
     overscroll-behavior: contain;
+    touch-action: pan-y;
     scrollbar-width: thin;
     -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 18px), transparent 100%);
             mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 18px), transparent 100%);

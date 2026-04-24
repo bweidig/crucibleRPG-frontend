@@ -105,6 +105,21 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  /* dvh = dynamic viewport height, so the overlay tracks the iOS URL bar
+     show/hide and never extends past the visible area. */
+  height: 100dvh;
+  max-height: 100dvh;
+}
+
+@media (max-width: 767px) {
+  .loadingOverlay {
+    /* Reserve clear space for the absolutely-positioned CRUCIBLE wordmark
+       at top-left — without this, the PROLOGUE/WELCOME BACK label sits on
+       top of it on short viewports. Also leaves room at the bottom for
+       the Safari toolbar. */
+    padding: 72px 20px 52px;
+    justify-content: flex-start;
+  }
 }
 
 /* ─── Loading & Error States ─── */

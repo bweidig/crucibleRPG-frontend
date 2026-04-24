@@ -1336,6 +1336,19 @@ function PlayPage() {
     return () => clearInterval(interval);
   }, [overlayDismissed]);
 
+  // Lock body scroll while the loading overlay is showing. iOS Safari will
+  // otherwise let the page scroll behind the fixed overlay (the body's
+  // min-height: 100vh exceeds the visible viewport when the URL bar is up),
+  // which shows a scroll indicator even though there's nothing to see.
+  useEffect(() => {
+    if (overlayDismissed) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [overlayDismissed]);
+
   function handleEnterWorld() {
     setOverlayFading(true);
     window.scrollTo(0, 0);
