@@ -12,19 +12,25 @@ const LAYERS = [
   { maxShift: 3 },   // near (largest particles)
 ];
 
-// Per-layer cap for scroll-coupled drift (px). Larger than mouse parallax so
-// the scroll parallax is easier to feel during a gesture but still bounded —
-// a fast flick shouldn't fling particles across the viewport.
+// Per-layer cap for scroll-coupled drift (px). Bounded so a hard flick
+// doesn't fling particles across the viewport.
 const LAYER_SCROLL_MAX = [2, 5, 8];
 
-// Exponential velocity decay per frame. 0.92^50 ≈ 0.015, so drift fades
-// from visible to nothing in roughly 0.8s at 60fps after scrolling stops.
-const SCROLL_DECAY = 0.92;
+// Velocity decay per frame. Aggressive enough (0.85^20 ≈ 0.04) that a single
+// scroll event's influence fades in ~1/3 second — combined with the lerped
+// offset below, drift starts small, grows briefly, and settles back to zero.
+const SCROLL_DECAY = 0.85;
 
-// Reference scroll speed (px/frame) that fully engages each layer's cap.
-// Tuned so a typical wheel tick and most trackpad flicks land near or past
-// the cap, while slower scrolls still get proportional parallax.
-const SCROLL_VEL_REFERENCE = 10;
+// Raw deltaY from scroll events is large (wheel ticks easily exceed 30 px).
+// Dividing at the source scales it down to a velocity magnitude where
+// cap-saturation and gentle-scroll behavior both land in a readable range.
+const SCROLL_INPUT_DIVISOR = 8;
+
+// Lerp factor for the scroll offset itself — the mouse parallax uses 0.01
+// for a lazy drift, and scroll wants the same "wind, not vibration" feel.
+// Faster lerps track the velocity too closely and produce the per-frame
+// jitter the effect is trying to avoid.
+const SCROLL_LERP = 0.02;
 
 const DEADZONE = 180; // px from viewport center — ignore small movements
 
@@ -56,23 +62,25 @@ export default function ParticleField({ count = 35 }) {
 
       // Tier-specific ranges: dust is small/faint and stays still; motes are
       // mid-sized with an occasional twinkle; embers are the rare standouts
-      // that get a blur, a warm glow, and almost always twinkle.
+      // that get a blur, a warm glow, and almost always twinkle. Floors on
+      // size and opacity are set so even the faintest dust reads as a visible
+      // speck on the dark navy background — sparse starfield, not empty space.
       let size, opacity, twinkleChance, blur, glow;
       if (tier === 'dust') {
-        size = randInRange(0.5, 1.3);
-        opacity = randInRange(0.04, 0.12);
+        size = randInRange(1.0, 1.8);
+        opacity = randInRange(0.10, 0.20);
         twinkleChance = 0;
         blur = false;
         glow = false;
       } else if (tier === 'mote') {
-        size = randInRange(1.3, 2.4);
-        opacity = randInRange(0.12, 0.25);
+        size = randInRange(1.8, 2.6);
+        opacity = randInRange(0.18, 0.30);
         twinkleChance = 0.30;
         blur = false;
         glow = false;
       } else {
-        size = randInRange(2.4, 3.8);
-        opacity = randInRange(0.25, 0.45);
+        size = randInRange(2.6, 3.8);
+        opacity = randInRange(0.30, 0.50);
         twinkleChance = 0.80;
         blur = true;
         glow = true;
@@ -105,11 +113,16 @@ export default function ParticleField({ count = 35 }) {
   const rafId = useRef(null);
   const parallaxEnabled = useRef(false);
 
-  // Scroll-coupled drift: a single decaying velocity that reads the most
-  // recent scroll delta and fades back to 0 each frame via SCROLL_DECAY.
-  // No separate current/target split — the decay itself is the smoothing.
+  // Scroll-coupled drift runs in two stages to avoid frame-to-frame jitter:
+  //   1. scrollVelocity — the freshest scroll delta (divided by SCROLL_INPUT_
+  //      DIVISOR). Decays each frame via SCROLL_DECAY.
+  //   2. currentScrollOffset[layer] — the actual pixel offset applied. Lerps
+  //      slowly (SCROLL_LERP) toward a velocity-derived target. Without this
+  //      lerp, offset would jump every frame with each new scroll delta and
+  //      vibrate rather than drift.
   const scrollVelocity = useRef(0);
   const lastScrollY = useRef(0);
+  const currentScrollOffset = useRef([0, 0, 0]);
 
   useEffect(() => {
     // Only enable on hover-capable, non-reduced-motion devices — gates both
@@ -149,9 +162,11 @@ export default function ParticleField({ count = 35 }) {
       const cur = window.scrollY;
       const delta = cur - lastScrollY.current;
       lastScrollY.current = cur;
-      // Replace rather than accumulate: velocity should track the freshest
-      // scroll delta, and the per-frame decay handles settle-back on its own.
-      scrollVelocity.current = delta;
+      // Replace rather than accumulate — the per-frame decay settles it back
+      // on its own. Division by SCROLL_INPUT_DIVISOR scales raw scroll deltas
+      // (often 30–100+ px per wheel tick) down into a range where the rest
+      // of the pipeline produces the "gentle wind" feel the effect wants.
+      scrollVelocity.current = delta / SCROLL_INPUT_DIVISOR;
     };
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
@@ -171,24 +186,27 @@ export default function ParticleField({ count = 35 }) {
         cur.x = lerp(cur.x, tx, lerpFactor);
         cur.y = lerp(cur.y, ty, lerpFactor);
 
-        // Scroll drift: opposite the scroll direction, scaled so each layer
-        // reaches its own cap at SCROLL_VEL_REFERENCE px/frame. Anything
-        // faster is clamped so a hard flick doesn't sling particles offscreen.
+        // Scroll drift: target derived from velocity, then the rendered
+        // offset lerps toward it at SCROLL_LERP (very lazy). Keeps particles
+        // drifting smoothly over ~half a second rather than snapping with
+        // each scroll event. Clamped to each layer's cap so fast flicks
+        // don't overshoot.
         const maxS = LAYER_SCROLL_MAX[i];
-        const rawScroll = -velY * (maxS / SCROLL_VEL_REFERENCE);
-        const scrollY = Math.max(-maxS, Math.min(maxS, rawScroll));
+        const rawTarget = -velY * maxS;
+        const scrollTarget = Math.max(-maxS, Math.min(maxS, rawTarget));
+        currentScrollOffset.current[i] = lerp(currentScrollOffset.current[i], scrollTarget, SCROLL_LERP);
 
         const el = layerRefs.current[i];
         if (el) {
           // Mouse parallax and scroll drift combine additively on Y.
-          el.style.transform = `translate(${cur.x.toFixed(2)}px, ${(cur.y + scrollY).toFixed(2)}px)`;
+          el.style.transform = `translate(${cur.x.toFixed(2)}px, ${(cur.y + currentScrollOffset.current[i]).toFixed(2)}px)`;
         }
       });
 
       // Exponential decay toward zero. Snap to 0 once tiny so the transform
       // doesn't keep re-writing trivial sub-pixel values forever.
       scrollVelocity.current *= SCROLL_DECAY;
-      if (Math.abs(scrollVelocity.current) < 0.05) scrollVelocity.current = 0;
+      if (Math.abs(scrollVelocity.current) < 0.01) scrollVelocity.current = 0;
 
       rafId.current = requestAnimationFrame(animate);
     };

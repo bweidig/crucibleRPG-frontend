@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-24 (standardize footer; particle tiers + scroll parallax)
+**Last Updated:** 2026-04-24 (particle visibility + scroll-drift smoothness)
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -34,6 +34,29 @@
 ---
 
 ## Recent Work (This Session: 2026-04-24)
+
+### Particle field: visibility floors + smoother scroll drift
+
+Two follow-on fixes to the earlier particle-field enhancements.
+
+**Visibility.** The dust tier (70 % of particles) was rendering at sizes 0.5–1.3 px and opacities 0.04–0.12, which effectively disappeared on the dark navy background. Raised all three tiers' floors so even dust reads as a faint but visible speck — the field should look like a sparse starfield, not empty space. New ranges:
+- Dust: 1.0–1.8 px, 0.10–0.20 opacity.
+- Motes: 1.8–2.6 px, 0.18–0.30 opacity.
+- Embers: 2.6–3.8 px, 0.30–0.50 opacity.
+
+**Scroll jitter.** The scroll-coupled drift was applying the velocity-derived offset directly in the transform, so every frame's new scroll delta produced a perceptible frame-to-frame jump — vibration, not wind. Three fixes, all per design spec:
+- Velocity decay tightened from `0.92 → 0.85`, so a single scroll event's influence fades in ~1/3 second instead of ~0.8 s.
+- Raw `deltaY` is now divided by `SCROLL_INPUT_DIVISOR = 8` at the source, scaling typical wheel ticks (30–100 + px) into a gentler velocity range.
+- Added a per-layer `currentScrollOffset` ref that lerps toward the velocity-derived target at `SCROLL_LERP = 0.02` (same lazy feel as the mouse parallax). Previously the raw velocity was used as the offset directly; lerping smooths transitions across frames and is what eliminates the vibration.
+
+Combined effect: a quick scroll gesture produces a subtle drift that builds over a few frames, peaks sub-pixel-to-low-single-digit depending on layer, and eases back to neutral over ~1 s. Mouse parallax path is unchanged; count/palette/API/mobile cap unchanged.
+
+**Files modified:**
+- `components/ParticleField.js`
+
+**claude-upload synced:** `component-ParticleField.js`.
+
+---
 
 ### Footer: standardize on the full footer everywhere
 
