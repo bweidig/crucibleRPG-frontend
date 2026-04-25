@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-24 (particle scroll-position parallax)
+**Last Updated:** 2026-04-24 (fix scroll wheel; gameplay showcase z-index)
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -34,6 +34,20 @@
 ---
 
 ## Recent Work (This Session: 2026-04-24)
+
+### Fix scroll wheel + GameplayShowcase z-index
+
+**Scroll wheel was dead.** Commit `3ccbb72` ("Harden mobile dock horizontal lock", from a parallel session) added `overflow-x: hidden; max-width: 100vw` to `html, body` in `globals.css` as a belt-and-suspenders mobile fix. That global declaration broke desktop wheel scrolling on multiple pages — the per-page rules in that same commit (`ActionPanel.module.css`, `play.module.css`) already cover the actual mobile horizontal-swipe issue without needing the global override. Removed the global declaration.
+
+**Particles overlay GameplayShowcase.** Pre-existing stacking issue made visible by the recent particle visibility bump. `<ParticleField />` is `position: fixed; z-index: 0`, which paints above non-positioned in-flow content per CSS painting order. The showcase's inner card uses a semi-transparent `rgba(21, 26, 44, 0.5)` background, so the gold particles painted right through it onto the dice and choice buttons. Targeted fix: `.showcase` gets `position: relative; z-index: 1` so it stacks above the field. Other sections on landing have opaque card backgrounds and don't show the bleed-through.
+
+**Files modified:**
+- `app/globals.css` (revert overflow-x/max-width on html, body)
+- `app/landing/GameplayShowcase.module.css` (position + z-index on `.showcase`)
+
+**claude-upload synced:** `globals.css`, `landing-GameplayShowcase.module.css`.
+
+---
 
 ### Particle field: scroll-position parallax (replaces velocity-based drift)
 

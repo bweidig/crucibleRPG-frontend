@@ -9,6 +9,11 @@
   scroll-margin-top: 96px;
   opacity: 0;
   transition: opacity 0.6s ease-out;
+  /* Stack above the page-level ParticleField (which sits at z-index: 0). The
+     showcase card uses a semi-transparent background, so without this the
+     gold particles paint visibly on top of the dice and choice buttons. */
+  position: relative;
+  z-index: 1;
 }
 
 .showcaseRevealed {
