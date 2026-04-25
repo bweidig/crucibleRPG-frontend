@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-25 (NavBar: standard variant link-set parity + persistent active-state underline)
+**Last Updated:** 2026-04-25 (showcase: lower top padding + slide-up entrance)
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -34,6 +34,27 @@
 ---
 
 ## Recent Work (This Session: 2026-04-25)
+
+### Landing showcase: lower top padding + slide-up entrance
+
+Two visual tweaks to `app/landing/GameplayShowcase.module.css` that pull the showcase card visually closer to the bottom of the hero and turn the remaining gap into a deliberate reveal moment.
+
+**Top padding halved.** `.showcase` desktop padding `48px clamp(24px, 5vw, 60px)` → `24px clamp(24px, 5vw, 60px) 48px` (top 48 → 24, bottom stays 48). Mobile `padding: 36px 20px` → `padding: 20px 20px 36px` (top 36 → 20, bottom stays 36). The horizontal padding is unchanged on both. On a typical 1080p / 1440p desktop the showcase now sits just below the fold instead of behind a tall band of empty space.
+
+**Entrance reads as a reveal, not a fade.** `.showcase` already had `opacity: 0` + `transition: opacity 0.6s ease-out` plus the `.showcaseRevealed` class added by the IntersectionObserver. Added a 32 px slide-up:
+- `.showcase`: `transform: translateY(32px)`, `transition: opacity 0.6s ease-out, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)`.
+- `.showcaseRevealed`: `transform: translateY(0)` alongside the existing `opacity: 1`.
+
+`prefers-reduced-motion` gets a dedicated rule near the top of the file that flips `transform: none !important` and shortens the transition to `opacity 0.3s ease !important`. Reduced-motion users still get a brief fade in but no slide. The pre-existing `.showcase { opacity: 1 }` line in the lower reduced-motion block (which would have skipped the fade entirely) was removed; replaced with a comment pointing at the new rule.
+
+The IntersectionObserver, all internal state, the choice cards' own animations, and the dice region's `.diceRegion` reduced-motion override are all unchanged.
+
+**Files modified:**
+- `app/landing/GameplayShowcase.module.css`
+
+**claude-upload synced:** `landing-GameplayShowcase.module.css`, `component-GameplayShowcase.module.css` (legacy mirror).
+
+---
 
 ### NavBar: standard-variant link-set parity, persistent active-state underline
 
