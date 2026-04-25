@@ -107,6 +107,62 @@ Five-part fix on `/rulebook`:
 
 ---
 
+### Auth form polish: input border contrast + Sign Up / Sign In tab differentiation
+
+Two audit findings on `/auth`:
+
+**Input field borders were nearly invisible at rest.** `var(--border-gold-faint)` resolves to `#16181e` — only a few brightness units off the page background `#0a0e1a`, so against the form card the inputs had no visible edge. Switched the rest-state border to `rgba(201, 168, 76, 0.22)`, the gold accent at low alpha. Same color family as the focus state (`var(--border-card-hover)`) but visibly softer, so focus still reads as a deliberate state shift. Applied to:
+- The `InputField` component (line 36 of `app/auth/page.js`) — the primary input border for email/password/etc.
+- The playtest "Tell us a bit about yourself" textarea (line 461) — same input-element treatment.
+
+Other matches of `border-gold-faint` on the page (the "or" divider lines, the password-strength bars, the Sign Up / Sign In toggle container outline) are not input borders and stay as-is.
+
+**Sign Up / Sign In tabs read as disabled rather than as a real toggle.** Three compounding problems: the container background was `var(--bg-main)` (same as the page bg, no widget identity), the active tab background was `var(--bg-gold-light)` (only a few units lighter than the container), and the inactive tab text was `var(--text-dim)` (read as disabled). Fixes:
+- Container background → `rgba(0, 0, 0, 0.25)` for a recessed "well" feel against the form card. The 1px `var(--border-gold-faint)` outline stays — defines the widget edge.
+- `.tabActive` background → `rgba(201, 168, 76, 0.15)` so the gold-tinted elevation reads clearly against the new darker container. Active text color (`var(--accent-gold)`) unchanged.
+- `.tabInactive` text color → `var(--text-secondary)` (`#8a94a8`) — still muted, but reads as "available," not "disabled." Hover behavior (gold text + faint gold tint) was already correct and stays.
+
+**Files modified:**
+- `app/auth/page.js`
+- `app/auth/page.module.css`
+
+**claude-upload synced:** `auth-page.js`, `auth-page.module.css`.
+
+---
+
+### Pricing: top-up card upgrade, FAQ accordion, vertical rhythm, drop redundant Hero bullet
+
+Four targeted fixes to the audit findings on `/pricing` (companion to the directional hero halo entry below — both shipped in the same commit). The Hero card visual treatment (gradient gold border, asymmetric halo, ribbon, larger price typography) is intentionally untouched — that work is already landed.
+
+**Top-up cards now read as a real offering.**
+- Bumped card width (`flex: 1 1 200px; max-width: 240px`) and padding (`28px 24px 24px`).
+- Bumped the turns numeral to 32px and the price to 20px so the cards have presence rather than reading as a footnote.
+- Added a per-turn pricing line (`$0.06/turn`, `$0.05/turn`, `$0.045/turn`) computed from `PRICING.topups` so the values stay in sync with the constant. Math: `(price / turns).toFixed(3)` then `Number(...).toString()` to strip insignificant trailing zeros — that's why the 25- and 50-pack render two decimals while the 100-pack keeps three.
+- Added a small Cinzel "BEST VALUE" eyebrow above the turns number on the largest pack only. The other two packs render the same div with `visibility: hidden` so all three cards stay vertically aligned.
+
+**FAQ converted to the same accordion pattern as `/faq`.**
+- New `Chevron` and `PricingFAQItem` components in `app/pricing/page.js`. The chevron is gold (16x16, stroke `var(--accent-gold)`) and rotates 180° when open via a 0.3s ease transform. Question text shifts from `var(--text-heading)` to `var(--accent-gold)` when open or hovered.
+- `openFAQ` state on the page; clicking a question opens it and closes any other (single-open behavior matches the FAQ page).
+- Answer slides via `max-height` (0 → 600px), `opacity` (0 → 1), and `padding-bottom` (0 → 16px), all 0.3s ease. 600px is a generous ceiling for these short answers.
+- New CSS classes (`.faqItem`, `.faqQuestion`, `.faqQuestionText`, `.faqChevron`, `.faqAnswer`) added to `app/pricing/page.module.css`. Mobile bumps `.faqQuestion` to a 44px tap target. Reduced motion turns off the chevron and answer transitions.
+- Did not extract the existing FAQ component from `/faq` — it's tightly coupled to category routing and slug-based deep linking that pricing doesn't need. Local replication keeps both pages independent without a forced refactor.
+
+**Vertical rhythm tightened.**
+- Top-up section top padding `48px → 24px` (so the gap between the bottom of the tier cards and the "NEED MORE TURNS?" eyebrow is `32 + 24 = 56px` instead of `32 + 48 = 80px`).
+- FAQ section top padding `48px → 32px` (top-up bottom 32 + FAQ top 32 = 64px between sections).
+
+**Hero feature list trimmed.** "Cancel anytime. No contracts." removed from the bullet list because it duplicates "Resets every billing cycle. Cancel anytime." in the description text directly above. The list now reads four bullets: stories that take time, unlimited saves, 225 turns/month, top-up packs.
+
+Bottom CTA copy ("Every Hero Needs a Crucible. Yours is waiting.") is **unchanged** — that's the brand slogan and reusing it on Pricing dilutes it from Landing. User is treating the copy revision as a separate decision.
+
+**Files modified:**
+- `app/pricing/page.js`
+- `app/pricing/page.module.css`
+
+**claude-upload synced:** `pricing-page.js`, `pricing-page.module.css`.
+
+---
+
 ### Pricing hero halo → directional radial-gradient pseudo-element
 
 Same problem as the auth card glow (large `box-shadow` blur reads as a soft rectangle, not a circular halo), but compounded on the pricing Hero card by two factors: (1) the card is tall, so the long-side falloff produced visible horizontal striations; (2) the symmetric spread bled leftward across the column gap into the Free Trial card. Moved the gold portion of the shadow off `box-shadow` and onto a `.heroCard::after` pseudo-element with a blurred radial gradient and an asymmetric inset.
