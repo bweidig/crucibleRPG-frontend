@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-24 (fix scroll wheel; gameplay showcase z-index)
+**Last Updated:** 2026-04-24 (revert scroll-position parallax; restore velocity drift)
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -34,6 +34,24 @@
 ---
 
 ## Recent Work (This Session: 2026-04-24)
+
+### Revert scroll-position parallax → restore scroll-velocity drift
+
+The position-based parallax (where each layer's Y offset was `scrollY × factor`) breaks on long pages: the Rulebook is ~41,000 px tall, so the near layer would translate ~20,500 px off baseline by the end. That fights the float animation, leaves the layers visually disconnected from the document, and produces an accumulating offset that has no relationship to what the player can see. Reverted to the velocity-based drift that fades back to zero when scrolling stops.
+
+- Removed `SCROLL_PARALLAX_FACTOR`, `window.scrollY` reads in the rAF loop, and the position-based offset term in the transform.
+- Restored the lerped velocity drift: `LAYER_SCROLL_MAX = [2, 5, 8]`, `SCROLL_DECAY = 0.85`, `SCROLL_INPUT_DIVISOR = 8`, `SCROLL_LERP = 0.02`. Per-layer `currentScrollOffset` ref lerps toward a velocity-derived target each frame.
+- The scroll listener stays — it computes `deltaY = scrollY - lastScrollY` between events. This is a passive listener and doesn't interfere with native scroll handling.
+- Layer transform is back to mouse parallax + scroll-velocity offset only, additive on Y.
+
+End-state behavior matches the original intent of the scroll enhancement: particles drift briefly opposite the scroll direction during active scrolling and settle back to neutral when the user stops, with no accumulating offset based on position.
+
+**Files modified:**
+- `components/ParticleField.js`
+
+**claude-upload synced:** `component-ParticleField.js`.
+
+---
 
 ### Fix scroll wheel + GameplayShowcase z-index
 
