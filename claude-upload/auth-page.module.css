@@ -121,13 +121,13 @@
 /* Auth tabs */
 .tabActive {
   color: var(--accent-gold);
-  background: var(--bg-gold-light);
+  background: rgba(201, 168, 76, 0.15);
   border: none;
   transition: background 0.2s, color 0.2s;
 }
 
 .tabInactive {
-  color: var(--text-dim);
+  color: var(--text-secondary);
   background: transparent;
   border: none;
   transition: background 0.2s, color 0.2s;

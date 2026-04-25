@@ -33,7 +33,7 @@ function InputField({ label, type = 'text', placeholder, value, onChange, autoCo
           onBlur={() => setFocused(false)}
           style={{
             width: '100%', background: 'var(--bg-input)',
-            border: `1px solid ${focused ? 'var(--border-card-hover)' : 'var(--border-gold-faint)'}`,
+            border: `1px solid ${focused ? 'var(--border-card-hover)' : 'rgba(201, 168, 76, 0.22)'}`,
             borderRadius: 6, padding: '13px 16px',
             fontFamily: 'var(--font-alegreya-sans)', fontSize: 16, color: 'var(--text-primary)',
             outline: 'none', boxSizing: 'border-box',
@@ -282,7 +282,7 @@ export default function AuthPage() {
         {/* Toggle tabs */}
         {mode !== 'forgot' && (
           <div className={loaded ? styles.stagger1 : styles.staggerHidden} style={{
-            display: 'flex', marginBottom: 20, background: 'var(--bg-main)', borderRadius: 6, padding: 3,
+            display: 'flex', marginBottom: 20, background: 'rgba(0, 0, 0, 0.25)', borderRadius: 6, padding: 3,
             border: '1px solid var(--border-gold-faint)',
           }}>
             {[
@@ -458,7 +458,7 @@ export default function AuthPage() {
                     rows={3}
                     style={{
                       width: '100%', background: 'var(--bg-input)',
-                      border: '1px solid var(--border-gold-faint)',
+                      border: '1px solid rgba(201, 168, 76, 0.22)',
                       borderRadius: 6, padding: '13px 16px',
                       fontFamily: 'var(--font-alegreya-sans)', fontSize: 16, color: 'var(--text-primary)',
                       outline: 'none', boxSizing: 'border-box', resize: 'vertical',
