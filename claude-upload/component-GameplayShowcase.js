@@ -1,9 +1,25 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Tray from '@/app/play/components/Tray';
+import CompactChip from '@/app/play/components/CompactChip';
+import { TIMING_PHASE_1_ONLY, TIMING_FULL } from '@/app/play/components/diceTimings';
 import styles from './GameplayShowcase.module.css';
 
 // ─── Scenario Data ───
+//
+// Each choice's `results[id]` is shaped to feed the same Tray + CompactChip
+// components /play uses for live rolls:
+//   challenge   — STAT/skill/mode metadata, displayed by CompactChip's pill
+//   rollResult  — the d20 outcome (kept value, mortals, total, DC, tier…)
+//   resultText  — the narrative that types out after the roll resolves
+//
+// For outmatched scenarios, mortal1 = kept (the higher of two d20s, since
+// outmatched takes the higher per the rulebook) and mortal2 is hardcoded to
+// some plausible-but-lower value so the discarded die reads as "this was the
+// other roll, not the one you kept" without looking absurd. Crucible values
+// are mid-range non-extreme placeholders for the phase-1 die that throws
+// before mortals appear.
 
 const SCENARIOS = [
   {
@@ -11,151 +27,115 @@ const SCENARIOS = [
     storyteller: 'Bard narrator',
     narrative: 'Dust motes hang in the thin beam of your lantern as you pry the silver-filigreed lockbox from the desk. Two silhouettes fill the doorway, the cold glint of drawn steel catching the dying embers of the hearth. One raises a heavy iron lantern, washing the small office in harsh, flickering amber light.',
     choices: [
-      { id: 'A', text: 'Lunge forward, driving your shoulder into the lead man\u2019s chest to tackle him back into the corridor.' },
+      { id: 'A', text: 'Lunge forward, driving your shoulder into the lead man’s chest to tackle him back into the corridor.' },
       { id: 'B', text: 'Kick the heavy oak desk toward the door and vault through the open second-story window into the rain.' },
       { id: 'C', text: 'Drop the lockbox and raise your empty hands, pointing urgently toward the darkened corner behind them.' },
     ],
     results: {
       A: {
-        dice: {
-          segments: [
-            { text: 'DC 13.0', bold: true },
-            { text: 'STR 4.5', bold: true },
-            { text: 'Outmatched' },
-            { text: 'Roll: 7', bold: true },
-            { text: 'Total: 11.5', bold: true },
-            { text: 'Tier 4 Small Mercy', color: 'mercy' },
-          ],
+        challenge: { stat: 'STR', statValue: 4.5, skill: null, skillValue: null, mode: 'outmatched', actionLabel: 'Lunge forward, driving your shoulder into the lead man’s chest to tackle him back into the corridor.' },
+        rollResult: {
+          crucible: 12, kept: 7, mortal1: 7, mortal2: 3, winner: 1,
+          total: 11.5, dc: 13, margin: -1.5, tier: 4, tierName: 'Small Mercy',
+          mode: 'outmatched', isCrit: false, isFumble: false,
         },
-        result: 'You slam into the lead thug, but he barely shifts, catching your momentum and shoving you back into the desk. The lockbox clatters to the floor and bursts open, spilling no gold. Instead, a single wax-sealed ledger slides across the floorboards, and in the guttering lantern light you catch a name you were never meant to see.',
+        resultText: 'You slam into the lead thug, but he barely shifts, catching your momentum and shoving you back into the desk. The lockbox clatters to the floor and bursts open, spilling no gold. Instead, a single wax-sealed ledger slides across the floorboards, and in the guttering lantern light you catch a name you were never meant to see.',
       },
       B: {
-        dice: {
-          segments: [
-            { text: 'DC 11.0', bold: true },
-            { text: 'DEX 6.0', bold: true },
-            { text: 'Matched' },
-            { text: 'Roll: 16', bold: true },
-            { text: 'Total: 22.0', bold: true },
-            { text: 'Tier 2 Success', color: 'success' },
-          ],
+        challenge: { stat: 'DEX', statValue: 6.0, skill: null, skillValue: null, mode: 'matched', actionLabel: 'Kick the heavy oak desk toward the door and vault through the open second-story window into the rain.' },
+        rollResult: {
+          crucible: 16, kept: 16,
+          total: 22.0, dc: 11, margin: 11.0, tier: 2, tierName: 'Success',
+          mode: 'matched', isCrit: false, isFumble: false,
         },
-        result: 'The desk slams into the thugs with a dull thud, pinning them against the frame as you vault through the window. Cold rain stings your face before you hit the muddy cobblestones below. You are out of the room, but a dozen torches now flicker in the dark alleyway. You are not alone out here.',
+        resultText: 'The desk slams into the thugs with a dull thud, pinning them against the frame as you vault through the window. Cold rain stings your face before you hit the muddy cobblestones below. You are out of the room, but a dozen torches now flicker in the dark alleyway. You are not alone out here.',
       },
       C: {
-        dice: {
-          segments: [
-            { text: 'DC 9.0', bold: true },
-            { text: 'CHA 3.5', bold: true },
-            { text: 'Outmatched' },
-            { text: 'Roll: 11', bold: true },
-            { text: 'Total: 14.5', bold: true },
-            { text: 'Tier 2 Success', color: 'success' },
-          ],
+        challenge: { stat: 'CHA', statValue: 3.5, skill: null, skillValue: null, mode: 'outmatched', actionLabel: 'Drop the lockbox and raise your empty hands, pointing urgently toward the darkened corner behind them.' },
+        rollResult: {
+          crucible: 14, kept: 11, mortal1: 11, mortal2: 5, winner: 1,
+          total: 14.5, dc: 9, margin: 5.5, tier: 2, tierName: 'Success',
+          mode: 'outmatched', isCrit: false, isFumble: false,
         },
-        result: 'The thugs pivot toward the empty shadows, their blades dipping as they search for a threat that isn\u2019t there. You slip through the gap between them, the metal of their armor cold against your shoulder. The lockbox remains on the desk, gleaming once in the amber light before you vanish into the hall.',
+        resultText: 'The thugs pivot toward the empty shadows, their blades dipping as they search for a threat that isn’t there. You slip through the gap between them, the metal of their armor cold against your shoulder. The lockbox remains on the desk, gleaming once in the amber light before you vanish into the hall.',
       },
     },
   },
   {
     genre: 'INDUSTRIAL SCI-FI',
     storyteller: 'Noir narrator',
-    narrative: 'The factory floor smells of machine oil and recycled air, lit only by the rhythmic strobe of a failing overhead unit. You tuck the encrypted drive into your grease-stained vest as the shift supervisor rounds the heavy press, two guards trailing him like a bad habit. He isn\u2019t looking at your face; his eyes are fixed on your trembling left hand and the way you\u2019re leaning away from the primary exit.',
+    narrative: 'The factory floor smells of machine oil and recycled air, lit only by the rhythmic strobe of a failing overhead unit. You tuck the encrypted drive into your grease-stained vest as the shift supervisor rounds the heavy press, two guards trailing him like a bad habit. He isn’t looking at your face; his eyes are fixed on your trembling left hand and the way you’re leaning away from the primary exit.',
     choices: [
       { id: 'A', text: 'Scale the coolant pipes toward the darkened ventilation ducting.' },
       { id: 'B', text: 'Short the localized power junction to kill the lights and mag-locks.' },
-      { id: 'C', text: 'Present your temporary floor-lead badge and claim you\u2019re checking a pressure leak.' },
+      { id: 'C', text: 'Present your temporary floor-lead badge and claim you’re checking a pressure leak.' },
     ],
     results: {
       A: {
-        dice: {
-          segments: [
-            { text: 'DC 14.0', bold: true },
-            { text: 'DEX 4.0', bold: true },
-            { text: 'Outmatched' },
-            { text: 'Roll: 17', bold: true },
-            { text: 'Total: 21.0', bold: true },
-            { text: 'Tier 2 Success', color: 'success' },
-          ],
+        challenge: { stat: 'DEX', statValue: 4.0, skill: null, skillValue: null, mode: 'outmatched', actionLabel: 'Scale the coolant pipes toward the darkened ventilation ducting.' },
+        rollResult: {
+          crucible: 13, kept: 17, mortal1: 17, mortal2: 9, winner: 1,
+          total: 21.0, dc: 14, margin: 7.0, tier: 2, tierName: 'Success',
+          mode: 'outmatched', isCrit: false, isFumble: false,
         },
-        result: 'The supervisor tracks your twitching fingers, but you\u2019re already airborne. You scramble up the slick coolant pipes, vanishing into the overhead gloom before the strobe catches you. Their polished boots click uselessly on the metal floor below. You\u2019re safe for now, but these cramped, airless ducts are just a different kind of coffin.',
+        resultText: 'The supervisor tracks your twitching fingers, but you’re already airborne. You scramble up the slick coolant pipes, vanishing into the overhead gloom before the strobe catches you. Their polished boots click uselessly on the metal floor below. You’re safe for now, but these cramped, airless ducts are just a different kind of coffin.',
       },
       B: {
-        dice: {
-          segments: [
-            { text: 'DC 15.0', bold: true },
-            { text: 'INT 6.0 + Electrical +1.0', bold: true },
-            { text: 'Outmatched' },
-            { text: 'Roll: 3', bold: true },
-            { text: 'Total: 10.0', bold: true },
-            { text: 'Tier 5 Failure', color: 'failure' },
-          ],
+        challenge: { stat: 'INT', statValue: 6.0, skill: 'Electrical', skillValue: 1.0, mode: 'outmatched', actionLabel: 'Short the localized power junction to kill the lights and mag-locks.' },
+        rollResult: {
+          crucible: 11, kept: 3, mortal1: 3, mortal2: 2, winner: 1,
+          total: 10.0, dc: 15, margin: -5.0, tier: 5, tierName: 'Failure',
+          mode: 'outmatched', isCrit: false, isFumble: false,
         },
-        result: 'The junction box spits a violent geyser of blue sparks, leaving the mag-locks frozen shut and your face bathed in light. The supervisor\u2019s eyes track the smoke to your singed sleeve, then drop to the drive-shaped bulge in your vest. He signals the guards. Nice work, Edison.',
+        resultText: 'The junction box spits a violent geyser of blue sparks, leaving the mag-locks frozen shut and your face bathed in light. The supervisor’s eyes track the smoke to your singed sleeve, then drop to the drive-shaped bulge in your vest. He signals the guards. Nice work, Edison.',
       },
       C: {
-        dice: {
-          segments: [
-            { text: 'DC 13.0', bold: true },
-            { text: 'CHA 5.5 + Forgery +1.0', bold: true },
-            { text: 'Matched' },
-            { text: 'Roll: 8', bold: true },
-            { text: 'Total: 14.5', bold: true },
-            { text: 'Tier 3 Costly Success', color: 'costly' },
-          ],
+        challenge: { stat: 'CHA', statValue: 5.5, skill: 'Forgery', skillValue: 1.0, mode: 'matched', actionLabel: 'Present your temporary floor-lead badge and claim you’re checking a pressure leak.' },
+        rollResult: {
+          crucible: 8, kept: 8,
+          total: 14.5, dc: 13, margin: 1.5, tier: 3, tierName: 'Costly Success',
+          mode: 'matched', isCrit: false, isFumble: false,
         },
-        result: 'The supervisor\u2019s eyes track your twitching hand before settling on the counterfeit badge. He smells a lie like ozone before a short circuit. He nods for you to proceed, but his fingers are already tracing the silent alarm on his belt. You\u2019re clear, but not clean. Move.',
+        resultText: 'The supervisor’s eyes track your twitching hand before settling on the counterfeit badge. He smells a lie like ozone before a short circuit. He nods for you to proceed, but his fingers are already tracing the silent alarm on his belt. You’re clear, but not clean. Move.',
       },
     },
   },
   {
     genre: 'NOIR MYSTERY',
     storyteller: 'Whisper narrator',
-    narrative: 'The desk lamp casts a golden glow over the polished mahogany and the steam rising from your tea smells of cinnamon. Your client leans back in the leather chair while the radiator hums a steady, rhythmic tune. He hasn\u2019t blinked since you placed the photograph between you. The corners of his mouth are doing something that isn\u2019t quite a smile.',
+    narrative: 'The desk lamp casts a golden glow over the polished mahogany and the steam rising from your tea smells of cinnamon. Your client leans back in the leather chair while the radiator hums a steady, rhythmic tune. He hasn’t blinked since you placed the photograph between you. The corners of his mouth are doing something that isn’t quite a smile.',
     choices: [
-      { id: 'A', text: 'Lay the photograph face down on the blotter and watch the client\u2019s reflection in the window while the silence stretches.' },
+      { id: 'A', text: 'Lay the photograph face down on the blotter and watch the client’s reflection in the window while the silence stretches.' },
       { id: 'B', text: 'Slide the photograph into your inner coat pocket and offer the client a fresh cup of tea to end the meeting early.' },
       { id: 'C', text: 'Turn the photograph over to show the date on the back and ask the client why the timeline is different.' },
     ],
     results: {
       A: {
-        dice: {
-          segments: [
-            { text: 'DC 10.0', bold: true },
-            { text: 'WIS 5.5', bold: true },
-            { text: 'Matched' },
-            { text: 'Roll: 13', bold: true },
-            { text: 'Total: 18.5', bold: true },
-            { text: 'Tier 2 Success', color: 'success' },
-          ],
+        challenge: { stat: 'WIS', statValue: 5.5, skill: null, skillValue: null, mode: 'matched', actionLabel: 'Lay the photograph face down on the blotter and watch the client’s reflection in the window while the silence stretches.' },
+        rollResult: {
+          crucible: 13, kept: 13,
+          total: 18.5, dc: 10, margin: 8.5, tier: 2, tierName: 'Success',
+          mode: 'matched', isCrit: false, isFumble: false,
         },
-        result: 'You set the photograph face down without a word. In the window glass, the client\u2019s reflection does what his face won\u2019t: his jaw tightens, and one hand drifts to his breast pocket before stopping itself. He leaves the photograph where it is. He hasn\u2019t asked what you know. That tells you more than the picture did.',
+        resultText: 'You set the photograph face down without a word. In the window glass, the client’s reflection does what his face won’t: his jaw tightens, and one hand drifts to his breast pocket before stopping itself. He leaves the photograph where it is. He hasn’t asked what you know. That tells you more than the picture did.',
       },
       B: {
-        dice: {
-          segments: [
-            { text: 'DC 8.0', bold: true },
-            { text: 'CHA 4.0', bold: true },
-            { text: 'Matched' },
-            { text: 'Roll: 15', bold: true },
-            { text: 'Total: 19.0', bold: true },
-            { text: 'Tier 2 Success', color: 'success' },
-          ],
+        challenge: { stat: 'CHA', statValue: 4.0, skill: null, skillValue: null, mode: 'matched', actionLabel: 'Slide the photograph into your inner coat pocket and offer the client a fresh cup of tea to end the meeting early.' },
+        rollResult: {
+          crucible: 15, kept: 15,
+          total: 19.0, dc: 8, margin: 11.0, tier: 2, tierName: 'Success',
+          mode: 'matched', isCrit: false, isFumble: false,
         },
-        result: 'The photograph disappears into your coat and the client\u2019s shoulders settle half an inch. He accepts the fresh cup with both hands, steady now, and thanks you warmly. The conversation turns to the weather, to the tea, to nothing at all. His gaze drifts to your coat pocket twice before he finishes his cup.',
+        resultText: 'The photograph disappears into your coat and the client’s shoulders settle half an inch. He accepts the fresh cup with both hands, steady now, and thanks you warmly. The conversation turns to the weather, to the tea, to nothing at all. His gaze drifts to your coat pocket twice before he finishes his cup.',
       },
       C: {
-        dice: {
-          segments: [
-            { text: 'DC 14.0', bold: true },
-            { text: 'INT 6.0', bold: true },
-            { text: 'Outmatched' },
-            { text: 'Roll: 3', bold: true },
-            { text: 'Total: 9.0', bold: true },
-            { text: 'Tier 5 Failure', color: 'failure' },
-          ],
+        challenge: { stat: 'INT', statValue: 6.0, skill: null, skillValue: null, mode: 'outmatched', actionLabel: 'Turn the photograph over to show the date on the back and ask the client why the timeline is different.' },
+        rollResult: {
+          crucible: 14, kept: 3, mortal1: 3, mortal2: 2, winner: 1,
+          total: 9.0, dc: 14, margin: -5.0, tier: 5, tierName: 'Failure',
+          mode: 'outmatched', isCrit: false, isFumble: false,
         },
-        result: 'The client sets down his tea and regards you with a patient, pleasant expression. He tells you he appreciates your thoroughness but he\u2019s not sure this arrangement is working out. He takes the photograph from the desk and slides it into his jacket. He wishes you a lovely evening on his way out the door.',
+        resultText: 'The client sets down his tea and regards you with a patient, pleasant expression. He tells you he appreciates your thoroughness but he’s not sure this arrangement is working out. He takes the photograph from the desk and slides it into his jacket. He wishes you a lovely evening on his way out the door.',
       },
     },
   },
@@ -164,7 +144,8 @@ const SCENARIOS = [
 // ─── Animation Phases ───
 // 0 = idle, 1 = genre fade, 2 = narrative typing, 3 = pause after narrative,
 // 4 = choices visible (WAITING for user click), 6 = selection highlight,
-// 7 = dice fade, 8 = pause before result, 9 = result typing,
+// 7 = die ready (WAITING for user tap; reduced motion skips to compact),
+// 8 = brief pause after chip appears, 9 = result typing,
 // 10 = pause after result, 11 = controls visible
 
 // ─── Typewriter Hook ───
@@ -203,6 +184,14 @@ export default function GameplayShowcase() {
   const [allPlayed, setAllPlayed] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [lockedHeight, setLockedHeight] = useState(undefined);
+
+  // Dice stage machine — independent of `phase` so the user controls when the
+  // roll fires. 'ready' = die visible awaiting tap, 'rolling' = animation
+  // playing, 'collapsing' = tray fading toward chip, 'compact' = chip shown.
+  const [stage, setStage] = useState('ready');
+  const [dicePhase, setDicePhase] = useState('ready');
+  const rollingStartedRef = useRef(false);
+
   const containerRef = useRef(null);
   const innerRef = useRef(null);
   const diceRef = useRef(null);
@@ -221,6 +210,9 @@ export default function GameplayShowcase() {
 
   const scenario = SCENARIOS[scenarioIndex];
   const selectedResult = selectedChoice ? scenario.results[selectedChoice] : null;
+  const isPhaseOneOnly = selectedResult?.challenge?.mode === 'matched'
+    || selectedResult?.rollResult?.isCrit
+    || selectedResult?.rollResult?.isFumble;
 
   // Narrative skips typewriter on firstView (already visible); result always typewriters
   const skipNarrativeTypewriter = firstView || reducedMotion;
@@ -248,7 +240,7 @@ export default function GameplayShowcase() {
 
   // Typewriter for result (phase 9) — always animates, even on firstView
   const result = useTypewriter(
-    selectedResult?.result || '',
+    selectedResult?.resultText || '',
     25,
     phase >= 9,
     skipResultTypewriter
@@ -272,21 +264,54 @@ export default function GameplayShowcase() {
 
   // Phase 4 = choices visible — NO auto-advance. Wait for user click.
 
+  // Phase 6 → 7 (selection highlight → die ready). Same timing on firstView
+  // and subsequent scenarios; reduced motion shortens the highlight beat.
   useEffect(() => {
-    if (firstView) return;
-    if (phase === 6) {
-      addTimer(() => setPhase(7), 600);
-    }
-  }, [phase === 6, firstView]);
+    if (phase !== 6) return;
+    addTimer(() => setPhase(7), reducedMotion ? 200 : 600);
+  }, [phase === 6, reducedMotion]);
 
+  // Phase 7: set up the dice stage. Reduced motion bypasses the roll
+  // animation entirely — chip renders immediately and we advance to phase 9
+  // after a short intentional beat.
   useEffect(() => {
-    if (firstView) return;
-    if (phase === 7) {
-      addTimer(() => setPhase(8), 400);
-      addTimer(() => setPhase(9), 400);
+    if (phase !== 7) return;
+    if (reducedMotion) {
+      setStage('compact');
+      addTimer(() => setPhase(9), 300);
+    } else {
+      setStage('ready');
+      setDicePhase('ready');
+      rollingStartedRef.current = false;
     }
-  }, [phase === 7, firstView]);
+  }, [phase === 7, reducedMotion]);
 
+  // Stage 'rolling' — drive the timing table once. setTimeout IDs are tracked
+  // through addTimer so a TRY ANOTHER mid-roll cancels them via clearTimers.
+  useEffect(() => {
+    if (stage !== 'rolling') return;
+    if (rollingStartedRef.current) return;
+    rollingStartedRef.current = true;
+    const table = isPhaseOneOnly ? TIMING_PHASE_1_ONLY : TIMING_FULL;
+    table.forEach(step => {
+      addTimer(() => {
+        if (step.phase != null) setDicePhase(step.phase);
+        if (step.stage != null) {
+          setStage(step.stage);
+          if (step.stage === 'compact') setPhase(8);
+        }
+      }, step.at);
+    });
+  }, [stage, isPhaseOneOnly]);
+
+  // Phase 8 → 9 (chip pause → result typing). Doesn't fire on the reduced-
+  // motion path (which jumps phase 7 → 9 directly).
+  useEffect(() => {
+    if (phase !== 8) return;
+    addTimer(() => setPhase(9), 400);
+  }, [phase === 8]);
+
+  // Phase 9 → 10 → 11 (typing done → pause → controls)
   useEffect(() => {
     if (phase === 9 && result.done) {
       addTimer(() => setPhase(10), 200);
@@ -294,21 +319,23 @@ export default function GameplayShowcase() {
     }
   }, [phase === 9, result.done]);
 
+  // Reset dice stage whenever we leave the dice region (e.g. TRY ANOTHER,
+  // scenario change). Without this the chip would briefly flash before phase
+  // 7's effect rebuilt state on the next click.
+  useEffect(() => {
+    if (phase < 7) {
+      setStage('ready');
+      setDicePhase('ready');
+      rollingStartedRef.current = false;
+    }
+  }, [phase < 7]);
+
   // Clear locked height once enough content has rendered
   useEffect(() => {
     if (phase >= 4 && lockedHeight !== undefined) {
       setLockedHeight(undefined);
     }
   }, [phase >= 4]);
-
-  // Start the animated sequence (used for scenarios after the first)
-  const startSequence = useCallback(() => {
-    clearTimers();
-    setPhase(0);
-    requestAnimationFrame(() => {
-      setPhase(1);
-    });
-  }, [clearTimers]);
 
   // IntersectionObserver — gentle fade-in for first view
   useEffect(() => {
@@ -338,25 +365,13 @@ export default function GameplayShowcase() {
   const handleChoiceClick = useCallback((choiceId) => {
     if (selectedChoice) return; // Already selected
     setSelectedChoice(choiceId);
-    if (firstView) {
-      // Same cadence as normal: highlight → dice → result typewriter → controls
-      // Manual timers because firstView guards skip the phase useEffects
-      setPhase(6);
-      addTimer(() => setPhase(7), 600);
-      addTimer(() => setPhase(9), 1000);
-      // Phase 11 handled by useEffect when result.done
-      // Scroll to dice bar once it renders (700ms = 600ms phase delay + 100ms render)
-      addTimer(() => {
-        diceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 700);
-    } else {
-      setPhase(6);
-      // Scroll to dice bar once it renders (phase 6→7 is 600ms + 100ms render buffer)
-      addTimer(() => {
-        diceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 700);
-    }
-  }, [selectedChoice, firstView, addTimer]);
+    setPhase(6);
+    // Once the dice region has rendered, scroll it into view so the user can
+    // see and tap the die without scrolling manually.
+    addTimer(() => {
+      diceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 700);
+  }, [selectedChoice, addTimer]);
 
   const handleChoiceKeyDown = useCallback((e, choiceId) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -365,9 +380,16 @@ export default function GameplayShowcase() {
     }
   }, [handleChoiceClick]);
 
+  // Tap the crucible die to begin the roll animation. Showcase always
+  // requires a tap regardless of any localStorage autoRoll preference —
+  // anonymous visitors don't have saved settings.
+  const handleDieTap = useCallback(() => {
+    if (stage !== 'ready') return;
+    setStage('rolling');
+  }, [stage]);
+
   // Shared transition logic: fade out → swap scenario → fade in + animate
   const transitionTo = useCallback((nextIndex) => {
-    // Lock height and fade out
     if (innerRef.current) {
       setLockedHeight(innerRef.current.offsetHeight);
     }
@@ -375,14 +397,12 @@ export default function GameplayShowcase() {
     setTransitioning(true);
     clearTimers();
 
-    // After fade-out completes, swap content and start new sequence
     addTimer(() => {
       setFirstView(false);
       setScenarioIndex(nextIndex);
       setSelectedChoice(null);
       setPhase(0);
       setTransitioning(false);
-      // Small delay for state to propagate, then kick off animation
       setTimeout(() => setPhase(1), 50);
     }, 200);
   }, [clearTimers, addTimer]);
@@ -395,12 +415,10 @@ export default function GameplayShowcase() {
       return;
     }
 
-    // Scroll to showcase top + fade out dice/result/TRY ANOTHER simultaneously
     containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setFadingOut(true);
     clearTimers();
 
-    // After fade completes, reset to choice selection
     addTimer(() => {
       setFadingOut(false);
       setSelectedChoice(null);
@@ -434,6 +452,16 @@ export default function GameplayShowcase() {
 
   // For first view, skip slide-in animations on choices
   const choiceAnimStyle = firstView ? { animation: 'none', opacity: 1, transform: 'none' } : {};
+
+  // Discarded mortal value for the CompactChip's two-die display. For matched
+  // scenarios this is null (single die only); for outmatched/dominant it's
+  // the mortal that wasn't kept — derived from the explicit `winner` field
+  // so the chip stays in lockstep with the Tray's animation outcome.
+  const discardedDie = selectedResult && selectedResult.challenge.mode !== 'matched'
+    ? (selectedResult.rollResult.winner === 1
+        ? selectedResult.rollResult.mortal2
+        : selectedResult.rollResult.mortal1)
+    : null;
 
   return (
     <section
@@ -501,24 +529,46 @@ export default function GameplayShowcase() {
           </div>
         )}
 
-        {/* Dice Result */}
+        {/* Dice region — Tray during ready/rolling/collapsing, CompactChip after */}
         {showDice && (
-          <div ref={diceRef} className={`${styles.diceBar} ${fadingOut ? styles.fadingOut : ''}`}>
-            {selectedResult.dice.segments.map((seg, i) => (
-              <span key={i} className={styles.diceSegment}>
-                {i > 0 && <span className={styles.diceDot}>&middot;</span>}
-                <span
-                  className={`${seg.bold ? styles.diceBold : ''} ${
-                    seg.color === 'success' ? styles.diceSuccess :
-                    seg.color === 'costly' ? styles.diceCostly :
-                    seg.color === 'mercy' ? styles.diceMercy :
-                    seg.color === 'failure' ? styles.diceFailure : ''
-                  }`}
-                >
-                  {seg.text}
-                </span>
-              </span>
-            ))}
+          <div ref={diceRef} className={`${styles.diceRegion} ${fadingOut ? styles.fadingOut : ''}`}>
+            {(stage === 'ready' || stage === 'rolling' || stage === 'collapsing') && (
+              <div className={`${styles.diceTrayWrap} ${stage === 'collapsing' ? styles.diceTrayCollapsing : ''}`}>
+                <Tray
+                  mode={selectedResult.challenge.mode}
+                  crucible={selectedResult.rollResult.crucible}
+                  mortal1={selectedResult.rollResult.mortal1}
+                  mortal2={selectedResult.rollResult.mortal2}
+                  phase={dicePhase}
+                  onTap={handleDieTap}
+                  isCrit={selectedResult.rollResult.isCrit}
+                  isFumble={selectedResult.rollResult.isFumble}
+                />
+                {stage === 'ready' && (
+                  <div className={styles.tapHint}>TAP THE CRUCIBLE TO THROW</div>
+                )}
+              </div>
+            )}
+            {stage === 'compact' && (
+              <CompactChip
+                kept={selectedResult.rollResult.kept}
+                total={selectedResult.rollResult.total}
+                stat={selectedResult.challenge.stat}
+                statValue={selectedResult.challenge.statValue}
+                skill={selectedResult.challenge.skill}
+                skillValue={selectedResult.challenge.skillValue}
+                dc={selectedResult.rollResult.dc}
+                margin={selectedResult.rollResult.margin}
+                tier={selectedResult.rollResult.tier}
+                tierName={selectedResult.rollResult.tierName}
+                mode={selectedResult.challenge.mode}
+                isCrit={selectedResult.rollResult.isCrit}
+                isFumble={selectedResult.rollResult.isFumble}
+                keptDie={selectedResult.rollResult.kept}
+                discardedDie={discardedDie}
+                animate
+              />
+            )}
           </div>
         )}
 

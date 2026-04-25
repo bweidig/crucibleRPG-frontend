@@ -1,33 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Tray from './Tray';
 import CompactChip from './CompactChip';
+import { TIMING_PHASE_1_ONLY, TIMING_FULL } from './diceTimings';
 import styles from './TurnRoll.module.css';
-
-// ─── Timing tables (all in ms from tap moment) ───
-// Extreme (nat20/nat1) or matched mode stops at phase 1.
-const TIMING_PHASE_1_ONLY = [
-  { at: 0,    phase: 'p1-throw' },
-  { at: 180,  phase: 'p1-tumble' },
-  { at: 730,  phase: 'p1-land' },
-  { at: 1150, phase: 'p1-settled' },
-  { at: 2100, stage: 'collapsing' },
-  { at: 2650, stage: 'compact' },
-];
-
-// Non-extreme outmatched/dominant plays both phases.
-const TIMING_FULL = [
-  { at: 0,    phase: 'p1-throw' },
-  { at: 180,  phase: 'p1-tumble' },
-  { at: 730,  phase: 'p1-land' },
-  { at: 1150, phase: 'p1-settled' },
-  { at: 1650, phase: 'p1-exit' },
-  { at: 2200, phase: 'p2-drop' },
-  { at: 2680, phase: 'p2-tumble' },
-  { at: 3180, phase: 'p2-land' },
-  { at: 3600, phase: 'p2-settled' },
-  { at: 4600, stage: 'collapsing' },
-  { at: 5150, stage: 'compact' },
-];
 
 const SETTINGS_KEY = 'crucible_display_settings';
 

@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-24 (auth card glow → radial-gradient pseudo-element)
+**Last Updated:** 2026-04-24 (menu hero card: drop blurb line clamp)
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -34,6 +34,51 @@
 ---
 
 ## Recent Work (This Session: 2026-04-24)
+
+### Landing showcase: real /play dice experience replaces text dice bar
+
+The gameplay showcase on `/landing` was rendering a primitive text-only "DC 13.0 · STR 4.5 · Outmatched · Roll: 7 · Total: 11.5 · Tier 4 Small Mercy" bar where the actual /play roll lives. Replaced with the real Tray + animated d20 + CompactChip stack, so the showcase now reads as a faithful preview of gameplay rather than a documentation summary.
+
+**Flow.** Choice click → tray appears with the crucible die in `ready` state and a "TAP THE CRUCIBLE TO THROW" hint underneath. Tap the die → the same timing table /play uses runs (matched: phase 1 only, ~2.6 s; outmatched: full both-phase sequence, ~5.2 s). When the timing table reaches the `compact` step, the tray fades away and the CompactChip slides in with the kept die graphic, structured meta pill (STAT · skill · kept · Total · vs DC · margin), and tier label. Result narrative starts typing on phase 8→9 (a 400 ms beat after the chip appears), unchanged from before but now triggered by roll completion instead of a fixed timer.
+
+**Component reuse.** Tray, Die, and CompactChip are imported directly from `app/play/components/` and used unmodified. TurnRoll's ChallengePanel wrapper, autoRoll-from-localStorage logic, and ActionPanel-collapse body attribute are all skipped — the showcase has different needs (no auth, no production state, always tap-to-roll). The showcase has its own ~30-line stage machine that drives stage and dicePhase from the timing table, replacing what would otherwise be showcase-only props on TurnRoll.
+
+**Timing table extraction.** Pulled `TIMING_PHASE_1_ONLY` and `TIMING_FULL` out of `TurnRoll.js` into a new `app/play/components/diceTimings.js` module. TurnRoll's behavior is unchanged — it now imports the same arrays it used to define inline. The showcase imports them too so the two surfaces never drift.
+
+**Reduced-motion path.** Phases 6→7→9 collapse to ~500 ms total. The roll animation is skipped entirely; CompactChip renders immediately and result typing starts after a brief intentional beat. Tap-to-roll is still required on the standard path regardless of any `crucible_display_settings.autoRoll` localStorage value (anonymous visitors don't have saved preferences).
+
+**Data restructure.** Each scenario's `results[id]` was reshaped from `{ dice: { segments: [...] }, result: '...' }` into `{ challenge, rollResult, resultText }` matching what Tray and CompactChip expect. For outmatched scenarios, `mortal1 = kept` (the higher of two d20s, since outmatched takes the higher per the rulebook) and `mortal2` is hardcoded to a plausible-but-lower value so the discarded die reads as visibly less than the kept one without being absurd. Crucible values for outmatched are mid-range non-extreme placeholders for the phase-1 die. Hardcoded, not randomized — the same scenario always shows the same dice.
+
+**Phase machine.** Phase 7 is now event-driven: it enters and waits for tap (no timer advances out of it). On tap, the stage machine takes over. When stage transitions to `compact`, phase advances to 8. Phases 8 and 10 stay timer-based as before. The `firstView` branch in `handleChoiceClick` and the `firstView` guard on the phase 6→7 effect were redundant once tap-to-roll became the gate, so both got simplified — first-view and subsequent scenarios both flow through the same effects.
+
+**Files modified:**
+- `app/landing/GameplayShowcase.js`
+- `app/landing/GameplayShowcase.module.css`
+- `app/play/components/TurnRoll.js` (imports timing tables from new module; behavior unchanged)
+
+**Files created:**
+- `app/play/components/diceTimings.js`
+
+**claude-upload synced:** `play-full.js` (regenerated, includes the new diceTimings.js), `landing-GameplayShowcase.js`, `landing-GameplayShowcase.module.css`, plus the legacy `component-GameplayShowcase.*` mirrors that also exist in claude-upload.
+
+---
+
+### Menu hero card: drop blurb line clamp
+
+The hero card at the top of `/menu` was line-clamping the blurb to 3 lines; the rest of the prose was inaccessible because the hero card has no click target to open the detail modal (only its Resume button is interactive). The other game cards keep their 2-line clamp + modal pattern because they exist in a list and need to stay scannable; the hero is a single focal item, so growing in place is fine.
+
+- `app/menu/page.module.css`: deleted the `.heroCardBlurb` rule (the `-webkit-line-clamp: 3` block).
+- `app/menu/page.js`: removed the now-orphaned `className={styles.heroCardBlurb}` from both the setup-state and blurb `<p>` elements; updated the inline comment to reflect that the blurb is shown in full.
+
+Per `API_CONTRACT.md`, blurbs are 1–2-sentence summaries that begin appearing at turn 6, so unbounded growth is bounded in practice. If blurbs ever lengthen, an inline show-more toggle is the next natural step.
+
+**Files modified:**
+- `app/menu/page.js`
+- `app/menu/page.module.css`
+
+**claude-upload synced:** `menu-page.js`, `menu-page.module.css`.
+
+---
 
 ### FAQ: instant category switch + per-question deep links
 

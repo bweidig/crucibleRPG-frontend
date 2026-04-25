@@ -9,6 +9,11 @@
   scroll-margin-top: 96px;
   opacity: 0;
   transition: opacity 0.6s ease-out;
+  /* Stack above the page-level ParticleField (which sits at z-index: 0). The
+     showcase card uses a semi-transparent background, so without this the
+     gold particles paint visibly on top of the dice and choice buttons. */
+  position: relative;
+  z-index: 1;
 }
 
 .showcaseRevealed {
@@ -226,59 +231,54 @@
   }
 }
 
-/* ─── Dice Result Bar ─── */
+/* ─── Dice Region (Tray + CompactChip) ─── */
 
-.diceBar {
+/* Wraps the live dice experience: the Tray during ready / rolling /
+   collapsing stages, then the CompactChip post-roll. Centered so the
+   crucible die has breathing room above and below; the chip naturally
+   falls back to its own block layout. */
+.diceRegion {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  gap: 0;
-  background: rgba(201, 168, 76, 0.06);
-  border: 1px solid rgba(201, 168, 76, 0.12);
-  border-radius: 6px;
-  padding: 12px 16px;
-  margin-top: 16px;
-  font-family: var(--font-jetbrains-mono);
-  font-size: 14px;
-  color: #9a8545;
-  letter-spacing: 0.3px;
+  margin-top: 20px;
   animation: fadeUpIn 0.5s ease-out both;
 }
 
-.diceSegment {
-  display: inline-flex;
+/* Tray + tap hint container during the ready / rolling / collapsing stages. */
+.diceTrayWrap {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  white-space: nowrap;
+  gap: 6px;
 }
 
-.diceDot {
-  margin: 0 8px;
-  opacity: 0.3;
+/* Collapse-into-chip animation — fades and shrinks the tray as the timing
+   table transitions stage to 'collapsing'. The chip's own entrance animation
+   takes over from there, so there's no fade-out → fade-in seam. */
+@keyframes diceTrayCollapse {
+  0%   { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.55); opacity: 0; }
 }
 
-.diceBold {
-  font-weight: 600;
+.diceTrayCollapsing {
+  animation: diceTrayCollapse 550ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-.diceSuccess {
-  color: #8ab060;
-  font-weight: 600;
+/* TAP THE CRUCIBLE hint — same styling as /play's TurnRoll tap hint so the
+   showcase reads as a faithful preview, not a different control surface. */
+@keyframes tapPulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.8; }
 }
 
-.diceCostly {
-  color: #d4a84c;
-  font-weight: 600;
-}
-
-.diceMercy {
-  color: #c9a84c;
-  font-weight: 600;
-}
-
-.diceFailure {
-  color: #e8845a;
-  font-weight: 600;
+.tapHint {
+  margin-top: 4px;
+  font-family: var(--font-cinzel);
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: var(--text-dim);
+  animation: tapPulse 2.4s ease-in-out infinite;
 }
 
 @keyframes fadeUpIn {
@@ -354,7 +354,7 @@
 
 .dotsRow {
   display: flex;
-  gap: 0;
+  gap: 8px;
   justify-content: center;
   margin-top: 16px;
 }
@@ -426,10 +426,20 @@
     opacity: 0.35;
   }
 
-  .diceBar {
+  .diceRegion {
     animation: none;
     opacity: 1;
     transform: none;
+  }
+
+  .diceTrayCollapsing {
+    animation: none;
+    opacity: 0;
+  }
+
+  .tapHint {
+    animation: none;
+    opacity: 0.6;
   }
 
   .resultBlock {
@@ -474,9 +484,8 @@
     font-size: 15px;
   }
 
-  .diceBar {
-    font-size: 12px;
-    padding: 10px 12px;
+  .diceRegion {
+    margin-top: 12px;
   }
 
   .customGo {
