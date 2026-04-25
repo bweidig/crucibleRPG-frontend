@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-25 (rulebook: markdown leak fix, scrolled-past TOC state, deep linking, reading progress bar, sticky-TOC fix)
+**Last Updated:** 2026-04-25 (NavBar: standard variant link-set parity + persistent active-state underline)
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -34,6 +34,32 @@
 ---
 
 ## Recent Work (This Session: 2026-04-25)
+
+### NavBar: standard-variant link-set parity, persistent active-state underline
+
+Two site-wide fixes on `components/NavBar.js` and `components/NavBar.module.css`.
+
+**Link-set parity across pages.** The landing variant rendered five public links (Features, How It Works, FAQ, Rulebook, Pricing); the standard variant rendered three (FAQ, Rulebook, Pricing). Features and How It Works existed only on landing because they were in-page anchor scrolls. The result: the navbar visibly re-populated when navigating between pages. Added Features and How It Works to the standard variant — both desktop (`.standardLinks`) and mobile menu — using `<Link href="/#features">` and `<Link href="/#how-it-works">`. Placed before the FAQ link in both. No active-state class — they're page-section anchors, not page-level navigation. No auth gating — public marketing content. Next.js App Router handles cross-page hash navigation natively (`<Link href="/#features">` from `/pricing` pushes `/` and the browser scrolls to `#features`); the landing sections already have `scrollMarginTop: 96` so the auto-scroll lands below the fixed navbar. The landing variant is unchanged — its `<a href="#features">` in-page handlers still smooth-scroll on the same page.
+
+**Persistent active-state underline.** Inactive links had `color: #9a8545` and gained both `color: #c9a84c` and an animated 1 px underline on hover. Active links got only the color shift — so a hovered inactive link looked stronger than the currently-active link. Added one rule:
+
+```css
+.navLinkActive::after {
+  transform: scaleX(1);
+}
+```
+
+Reusing the existing `.navLink::after` underline (already defined for hover). Active links now show the same underline at rest that hover animates in — gives a clear "you are here" affordance with no new visual primitives.
+
+**Mobile menu active state had the same bug.** `.mobileMenuLinkActive` only changed text color (`#c9a84c`), identical to `.mobileMenuLink:hover`. Added an inset 2 px gold left bar via `box-shadow: inset 2px 0 0 var(--accent-gold)` — visible affordance without layout shift (no padding compensation needed).
+
+**Files modified:**
+- `components/NavBar.js`
+- `components/NavBar.module.css`
+
+**claude-upload synced:** `component-NavBar.js`, `component-NavBar.module.css`.
+
+---
 
 ### Rulebook: markdown-leak removal, scrolled-past TOC, deep linking, reading progress bar
 

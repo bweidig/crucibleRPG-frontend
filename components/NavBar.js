@@ -99,6 +99,8 @@ export default function NavBar({ variant = 'standard', currentPage }) {
             color: 'var(--accent-gold)', letterSpacing: '0.15em', opacity: 0.7,
           }}>PLAYTEST ACCESS PENDING</span>
         )}
+        <Link href="/#features" className={`${styles.navLink} ${styles.sectionLink}`}>Features</Link>
+        <Link href="/#how-it-works" className={`${styles.navLink} ${styles.sectionLink}`}>How It Works</Link>
         <Link href="/faq" className={`${styles.navLink} ${styles.sectionLink}${currentPage === 'faq' ? ` ${styles.navLinkActive}` : ''}`}>FAQ</Link>
         {(!isLoggedIn || isPlaytester) && <Link href="/rulebook" className={`${styles.navLink} ${styles.sectionLink}${currentPage === 'rulebook' ? ` ${styles.navLinkActive}` : ''}`}>Rulebook</Link>}
         {(!isLoggedIn || isPlaytester) && <Link href="/pricing" className={`${styles.navLink} ${styles.sectionLink}${currentPage === 'pricing' ? ` ${styles.navLinkActive}` : ''}`}>Pricing</Link>}
@@ -107,6 +109,8 @@ export default function NavBar({ variant = 'standard', currentPage }) {
       </div>
 
       <div className={`${styles.mobileMenu} ${menuOpen ? styles.mobileMenuOpen : ''}`}>
+        <Link href="/#features" className={styles.mobileMenuLink} onClick={() => setMenuOpen(false)}>Features</Link>
+        <Link href="/#how-it-works" className={styles.mobileMenuLink} onClick={() => setMenuOpen(false)}>How It Works</Link>
         <Link href="/faq" className={`${styles.mobileMenuLink}${currentPage === 'faq' ? ` ${styles.mobileMenuLinkActive}` : ''}`} onClick={() => setMenuOpen(false)}>FAQ</Link>
         {(!isLoggedIn || isPlaytester) && <Link href="/rulebook" className={`${styles.mobileMenuLink}${currentPage === 'rulebook' ? ` ${styles.mobileMenuLinkActive}` : ''}`} onClick={() => setMenuOpen(false)}>Rulebook</Link>}
         {(!isLoggedIn || isPlaytester) && <Link href="/pricing" className={`${styles.mobileMenuLink}${currentPage === 'pricing' ? ` ${styles.mobileMenuLinkActive}` : ''}`} onClick={() => setMenuOpen(false)}>Pricing</Link>}

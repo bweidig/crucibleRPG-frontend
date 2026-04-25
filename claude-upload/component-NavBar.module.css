@@ -108,6 +108,10 @@
   color: #c9a84c;
 }
 
+.navLinkActive::after {
+  transform: scaleX(1);
+}
+
 /* Hamburger button — hidden on desktop */
 .hamburger {
   display: none;
@@ -217,5 +221,8 @@
 
   .mobileMenuLinkActive {
     color: #c9a84c;
+    /* Inset left bar — persistent affordance so active is distinguishable
+       from hover (both are #c9a84c). Box-shadow avoids layout shift. */
+    box-shadow: inset 2px 0 0 var(--accent-gold);
   }
 }
