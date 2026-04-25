@@ -239,7 +239,7 @@ export default function AuthPage() {
         width: '100%', maxWidth: 440, padding: '32px 28px', position: 'relative', zIndex: 1,
         background: 'var(--bg-card)', border: '1px solid rgba(201,168,76,0.08)', borderRadius: 12,
         backdropFilter: 'blur(20px)',
-        boxShadow: '0 0 120px 60px rgba(201,168,76,0.025), 0 4px 24px rgba(0,0,0,0.3)',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
       }}>
         {/* Signup complete confirmation */}
         {signupComplete ? (

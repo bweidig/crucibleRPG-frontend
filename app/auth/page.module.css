@@ -2,6 +2,23 @@
    Auth Page Styles
    ============================================ */
 
+.authCard {
+  position: relative;
+}
+
+.authCard::before {
+  content: '';
+  position: absolute;
+  inset: -80px;
+  background: radial-gradient(ellipse at center,
+    rgba(201, 168, 76, 0.32) 0%,
+    rgba(201, 168, 76, 0.18) 30%,
+    rgba(201, 168, 76, 0) 70%);
+  filter: blur(60px);
+  z-index: -1;
+  pointer-events: none;
+}
+
 /* Social login buttons */
 .socialButton {
   width: 100%;
