@@ -1191,7 +1191,7 @@ Mount: `/api/game` — All endpoints require JWT + game ownership. Game must be 
 
 ### GET /api/game/:id/stream
 
-Server-Sent Events connection. Currently used for initial connection confirmation and non-advancing command push notifications. Turn content is delivered via synchronous POST responses (not SSE).
+Server-Sent Events connection. Used for (a) initial connection confirmation, (b) non-advancing command push notifications, and (c) live narrative streaming when `ENABLE_STREAMING=true` on the backend (AD-685).
 
 **Auth:** Query parameter `?token=<JWT>` (not Authorization header).
 
@@ -1200,6 +1200,13 @@ Server-Sent Events connection. Currently used for initial connection confirmatio
 |-------|------|------|
 | `connected` | `{ gameId }` | On connection |
 | `command:response` | `{ command, data }` | After non-advancing command (mirror of HTTP response) |
+| `turn:start` | `{ turnNumber }` | AD-685: fires after POST returns with `streaming: true` — marks the start of the SSE narrative sequence for that turn |
+| `turn:narrative` | `{ turnNumber, phase, chunk }` | AD-685: fires repeatedly as the AI generates narrative text. `phase` is `"pre"` or `"post"`. `chunk` is a text fragment — concatenate in order of arrival. Chunk size varies (the extractor feeds live tokens from Gemini; may be characters, words, or sentences). |
+| `turn:discard` | `{ turnNumber }` | AD-685: fires on silent retry. Frontend must clear any already-rendered narrative chunks for that turn and prepare to receive a fresh `turn:narrative` sequence. |
+| `turn:npc_states` | `{ turnNumber, npcStates }` | AD-685: combat turns only. Fires after narrative streaming completes. |
+| `turn:gm_aside` | `{ turnNumber, content }` | AD-685: fires when a GM aside is present. `content` is the aside text. Omitted entirely when no aside. |
+| `turn:complete` | `{ turnNumber, stateChanges, nextActions, rewindAvailable, directivesRemoved, mechanicalResults, groupAction?, groupDefend?, groupUtilityAction?, _debug? }` | AD-685: fires once when the turn fully resolves. `mechanicalResults` is always `null` in streaming mode (resolution already delivered via POST response). Frontend uses this to finalize the turn and re-enable the action panel. |
+| `turn:error` | `{ turnNumber, error, retryable }` | AD-685: fires if the turn fails after the POST already returned `streaming: true`. `retryable: true` means the player can safely re-submit the same action. |
 | `: heartbeat` | (comment, no data) | Every 30s |
 
 **Status Codes:**
@@ -1208,6 +1215,11 @@ Server-Sent Events connection. Currently used for initial connection confirmatio
 | 200 | SSE stream established |
 | 400 | Game not active |
 | 401 | Missing/invalid/expired token |
+
+**AD-685 streaming behavior — feature gate:**
+- Streaming is **opt-in** via the `ENABLE_STREAMING` backend env var (default `false`). When off, POST `/action` behaves exactly as before and never emits AD-685 events.
+- Streaming only activates when (a) the flag is on AND (b) the player has an active SSE connection for this game. Without an SSE connection, the POST returns the full synchronous response even with the flag on.
+- An action POST emits streaming events to the SINGLE active SSE connection for that game. Multiple concurrent SSE connections per game are not supported (new connection evicts prior).
 
 ---
 
@@ -1378,6 +1390,14 @@ Error variants (200, `used: false`, `error` populated): `on_cooldown`, `disorien
 - `mechanicalResults.offHandDamage` (object, optional) — present when an off-hand weapon attack hit a target NPC. Shape: `{ npcId, npcName, weaponName, hit_type: 'damage_hit'|'glancing_blow', damage_dealt?, wound_state?, wound_state_changed?, previous_wound_state?, armor_wall? }` — identical structure to primary `npcCombatResult`. Runs through full AD-626 armor mitigation pipeline.
 - `mechanicalResults.offHandCantripDamage` (object, optional) — present when an off-hand cantrip hit a target NPC. Shape: `{ npcId, npcName, implementName, damage_dealt, wound_state, elementTag }`. Channel damage bypasses armor per spell-damage convention.
 
+**`mechanicalResults.npcActionResults` (AD-695, additive):** Present when the NPC Action Declaration pipeline ran this turn (feature flag `NPC_ACTION_DECLARATION_ENABLED=true`, default). Array of per-NPC resolution results covering all 17 declaration verbs (attack, cast_spell, active_search, pursue, use_capability, assist_ally, withdraw, hide, defensive_posture, awareness_shift, call_reinforcements, intimidate, persuade, deceive, demand, hold_position, non_mechanical). Each entry shape depends on the verb but always includes `entityId`, `entityName`, `action`, plus verb-specific fields (`targetId`/`targetType`/`tier`/`hit_type`/`damage`/`wound_state_after` for attack; `spellOutputType`/`element`/`flavor`/`conditionApplied`/`healAmount`/`buffApplied` for cast_spell; `objective` for social verbs; etc). Results with `skipped: <reason>` indicate per-verb errors or preconditions (`npc_not_found`, `incapacitated`, `target_not_found`, `resolution_error`, `trained_capability_not_yet_wired`). `was_hidden: true` appears on the result when the NPC emerged from stealth to take a stealth-breaking action. `_wasDowngraded: true` and `_originalAction` surface declaration-parser downgrades. `_serverFallback: true` surfaces server-fallback origin (declaration AI exhausted retries).
+
+**`mechanicalResults.npcAttackPhaseResults` / `playerDefenseResult` / `npcAttackTurnActive` (AD-633, preserved via AD-695 backward-compat aliases):** When the declaration pipeline ran and produced ≥1 attack result, these three fields are populated from `npcActionResults` so legacy consumers keep working during the frontend cutover window. `npcAttackPhaseResults` entries use the AD-633 shape (`npcName`, `npcId`, `targetType`, `hit_type`, `tier`, `roll`, `margin`, `raw_damage`, `final_damage`, `damage_applied`, `condition_applied`, `was_hidden`, etc.). New-pipeline-only fields (`npcAttackStat`, `npcSkillMod`, `playerDefenseDc`, `shield_bonus_applied`, etc.) are set to `null` on alias entries — the detailed attack-phase per-entry telemetry only surfaces on flag-OFF (legacy Step 2d.5) runs. Frontend should migrate reads to `npcActionResults` in a follow-up; the aliases stay active until that migration ships.
+
+**Narrator mechText section — `## Pending Social Pressure` (AD-695, additive):** Context curator Layer 1 now includes a block listing unresolved intimidate/persuade/deceive/demand intents from prior turns. Format: `## Pending Social Pressure\n- <NPC name> (<intent_type>, objective: "<objective>")`. Appears only when `pending_npc_intents` has rows for the current world.
+
+**Narrator mechText section — `## NPC Action Result` / `## NPC Action Phase (N actions)` (AD-695, replaces AD-633 `## NPC Attack Result`):** On turns where the declaration pipeline ran, the AD-633 attack-phase renderer is replaced by a verb-agnostic block rendered by `src/ai/npc-action-formatter.js`. Each line names the entity, the verb (declaration string — `withdraw` not `flee`), and the verb's outcome. `was_hidden: true` prefixes the line with `(was hidden — emerging from stealth) `. Flag-OFF runs continue to produce the legacy `## NPC Attack Result` / `## NPC Attack Phase (N attacks)` block.
+
 **`mechanicalResults.activeSkillUsed` / `activeSkillEffect` / `activeSkillFailed` / `pendingTargetFailurePenalty` (AD-672):** When the player declared an in-scope Active Skill (Templates 1, 3, 6, 8) on the prior use_skill call and the effect was consumed by this turn's resolution, these fields are populated:
 - `activeSkillUsed` (string|null) — display name of the skill that was applied (e.g. `"Exploit Weakness"`, `"Precision Strike"`). `null` when no pending effect was consumed.
 - `activeSkillEffect` (object|null) — `{ templateId, templateName, enhanced, dcReductionApplied (number|null), statBoostApplied ({stat, value}|null), tierEscalation ({from, to}|null), bypassArmor (bool), fullSeverity (bool), failureApplied (bool), failureDetail (string|null) }`. The fields that apply depend on the template: Template 1 → `dcReductionApplied` populated; Template 3 → `bypassArmor`/`fullSeverity` on T1-3, `tierEscalation` on supernatural T2/T3 hits, `failureApplied` on T4-6; Template 6 → `statBoostApplied` populated, `failureApplied` true on any tier except enhanced+T1; Template 8 → `bypassArmor` on T1-3, `failureApplied` on T4-6.
@@ -1435,6 +1455,24 @@ Error variants (200, `used: false`, `error` populated): `on_cooldown`, `disorien
 }
 ```
 
+**Streaming response (AD-685, when `ENABLE_STREAMING=true` AND an active SSE connection exists):**
+
+When streaming is active, advancing-turn responses return a minimal body and the rest of the turn data arrives via SSE events on the existing `/api/game/:id/stream` channel:
+
+```json
+{
+  "turnAdvanced": true,
+  "streaming": true,
+  "turn": { "number": 13, "sessionTurn": 4 },
+  "resolution": { "stat": "cha", "dc": 12.0, "tier": "T4", "...": "..." }
+}
+```
+
+- `streaming: true` is the signal for the frontend to consume the rest via SSE. When absent or `false`, the response is the full synchronous shape documented above (includes `narrative`, `stateChanges`, `nextActions`, etc.).
+- `resolution` is the same shape as the synchronous response (lowercase `stat`, `null` on no-roll turns). It's always included in the streaming response so the frontend can render the dice animation immediately, before narrative text arrives.
+- `narrative`, `stateChanges`, `nextActions`, `rewindAvailable`, `directivesRemoved`, `gmAside`, and `npcStates` are **omitted** from the POST body and arrive via `turn:narrative`, `turn:complete`, `turn:gm_aside`, and `turn:npc_states` SSE events respectively.
+- Event order on the wire: POST returns → `turn:start` → `turn:narrative` chunks (phase `pre` then `post`) → optional `turn:gm_aside` / `turn:npc_states` → `turn:complete`. On failure post-POST: `turn:error`. On silent retry: `turn:discard` followed by a fresh `turn:narrative` sequence.
+
 **Notes:**
 - `resolution` is `null` when the turn involves no mechanical check (pure narrative turns, e.g. long rest).
 - `resolution.stat` is always lowercase (`"cha"`, `"str"`, etc.).
@@ -1442,15 +1480,15 @@ Error variants (200, `used: false`, `error` populated): `on_cooldown`, `disorien
   - When `resolution !== null` and the AI narrator produced both halves, `narrative` is an object `{ "preRoll": string, "postRoll": string }`. The frontend renders `preRoll` above the dice component and `postRoll` below it, with the roll animation between. `preRoll` sets up the challenge and leads into the implicit question the roll answers; `postRoll` reveals the outcome grounded in the tier, never naming dice or numbers.
   - When `resolution === null` (no roll), `narrative` is a flat string — unchanged from pre-AD-673 behavior.
   - Graceful fallback: if `resolution !== null` but the AI failed to emit both halves (e.g. only the flat `narrative` is populated), the server returns the flat string instead of the object. Frontend's existing `hasResolution` gate handles this by rendering the narrative above/below the dice without the pacing pause.
-- SSE `turn:narrative` chunk events gained an optional `phase` field (AD-673). On resolved-roll turns where the AI split the narrative, each chunk's payload is `{ chunk: string, phase: "pre" | "post" }` — `phase` indicates which half the chunk belongs to so clients can route around the dice animation. On no-roll turns or split fallbacks, the payload stays `{ chunk: string }` (no `phase` field).
+- SSE `turn:narrative` chunk events (AD-685) always carry `{ turnNumber, phase, chunk }`. `phase` is always `"pre"` or `"post"` — flat (no-roll) narrative streams with `phase: "post"`. This supersedes the AD-673 optional-phase shape on the streaming path.
 - `gmAside` (string, optional — AD-674, **additive**) — A short out-of-prose GM note surfacing a mechanical consequence of this turn (faction tier shift, quest unlock, reputation crossing, threshold event). Frontend renders as a gold-bordered inline card inside the turn block, between the narrative and the dice/consequences. **Omitted when no aside applies** — the field is not present at all on turns without a note. The existing `/api/game/:id/talk-to-gm/meta` endpoint's response — used by the "/My Story" tab as the source of standalone gm_aside entries on the frontend — is unrelated to this field and continues to return its existing `{ response, turnAdvanced, directiveStored, directiveLane }` shape unchanged.
-- SSE path sends `gmAside` as a single `turn:gm_aside` event with payload `{ aside: string }`, fired after `turn:state_changes` and `turn:npc_states` (when present) but before `turn:actions`. The event is not emitted at all when no aside applies.
+- SSE path (AD-685) sends `gmAside` as a `turn:gm_aside` event with payload `{ turnNumber, content }` (the old `aside` field was renamed to `content` in the streaming shape). The event is not emitted at all when no aside applies.
 - `nextActions.options[].stat` (AD-671, **additive**) — lowercase stat abbreviation (`"str"|"dex"|"con"|"int"|"wis"|"cha"|"pot"`) the AI predicts the rules engine would most likely test for this option, or `null` when no check applies. Display hint only — the actual resolution stat is decided at action-processing time, not bound by this value. Same field appears on `GET /state` `narrative.availableActions.options[]`.
 - `nextActions.options[].flavor` (AD-671, **additive**) — one or two lowercase words describing the approach as a vibe tag (e.g. `"combat"`, `"stealth"`, `"social"`, `"investigation"`, `"diplomatic"`, `"risky"`, `"cautious"`, `"safe"`, `"narrative"`). The AI narrator picks the tag; the tag list is open-ended, not an enum. `null` if the narrator omits or malforms the field — frontend should render no tag in that case. Same field appears on `GET /state` `narrative.availableActions.options[]`.
 - `stateChanges.stats` contains post-commit effective stats (base minus condition penalties) with lowercase keys. This is the authoritative stat snapshot after the turn resolves.
 - `stateChanges.conditions.added` entries include a `target` field: `"player"` for player conditions, or the NPC's display name (e.g. `"Enforcer"`) for enemy conditions. (AD-550)
 - `npcStates` (array, optional) — Present only on combat turns. Each entry: `{ name, npcId, woundState: "engaged"|"bloodied"|"desperate"|"defeated", defeated: boolean }`. (AD-550, AD-670 rename: fresh→engaged, staggering→desperate, incapacitated→defeated)
-- SSE path sends `npcStates` as a separate `turn:npc_states` event.
+- SSE path (AD-685) sends `npcStates` as a `turn:npc_states` event with payload `{ turnNumber, npcStates }`.
 - `rewindAvailable` (boolean) — `true` after any successful advancing turn. Frontend uses to enable/disable the Rewind button. (AD-553)
 - `directivesRemoved` (array or null) — Auto-fulfilled directives removed this turn. Each entry: `{ text, lane, reason }`. `null` when nothing was removed. Only present on advancing turns after Turn 6 (when summarization fires). (AD-554)
 
