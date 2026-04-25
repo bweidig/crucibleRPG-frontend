@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-24 (revert scroll-position parallax; restore velocity drift)
+**Last Updated:** 2026-04-24 (FAQ: instant category switch + per-question deep links)
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -34,6 +34,48 @@
 ---
 
 ## Recent Work (This Session: 2026-04-24)
+
+### FAQ: instant category switch + per-question deep links
+
+Two changes to `app/faq/FAQContent.js` and `app/faq/page.module.css`.
+
+**Category switch is now instant.** Each question was wrapped in a `ScrollReveal` keyed by `${activeCategory}-${i}`, so changing categories remounted every item and replayed the staggered fade-up entrance — a 300–400 ms blank beat that made FAQ filtering feel broken. Added a `firstMountRef` flag that's flipped to `false` on the mount effect; the entrance animation only runs on initial render. Subsequent category switches render question rows directly with no `ScrollReveal` wrapper, so the swap reads instant the way settings tabs do. The mount effect runs once, so the flag is stable for the entire component lifetime.
+
+**Per-question URL anchors with deep linking.**
+- `slugify(text)` lowercases, replaces non-alphanumeric runs with `-`, and trims leading/trailing hyphens. Deterministic — same question text always yields the same slug.
+- `findQuestionBySlug(slug)` walks `CATEGORIES` in declared order so duplicate question text resolves to the first match (per spec).
+- Each `FAQItem` is `<div id={slug}>` with the slug derived from its question.
+- `toggleItem` writes the hash via `history.replaceState` (no extra entries in the back stack — no one wants to hit back 12 times to leave the FAQ). Opening sets `#slug`, closing strips the hash back to `pathname + search`. `handleCategoryChange` also clears the hash.
+- On mount, if `window.location.hash` matches a slug, the effect sets the corresponding category, opens the matching item, and scrolls it into view via two stacked `requestAnimationFrame`s (first commits the state update, second waits for the new category's DOM to lay out before reading `getBoundingClientRect`). Scroll target is `top - 96 px` to clear the 72 px sticky NavBar with breathing room. Hash that doesn't match any slug is ignored — page loads on the default category.
+
+**Share affordance.** Each question row has a small chain-link icon button between the question text and the chevron. Subtle at rest (`opacity: 0.4`), full opacity on row hover. Click copies `origin + pathname + #slug` via `navigator.clipboard.writeText`, then briefly swaps the icon for a "Copied" label for 1.5 s with a CSS keyframe fade so the swap doesn't snap. Always visible at `opacity: 0.7` on touch viewports where `:hover` doesn't apply.
+
+**Accessibility.** The question is still a real `<button>` (canonical interactive element). The share affordance is a separate `<button>` sibling — focusable via Tab after the question, never the default focus target. The chevron is a duplicate-trigger `<button>` with `tabIndex={-1}` and `aria-hidden="true"` so it's clickable as a visual indicator without polluting tab order or AT output. Question button gets `aria-controls={\`${slug}-answer\`}` pointing at its answer panel.
+
+**Files modified:**
+- `app/faq/FAQContent.js`
+- `app/faq/page.module.css`
+
+**claude-upload synced:** `faq-FAQContent.js` (new), `faq-page.module.css`.
+
+---
+
+### Auth card glow → radial-gradient pseudo-element
+
+The gold halo behind the auth card was a `box-shadow` blur. Box-shadow is fundamentally rectangular, so even with heavy blur the long sides have a different falloff than the corners and the halo reads as a soft rectangle instead of a true circular glow. Replaced it with a blurred radial gradient on a `.authCard::before` pseudo-element so the halo is genuinely radial.
+
+- `app/auth/page.js`: dropped the `0 0 120px 60px rgba(201,168,76,0.025)` term from the form's inline `boxShadow`, leaving only the dark drop shadow `0 4px 24px rgba(0,0,0,0.3)`. The form's `position: relative` and `zIndex: 1` are unchanged — they're load-bearing for the pseudo-element.
+- `app/auth/page.module.css`: added a base `.authCard { position: relative; }` rule and a `.authCard::before` rule with `inset: -80px`, a 3-stop ellipse radial gradient (`rgba(201,168,76,0.32) → 0.18 → 0` from 0% → 30% → 70%), `filter: blur(60px)`, `z-index: -1`, `pointer-events: none`. Placed alongside the other component class definitions, above the existing `@media (max-width: 767px)` block whose `.authCard` rule (mobile padding/border-radius) is unchanged.
+
+The form has both `position: relative` and `zIndex: 1`, so it forms its own stacking context — the `z-index: -1` pseudo paints above the form's own background and below all form content per the CSS stacking spec, which keeps the glow visible (rather than being clipped behind the page background) without needing `isolation: isolate` on the wrapper.
+
+**Files modified:**
+- `app/auth/page.js`
+- `app/auth/page.module.css`
+
+**claude-upload synced:** `auth-page.js`, `auth-page.module.css`.
+
+---
 
 ### Revert scroll-position parallax → restore scroll-velocity drift
 
