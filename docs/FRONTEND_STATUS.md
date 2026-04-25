@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-24 (particle visibility + scroll-drift smoothness)
+**Last Updated:** 2026-04-24 (particle scroll-position parallax)
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -34,6 +34,23 @@
 ---
 
 ## Recent Work (This Session: 2026-04-24)
+
+### Particle field: scroll-position parallax (replaces velocity-based drift)
+
+The previous velocity-based scroll system applied a transient offset proportional to scroll speed and decayed back to zero — particles bobbed during scroll but didn't *track* the page. Reworked to true parallax: each layer's Y offset is `-scrollY × factor`, so the field reads as a starfield embedded in the document (slower-moving = farther in the background) rather than a static overlay.
+
+- `SCROLL_PARALLAX_FACTOR = [0.15, 0.3, 0.5]` for far/mid/near. Far drifts slowest (deepest), near tracks scroll more closely. All factors below 1 so particles fall behind the rate of content scroll, giving the depth feel.
+- `scrollY` is read directly inside the existing `requestAnimationFrame` loop — no scroll event listener at all. The animate loop already ran every frame for the mouse-parallax lerp, so reading `scrollY` per frame is essentially free and can't interfere with native scroll handling.
+- Mouse parallax is unchanged and still combines additively on Y.
+
+Removed: `LAYER_SCROLL_MAX`, `SCROLL_DECAY`, `SCROLL_INPUT_DIVISOR`, `SCROLL_LERP`, `scrollVelocity` ref, `lastScrollY` ref, `currentScrollOffset` ref, and the `scroll` event listener. The new system is a single constant + one line of math per layer per frame.
+
+**Files modified:**
+- `components/ParticleField.js`
+
+**claude-upload synced:** `component-ParticleField.js`.
+
+---
 
 ### Particle field: visibility floors + smoother scroll drift
 

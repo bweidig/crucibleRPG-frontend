@@ -12,25 +12,12 @@ const LAYERS = [
   { maxShift: 3 },   // near (largest particles)
 ];
 
-// Per-layer cap for scroll-coupled drift (px). Bounded so a hard flick
-// doesn't fling particles across the viewport.
-const LAYER_SCROLL_MAX = [2, 5, 8];
-
-// Velocity decay per frame. Aggressive enough (0.85^20 ≈ 0.04) that a single
-// scroll event's influence fades in ~1/3 second — combined with the lerped
-// offset below, drift starts small, grows briefly, and settles back to zero.
-const SCROLL_DECAY = 0.85;
-
-// Raw deltaY from scroll events is large (wheel ticks easily exceed 30 px).
-// Dividing at the source scales it down to a velocity magnitude where
-// cap-saturation and gentle-scroll behavior both land in a readable range.
-const SCROLL_INPUT_DIVISOR = 8;
-
-// Lerp factor for the scroll offset itself — the mouse parallax uses 0.01
-// for a lazy drift, and scroll wants the same "wind, not vibration" feel.
-// Faster lerps track the velocity too closely and produce the per-frame
-// jitter the effect is trying to avoid.
-const SCROLL_LERP = 0.02;
+// Per-layer scroll parallax factor. Each layer's Y offset is scrollY × factor
+// (in the opposite direction), so the field reads as a starfield embedded in
+// the document rather than a static overlay. Far moves slowest (deepest
+// background), near moves most. All factors are < 1, so particles drift past
+// at sub-scroll rate — the closer to 1, the more they keep up with content.
+const SCROLL_PARALLAX_FACTOR = [0.15, 0.3, 0.5];
 
 const DEADZONE = 180; // px from viewport center — ignore small movements
 
@@ -113,28 +100,14 @@ export default function ParticleField({ count = 35 }) {
   const rafId = useRef(null);
   const parallaxEnabled = useRef(false);
 
-  // Scroll-coupled drift runs in two stages to avoid frame-to-frame jitter:
-  //   1. scrollVelocity — the freshest scroll delta (divided by SCROLL_INPUT_
-  //      DIVISOR). Decays each frame via SCROLL_DECAY.
-  //   2. currentScrollOffset[layer] — the actual pixel offset applied. Lerps
-  //      slowly (SCROLL_LERP) toward a velocity-derived target. Without this
-  //      lerp, offset would jump every frame with each new scroll delta and
-  //      vibrate rather than drift.
-  const scrollVelocity = useRef(0);
-  const lastScrollY = useRef(0);
-  const currentScrollOffset = useRef([0, 0, 0]);
 
   useEffect(() => {
     // Only enable on hover-capable, non-reduced-motion devices — gates both
-    // the mouse parallax and the scroll-coupled drift.
+    // the mouse parallax and the scroll parallax.
     const hasHover = window.matchMedia('(hover: hover)').matches;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!hasHover || reducedMotion) return;
     parallaxEnabled.current = true;
-
-    // Seed from current scrollY so the first post-mount delta is 0 even if
-    // the user has already scrolled the page.
-    lastScrollY.current = window.scrollY;
 
     const handleMouseMove = (e) => {
       const cx = window.innerWidth / 2;
@@ -158,26 +131,17 @@ export default function ParticleField({ count = 35 }) {
       };
     };
 
-    const handleScroll = () => {
-      const cur = window.scrollY;
-      const delta = cur - lastScrollY.current;
-      lastScrollY.current = cur;
-      // Replace rather than accumulate — the per-frame decay settles it back
-      // on its own. Division by SCROLL_INPUT_DIVISOR scales raw scroll deltas
-      // (often 30–100+ px per wheel tick) down into a range where the rest
-      // of the pipeline produces the "gentle wind" feel the effect wants.
-      scrollVelocity.current = delta / SCROLL_INPUT_DIVISOR;
-    };
-
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
-    window.addEventListener('scroll', handleScroll, { passive: true });
 
     // Lerp loop for smooth movement — heavy damping for lazy drift
     const lerp = (a, b, t) => a + (b - a) * t;
     const lerpFactor = 0.01;
 
     const animate = () => {
-      const velY = scrollVelocity.current;
+      // Read scrollY directly each frame — no scroll listener needed, no
+      // chance of interfering with native scroll handling. The animate loop
+      // already runs every frame for the mouse parallax lerp.
+      const scrollY = window.scrollY;
 
       LAYERS.forEach((layer, i) => {
         const cur = currentOffset.current[i];
@@ -186,27 +150,16 @@ export default function ParticleField({ count = 35 }) {
         cur.x = lerp(cur.x, tx, lerpFactor);
         cur.y = lerp(cur.y, ty, lerpFactor);
 
-        // Scroll drift: target derived from velocity, then the rendered
-        // offset lerps toward it at SCROLL_LERP (very lazy). Keeps particles
-        // drifting smoothly over ~half a second rather than snapping with
-        // each scroll event. Clamped to each layer's cap so fast flicks
-        // don't overshoot.
-        const maxS = LAYER_SCROLL_MAX[i];
-        const rawTarget = -velY * maxS;
-        const scrollTarget = Math.max(-maxS, Math.min(maxS, rawTarget));
-        currentScrollOffset.current[i] = lerp(currentScrollOffset.current[i], scrollTarget, SCROLL_LERP);
+        // Scroll parallax: each layer drifts at a fraction of scrollY, opposite
+        // the scroll direction. Far moves slowest (deepest background), near
+        // most. Combined additively with the mouse parallax on Y.
+        const scrollOffsetY = -scrollY * SCROLL_PARALLAX_FACTOR[i];
 
         const el = layerRefs.current[i];
         if (el) {
-          // Mouse parallax and scroll drift combine additively on Y.
-          el.style.transform = `translate(${cur.x.toFixed(2)}px, ${(cur.y + currentScrollOffset.current[i]).toFixed(2)}px)`;
+          el.style.transform = `translate(${cur.x.toFixed(2)}px, ${(cur.y + scrollOffsetY).toFixed(2)}px)`;
         }
       });
-
-      // Exponential decay toward zero. Snap to 0 once tiny so the transform
-      // doesn't keep re-writing trivial sub-pixel values forever.
-      scrollVelocity.current *= SCROLL_DECAY;
-      if (Math.abs(scrollVelocity.current) < 0.01) scrollVelocity.current = 0;
 
       rafId.current = requestAnimationFrame(animate);
     };
@@ -215,7 +168,6 @@ export default function ParticleField({ count = 35 }) {
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('scroll', handleScroll);
       if (rafId.current) cancelAnimationFrame(rafId.current);
     };
   }, []);
