@@ -108,7 +108,7 @@ const SECTIONS = [
   },
   {
     id: 'saving-and-sharing', number: 24, title: 'Saving & Sharing',
-    content: `<p>All save and share features are accessed through the settings menu in-game.</p><h3>Checkpoints</h3><p>Manual save points you can create and restore to. Up to 3 at a time. Drop a checkpoint before a risky decision, restore if things go sideways.</p><h3>Full Export / Import</h3><p>Download your entire game as a file. Load it back later. Useful for backups or moving between devices. Integrity-checked to prevent corruption.</p><h3>World Snapshots</h3><p>Save your world in two modes:</p><ul><li><strong>Fresh Start</strong> - Captures the world (factions, locations, NPCs, history) but resets NPC relationships and unresolved story threads. Start a new character in an established world.</li><li><strong>Branch</strong> - Captures the current state exactly. Fork your game to try a different path.</li></ul><h3>Snapshot Sharing</h3><p>Share a world snapshot with other players. They can start their own campaign in a world you built.</p><h3>Session Recap</h3><p>When you load a saved game, a "Previously On..." summary brings you up to speed on where you left off and what was happening.</p><p>## Every Hero Needs a Crucible.</p><p>Yours is waiting.</p><p>[START PLAYING]</p><p>© 2026 CrucibleRPG · Every hero needs a crucible.</p>`,
+    content: `<p>All save and share features are accessed through the settings menu in-game.</p><h3>Checkpoints</h3><p>Manual save points you can create and restore to. Up to 3 at a time. Drop a checkpoint before a risky decision, restore if things go sideways.</p><h3>Full Export / Import</h3><p>Download your entire game as a file. Load it back later. Useful for backups or moving between devices. Integrity-checked to prevent corruption.</p><h3>World Snapshots</h3><p>Save your world in two modes:</p><ul><li><strong>Fresh Start</strong> - Captures the world (factions, locations, NPCs, history) but resets NPC relationships and unresolved story threads. Start a new character in an established world.</li><li><strong>Branch</strong> - Captures the current state exactly. Fork your game to try a different path.</li></ul><h3>Snapshot Sharing</h3><p>Share a world snapshot with other players. They can start their own campaign in a world you built.</p><h3>Session Recap</h3><p>When you load a saved game, a "Previously On..." summary brings you up to speed on where you left off and what was happening.</p>`,
   },
 ];
 
@@ -135,8 +135,12 @@ export default function RulebookPage() {
   const router = useRouter();
   const [loaded, setLoaded] = useState(false);
   const [activeSection, setActiveSection] = useState(0);
+  const [scrollProgress, setScrollProgress] = useState(0);
   const [displaySettings, setDisplaySettings] = useState({ font: 'alegreya', textSize: 'medium' });
   const sectionRefs = useRef([]);
+  // Suppresses the scrollspy → URL writer briefly while a deep-link smooth scroll
+  // is in flight, so we don't clobber the deep-linked hash with intermediate ones.
+  const suppressHashWrite = useRef(false);
 
   useEffect(() => {
     if (!isAuthenticated()) { router.replace('/auth'); return; }
@@ -156,7 +160,7 @@ export default function RulebookPage() {
     };
   }, [router]);
 
-  // Scroll spy
+  // Scroll spy + reading progress
   useEffect(() => {
     const handleScroll = () => {
       let current = 0;
@@ -169,6 +173,10 @@ export default function RulebookPage() {
         }
       }
       setActiveSection(current);
+
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const pct = max > 0 ? (window.scrollY / max) * 100 : 0;
+      setScrollProgress(Math.min(100, Math.max(0, pct)));
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -176,10 +184,41 @@ export default function RulebookPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Deep link: if the URL has a #section-id on first load, scroll to it.
+  // Declared before the URL-writer effect so it runs first when `loaded` flips.
+  useEffect(() => {
+    if (!loaded) return;
+    const hash = window.location.hash;
+    if (!hash) return;
+    const idx = ALL_SECTIONS.findIndex((s) => s.id === hash.slice(1));
+    if (idx < 0) return;
+    const el = sectionRefs.current[idx];
+    if (!el) return;
+    suppressHashWrite.current = true;
+    const y = el.getBoundingClientRect().top + window.scrollY - 96;
+    window.scrollTo({ top: y, behavior: 'smooth' });
+    setTimeout(() => { suppressHashWrite.current = false; }, 1500);
+  }, [loaded]);
+
+  // Keep the URL hash in sync with the active section as the user scrolls.
+  // Throttled implicitly: only fires when activeSection changes, not on every scroll event.
+  useEffect(() => {
+    if (!loaded) return;
+    if (suppressHashWrite.current) return;
+    const id = ALL_SECTIONS[activeSection]?.id;
+    if (id && window.location.hash !== '#' + id) {
+      history.replaceState(null, '', '#' + id);
+    }
+  }, [activeSection, loaded]);
+
   const scrollToSection = (index) => {
     const el = sectionRefs.current[index];
     if (!el) return;
-    const y = el.getBoundingClientRect().top + window.scrollY - 24;
+    const id = ALL_SECTIONS[index]?.id;
+    if (id) {
+      history.replaceState(null, '', '#' + id);
+    }
+    const y = el.getBoundingClientRect().top + window.scrollY - 96;
     window.scrollTo({ top: y, behavior: 'smooth' });
   };
 
@@ -231,6 +270,18 @@ export default function RulebookPage() {
       <ParticleField />
       <NavBar currentPage="rulebook" />
 
+      {/* Reading progress bar (above navbar) */}
+      <div
+        className={styles.progressBar}
+        style={{ display: scrollProgress < 1 ? 'none' : 'block' }}
+        aria-hidden="true"
+      >
+        <div
+          className={styles.progressFill}
+          style={{ width: `${scrollProgress}%` }}
+        />
+      </div>
+
       {/* Hero section */}
       <ScrollReveal>
         <div style={{
@@ -278,31 +329,42 @@ export default function RulebookPage() {
           <div className={styles.tocScroll} style={{
             maxHeight: 'calc(100vh - 140px)', overflowY: 'auto',
           }}>
-            {ALL_SECTIONS.map((section, i) => (
-              <a
-                key={section.id}
-                className={styles.tocLink}
-                onClick={() => scrollToSection(i)}
-                style={{
-                  fontFamily: 'var(--font-alegreya-sans)', fontSize: 15,
-                  color: activeSection === i
-                    ? ('var(--accent-gold)')
-                    : 'var(--text-muted)',
-                  fontWeight: activeSection === i ? 600 : 400,
-                  padding: '5px 0',
-                  display: 'flex', alignItems: 'baseline', gap: 8,
-                }}
-              >
-                <span style={{
-                  fontFamily: 'var(--font-jetbrains)', fontSize: 12,
-                  color: activeSection === i
-                    ? ('var(--accent-gold)')
-                    : '#556178',
-                  minWidth: 18,
-                }}>{section.number}</span>
-                {section.title}
-              </a>
-            ))}
+            {ALL_SECTIONS.map((section, i) => {
+              const isActive = i === activeSection;
+              const isPast = i < activeSection;
+              return (
+                <a
+                  key={section.id}
+                  className={styles.tocLink}
+                  onClick={() => scrollToSection(i)}
+                  style={{
+                    fontFamily: 'var(--font-alegreya-sans)', fontSize: 15,
+                    color: isActive
+                      ? 'var(--accent-gold)'
+                      : isPast
+                        ? '#7a8499'
+                        : 'var(--text-muted)',
+                    fontWeight: isActive ? 600 : 400,
+                    padding: '5px 0',
+                    display: 'flex', alignItems: 'baseline', gap: 8,
+                  }}
+                >
+                  <span
+                    className={styles.tocNumber}
+                    style={{
+                      fontFamily: 'var(--font-jetbrains)', fontSize: 12,
+                      color: isActive
+                        ? 'var(--accent-gold)'
+                        : isPast
+                          ? '#7a6a3c'
+                          : '#556178',
+                      minWidth: 18,
+                    }}
+                  >{section.number}</span>
+                  {section.title}
+                </a>
+              );
+            })}
           </div>
 
           {/* Lexie Readable toggle */}
@@ -342,6 +404,7 @@ export default function RulebookPage() {
           {ALL_SECTIONS.map((section, i) => (
             <div
               key={section.id}
+              id={section.id}
               ref={(el) => { sectionRefs.current[i] = el; }}
               style={{
                 marginBottom: 48, paddingBottom: 40,

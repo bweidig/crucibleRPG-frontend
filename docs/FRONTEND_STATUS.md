@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-24 (menu hero card: drop blurb line clamp)
+**Last Updated:** 2026-04-25 (rulebook: markdown leak fix, scrolled-past TOC state, deep linking, reading progress bar, sticky-TOC fix)
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -33,7 +33,49 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-24)
+## Recent Work (This Session: 2026-04-25)
+
+### Rulebook: markdown-leak removal, scrolled-past TOC, deep linking, reading progress bar
+
+Five-part fix on `/rulebook`:
+
+1. **Markdown leak removed.** The last section's content (`saving-and-sharing`, number 24) was ending with four `<p>` tags carrying raw markdown source (`## Every Hero Needs a Crucible.`, `Yours is waiting.`, `[START PLAYING]`, copyright line). They render as plain text above the real CTA, making the bottom of the rulebook look broken. Stripped — the section now ends cleanly at the Session Recap paragraph. The real H2 + START PLAYING button below the sections array is unchanged.
+
+2. **Sticky TOC now actually sticks.** Diagnosed `overflow-x: hidden` on `.pageContainer` as the culprit — it establishes a horizontal scroll container that breaks `position: sticky` on descendants in most browsers (sticky elements stick to their nearest scrollable ancestor, and `.pageContainer` itself doesn't scroll vertically). Switched to `overflow-x: clip`, which clips overflow without creating a scroll container. Sticky on `.tocSidebar` now works.
+
+3. **TOC numbers fill in gold as user scrolls past sections.** Added a third visual state to TOC entries. Sections below the active section now render with a dim gold number (`#7a6a3c`) and a slightly raised label color (`#7a8499` instead of `var(--text-muted)`), so the gold progressively accumulates down the sidebar as the reader moves through the document. Active state (bright gold + 600 weight) and not-yet-reached state (muted gray) are unchanged. Both label and number get `transition: color 0.4s ease` so the active→past handoff fades rather than snapping.
+
+4. **Per-section URL anchors with deep linking.** Each section's outer container now carries `id={section.id}`. TOC clicks call `history.replaceState` with `#section-id` (replace, not push, so browser history doesn't accumulate). Scrollspy keeps the URL in sync with the active section as the user scrolls — implicitly throttled because the writer effect only fires when `activeSection` actually changes, not on every scroll event. On page load, if `window.location.hash` matches a section id, the page smooth-scrolls to that section after `loaded` flips true. Hash mismatches (or no hash) load normally. A `suppressHashWrite` ref blocks the scrollspy writer for 1.5 s while a deep-link smooth-scroll is in flight, so intermediate sections passed during the scroll don't clobber the deep-linked hash. While I was in there, I bumped the scroll offset from `-24` to `-96` (72 navbar + 24 breathing) — the previous offset placed section headers behind the fixed navbar.
+
+5. **Reading progress bar.** A 2 px gold bar sits fixed at `top: 0`, `z-index: 101` (one above the navbar). Fill is a `linear-gradient` from `--accent-gold` to `--accent-bright` with `width: ${scrollProgress}%`. Progress is computed in the existing scroll handler as `(scrollY / (scrollHeight - innerHeight)) * 100`, clamped 0–100. The bar's wrapper is `display: none` whenever progress is below 1, so it doesn't show as a tiny dot at the top. `prefers-reduced-motion: reduce` removes the `width 0.1s linear` transition (and the TOC color transitions) so the bar snaps to position without animation.
+
+**Files modified:**
+- `app/rulebook/page.js`
+- `app/rulebook/page.module.css`
+
+**Files created (in claude-upload):**
+- `claude-upload/rulebook-page.module.css` (didn't exist before; CLAUDE.md requires it)
+
+**claude-upload synced:** `rulebook-page.js`, `rulebook-page.module.css`.
+
+---
+
+### Pricing hero halo → directional radial-gradient pseudo-element
+
+Same problem as the auth card glow (large `box-shadow` blur reads as a soft rectangle, not a circular halo), but compounded on the pricing Hero card by two factors: (1) the card is tall, so the long-side falloff produced visible horizontal striations; (2) the symmetric spread bled leftward across the column gap into the Free Trial card. Moved the gold portion of the shadow off `box-shadow` and onto a `.heroCard::after` pseudo-element with a blurred radial gradient and an asymmetric inset.
+
+- `app/pricing/page.module.css`: dropped the `0 16px 60px rgba(201,168,76,0.14)` outer-gold term from `.heroCard`'s rest-state `box-shadow` and the `0 22px 72px rgba(201,168,76,0.22)` term from `.heroCard:hover`. Both inset accents (gold highlight at top, dark line at bottom) stay. Added `isolation: isolate` to `.heroCard` so the `z-index: -1` pseudo stays trapped behind the card without falling below the page background.
+- New `.heroCard::after` rule with `top: -60px; right: -100px; bottom: -100px; left: -10px;` — the asymmetric inset is the directional bias. Halo has room to expand right, down, and modestly up, but is clipped close to the card's left edge so it can't reach the Free Trial card across the gap. Three-stop ellipse radial gradient (0.28 → 0.14 → 0 across 0% → 35% → 70%), `filter: blur(50px)`, `opacity: 0.75` at rest with a 0.3s opacity transition.
+- New `@media (hover: hover) { .heroCard:hover::after { opacity: 1; } }` so the halo brightens in lockstep with the existing 6px lift. Hover gating stays inside `(hover: hover)` to keep touch devices from sticking the brighter state after a tap.
+
+The `.heroCard::before` (gradient gold border via mask-compositing) and `.heroRibbon` are untouched.
+
+**Files modified:**
+- `app/pricing/page.module.css`
+
+**claude-upload synced:** `pricing-page.module.css`.
+
+---
 
 ### Landing showcase: real /play dice experience replaces text dice bar
 
