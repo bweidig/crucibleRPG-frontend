@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAuthenticated, getUser } from '@/lib/api';
 import NavBar from '@/components/NavBar';
@@ -83,10 +83,60 @@ function Feature({ text }) {
   );
 }
 
+// --- FAQ CHEVRON ---
+
+function Chevron({ open }) {
+  return (
+    <svg
+      width="16" height="16" viewBox="0 0 24 24" fill="none"
+      stroke="var(--accent-gold)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      className={styles.faqChevron}
+      style={{ transform: open ? 'rotate(180deg)' : 'rotate(0)' }}
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+// --- FAQ ITEM (accordion, mirrors /faq pattern) ---
+
+function PricingFAQItem({ item, open, onToggle, isLast }) {
+  return (
+    <div className={styles.faqItem} style={{
+      borderBottom: isLast ? 'none' : '1px solid var(--border-gold-faint)',
+    }}>
+      <button
+        className={styles.faqQuestion}
+        onClick={onToggle}
+        aria-expanded={open}
+      >
+        <span className={styles.faqQuestionText} style={{
+          color: open ? 'var(--accent-gold)' : 'var(--text-heading)',
+        }}>{item.q}</span>
+        <Chevron open={open} />
+      </button>
+      <div
+        className={styles.faqAnswer}
+        style={{
+          maxHeight: open ? 600 : 0,
+          opacity: open ? 1 : 0,
+          paddingBottom: open ? 16 : 0,
+        }}
+      >
+        <div style={{
+          fontFamily: 'var(--font-alegreya-sans)', fontSize: 16,
+          fontWeight: 400, color: 'var(--text-secondary)', lineHeight: 1.7,
+        }}>{item.a}</div>
+      </div>
+    </div>
+  );
+}
+
 // --- MAIN ---
 
 export default function PricingPage() {
   const router = useRouter();
+  const [openFAQ, setOpenFAQ] = useState(null);
   useEffect(() => {
     if (!isAuthenticated()) { router.replace('/auth'); return; }
     const user = getUser();
@@ -240,7 +290,6 @@ export default function PricingPage() {
             <Feature text="Unlimited saved campaigns" />
             <Feature text="225 turns every month" />
             <Feature text="Top-up packs when you need more" />
-            <Feature text="Cancel anytime. No contracts." />
           </div>
 
           <button
@@ -260,7 +309,7 @@ export default function PricingPage() {
       {/* Top-up section */}
       <div style={{
         maxWidth: 640, margin: '0 auto',
-        padding: '48px 24px 32px',
+        padding: '24px 24px 32px',
         position: 'relative', zIndex: 1,
       }}>
         <ScrollReveal>
@@ -279,36 +328,56 @@ export default function PricingPage() {
         <div style={{
           display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap',
         }}>
-          {PRICING.topups.map((pack, i) => (
-            <ScrollReveal key={i} delay={i * 0.1}>
-              <div className={styles.topupCard} style={{
-                borderRadius: 8, padding: '20px 24px',
-                textAlign: 'center', flex: '1 1 160px', maxWidth: 190,
-              }}>
-                <div style={{
-                  fontFamily: 'var(--font-cinzel)', fontSize: 22,
-                  fontWeight: 700, color: 'var(--text-heading)',
-                  lineHeight: 1.15, marginBottom: 4,
-                }}>{pack.turns}</div>
-                <div style={{
-                  fontFamily: 'var(--font-cinzel)', fontSize: 14,
-                  fontWeight: 600, color: 'var(--text-muted)',
-                  lineHeight: 1.15, marginBottom: 12,
-                }}>turns</div>
-                <div style={{
-                  fontFamily: 'var(--font-cinzel)', fontSize: 16, fontWeight: 700,
-                  color: 'var(--accent-gold)', lineHeight: 1.15,
-                }}>${pack.price}</div>
-              </div>
-            </ScrollReveal>
-          ))}
+          {PRICING.topups.map((pack, i) => {
+            // Strip insignificant trailing zeros so "0.060" reads as "0.06" but
+            // "0.045" stays at three decimals. toFixed(3) → Number → toString.
+            const perTurn = Number(
+              (parseFloat(pack.price) / parseInt(pack.turns)).toFixed(3)
+            ).toString();
+            const isBestValue = i === PRICING.topups.length - 1;
+            return (
+              <ScrollReveal key={i} delay={i * 0.1}>
+                <div className={styles.topupCard} style={{
+                  borderRadius: 8, padding: '28px 24px 24px',
+                  textAlign: 'center', flex: '1 1 200px', maxWidth: 240,
+                }}>
+                  {/* Reserve the label's vertical space on every pack so heights match. */}
+                  <div style={{
+                    fontFamily: 'var(--font-cinzel)', fontSize: 10, fontWeight: 700,
+                    color: 'var(--accent-gold)', letterSpacing: '0.2em',
+                    lineHeight: 1.15, marginBottom: 6,
+                    visibility: isBestValue ? 'visible' : 'hidden',
+                  }}>BEST VALUE</div>
+                  <div style={{
+                    fontFamily: 'var(--font-cinzel)', fontSize: 32,
+                    fontWeight: 700, color: 'var(--text-heading)',
+                    lineHeight: 1.15, marginBottom: 4,
+                  }}>{pack.turns}</div>
+                  <div style={{
+                    fontFamily: 'var(--font-cinzel)', fontSize: 14,
+                    fontWeight: 600, color: 'var(--text-muted)',
+                    lineHeight: 1.15, marginBottom: 12,
+                  }}>turns</div>
+                  <div style={{
+                    fontFamily: 'var(--font-cinzel)', fontSize: 20, fontWeight: 700,
+                    color: 'var(--accent-gold)', lineHeight: 1.15,
+                  }}>${pack.price}</div>
+                  <div style={{
+                    fontFamily: 'var(--font-alegreya-sans)', fontSize: 12,
+                    fontWeight: 400, color: 'var(--text-muted)',
+                    lineHeight: 1.4, marginTop: 8,
+                  }}>${perTurn}/turn</div>
+                </div>
+              </ScrollReveal>
+            );
+          })}
         </div>
       </div>
 
       {/* FAQ section */}
       <div style={{
         maxWidth: 560, margin: '0 auto',
-        padding: '48px 24px 40px',
+        padding: '32px 24px 40px',
         position: 'relative', zIndex: 1,
       }}>
         <ScrollReveal>
@@ -321,21 +390,13 @@ export default function PricingPage() {
         </ScrollReveal>
 
         {FAQ_ITEMS.map((item, i) => (
-          <ScrollReveal key={i} delay={i * 0.1}>
-            <div style={{
-              marginBottom: 28,
-              paddingBottom: 28,
-              borderBottom: i < FAQ_ITEMS.length - 1 ? '1px solid var(--border-gold-faint)' : 'none',
-            }}>
-              <div style={{
-                fontFamily: 'var(--font-cinzel)', fontSize: 14, fontWeight: 600,
-                color: 'var(--text-heading)', lineHeight: 1.15, marginBottom: 8,
-              }}>{item.q}</div>
-              <div style={{
-                fontFamily: 'var(--font-alegreya-sans)', fontSize: 16,
-                fontWeight: 400, color: 'var(--text-secondary)', lineHeight: 1.7,
-              }}>{item.a}</div>
-            </div>
+          <ScrollReveal key={i} delay={i * 0.05}>
+            <PricingFAQItem
+              item={item}
+              open={openFAQ === i}
+              isLast={i === FAQ_ITEMS.length - 1}
+              onToggle={() => setOpenFAQ(openFAQ === i ? null : i)}
+            />
           </ScrollReveal>
         ))}
       </div>
