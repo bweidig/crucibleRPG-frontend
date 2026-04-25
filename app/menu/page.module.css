@@ -28,14 +28,6 @@
   border-color: var(--border-card-hover);
 }
 
-/* Hero card blurb — clamp to 3 lines */
-.heroCardBlurb {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
 /* ─── Narrative Cards (YOUR GAMES) ─── */
 
 .narrativeCard {

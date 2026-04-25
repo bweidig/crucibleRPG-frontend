@@ -626,14 +626,14 @@ export default function MenuPage() {
                 color: '#9a8545', marginBottom: 14,
               }}>{heroIsSetup ? 'Setting up...' : (heroGame.setting !== 'pending' ? heroGame.setting : 'New World')}</div>
 
-              {/* Blurb / Setup message — clamps to 3 lines; full text in detail modal */}
+              {/* Blurb / Setup message — full text shown; this is the focal card */}
               {heroIsSetup ? (
-                <p className={styles.heroCardBlurb} style={{
+                <p style={{
                   fontFamily: 'var(--font-alegreya)', fontSize: 16, fontStyle: 'italic',
                   color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 14px',
                 }}>Character creation in progress.</p>
               ) : heroGame.blurb ? (
-                <p className={styles.heroCardBlurb} style={{
+                <p style={{
                   fontFamily: 'var(--font-alegreya)', fontSize: 16, fontStyle: 'italic',
                   color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 14px',
                 }}>{heroGame.blurb}</p>
