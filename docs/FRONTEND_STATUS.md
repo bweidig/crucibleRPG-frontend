@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-25 (showcase: lower top padding + slide-up entrance)
+**Last Updated:** 2026-04-26 (init: AD-703 / AD-704 custom-start alignment)
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -33,7 +33,28 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-25)
+## Recent Work (This Session: 2026-04-26)
+
+### Init wizard: align Custom Start payload with backend AD-703 / AD-704
+
+Three small changes in `app/init/page.js` to match new backend contract.
+
+**AD-703 — Custom Start now sends a richer scenario description.** Backend renamed the Custom Start payload field from `customStart.description` to `customStart.scenarioDescription` and capped it at 2,000 characters so the player can describe the opening situation in more detail. Frontend `saveScenario` body updated accordingly. The Phase 6 textarea (shown when scenario `D` is selected) was rebuilt:
+- New placeholder copy: "The situation you drop into."
+- New helper line below in muted Alegreya Sans: "Focus on right now, not how you got here. For example: 'Reviewing bounty contracts in my apartment' or 'Fleeing through the marketplace after a heist gone wrong.'"
+- Live character counter in the bottom-right corner of the textarea, JetBrains Mono 12px, dim by default. Shifts to `var(--color-danger)` once the player passes 1,800 characters as a soft warning that the cap is approaching.
+- Hard cap enforced two ways: `maxLength={2000}` on the textarea and a `.slice(0, 2000)` in `onChange` as a paste-safety belt-and-suspenders.
+- Bottom padding on the textarea bumped from 16 px to 32 px so the absolute-positioned counter never overlaps the user's text on the final line.
+
+**AD-704 — Stop sending dead `narrativeBackstory` on adjust-proposal.** Backend stopped overwriting `character.backstory` with the AI summary, so the `narrativeBackstory` field in the adjust-proposal request body is now ignored server-side. Removed the `if (proposal?.narrativeBackstory) body.narrativeBackstory = …` line from `saveAttributes`. The field is still read out of the generate-proposal response and kept on the local `proposal` state — only the outbound copy on adjust-proposal was dropped.
+
+**Files modified:**
+- `app/init/page.js`
+- `docs/FRONTEND_STATUS.md`
+
+**claude-upload synced:** `init-page.js`.
+
+---
 
 ### Landing showcase: lower top padding + slide-up entrance
 

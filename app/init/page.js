@@ -2371,11 +2371,40 @@ function Phase6({ scenario, setScenario, customStartText, setCustomStartText, sc
       )}
 
       {scenario === 'D' && !scenariosLoading && (
-        <textarea value={customStartText} onChange={e => setCustomStartText(e.target.value)} placeholder="Describe how your story begins..." className={styles.wizardInput} style={{
-          width: '100%', minHeight: 90, marginTop: 14, background: 'var(--bg-main)', border: '1px solid var(--border-gold-faint)',
-          borderRadius: 8, padding: 16, fontFamily: 'var(--font-alegreya)', fontSize: 16,
-          color: 'var(--text-primary)', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
-        }} />
+        <div style={{ marginTop: 14 }}>
+          <div style={{ position: 'relative' }}>
+            <textarea
+              value={customStartText}
+              onChange={e => setCustomStartText(e.target.value.slice(0, 2000))}
+              maxLength={2000}
+              placeholder="The situation you drop into."
+              className={styles.wizardInput}
+              style={{
+                width: '100%', minHeight: 90, background: 'var(--bg-main)',
+                border: '1px solid var(--border-gold-faint)', borderRadius: 8,
+                padding: '16px 16px 32px',
+                fontFamily: 'var(--font-alegreya)', fontSize: 16,
+                color: 'var(--text-primary)', outline: 'none', resize: 'vertical',
+                boxSizing: 'border-box', display: 'block',
+              }}
+            />
+            <div style={{
+              position: 'absolute', bottom: 10, right: 14,
+              fontFamily: 'var(--font-jetbrains-mono)', fontSize: 12,
+              color: customStartText.length > 1800 ? 'var(--color-danger)' : 'var(--text-dim)',
+              pointerEvents: 'none', userSelect: 'none',
+            }}>
+              {customStartText.length.toLocaleString()} / 2,000
+            </div>
+          </div>
+          <p style={{
+            fontFamily: 'var(--font-alegreya-sans)', fontSize: 13,
+            color: 'var(--text-dim)', lineHeight: 1.5,
+            marginTop: 10, marginBottom: 0,
+          }}>
+            Focus on right now, not how you got here. For example: "Reviewing bounty contracts in my apartment" or "Fleeing through the marketplace after a heist gone wrong."
+          </p>
+        </div>
       )}
     </div>
   );
@@ -3405,7 +3434,6 @@ function InitWizardInner() {
     if (proposal?.foundationalSkills?.length) body.foundationalSkills = proposal.foundationalSkills;
     if (proposal?.startingLoadout?.length) body.startingLoadout = proposal.startingLoadout;
     if (proposal?.factionStandings?.length) body.factionStandings = proposal.factionStandings;
-    if (proposal?.narrativeBackstory) body.narrativeBackstory = proposal.narrativeBackstory;
     if (proposal?.innateTraits?.length) body.innateTraits = proposal.innateTraits;
     await api.post(`/api/init/${gameId}/adjust-proposal`, body);
   };
@@ -3478,7 +3506,7 @@ function InitWizardInner() {
     const indexMap = { A: 0, B: 1, C: 2 };
     // TODO: backend needs to accept pacingType
     const body = scenario === 'D'
-      ? { scenarioIndex: 'custom', pacingType: 'custom', customStart: { description: customStartText } }
+      ? { scenarioIndex: 'custom', pacingType: 'custom', customStart: { scenarioDescription: customStartText } }
       : { scenarioIndex: indexMap[scenario], pacingType: PACING_MAP[scenario] };
     // If viewing an alt version, send the alt's index
     if (scenarioView[scenario] === 'alt' && scenarioAlts[scenario]) {
