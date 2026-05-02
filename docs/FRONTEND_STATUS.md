@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-26 (init: AD-703 / AD-704 custom-start alignment)
+**Last Updated:** 2026-05-02 (middleware: allow /admin and /settings)
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -33,7 +33,46 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-26)
+## Recent Work (This Session: 2026-05-02)
+
+### Middleware: allow /admin and /settings
+
+Bug: navigating to `/admin` or `/settings` redirected to `/auth` even when logged in. Cause: `middleware.js` gates non-public routes on the `crucible_access` cookie (the coming-soon password gate, 30-day max-age). The cookie expires or was never set for users who logged in via Google after the gate was lifted, and the middleware runs before the page's client-side auth guard. `/admin`, `/admin/playtest`, and `/settings` were missing from `PUBLIC_ROUTES`, so they were caught by the gate.
+
+Fix: added `/settings`, `/admin`, and `/admin/playtest` to `PUBLIC_ROUTES`. The pages' own client-side guards already redirect unauthenticated users to `/auth` and non-admin/non-playtester users to `/menu` or `/`, so middleware doesn't need to enforce auth here — it only enforces the coming-soon gate.
+
+**Files modified:**
+- `middleware.js`
+- `docs/FRONTEND_STATUS.md`
+
+---
+
+## Recent Work (Session: 2026-04-27)
+
+### Deltas panel added to landing showcase
+
+After the result narrative finishes typing, a math summary line and a row of state-change pills appear — showing the resolution formula and the world state changes the engine produced. Uses existing fadeUpIn animation with staggered pill entrance. Nine outcome-specific delta sets authored across all three scenarios.
+
+The math summary is a single JetBrains Mono line below a 60 px gold hairline rule. Format: `STAT n.n + d20(kept) → total vs DC dc → tierName`, with an extra `· outmatched · kept of (m1, m2)` segment in the outmatched branch and a `+ Skill n.n` segment when a skill applies. Right-arrow `→` and middle-dot `·` are used to match the in-game CompactChip readout.
+
+Pills sit in a wrap-flow row underneath. Two variants:
+- **Gain pills** — `var(--bg-gold-subtle)` background, `var(--border-card)` border, gold sign `+ CATEGORY` in Cinzel.
+- **Change pills** — `var(--bg-panel)` background, `var(--border-primary)` border, amber `± CATEGORY` (`#e8c45a`).
+
+Each pill has a Cinzel sign+category, an Alegreya Sans label (the changed entity), and an Alegreya Sans muted detail (qualifier). Pills cascade in via `fadeUpIn` with a 0.06 s stagger; reduced motion zeroes the delays so all pills land together. The wrapping `.deltasBlock` participates in the existing `fadingOut` class so TRY ANOTHER and scenario transitions fade it out alongside the dice and result blocks.
+
+Mobile: under 480 px, pill padding shrinks to `6px 10px 6px 9px` and pill font sizes drop by 1 px each so multi-pill rows still fit on narrow phones without single-pill rows.
+
+**Files modified:**
+- `app/landing/GameplayShowcase.js`
+- `app/landing/GameplayShowcase.module.css`
+- `docs/FRONTEND_STATUS.md`
+
+**claude-upload synced:** `landing-GameplayShowcase.js`, `landing-GameplayShowcase.module.css`, `component-GameplayShowcase.js`, `component-GameplayShowcase.module.css` (legacy mirrors).
+
+---
+
+## Recent Work (Previous Session: 2026-04-26)
 
 ### Init wizard: align Custom Start payload with backend AD-703 / AD-704
 
