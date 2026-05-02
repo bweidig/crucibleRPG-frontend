@@ -6,7 +6,17 @@
   position: relative;
 }
 
-.authCard::before {
+/* Glow lives on a wrapper that does NOT create a stacking context,
+   so z-index:-1 escapes and paints behind the card's solid background.
+   (.authCard itself creates a stacking context via backdrop-filter,
+   which would trap a -1 pseudo-element above the card's background.) */
+.authCardGlowWrap {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+}
+
+.authCardGlowWrap::before {
   content: '';
   position: absolute;
   inset: -80px;

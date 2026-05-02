@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-05-02 (middleware: allow /admin and /settings)
+**Last Updated:** 2026-05-02 (auth: fix glow showing through card)
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -34,6 +34,23 @@
 ---
 
 ## Recent Work (This Session: 2026-05-02)
+
+### Auth page: gold glow no longer shows through the card
+
+Bug: the radial gold glow was painting on top of the auth card's background, leaving a visible gold cast over the form interior instead of just haloing around the edges.
+
+Cause: the glow lived as `.authCard::before { z-index: -1 }`, but `.authCard` creates its own stacking context (it has both inline `z-index: 1` and `backdrop-filter: blur(20px)`). Inside that stacking context, a child with `z-index: -1` paints *above* the parent's background (per the CSS painting-order spec) — so the solid `--bg-card` couldn't hide it.
+
+Fix: introduced `.authCardGlowWrap` — a plain `position: relative` wrapper around the form with no z-index, no backdrop-filter, and no background, so it does *not* form a stacking context. Moved the `::before` glow onto that wrapper. The pseudo-element's `z-index: -1` now escapes into the parent stacking context and paints behind the form, where the card's solid background hides it correctly.
+
+**Files modified:**
+- `app/auth/page.js` (wrapped `<form>` in `<div className={styles.authCardGlowWrap}>`; moved `width/maxWidth` to wrapper)
+- `app/auth/page.module.css`
+- `claude-upload/auth-page.js`
+- `claude-upload/auth-page.module.css`
+- `docs/FRONTEND_STATUS.md`
+
+---
 
 ### Middleware: allow /admin and /settings
 

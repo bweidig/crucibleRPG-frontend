@@ -235,8 +235,9 @@ export default function AuthPage() {
         padding: '24px clamp(16px, 5vw, 32px)',
       }}>
         {/* Card */}
+        <div className={styles.authCardGlowWrap}>
         <form onSubmit={handleSubmit} className={styles.authCard} style={{
-        width: '100%', maxWidth: 440, padding: '32px 28px', position: 'relative', zIndex: 1,
+        width: '100%', padding: '32px 28px', position: 'relative', zIndex: 1,
         background: 'var(--bg-card)', border: '1px solid rgba(201,168,76,0.08)', borderRadius: 12,
         backdropFilter: 'blur(20px)',
         boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
@@ -550,6 +551,7 @@ export default function AuthPage() {
         </>
         )}
       </form>
+      </div>
       </div>
 
       <Footer />
