@@ -2,7 +2,7 @@
 
 > **This contract is verified against backend code as of 2026-03-17. The frontend uses this as its single source of truth. Do not change response shapes without updating this document.**
 
-**Last Updated:** 2026-04-10 (AD-595 web auto-playtester admin endpoints)
+**Last Updated:** 2026-04-26 (AD-704 + AD-705 — Custom Start scenario prompt + backstory preservation. AD-704: `POST /api/init/:gameId/select-scenario` `customStart` accepts new optional `scenarioDescription` field (string, max 2000 chars). When present, server writes `scene_state.opening_scenario` so per-turn context curator emits the canonical "place the character INTO this scenario" directive on turn 1. ADDITIVE — pre-AD-704 the field was unrepresentable. AD-705: `POST /api/init/:gameId/adjust-proposal` `narrativeBackstory` field ignored on the server. Pre-AD-705 the field destructively overwrote `characters.backstory` with the AI tier-reasoning summary; post-AD-705 the player's prose at POST /character is canonical and preserved through every downstream prompt. BREAKING semantic change to the `backstory` field returned by `/games/:id`, `/admin/...`, and per-turn context — frontends that displayed the AI summary will now display the player's prose.)
 
 Base URL: `https://<host>` (Railway production or `http://localhost:3000` local)
 
@@ -932,6 +932,8 @@ Allowed tiers: `novice`, `competent`, `veteran`, `legendary`.
 
 `source`: `"ai"` | `"ai_retry"`. `innateTraits` empty for humans. `species` null for humans.
 
+**AD-705:** `proposal.narrativeBackstory` is the AI-generated tier-reasoning summary (`<character.name>: <tierReasoning>`). It is **display-only** for the proposal review screen — it is NOT persisted to `characters.backstory` by `/adjust-proposal`. The player's prose submitted at `POST /character` remains the canonical backstory.
+
 **Status Codes:**
 | Code | Meaning |
 |------|---------|
@@ -959,7 +961,7 @@ Submit final character build. Writes stats, skills, inventory, standings to DB. 
 | `startingLoadout` | object[] | no | `[{ name, slotCost, materialQuality, equipmentCategory, damageModifier?, armorType?, inventoryBonus?, tags? }]` — total slotCost must fit capacity |
 | `factionStandings` | object[] | no | `[{ factionId?, factionName?, standing }]` — standing: integer -10 to 10 |
 | `heirloom` | string | no | Item name from loadout to designate as heirloom |
-| `narrativeBackstory` | string | no | Updates character backstory field |
+| `narrativeBackstory` | string | no | **AD-705: ignored on the server.** Pre-AD-705 this field destructively overwrote `characters.backstory` with the AI tier-reasoning summary, deleting the player's prose. Frontends may continue to send the field for forward-compatibility, but `characters.backstory` is now never written by `/adjust-proposal`. The player's text submitted at `POST /character` is canonical and preserved verbatim through every downstream prompt (system prompt, briefing, scenario gen, context curator). |
 | `innateTraits` | object[] | no | Species innate traits from proposal |
 | `tier` | string | no | For soft tier-range warnings |
 
@@ -1008,7 +1010,7 @@ Submit final character build. Writes stats, skills, inventory, standings to DB. 
 | 400 | Missing character (Phase 3), hard validation errors |
 | 500 | Internal server error |
 
-**Side Effects:** Writes to character_stats, character_skills, foundational_skills, inventory_items, player_faction_standing, characters (backstory, innate_traits, location). Initializes world_clock, scene_state, chronicle, context_budget_config (idempotent).
+**Side Effects:** Writes to character_stats, character_skills, foundational_skills, inventory_items, player_faction_standing, characters (innate_traits, location). Initializes world_clock, scene_state, chronicle, context_budget_config (idempotent). **AD-705:** `characters.backstory` is NOT written here — the player's prose submitted at `POST /character` is canonical and preserved. **AD-712 (internal, non-frontend):** Now also writes `characters.starting_experience_tier` (TEXT in green/blooded/veteran/seasoned) derived from the `tier` body field via `BACKSTORY_TIER_MAP` (novice→green, competent→blooded, veteran→veteran, legendary→seasoned). Phase 1 of the Situational Awareness system; not exposed in any response shape.
 
 ---
 
@@ -1156,11 +1158,13 @@ Commit scenario selection and start the game. **Idempotent** — re-selection re
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
 | `scenarioIndex` | number or `"custom"` | conditional | 0, 1, or 2 — picks a generated scenario |
-| `customStart` | object | conditional | `{ locationId?: number, locationName?: string, startingTimeOfDay?: number (0-23) }` |
+| `customStart` | object | conditional | `{ locationId?: number, locationName?: string, startingTimeOfDay?: number (0-23), scenarioDescription?: string }` |
 
 Either `scenarioIndex` (0–2) or `customStart` required.
 
 **customStart.locationName (AD-518):** If provided and no matching location exists, a new location is created as a district under the first settlement. Case-insensitive name matching prevents duplicates. Max 100 characters.
+
+**customStart.scenarioDescription (AD-704, ADDITIVE):** Optional free-text opening scene the player wants to start in. Up to 2000 characters. When provided non-empty, the server writes `scene_state.opening_scenario` in the canonical format `Scenario: Custom Start\nPacing: custom\nDescription: <text>`. The per-turn context curator emits a `## Opening Scenario` block with the directive *"Place the character INTO this scenario immediately"* on turn 1, matching the behavior of the AI-generated scenario branch. Pre-AD-704 the field did not exist and Custom Start could not place the character into a player-authored scene. **Idempotency:** the custom branch always overwrites `opening_scenario` with either the new value or NULL — re-selecting Custom Start without `scenarioDescription`, or providing an empty/whitespace string, clears any prior `opening_scenario` (whether it came from a previous custom selection or an AI-generated scenario re-selection). This prevents stale opening directives from leaking across re-selections. Non-string or >2000-char values return 400 with the transaction rolled back, leaving any prior `opening_scenario` intact.
 
 **Response (200):**
 ```json
@@ -1178,10 +1182,12 @@ Either `scenarioIndex` (0–2) or `customStart` required.
 | Code | Meaning |
 |------|---------|
 | 200 | Game started |
-| 400 | Invalid scenarioIndex, missing input, no character, invalid locationId, game not in initializing/active phase |
+| 400 | Invalid scenarioIndex, missing input, no character, invalid locationId, game not in initializing/active phase, `customStart.scenarioDescription` not a string or >2000 chars |
 | 500 | Internal server error |
 
-**Side Effects:** Adds scenario inventory items + gold (non-custom only), sets starting location, initializes clock, sets `last_fed_at`, transitions game to `active`.
+**Side Effects:** Adds scenario inventory items + gold (non-custom only), sets starting location, initializes clock, sets `last_fed_at`, transitions game to `active`. **AD-707 (additive):** Runs binding-facts extraction over `characters.backstory` and (when present) `customStart.scenarioDescription`. Stores structured rows in the new `character_extractions` table; inserts unreconciled NPCs/factions/locations into the world. Extraction failure is non-blocking — game still transitions to active. No new response fields.
+
+**Side Effects:** Adds scenario inventory items + gold (non-custom only), sets starting location, initializes clock, sets `last_fed_at`, transitions game to `active`. AD-704: when `customStart.scenarioDescription` is present, writes `scene_state.opening_scenario`.
 
 ---
 
@@ -1390,13 +1396,67 @@ Error variants (200, `used: false`, `error` populated): `on_cooldown`, `disorien
 - `mechanicalResults.offHandDamage` (object, optional) — present when an off-hand weapon attack hit a target NPC. Shape: `{ npcId, npcName, weaponName, hit_type: 'damage_hit'|'glancing_blow', damage_dealt?, wound_state?, wound_state_changed?, previous_wound_state?, armor_wall? }` — identical structure to primary `npcCombatResult`. Runs through full AD-626 armor mitigation pipeline.
 - `mechanicalResults.offHandCantripDamage` (object, optional) — present when an off-hand cantrip hit a target NPC. Shape: `{ npcId, npcName, implementName, damage_dealt, wound_state, elementTag }`. Channel damage bypasses armor per spell-damage convention.
 
-**`mechanicalResults.npcActionResults` (AD-695, additive):** Present when the NPC Action Declaration pipeline ran this turn (feature flag `NPC_ACTION_DECLARATION_ENABLED=true`, default). Array of per-NPC resolution results covering all 17 declaration verbs (attack, cast_spell, active_search, pursue, use_capability, assist_ally, withdraw, hide, defensive_posture, awareness_shift, call_reinforcements, intimidate, persuade, deceive, demand, hold_position, non_mechanical). Each entry shape depends on the verb but always includes `entityId`, `entityName`, `action`, plus verb-specific fields (`targetId`/`targetType`/`tier`/`hit_type`/`damage`/`wound_state_after` for attack; `spellOutputType`/`element`/`flavor`/`conditionApplied`/`healAmount`/`buffApplied` for cast_spell; `objective` for social verbs; etc). Results with `skipped: <reason>` indicate per-verb errors or preconditions (`npc_not_found`, `incapacitated`, `target_not_found`, `resolution_error`, `trained_capability_not_yet_wired`). `was_hidden: true` appears on the result when the NPC emerged from stealth to take a stealth-breaking action. `_wasDowngraded: true` and `_originalAction` surface declaration-parser downgrades. `_serverFallback: true` surfaces server-fallback origin (declaration AI exhausted retries).
+**`mechanicalResults.npcActionResults` (AD-695, BREAKING shape change from AD-633):**
 
-**`mechanicalResults.npcAttackPhaseResults` / `playerDefenseResult` / `npcAttackTurnActive` (AD-633, preserved via AD-695 backward-compat aliases):** When the declaration pipeline ran and produced ≥1 attack result, these three fields are populated from `npcActionResults` so legacy consumers keep working during the frontend cutover window. `npcAttackPhaseResults` entries use the AD-633 shape (`npcName`, `npcId`, `targetType`, `hit_type`, `tier`, `roll`, `margin`, `raw_damage`, `final_damage`, `damage_applied`, `condition_applied`, `was_hidden`, etc.). New-pipeline-only fields (`npcAttackStat`, `npcSkillMod`, `playerDefenseDc`, `shield_bonus_applied`, etc.) are set to `null` on alias entries — the detailed attack-phase per-entry telemetry only surfaces on flag-OFF (legacy Step 2d.5) runs. Frontend should migrate reads to `npcActionResults` in a follow-up; the aliases stay active until that migration ships.
+Replaces the undocumented `npcAttackPhaseResults` array from AD-633. Present when the NPC Action Declaration system is active (feature flag `NPC_ACTION_DECLARATION_ENABLED`, default `true`). Contains one entry per NPC/companion/conjured-group entity that acted this turn. Empty array or absent when no entities acted.
+
+**Response shape:**
+```json
+"mechanicalResults": {
+  "npcActionResults": [
+    {
+      "entityId": "number|string",
+      "entityName": "string",
+      "action": "string (one of 17 verbs)",
+      "was_hidden": false
+    }
+  ]
+}
+```
+
+The `action` field is one of: `attack`, `cast_spell`, `active_search`, `pursue`, `use_capability`, `assist_ally`, `withdraw`, `hide`, `defensive_posture`, `awareness_shift`, `call_reinforcements`, `intimidate`, `persuade`, `deceive`, `demand`, `hold_position`, `non_mechanical`.
+
+`was_hidden` is `true` when the entity broke stealth to perform this action (was hidden last turn, took a non-hide action this turn). Frontend may use this to render a stealth-break animation before the action animation.
+
+`_wasDowngraded: true` and `_originalAction` surface declaration-parser downgrades. `_serverFallback: true` surfaces server-fallback origin (declaration AI exhausted retries).
+
+**Per-action additional fields (all optional, present based on `action` value):**
+
+| Action | Additional Fields | Notes |
+|--------|------------------|-------|
+| `attack` | `targetId`, `targetType` (`player`\|`npc`), `targetName`, `hit_type` (`miss`\|`glancing_blow`\|`damage_hit`\|`armor_wall`\|`bypass`), `raw_damage`, `final_damage`, `damage_applied`, `wound_state_after`, `previous_wound_state`, `armor_type`, `armor_blocked`, `condition_applied` | Same hit_type values as player combat. `bypass` = T1 critical armor bypass. |
+| `cast_spell` | `targetId`, `targetType`, `targetName`, `element`, `spellOutputType` (`damage`\|`control`\|`healing`\|`enhancement`), `flavor`, `hit_type`, `raw_damage`, `final_damage`, `effect_applied` | `spellOutputType` determines rendering mode — damage spells show hit/miss, healing shows recovery, enhancement shows buff. `flavor` is AI-generated narrative hook for the cast. |
+| `active_search` | `found`, `targetName` (if found) | NPC searched the area. `found: true` means a hidden character was detected. |
+| `pursue` | `reached`, `targetName` | NPC chased a target. `reached: true` if they closed the distance. |
+| `use_capability` | `templateName`, `effectType`, `effectApplied` | Trained technique or innate ability. |
+| `assist_ally` | `targetId`, `targetName`, `narrativeOnly` | `narrativeOnly: true` when assisting a companion/group (no mechanical condition applied). |
+| `withdraw` | `moved_to`, `withdrawCompleted`, `opportunityStrike` (object, optional) | If `opportunityStrike` is present, the player got a free attack on the withdrawing NPC. Contains its own `hit_type`, `damage`, `wound_state_after`. |
+| `hide` | _(no additional fields)_ | NPC entered stealth. `stealth_active` set server-side. |
+| `defensive_posture` | _(no additional fields)_ | NPC set their guard. +2.0 defense DC bonus applies to next incoming attack. |
+| `awareness_shift` | `direction` (`increase`\|`decrease`) | NPC adjusted their alertness level. |
+| `call_reinforcements` | `reinforcementsArrived` | NPC called for backup. |
+| `intimidate`, `persuade`, `deceive`, `demand` | `objective`, `intentCreated` | Social pressure — creates a pending intent visible in next turn's options. `objective` is the NPC's goal (max 120 chars). |
+| `hold_position` | _(no additional fields)_ | NPC held their ground (no action taken). |
+| `non_mechanical` | `description` | Ambient narrative beat (max 100 chars). |
+| _(any action)_ | `skipped`, `reason` | Present instead of action-specific fields when the action couldn't be resolved. Reason values: `npc_not_found`, `incapacitated`, `target_not_found`, `resolution_error`, `trained_capability_not_yet_wired`, `spell_target_type_unsupported`, `innate_target_type_unsupported`, etc. Frontend should not render skipped actions. |
+
+**Backward-compatibility aliases (TEMPORARY — migrate away from these):**
+
+- `mechanicalResults.npcAttackPhaseResults` — alias pointing at the same array as `npcActionResults`. Entries use the AD-633 shape (`npcName`, `npcId`, `targetType`, `hit_type`, `tier`, `roll`, `margin`, `raw_damage`, `final_damage`, `damage_applied`, `condition_applied`, `was_hidden`). New-pipeline-only fields (`npcAttackStat`, `npcSkillMod`, `playerDefenseDc`, `shield_bonus_applied`, etc.) are `null` on alias entries — the detailed per-entry telemetry only surfaces on flag-OFF (legacy Step 2d.5) runs. **Will be removed in a future AD.**
+- `mechanicalResults.playerDefenseResult` — alias pointing at the first entry in `npcActionResults` where `action === 'attack' && targetType === 'player'`. Matches the AD-631 single-attack-result shape. **Will be removed in a future AD.**
+- `mechanicalResults.npcAttackTurnActive` — boolean flag, present when the pipeline produced ≥1 attack result. Used by the AD-633 scene-progress roster extractor and declaration-context "Just Happened" line. **Will be removed in a future AD.**
+
+**Feature flag behavior:** When `NPC_ACTION_DECLARATION_ENABLED` is `false` (incident rollback), the old AD-633 pipeline fires instead. `npcAttackPhaseResults` is populated with the old attack-only shape. `npcActionResults` is absent.
+
+**MechText section headers (narrator context, not API — for debug reference):**
+
+The narrator receives NPC action results via mechText with these section headers:
+- `## NPC Action Phase (N actions)` — multi-entity turn
+- `## NPC Action Result` — single-entity turn
+
+These replace the old `## NPC Attack Phase` / `## NPC Attack Result` headers. Each line names the entity, the verb (declaration string — `withdraw` not `flee`), and the verb's outcome. `was_hidden: true` prefixes the line with `(was hidden — emerging from stealth) `. Flag-OFF runs continue to produce the legacy `## NPC Attack Result` / `## NPC Attack Phase (N attacks)` block. Rendered by `src/ai/npc-action-formatter.js`.
 
 **Narrator mechText section — `## Pending Social Pressure` (AD-695, additive):** Context curator Layer 1 now includes a block listing unresolved intimidate/persuade/deceive/demand intents from prior turns. Format: `## Pending Social Pressure\n- <NPC name> (<intent_type>, objective: "<objective>")`. Appears only when `pending_npc_intents` has rows for the current world.
-
-**Narrator mechText section — `## NPC Action Result` / `## NPC Action Phase (N actions)` (AD-695, replaces AD-633 `## NPC Attack Result`):** On turns where the declaration pipeline ran, the AD-633 attack-phase renderer is replaced by a verb-agnostic block rendered by `src/ai/npc-action-formatter.js`. Each line names the entity, the verb (declaration string — `withdraw` not `flee`), and the verb's outcome. `was_hidden: true` prefixes the line with `(was hidden — emerging from stealth) `. Flag-OFF runs continue to produce the legacy `## NPC Attack Result` / `## NPC Attack Phase (N attacks)` block.
 
 **`mechanicalResults.activeSkillUsed` / `activeSkillEffect` / `activeSkillFailed` / `pendingTargetFailurePenalty` (AD-672):** When the player declared an in-scope Active Skill (Templates 1, 3, 6, 8) on the prior use_skill call and the effect was consumed by this turn's resolution, these fields are populated:
 - `activeSkillUsed` (string|null) — display name of the skill that was applied (e.g. `"Exploit Weakness"`, `"Precision Strike"`). `null` when no pending effect was consumed.
@@ -1436,6 +1496,8 @@ Error variants (200, `used: false`, `error` populated): `on_cooldown`, `disorien
     "postRoll": "You catch the flicker at her jaw - a second of calculation, then resignation. She sees you've read her."
   },
   "gmAside": "Your reputation with the Wardens has dropped to Suspicious.",
+  "cutParagraph": null,
+  "bookmarkSurfaced": null,
   "stateChanges": {
     "conditions": { "added": [], "removed": [], "modified": [] },
     "inventory": { "added": [], "removed": [], "modified": [] },
@@ -1481,8 +1543,10 @@ When streaming is active, advancing-turn responses return a minimal body and the
   - When `resolution === null` (no roll), `narrative` is a flat string — unchanged from pre-AD-673 behavior.
   - Graceful fallback: if `resolution !== null` but the AI failed to emit both halves (e.g. only the flat `narrative` is populated), the server returns the flat string instead of the object. Frontend's existing `hasResolution` gate handles this by rendering the narrative above/below the dice without the pacing pause.
 - SSE `turn:narrative` chunk events (AD-685) always carry `{ turnNumber, phase, chunk }`. `phase` is always `"pre"` or `"post"` — flat (no-roll) narrative streams with `phase: "post"`. This supersedes the AD-673 optional-phase shape on the streaming path.
-- `gmAside` (string, optional — AD-674, **additive**) — A short out-of-prose GM note surfacing a mechanical consequence of this turn (faction tier shift, quest unlock, reputation crossing, threshold event). Frontend renders as a gold-bordered inline card inside the turn block, between the narrative and the dice/consequences. **Omitted when no aside applies** — the field is not present at all on turns without a note. The existing `/api/game/:id/talk-to-gm/meta` endpoint's response — used by the "/My Story" tab as the source of standalone gm_aside entries on the frontend — is unrelated to this field and continues to return its existing `{ response, turnAdvanced, directiveStored, directiveLane }` shape unchanged.
+- `gmAside` (string, optional — AD-674, **additive**) — A short out-of-prose GM note surfacing a mechanical consequence of this turn (faction tier shift, quest unlock, reputation crossing, threshold event, **AD-713: Threat Assessment first-perception read** — calibrated to the character's combat experience tier when hostile NPCs first appear in the player's zone). Frontend renders as a gold-bordered inline card inside the turn block, between the narrative and the dice/consequences. **Omitted when no aside applies** — the field is not present at all on turns without a note. The existing `/api/game/:id/talk-to-gm/meta` endpoint's response — used by the "/My Story" tab as the source of standalone gm_aside entries on the frontend — is unrelated to this field and continues to return its existing `{ response, turnAdvanced, directiveStored, directiveLane }` shape unchanged.
 - SSE path (AD-685) sends `gmAside` as a `turn:gm_aside` event with payload `{ turnNumber, content }` (the old `aside` field was renamed to `content` in the streaming shape). The event is not emitted at all when no aside applies.
+- `cutParagraph` (string|null, **AD-719, additive**) — Scene-cut transition prose written by the engine when the engagement layer arms a cut. The server runs a separate, stripped-down AI call with `cutMode=true` (see `src/ai/cut-prose-call.js` + `src/ai/system-prompt.js` `buildCutModeSection`), validates the AI's response with `validateCutParagraph` (max 2 sentences, no player narration, no meta words like "scene"/"transition"), and returns the result here. The field is **null** on turns where no cut fired, an **empty string** when the validator silenced the AI's output (Decision A — the cut still transitions the scene; the next scene's opening prose fills the silence), and a **non-empty string** of 1–2 sentences when validation passed. The new scene starts the same response cycle on the next turn — the frontend should render `cutParagraph` between the current turn's `narrative` and the next-scene transition. The cut paragraph is never the player's voice and never describes the player's actions.
+- `bookmarkSurfaced` (object|null, **AD-719, additive, optional UI hint**) — When the player encounters an NPC who carries an unfinished thread from a previously-cut scene, the curator surfaces a structured "## NPC Carries Unfinished Thread" block in the AI prompt and exports a duplicate signal here for frontend rendering. Shape: `{ "npc_name": string, "thread_summary": string, "tone": "casual_reminder" | "pointed_followup" | "cooled_off" }`. Tone derives from how many turns have elapsed since the bookmark was created (1–3 → casual, 4–7 → pointed, 8+ → cooled). The field is **null** when no bookmark surfaced this turn. Single-shot — once a bookmark is surfaced its `consumed_at_turn` is set, so the same thread won't reappear on subsequent turns. The actual reminder still lives in the AI's prose; this field is a parallel hint the frontend may render as a side card or ignore entirely.
 - `nextActions.options[].stat` (AD-671, **additive**) — lowercase stat abbreviation (`"str"|"dex"|"con"|"int"|"wis"|"cha"|"pot"`) the AI predicts the rules engine would most likely test for this option, or `null` when no check applies. Display hint only — the actual resolution stat is decided at action-processing time, not bound by this value. Same field appears on `GET /state` `narrative.availableActions.options[]`.
 - `nextActions.options[].flavor` (AD-671, **additive**) — one or two lowercase words describing the approach as a vibe tag (e.g. `"combat"`, `"stealth"`, `"social"`, `"investigation"`, `"diplomatic"`, `"risky"`, `"cautious"`, `"safe"`, `"narrative"`). The AI narrator picks the tag; the tag list is open-ended, not an enum. `null` if the narrator omits or malforms the field — frontend should render no tag in that case. Same field appears on `GET /state` `narrative.availableActions.options[]`.
 - `stateChanges.stats` contains post-commit effective stats (base minus condition penalties) with lowercase keys. This is the authoritative stat snapshot after the turn resolves.
@@ -1491,6 +1555,7 @@ When streaming is active, advancing-turn responses return a minimal body and the
 - SSE path (AD-685) sends `npcStates` as a `turn:npc_states` event with payload `{ turnNumber, npcStates }`.
 - `rewindAvailable` (boolean) — `true` after any successful advancing turn. Frontend uses to enable/disable the Rewind button. (AD-553)
 - `directivesRemoved` (array or null) — Auto-fulfilled directives removed this turn. Each entry: `{ text, lane, reason }`. `null` when nothing was removed. Only present on advancing turns after Turn 6 (when summarization fires). (AD-554)
+- `cutParagraph` (string or null, **AD-719 / Prompt C.0, additive**) — When the engagement layer fires a server-authoritative scene cut on this turn, contains the AI-narrated 1-2 sentence environmental closing prose. `null` means no cut occurred this turn. Empty string `""` means a cut did fire but the AI's prose failed validation (you-as-subject violation, length cap, or forbidden meta-words) and was silenced per the AD-718 cut-prose contract — the cut still happened, the next scene begins on the next turn, but there is no narratable cut text. Frontend should render non-null non-empty values inline before transitioning to the next scene's opening narrative. The cut paragraph is bounded by `MAX_CUT_SENTENCES = 2` and `MAX_CUT_TOKENS = 80` (see `src/scene-cut-prose.js`). NOTE: `bookmarkSurfaced` is NOT included in C.0 — it lands in the C.1 follow-up AD alongside the bookmark-creation pipeline.
 
 **Condition entry shape (in `stateChanges.conditions.added`):**
 ```json
