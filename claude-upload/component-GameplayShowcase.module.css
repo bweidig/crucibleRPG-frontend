@@ -316,6 +316,13 @@
   color: #b8ad94;
 }
 
+/* ─── Deltas Panel ─── */
+
+.deltasBlock {
+  margin-top: 4px;
+  animation: fadeUpIn 0.4s ease-out 0.15s both;
+}
+
 /* ─── Controls ─── */
 
 .controlsBlock {
@@ -509,5 +516,26 @@
 
   .buttonRow .replayButton {
     width: 100%;
+  }
+}
+
+/* Smaller pills under 480px so multi-pill rows still fit on narrow phones
+   without wrapping into single-pill rows. Hooks into the classnames the
+   DeltasPanel attaches alongside its inline pill styles. */
+@media (max-width: 480px) {
+  .deltaPill {
+    padding: 6px 10px 6px 9px !important;
+  }
+
+  .deltaSign {
+    font-size: 8px !important;
+  }
+
+  .deltaLabel {
+    font-size: 12px !important;
+  }
+
+  .deltaDetail {
+    font-size: 11px !important;
   }
 }

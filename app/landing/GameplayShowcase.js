@@ -40,6 +40,12 @@ const SCENARIOS = [
           mode: 'outmatched', isCrit: false, isFumble: false,
         },
         resultText: 'You slam into the lead thug, but he barely shifts, catching your momentum and shoving you back into the desk. The lockbox clatters to the floor and bursts open, spilling no gold. Instead, a single wax-sealed ledger slides across the floorboards, and in the guttering lantern light you catch a name you were never meant to see.',
+        deltas: [
+          { kind: 'gain', category: 'Item', label: 'Sealed Ledger', detail: 'added to inventory' },
+          { kind: 'gain', category: 'Knowledge', label: 'Magister Halis', detail: 'new intel' },
+          { kind: 'change', category: 'Suspicion', label: 'City Watch', detail: '+1 awareness' },
+          { kind: 'change', category: 'Condition', label: 'Winded', detail: '1 scene' },
+        ],
       },
       B: {
         challenge: { stat: 'DEX', statValue: 6.0, skill: null, skillValue: null, mode: 'matched', actionLabel: 'Kick the heavy oak desk toward the door and vault through the open second-story window into the rain.' },
@@ -49,6 +55,12 @@ const SCENARIOS = [
           mode: 'matched', isCrit: false, isFumble: false,
         },
         resultText: 'The desk slams into the thugs with a dull thud, pinning them against the frame as you vault through the window. Cold rain stings your face before you hit the muddy cobblestones below. You are out of the room, but a dozen torches now flicker in the dark alleyway. You are not alone out here.',
+        deltas: [
+          { kind: 'gain', category: 'Position', label: 'Street level', detail: 'escaped building' },
+          { kind: 'change', category: 'Lockbox', label: 'Left behind', detail: 'unrecovered' },
+          { kind: 'change', category: 'Alert', label: 'Street patrol', detail: 'active' },
+          { kind: 'change', category: 'Condition', label: 'Bruised', detail: 'minor fall damage' },
+        ],
       },
       C: {
         challenge: { stat: 'CHA', statValue: 3.5, skill: null, skillValue: null, mode: 'outmatched', actionLabel: 'Drop the lockbox and raise your empty hands, pointing urgently toward the darkened corner behind them.' },
@@ -58,6 +70,11 @@ const SCENARIOS = [
           mode: 'outmatched', isCrit: false, isFumble: false,
         },
         resultText: 'The thugs pivot toward the empty shadows, their blades dipping as they search for a threat that isn’t there. You slip through the gap between them, the metal of their armor cold against your shoulder. The lockbox remains on the desk, gleaming once in the amber light before you vanish into the hall.',
+        deltas: [
+          { kind: 'gain', category: 'Stealth', label: 'Undetected', detail: 'clean exit' },
+          { kind: 'change', category: 'Lockbox', label: 'Left behind', detail: 'unrecovered' },
+          { kind: 'change', category: 'NPC', label: 'Thugs', detail: 'temporarily deceived' },
+        ],
       },
     },
   },
@@ -79,6 +96,12 @@ const SCENARIOS = [
           mode: 'outmatched', isCrit: false, isFumble: false,
         },
         resultText: 'The supervisor tracks your twitching fingers, but you’re already airborne. You scramble up the slick coolant pipes, vanishing into the overhead gloom before the strobe catches you. Their polished boots click uselessly on the metal floor below. You’re safe for now, but these cramped, airless ducts are just a different kind of coffin.',
+        deltas: [
+          { kind: 'gain', category: 'Item', label: 'Encrypted drive', detail: 'retained' },
+          { kind: 'gain', category: 'Position', label: 'Ventilation ducts', detail: 'concealed' },
+          { kind: 'change', category: 'Mobility', label: 'Cramped', detail: 'limited movement' },
+          { kind: 'change', category: 'NPC', label: 'Supervisor', detail: 'lost visual' },
+        ],
       },
       B: {
         challenge: { stat: 'INT', statValue: 6.0, skill: 'Electrical', skillValue: 1.0, mode: 'outmatched', actionLabel: 'Short the localized power junction to kill the lights and mag-locks.' },
@@ -88,6 +111,12 @@ const SCENARIOS = [
           mode: 'outmatched', isCrit: false, isFumble: false,
         },
         resultText: 'The junction box spits a violent geyser of blue sparks, leaving the mag-locks frozen shut and your face bathed in light. The supervisor’s eyes track the smoke to your singed sleeve, then drop to the drive-shaped bulge in your vest. He signals the guards. Nice work, Edison.',
+        deltas: [
+          { kind: 'change', category: 'Sabotage', label: 'Mag-locks', detail: 'frozen (failed)' },
+          { kind: 'change', category: 'Cover', label: 'Blown', detail: 'identified by supervisor' },
+          { kind: 'change', category: 'Condition', label: 'Singed', detail: 'minor burn' },
+          { kind: 'change', category: 'Alert', label: 'Guards', detail: 'dispatched' },
+        ],
       },
       C: {
         challenge: { stat: 'CHA', statValue: 5.5, skill: 'Forgery', skillValue: 1.0, mode: 'matched', actionLabel: 'Present your temporary floor-lead badge and claim you’re checking a pressure leak.' },
@@ -97,6 +126,12 @@ const SCENARIOS = [
           mode: 'matched', isCrit: false, isFumble: false,
         },
         resultText: 'The supervisor’s eyes track your twitching hand before settling on the counterfeit badge. He smells a lie like ozone before a short circuit. He nods for you to proceed, but his fingers are already tracing the silent alarm on his belt. You’re clear, but not clean. Move.',
+        deltas: [
+          { kind: 'gain', category: 'Item', label: 'Encrypted drive', detail: 'retained' },
+          { kind: 'gain', category: 'Clearance', label: 'Floor pass', detail: 'accepted' },
+          { kind: 'change', category: 'Alarm', label: 'Silent', detail: 'triggered' },
+          { kind: 'change', category: 'NPC', label: 'Supervisor', detail: 'flagged you' },
+        ],
       },
     },
   },
@@ -118,6 +153,11 @@ const SCENARIOS = [
           mode: 'matched', isCrit: false, isFumble: false,
         },
         resultText: 'You set the photograph face down without a word. In the window glass, the client’s reflection does what his face won’t: his jaw tightens, and one hand drifts to his breast pocket before stopping itself. He leaves the photograph where it is. He hasn’t asked what you know. That tells you more than the picture did.',
+        deltas: [
+          { kind: 'gain', category: 'Insight', label: 'Evasion tell', detail: 'breast pocket reach' },
+          { kind: 'gain', category: 'Knowledge', label: 'Photo significance', detail: 'client avoided asking' },
+          { kind: 'change', category: 'NPC', label: 'Client', detail: 'composure cracked' },
+        ],
       },
       B: {
         challenge: { stat: 'CHA', statValue: 4.0, skill: null, skillValue: null, mode: 'matched', actionLabel: 'Slide the photograph into your inner coat pocket and offer the client a fresh cup of tea to end the meeting early.' },
@@ -127,6 +167,11 @@ const SCENARIOS = [
           mode: 'matched', isCrit: false, isFumble: false,
         },
         resultText: 'The photograph disappears into your coat and the client’s shoulders settle half an inch. He accepts the fresh cup with both hands, steady now, and thanks you warmly. The conversation turns to the weather, to the tea, to nothing at all. His gaze drifts to your coat pocket twice before he finishes his cup.',
+        deltas: [
+          { kind: 'gain', category: 'Item', label: 'Photograph', detail: 'secured' },
+          { kind: 'gain', category: 'Rapport', label: 'Client', detail: 'trust gained' },
+          { kind: 'change', category: 'NPC', label: 'Client', detail: 'fixated on photo' },
+        ],
       },
       C: {
         challenge: { stat: 'INT', statValue: 6.0, skill: null, skillValue: null, mode: 'outmatched', actionLabel: 'Turn the photograph over to show the date on the back and ask the client why the timeline is different.' },
@@ -136,10 +181,34 @@ const SCENARIOS = [
           mode: 'outmatched', isCrit: false, isFumble: false,
         },
         resultText: 'The client sets down his tea and regards you with a patient, pleasant expression. He tells you he appreciates your thoroughness but he’s not sure this arrangement is working out. He takes the photograph from the desk and slides it into his jacket. He wishes you a lovely evening on his way out the door.',
+        deltas: [
+          { kind: 'change', category: 'Item', label: 'Photograph', detail: 'taken by client' },
+          { kind: 'change', category: 'NPC', label: 'Client', detail: 'terminated relationship' },
+          { kind: 'change', category: 'Case', label: 'Access', detail: 'revoked' },
+        ],
       },
     },
   },
 ];
+
+// ─── Math Summary Helper ───
+//
+// Formats the same fields the CompactChip surfaces into a single one-line
+// readout: stat (+ skill) + d20 → total vs DC → tier. The "outmatched" branch
+// adds the kept-of-(m1, m2) note so the reader can see which mortal won.
+// Right-arrow → and middle-dot · are intentional — matches the in-game chip.
+
+function formatMathSummary(challenge, rollResult) {
+  const { stat, statValue, skill, skillValue, mode } = challenge;
+  const { kept, mortal1, mortal2, total, dc, tierName } = rollResult;
+  const stat1 = statValue.toFixed(1);
+  const skillPart = skill ? ` + ${skill} ${skillValue.toFixed(1)}` : '';
+  const total1 = total.toFixed(1);
+  const outmatchedTail = mode !== 'matched'
+    ? ` · outmatched · kept of (${mortal1}, ${mortal2})`
+    : '';
+  return `${stat} ${stat1}${skillPart} + d20(${kept})${outmatchedTail} → ${total1} vs DC ${dc} → ${tierName}`;
+}
 
 // ─── Animation Phases ───
 // 0 = idle, 1 = genre fade, 2 = narrative typing, 3 = pause after narrative,
@@ -170,6 +239,110 @@ function useTypewriter(text, speed, active, skipAnimation) {
 
   const visible = words.slice(0, wordCount).join(' ');
   return { visible, done, wordCount };
+}
+
+// ─── Deltas Panel ───
+//
+// Renders below the result narrative once the typewriter finishes. Two parts:
+// a single-line math summary (the formula the engine ran) and a wrap-flow row
+// of pills showing the world-state changes the outcome produced. Pills stagger
+// in via the existing fadeUpIn keyframe; reduced-motion zeroes the delays so
+// pills land together without the cascading entrance.
+
+function DeltasPanel({ challenge, rollResult, deltas, reducedMotion }) {
+  const summary = formatMathSummary(challenge, rollResult);
+
+  return (
+    <div>
+      <div
+        style={{
+          width: 60,
+          height: 1,
+          background: 'linear-gradient(to right, var(--accent-gold), transparent)',
+          marginTop: 28,
+          marginBottom: 18,
+        }}
+      />
+      <p
+        style={{
+          fontFamily: 'var(--font-jetbrains)',
+          fontSize: 12,
+          fontWeight: 400,
+          color: 'var(--text-muted)',
+          letterSpacing: '0.02em',
+          margin: 0,
+        }}
+      >
+        {summary}
+      </p>
+      <div
+        className={styles.deltasPills}
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 10,
+          marginTop: 16,
+        }}
+      >
+        {deltas.map((delta, i) => {
+          const isGain = delta.kind === 'gain';
+          const sign = isGain ? '+' : '±';
+          return (
+            <div
+              key={i}
+              className={styles.deltaPill}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '7px 13px 7px 11px',
+                borderRadius: 4,
+                background: isGain ? 'var(--bg-gold-subtle)' : 'var(--bg-panel)',
+                border: `1px solid ${isGain ? 'var(--border-card)' : 'var(--border-primary)'}`,
+                animation: 'fadeUpIn 0.35s ease both',
+                animationDelay: reducedMotion ? '0s' : `${0.06 * i}s`,
+              }}
+            >
+              <span
+                className={styles.deltaSign}
+                style={{
+                  fontFamily: 'var(--font-cinzel)',
+                  fontSize: 9,
+                  fontWeight: 700,
+                  letterSpacing: '0.18em',
+                  color: isGain ? 'var(--accent-gold)' : '#e8c45a',
+                }}
+              >
+                {sign} {delta.category.toUpperCase()}
+              </span>
+              <span
+                className={styles.deltaLabel}
+                style={{
+                  fontFamily: 'var(--font-alegreya-sans)',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: 'var(--text-primary)',
+                }}
+              >
+                {delta.label}
+              </span>
+              <span
+                className={styles.deltaDetail}
+                style={{
+                  fontFamily: 'var(--font-alegreya-sans)',
+                  fontSize: 12,
+                  fontWeight: 400,
+                  color: 'var(--text-muted)',
+                }}
+              >
+                {delta.detail}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 // ─── Component ───
@@ -445,6 +618,7 @@ export default function GameplayShowcase() {
   const selectionMade = !!selectedChoice;
   const showDice = phase >= 7 && selectedResult;
   const showResult = phase >= 9 && selectedResult;
+  const showDeltas = result.done && selectedResult;
   const showControls = phase >= 11;
 
   const buttonText = allPlayed || (scenarioIndex === SCENARIOS.length - 1 && showControls)
@@ -580,6 +754,18 @@ export default function GameplayShowcase() {
               {!result.done && <span className={styles.cursor}>|</span>}
               {result.done && <span className={`${styles.cursor} ${styles.cursorFade}`}>|</span>}
             </span>
+          </div>
+        )}
+
+        {/* Deltas Panel — math summary + state-change pills */}
+        {showDeltas && (
+          <div className={`${styles.deltasBlock} ${fadingOut ? styles.fadingOut : ''}`}>
+            <DeltasPanel
+              challenge={selectedResult.challenge}
+              rollResult={selectedResult.rollResult}
+              deltas={selectedResult.deltas}
+              reducedMotion={reducedMotion}
+            />
           </div>
         )}
 
