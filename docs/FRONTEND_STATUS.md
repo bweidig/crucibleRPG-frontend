@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-05-02 (auth: fix glow showing through card)
+**Last Updated:** 2026-05-04 (scene-cut rendering: Continue button + cut paragraph, AD-725 / AD-726)
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -33,7 +33,38 @@
 
 ---
 
-## Recent Work (This Session: 2026-05-02)
+## Recent Work (This Session: 2026-05-04)
+
+### Scene Cut Rendering — Continue Button + Cut Paragraph (AD-725 / AD-726)
+
+Wired the frontend for server-authoritative scene cuts. When the engagement clock decays to zero on a turn, the backend collapses `nextActions.options` to a single `{ id: "Continue", text: "continue", stat: null, flavor: "narrative" }` element (AD-725, backend SHA 7572868) and — once AD-726 ships — adds a top-level `cutParagraph` string carrying environmental closing prose. We scaffolded both rendering paths simultaneously; pre-AD-726 the field is `undefined` and silently no-ops, post-AD-726 cut prose renders without a second deploy.
+
+**Detection.** A cut turn is identified solely by `options.length === 1 && options[0]?.id === "Continue"` in `ActionPanel.js` — independent of `cutParagraph` state, which can be `null` (no cut), `""` (cut fired but prose was silenced by validator), or a non-empty string (cut prose to render). Defensive coding treats `undefined`, `null`, and `""` identically — nothing renders.
+
+**Action panel changes (cut turns only).**
+- A/B/C grid is replaced by a single full-width `Continue` button styled as a "next-scene affordance" — Cinzel uppercase gold label on the standard `--bg-card` / `--border-primary` chrome, no glyph, no two-tap commit.
+- Single-tap submission uses `onSubmit({ custom: 'continue' })` — the lowercase literal that the AD-723/AD-725 contract expects as the next turn's `playerAction`.
+- The "YOUR MOVE" label and "OR" freeform divider stay intact.
+- Freeform input placeholder swaps to `"Describe your next move"` (default is `"Write your own action — the GM adapts"`).
+- The existing two-tap commit on A/B/C is untouched on non-cut turns.
+
+**Turn block changes.** `cutParagraph` is plumbed from both `handleTurnResponse` (synchronous path) and the `turn:complete` SSE listener (streaming path) onto the turn record. `TurnBlock.js` renders it as a plain `<p>`-equivalent inside `.postRoll`, immediately after the post-roll narrative — same prose styling (no divider, italics, or color treatment) so it reads as a continuation. The render is gated on `turn.cutParagraph && typeof === 'string' && trim().length > 0`, so silenced/empty/null cuts render nothing. Placement inside `.postRoll` means it participates in the staggered fade-up animation on new turns.
+
+**Wire contract (locked, per `docs/API_CONTRACT.md`).**
+- AD-725 (shipped): `nextActions.options` collapses to a single `{ id: "Continue", text: "continue", stat: null, flavor: "narrative" }` on cut turns. Submit `{ custom: 'continue' }`.
+- AD-726 (forthcoming): synchronous response and `turn:complete` SSE event payload gain a top-level `cutParagraph: string | null`. Empty string `""` means a cut fired but its prose failed validation and was silenced; render nothing.
+
+**Files modified:**
+- `app/play/page.js` — `cutParagraph` plumbed onto turn objects in both `handleTurnResponse` and the `turn:complete` SSE listener.
+- `app/play/components/TurnBlock.js` — inline `cutParagraph` render after post-roll narrative.
+- `app/play/components/ActionPanel.js` — `isCutTurn` detection, `handleContinue` single-tap handler, conditional Continue-button render, placeholder swap.
+- `app/play/components/ActionPanel.module.css` — new `.continueButton` class.
+- `claude-upload/play-page.js`, `claude-upload/play-full.js`, `claude-upload/component-TurnBlock.js`, `claude-upload/component-ActionPanel.js`, `claude-upload/component-ActionPanel.module.css` — snapshots re-synced.
+- `docs/FRONTEND_STATUS.md`
+
+**Verification status.** Local `npx next build` passes. End-to-end verification deferred until the deployed Vercel build picks up the AD-725 wire contract (trigger an engagement-clock decay through play); cut-prose verification deferred to the AD-726 ship.
+
+---
 
 ### Auth page: gold glow no longer shows through the card
 

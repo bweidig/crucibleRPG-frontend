@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-04-23 (mobile /play fixes)
+**Last Updated:** 2026-05-04 (scene-cut rendering: Continue button + cut paragraph, AD-725 / AD-726)
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -33,7 +33,496 @@
 
 ---
 
-## Recent Work (This Session: 2026-04-23)
+## Recent Work (This Session: 2026-05-04)
+
+### Scene Cut Rendering — Continue Button + Cut Paragraph (AD-725 / AD-726)
+
+Wired the frontend for server-authoritative scene cuts. When the engagement clock decays to zero on a turn, the backend collapses `nextActions.options` to a single `{ id: "Continue", text: "continue", stat: null, flavor: "narrative" }` element (AD-725, backend SHA 7572868) and — once AD-726 ships — adds a top-level `cutParagraph` string carrying environmental closing prose. We scaffolded both rendering paths simultaneously; pre-AD-726 the field is `undefined` and silently no-ops, post-AD-726 cut prose renders without a second deploy.
+
+**Detection.** A cut turn is identified solely by `options.length === 1 && options[0]?.id === "Continue"` in `ActionPanel.js` — independent of `cutParagraph` state, which can be `null` (no cut), `""` (cut fired but prose was silenced by validator), or a non-empty string (cut prose to render). Defensive coding treats `undefined`, `null`, and `""` identically — nothing renders.
+
+**Action panel changes (cut turns only).**
+- A/B/C grid is replaced by a single full-width `Continue` button styled as a "next-scene affordance" — Cinzel uppercase gold label on the standard `--bg-card` / `--border-primary` chrome, no glyph, no two-tap commit.
+- Single-tap submission uses `onSubmit({ custom: 'continue' })` — the lowercase literal that the AD-723/AD-725 contract expects as the next turn's `playerAction`.
+- The "YOUR MOVE" label and "OR" freeform divider stay intact.
+- Freeform input placeholder swaps to `"Describe your next move"` (default is `"Write your own action — the GM adapts"`).
+- The existing two-tap commit on A/B/C is untouched on non-cut turns.
+
+**Turn block changes.** `cutParagraph` is plumbed from both `handleTurnResponse` (synchronous path) and the `turn:complete` SSE listener (streaming path) onto the turn record. `TurnBlock.js` renders it as a plain `<p>`-equivalent inside `.postRoll`, immediately after the post-roll narrative — same prose styling (no divider, italics, or color treatment) so it reads as a continuation. The render is gated on `turn.cutParagraph && typeof === 'string' && trim().length > 0`, so silenced/empty/null cuts render nothing. Placement inside `.postRoll` means it participates in the staggered fade-up animation on new turns.
+
+**Wire contract (locked, per `docs/API_CONTRACT.md`).**
+- AD-725 (shipped): `nextActions.options` collapses to a single `{ id: "Continue", text: "continue", stat: null, flavor: "narrative" }` on cut turns. Submit `{ custom: 'continue' }`.
+- AD-726 (forthcoming): synchronous response and `turn:complete` SSE event payload gain a top-level `cutParagraph: string | null`. Empty string `""` means a cut fired but its prose failed validation and was silenced; render nothing.
+
+**Files modified:**
+- `app/play/page.js` — `cutParagraph` plumbed onto turn objects in both `handleTurnResponse` and the `turn:complete` SSE listener.
+- `app/play/components/TurnBlock.js` — inline `cutParagraph` render after post-roll narrative.
+- `app/play/components/ActionPanel.js` — `isCutTurn` detection, `handleContinue` single-tap handler, conditional Continue-button render, placeholder swap.
+- `app/play/components/ActionPanel.module.css` — new `.continueButton` class.
+- `claude-upload/play-page.js`, `claude-upload/play-full.js`, `claude-upload/component-TurnBlock.js`, `claude-upload/component-ActionPanel.js`, `claude-upload/component-ActionPanel.module.css` — snapshots re-synced.
+- `docs/FRONTEND_STATUS.md`
+
+**Verification status.** Local `npx next build` passes. End-to-end verification deferred until the deployed Vercel build picks up the AD-725 wire contract (trigger an engagement-clock decay through play); cut-prose verification deferred to the AD-726 ship.
+
+---
+
+### Auth page: gold glow no longer shows through the card
+
+Bug: the radial gold glow was painting on top of the auth card's background, leaving a visible gold cast over the form interior instead of just haloing around the edges.
+
+Cause: the glow lived as `.authCard::before { z-index: -1 }`, but `.authCard` creates its own stacking context (it has both inline `z-index: 1` and `backdrop-filter: blur(20px)`). Inside that stacking context, a child with `z-index: -1` paints *above* the parent's background (per the CSS painting-order spec) — so the solid `--bg-card` couldn't hide it.
+
+Fix: introduced `.authCardGlowWrap` — a plain `position: relative` wrapper around the form with no z-index, no backdrop-filter, and no background, so it does *not* form a stacking context. Moved the `::before` glow onto that wrapper. The pseudo-element's `z-index: -1` now escapes into the parent stacking context and paints behind the form, where the card's solid background hides it correctly.
+
+**Files modified:**
+- `app/auth/page.js` (wrapped `<form>` in `<div className={styles.authCardGlowWrap}>`; moved `width/maxWidth` to wrapper)
+- `app/auth/page.module.css`
+- `claude-upload/auth-page.js`
+- `claude-upload/auth-page.module.css`
+- `docs/FRONTEND_STATUS.md`
+
+---
+
+### Middleware: allow /admin and /settings
+
+Bug: navigating to `/admin` or `/settings` redirected to `/auth` even when logged in. Cause: `middleware.js` gates non-public routes on the `crucible_access` cookie (the coming-soon password gate, 30-day max-age). The cookie expires or was never set for users who logged in via Google after the gate was lifted, and the middleware runs before the page's client-side auth guard. `/admin`, `/admin/playtest`, and `/settings` were missing from `PUBLIC_ROUTES`, so they were caught by the gate.
+
+Fix: added `/settings`, `/admin`, and `/admin/playtest` to `PUBLIC_ROUTES`. The pages' own client-side guards already redirect unauthenticated users to `/auth` and non-admin/non-playtester users to `/menu` or `/`, so middleware doesn't need to enforce auth here — it only enforces the coming-soon gate.
+
+**Files modified:**
+- `middleware.js`
+- `docs/FRONTEND_STATUS.md`
+
+---
+
+## Recent Work (Session: 2026-04-27)
+
+### Deltas panel added to landing showcase
+
+After the result narrative finishes typing, a math summary line and a row of state-change pills appear — showing the resolution formula and the world state changes the engine produced. Uses existing fadeUpIn animation with staggered pill entrance. Nine outcome-specific delta sets authored across all three scenarios.
+
+The math summary is a single JetBrains Mono line below a 60 px gold hairline rule. Format: `STAT n.n + d20(kept) → total vs DC dc → tierName`, with an extra `· outmatched · kept of (m1, m2)` segment in the outmatched branch and a `+ Skill n.n` segment when a skill applies. Right-arrow `→` and middle-dot `·` are used to match the in-game CompactChip readout.
+
+Pills sit in a wrap-flow row underneath. Two variants:
+- **Gain pills** — `var(--bg-gold-subtle)` background, `var(--border-card)` border, gold sign `+ CATEGORY` in Cinzel.
+- **Change pills** — `var(--bg-panel)` background, `var(--border-primary)` border, amber `± CATEGORY` (`#e8c45a`).
+
+Each pill has a Cinzel sign+category, an Alegreya Sans label (the changed entity), and an Alegreya Sans muted detail (qualifier). Pills cascade in via `fadeUpIn` with a 0.06 s stagger; reduced motion zeroes the delays so all pills land together. The wrapping `.deltasBlock` participates in the existing `fadingOut` class so TRY ANOTHER and scenario transitions fade it out alongside the dice and result blocks.
+
+Mobile: under 480 px, pill padding shrinks to `6px 10px 6px 9px` and pill font sizes drop by 1 px each so multi-pill rows still fit on narrow phones without single-pill rows.
+
+**Files modified:**
+- `app/landing/GameplayShowcase.js`
+- `app/landing/GameplayShowcase.module.css`
+- `docs/FRONTEND_STATUS.md`
+
+**claude-upload synced:** `landing-GameplayShowcase.js`, `landing-GameplayShowcase.module.css`, `component-GameplayShowcase.js`, `component-GameplayShowcase.module.css` (legacy mirrors).
+
+---
+
+## Recent Work (Previous Session: 2026-04-26)
+
+### Init wizard: align Custom Start payload with backend AD-703 / AD-704
+
+Three small changes in `app/init/page.js` to match new backend contract.
+
+**AD-703 — Custom Start now sends a richer scenario description.** Backend renamed the Custom Start payload field from `customStart.description` to `customStart.scenarioDescription` and capped it at 2,000 characters so the player can describe the opening situation in more detail. Frontend `saveScenario` body updated accordingly. The Phase 6 textarea (shown when scenario `D` is selected) was rebuilt:
+- New placeholder copy: "The situation you drop into."
+- New helper line below in muted Alegreya Sans: "Focus on right now, not how you got here. For example: 'Reviewing bounty contracts in my apartment' or 'Fleeing through the marketplace after a heist gone wrong.'"
+- Live character counter in the bottom-right corner of the textarea, JetBrains Mono 12px, dim by default. Shifts to `var(--color-danger)` once the player passes 1,800 characters as a soft warning that the cap is approaching.
+- Hard cap enforced two ways: `maxLength={2000}` on the textarea and a `.slice(0, 2000)` in `onChange` as a paste-safety belt-and-suspenders.
+- Bottom padding on the textarea bumped from 16 px to 32 px so the absolute-positioned counter never overlaps the user's text on the final line.
+
+**AD-704 — Stop sending dead `narrativeBackstory` on adjust-proposal.** Backend stopped overwriting `character.backstory` with the AI summary, so the `narrativeBackstory` field in the adjust-proposal request body is now ignored server-side. Removed the `if (proposal?.narrativeBackstory) body.narrativeBackstory = …` line from `saveAttributes`. The field is still read out of the generate-proposal response and kept on the local `proposal` state — only the outbound copy on adjust-proposal was dropped.
+
+**Files modified:**
+- `app/init/page.js`
+- `docs/FRONTEND_STATUS.md`
+
+**claude-upload synced:** `init-page.js`.
+
+---
+
+### Landing showcase: lower top padding + slide-up entrance
+
+Two visual tweaks to `app/landing/GameplayShowcase.module.css` that pull the showcase card visually closer to the bottom of the hero and turn the remaining gap into a deliberate reveal moment.
+
+**Top padding halved.** `.showcase` desktop padding `48px clamp(24px, 5vw, 60px)` → `24px clamp(24px, 5vw, 60px) 48px` (top 48 → 24, bottom stays 48). Mobile `padding: 36px 20px` → `padding: 20px 20px 36px` (top 36 → 20, bottom stays 36). The horizontal padding is unchanged on both. On a typical 1080p / 1440p desktop the showcase now sits just below the fold instead of behind a tall band of empty space.
+
+**Entrance reads as a reveal, not a fade.** `.showcase` already had `opacity: 0` + `transition: opacity 0.6s ease-out` plus the `.showcaseRevealed` class added by the IntersectionObserver. Added a 32 px slide-up:
+- `.showcase`: `transform: translateY(32px)`, `transition: opacity 0.6s ease-out, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)`.
+- `.showcaseRevealed`: `transform: translateY(0)` alongside the existing `opacity: 1`.
+
+`prefers-reduced-motion` gets a dedicated rule near the top of the file that flips `transform: none !important` and shortens the transition to `opacity 0.3s ease !important`. Reduced-motion users still get a brief fade in but no slide. The pre-existing `.showcase { opacity: 1 }` line in the lower reduced-motion block (which would have skipped the fade entirely) was removed; replaced with a comment pointing at the new rule.
+
+The IntersectionObserver, all internal state, the choice cards' own animations, and the dice region's `.diceRegion` reduced-motion override are all unchanged.
+
+**Files modified:**
+- `app/landing/GameplayShowcase.module.css`
+
+**claude-upload synced:** `landing-GameplayShowcase.module.css`, `component-GameplayShowcase.module.css` (legacy mirror).
+
+---
+
+### NavBar: standard-variant link-set parity, persistent active-state underline
+
+Two site-wide fixes on `components/NavBar.js` and `components/NavBar.module.css`.
+
+**Link-set parity across pages.** The landing variant rendered five public links (Features, How It Works, FAQ, Rulebook, Pricing); the standard variant rendered three (FAQ, Rulebook, Pricing). Features and How It Works existed only on landing because they were in-page anchor scrolls. The result: the navbar visibly re-populated when navigating between pages. Added Features and How It Works to the standard variant — both desktop (`.standardLinks`) and mobile menu — using `<Link href="/#features">` and `<Link href="/#how-it-works">`. Placed before the FAQ link in both. No active-state class — they're page-section anchors, not page-level navigation. No auth gating — public marketing content. Next.js App Router handles cross-page hash navigation natively (`<Link href="/#features">` from `/pricing` pushes `/` and the browser scrolls to `#features`); the landing sections already have `scrollMarginTop: 96` so the auto-scroll lands below the fixed navbar. The landing variant is unchanged — its `<a href="#features">` in-page handlers still smooth-scroll on the same page.
+
+**Persistent active-state underline.** Inactive links had `color: #9a8545` and gained both `color: #c9a84c` and an animated 1 px underline on hover. Active links got only the color shift — so a hovered inactive link looked stronger than the currently-active link. Added one rule:
+
+```css
+.navLinkActive::after {
+  transform: scaleX(1);
+}
+```
+
+Reusing the existing `.navLink::after` underline (already defined for hover). Active links now show the same underline at rest that hover animates in — gives a clear "you are here" affordance with no new visual primitives.
+
+**Mobile menu active state had the same bug.** `.mobileMenuLinkActive` only changed text color (`#c9a84c`), identical to `.mobileMenuLink:hover`. Added an inset 2 px gold left bar via `box-shadow: inset 2px 0 0 var(--accent-gold)` — visible affordance without layout shift (no padding compensation needed).
+
+**Files modified:**
+- `components/NavBar.js`
+- `components/NavBar.module.css`
+
+**claude-upload synced:** `component-NavBar.js`, `component-NavBar.module.css`.
+
+---
+
+### Rulebook: markdown-leak removal, scrolled-past TOC, deep linking, reading progress bar
+
+Five-part fix on `/rulebook`:
+
+1. **Markdown leak removed.** The last section's content (`saving-and-sharing`, number 24) was ending with four `<p>` tags carrying raw markdown source (`## Every Hero Needs a Crucible.`, `Yours is waiting.`, `[START PLAYING]`, copyright line). They render as plain text above the real CTA, making the bottom of the rulebook look broken. Stripped — the section now ends cleanly at the Session Recap paragraph. The real H2 + START PLAYING button below the sections array is unchanged.
+
+2. **Sticky TOC now actually sticks.** Diagnosed `overflow-x: hidden` on `.pageContainer` as the culprit — it establishes a horizontal scroll container that breaks `position: sticky` on descendants in most browsers (sticky elements stick to their nearest scrollable ancestor, and `.pageContainer` itself doesn't scroll vertically). Switched to `overflow-x: clip`, which clips overflow without creating a scroll container. Sticky on `.tocSidebar` now works.
+
+3. **TOC numbers fill in gold as user scrolls past sections.** Added a third visual state to TOC entries. Sections below the active section now render with a dim gold number (`#7a6a3c`) and a slightly raised label color (`#7a8499` instead of `var(--text-muted)`), so the gold progressively accumulates down the sidebar as the reader moves through the document. Active state (bright gold + 600 weight) and not-yet-reached state (muted gray) are unchanged. Both label and number get `transition: color 0.4s ease` so the active→past handoff fades rather than snapping.
+
+4. **Per-section URL anchors with deep linking.** Each section's outer container now carries `id={section.id}`. TOC clicks call `history.replaceState` with `#section-id` (replace, not push, so browser history doesn't accumulate). Scrollspy keeps the URL in sync with the active section as the user scrolls — implicitly throttled because the writer effect only fires when `activeSection` actually changes, not on every scroll event. On page load, if `window.location.hash` matches a section id, the page smooth-scrolls to that section after `loaded` flips true. Hash mismatches (or no hash) load normally. A `suppressHashWrite` ref blocks the scrollspy writer for 1.5 s while a deep-link smooth-scroll is in flight, so intermediate sections passed during the scroll don't clobber the deep-linked hash. While I was in there, I bumped the scroll offset from `-24` to `-96` (72 navbar + 24 breathing) — the previous offset placed section headers behind the fixed navbar.
+
+5. **Reading progress bar.** A 2 px gold bar sits fixed at `top: 0`, `z-index: 101` (one above the navbar). Fill is a `linear-gradient` from `--accent-gold` to `--accent-bright` with `width: ${scrollProgress}%`. Progress is computed in the existing scroll handler as `(scrollY / (scrollHeight - innerHeight)) * 100`, clamped 0–100. The bar's wrapper is `display: none` whenever progress is below 1, so it doesn't show as a tiny dot at the top. `prefers-reduced-motion: reduce` removes the `width 0.1s linear` transition (and the TOC color transitions) so the bar snaps to position without animation.
+
+**Files modified:**
+- `app/rulebook/page.js`
+- `app/rulebook/page.module.css`
+
+**Files created (in claude-upload):**
+- `claude-upload/rulebook-page.module.css` (didn't exist before; CLAUDE.md requires it)
+
+**claude-upload synced:** `rulebook-page.js`, `rulebook-page.module.css`.
+
+---
+
+### Auth form polish: input border contrast + Sign Up / Sign In tab differentiation
+
+Two audit findings on `/auth`:
+
+**Input field borders were nearly invisible at rest.** `var(--border-gold-faint)` resolves to `#16181e` — only a few brightness units off the page background `#0a0e1a`, so against the form card the inputs had no visible edge. Switched the rest-state border to `rgba(201, 168, 76, 0.22)`, the gold accent at low alpha. Same color family as the focus state (`var(--border-card-hover)`) but visibly softer, so focus still reads as a deliberate state shift. Applied to:
+- The `InputField` component (line 36 of `app/auth/page.js`) — the primary input border for email/password/etc.
+- The playtest "Tell us a bit about yourself" textarea (line 461) — same input-element treatment.
+
+Other matches of `border-gold-faint` on the page (the "or" divider lines, the password-strength bars, the Sign Up / Sign In toggle container outline) are not input borders and stay as-is.
+
+**Sign Up / Sign In tabs read as disabled rather than as a real toggle.** Three compounding problems: the container background was `var(--bg-main)` (same as the page bg, no widget identity), the active tab background was `var(--bg-gold-light)` (only a few units lighter than the container), and the inactive tab text was `var(--text-dim)` (read as disabled). Fixes:
+- Container background → `rgba(0, 0, 0, 0.25)` for a recessed "well" feel against the form card. The 1px `var(--border-gold-faint)` outline stays — defines the widget edge.
+- `.tabActive` background → `rgba(201, 168, 76, 0.15)` so the gold-tinted elevation reads clearly against the new darker container. Active text color (`var(--accent-gold)`) unchanged.
+- `.tabInactive` text color → `var(--text-secondary)` (`#8a94a8`) — still muted, but reads as "available," not "disabled." Hover behavior (gold text + faint gold tint) was already correct and stays.
+
+**Files modified:**
+- `app/auth/page.js`
+- `app/auth/page.module.css`
+
+**claude-upload synced:** `auth-page.js`, `auth-page.module.css`.
+
+---
+
+### Pricing: top-up card upgrade, FAQ accordion, vertical rhythm, drop redundant Hero bullet
+
+Four targeted fixes to the audit findings on `/pricing` (companion to the directional hero halo entry below — both shipped in the same commit). The Hero card visual treatment (gradient gold border, asymmetric halo, ribbon, larger price typography) is intentionally untouched — that work is already landed.
+
+**Top-up cards now read as a real offering.**
+- Bumped card width (`flex: 1 1 200px; max-width: 240px`) and padding (`28px 24px 24px`).
+- Bumped the turns numeral to 32px and the price to 20px so the cards have presence rather than reading as a footnote.
+- Added a per-turn pricing line (`$0.06/turn`, `$0.05/turn`, `$0.045/turn`) computed from `PRICING.topups` so the values stay in sync with the constant. Math: `(price / turns).toFixed(3)` then `Number(...).toString()` to strip insignificant trailing zeros — that's why the 25- and 50-pack render two decimals while the 100-pack keeps three.
+- Added a small Cinzel "BEST VALUE" eyebrow above the turns number on the largest pack only. The other two packs render the same div with `visibility: hidden` so all three cards stay vertically aligned.
+
+**FAQ converted to the same accordion pattern as `/faq`.**
+- New `Chevron` and `PricingFAQItem` components in `app/pricing/page.js`. The chevron is gold (16x16, stroke `var(--accent-gold)`) and rotates 180° when open via a 0.3s ease transform. Question text shifts from `var(--text-heading)` to `var(--accent-gold)` when open or hovered.
+- `openFAQ` state on the page; clicking a question opens it and closes any other (single-open behavior matches the FAQ page).
+- Answer slides via `max-height` (0 → 600px), `opacity` (0 → 1), and `padding-bottom` (0 → 16px), all 0.3s ease. 600px is a generous ceiling for these short answers.
+- New CSS classes (`.faqItem`, `.faqQuestion`, `.faqQuestionText`, `.faqChevron`, `.faqAnswer`) added to `app/pricing/page.module.css`. Mobile bumps `.faqQuestion` to a 44px tap target. Reduced motion turns off the chevron and answer transitions.
+- Did not extract the existing FAQ component from `/faq` — it's tightly coupled to category routing and slug-based deep linking that pricing doesn't need. Local replication keeps both pages independent without a forced refactor.
+
+**Vertical rhythm tightened.**
+- Top-up section top padding `48px → 24px` (so the gap between the bottom of the tier cards and the "NEED MORE TURNS?" eyebrow is `32 + 24 = 56px` instead of `32 + 48 = 80px`).
+- FAQ section top padding `48px → 32px` (top-up bottom 32 + FAQ top 32 = 64px between sections).
+
+**Hero feature list trimmed.** "Cancel anytime. No contracts." removed from the bullet list because it duplicates "Resets every billing cycle. Cancel anytime." in the description text directly above. The list now reads four bullets: stories that take time, unlimited saves, 225 turns/month, top-up packs.
+
+Bottom CTA copy ("Every Hero Needs a Crucible. Yours is waiting.") is **unchanged** — that's the brand slogan and reusing it on Pricing dilutes it from Landing. User is treating the copy revision as a separate decision.
+
+**Files modified:**
+- `app/pricing/page.js`
+- `app/pricing/page.module.css`
+
+**claude-upload synced:** `pricing-page.js`, `pricing-page.module.css`.
+
+---
+
+### Pricing hero halo → directional radial-gradient pseudo-element
+
+Same problem as the auth card glow (large `box-shadow` blur reads as a soft rectangle, not a circular halo), but compounded on the pricing Hero card by two factors: (1) the card is tall, so the long-side falloff produced visible horizontal striations; (2) the symmetric spread bled leftward across the column gap into the Free Trial card. Moved the gold portion of the shadow off `box-shadow` and onto a `.heroCard::after` pseudo-element with a blurred radial gradient and an asymmetric inset.
+
+- `app/pricing/page.module.css`: dropped the `0 16px 60px rgba(201,168,76,0.14)` outer-gold term from `.heroCard`'s rest-state `box-shadow` and the `0 22px 72px rgba(201,168,76,0.22)` term from `.heroCard:hover`. Both inset accents (gold highlight at top, dark line at bottom) stay. Added `isolation: isolate` to `.heroCard` so the `z-index: -1` pseudo stays trapped behind the card without falling below the page background.
+- New `.heroCard::after` rule with `top: -60px; right: -100px; bottom: -100px; left: -10px;` — the asymmetric inset is the directional bias. Halo has room to expand right, down, and modestly up, but is clipped close to the card's left edge so it can't reach the Free Trial card across the gap. Three-stop ellipse radial gradient (0.28 → 0.14 → 0 across 0% → 35% → 70%), `filter: blur(50px)`, `opacity: 0.75` at rest with a 0.3s opacity transition.
+- New `@media (hover: hover) { .heroCard:hover::after { opacity: 1; } }` so the halo brightens in lockstep with the existing 6px lift. Hover gating stays inside `(hover: hover)` to keep touch devices from sticking the brighter state after a tap.
+
+The `.heroCard::before` (gradient gold border via mask-compositing) and `.heroRibbon` are untouched.
+
+**Files modified:**
+- `app/pricing/page.module.css`
+
+**claude-upload synced:** `pricing-page.module.css`.
+
+---
+
+### Landing showcase: real /play dice experience replaces text dice bar
+
+The gameplay showcase on `/landing` was rendering a primitive text-only "DC 13.0 · STR 4.5 · Outmatched · Roll: 7 · Total: 11.5 · Tier 4 Small Mercy" bar where the actual /play roll lives. Replaced with the real Tray + animated d20 + CompactChip stack, so the showcase now reads as a faithful preview of gameplay rather than a documentation summary.
+
+**Flow.** Choice click → tray appears with the crucible die in `ready` state and a "TAP THE CRUCIBLE TO THROW" hint underneath. Tap the die → the same timing table /play uses runs (matched: phase 1 only, ~2.6 s; outmatched: full both-phase sequence, ~5.2 s). When the timing table reaches the `compact` step, the tray fades away and the CompactChip slides in with the kept die graphic, structured meta pill (STAT · skill · kept · Total · vs DC · margin), and tier label. Result narrative starts typing on phase 8→9 (a 400 ms beat after the chip appears), unchanged from before but now triggered by roll completion instead of a fixed timer.
+
+**Component reuse.** Tray, Die, and CompactChip are imported directly from `app/play/components/` and used unmodified. TurnRoll's ChallengePanel wrapper, autoRoll-from-localStorage logic, and ActionPanel-collapse body attribute are all skipped — the showcase has different needs (no auth, no production state, always tap-to-roll). The showcase has its own ~30-line stage machine that drives stage and dicePhase from the timing table, replacing what would otherwise be showcase-only props on TurnRoll.
+
+**Timing table extraction.** Pulled `TIMING_PHASE_1_ONLY` and `TIMING_FULL` out of `TurnRoll.js` into a new `app/play/components/diceTimings.js` module. TurnRoll's behavior is unchanged — it now imports the same arrays it used to define inline. The showcase imports them too so the two surfaces never drift.
+
+**Reduced-motion path.** Phases 6→7→9 collapse to ~500 ms total. The roll animation is skipped entirely; CompactChip renders immediately and result typing starts after a brief intentional beat. Tap-to-roll is still required on the standard path regardless of any `crucible_display_settings.autoRoll` localStorage value (anonymous visitors don't have saved preferences).
+
+**Data restructure.** Each scenario's `results[id]` was reshaped from `{ dice: { segments: [...] }, result: '...' }` into `{ challenge, rollResult, resultText }` matching what Tray and CompactChip expect. For outmatched scenarios, `mortal1 = kept` (the higher of two d20s, since outmatched takes the higher per the rulebook) and `mortal2` is hardcoded to a plausible-but-lower value so the discarded die reads as visibly less than the kept one without being absurd. Crucible values for outmatched are mid-range non-extreme placeholders for the phase-1 die. Hardcoded, not randomized — the same scenario always shows the same dice.
+
+**Phase machine.** Phase 7 is now event-driven: it enters and waits for tap (no timer advances out of it). On tap, the stage machine takes over. When stage transitions to `compact`, phase advances to 8. Phases 8 and 10 stay timer-based as before. The `firstView` branch in `handleChoiceClick` and the `firstView` guard on the phase 6→7 effect were redundant once tap-to-roll became the gate, so both got simplified — first-view and subsequent scenarios both flow through the same effects.
+
+**Files modified:**
+- `app/landing/GameplayShowcase.js`
+- `app/landing/GameplayShowcase.module.css`
+- `app/play/components/TurnRoll.js` (imports timing tables from new module; behavior unchanged)
+
+**Files created:**
+- `app/play/components/diceTimings.js`
+
+**claude-upload synced:** `play-full.js` (regenerated, includes the new diceTimings.js), `landing-GameplayShowcase.js`, `landing-GameplayShowcase.module.css`, plus the legacy `component-GameplayShowcase.*` mirrors that also exist in claude-upload.
+
+---
+
+### Menu hero card: drop blurb line clamp
+
+The hero card at the top of `/menu` was line-clamping the blurb to 3 lines; the rest of the prose was inaccessible because the hero card has no click target to open the detail modal (only its Resume button is interactive). The other game cards keep their 2-line clamp + modal pattern because they exist in a list and need to stay scannable; the hero is a single focal item, so growing in place is fine.
+
+- `app/menu/page.module.css`: deleted the `.heroCardBlurb` rule (the `-webkit-line-clamp: 3` block).
+- `app/menu/page.js`: removed the now-orphaned `className={styles.heroCardBlurb}` from both the setup-state and blurb `<p>` elements; updated the inline comment to reflect that the blurb is shown in full.
+
+Per `API_CONTRACT.md`, blurbs are 1–2-sentence summaries that begin appearing at turn 6, so unbounded growth is bounded in practice. If blurbs ever lengthen, an inline show-more toggle is the next natural step.
+
+**Files modified:**
+- `app/menu/page.js`
+- `app/menu/page.module.css`
+
+**claude-upload synced:** `menu-page.js`, `menu-page.module.css`.
+
+---
+
+### FAQ: instant category switch + per-question deep links
+
+Two changes to `app/faq/FAQContent.js` and `app/faq/page.module.css`.
+
+**Category switch is now instant.** Each question was wrapped in a `ScrollReveal` keyed by `${activeCategory}-${i}`, so changing categories remounted every item and replayed the staggered fade-up entrance — a 300–400 ms blank beat that made FAQ filtering feel broken. Added a `firstMountRef` flag that's flipped to `false` on the mount effect; the entrance animation only runs on initial render. Subsequent category switches render question rows directly with no `ScrollReveal` wrapper, so the swap reads instant the way settings tabs do. The mount effect runs once, so the flag is stable for the entire component lifetime.
+
+**Per-question URL anchors with deep linking.**
+- `slugify(text)` lowercases, replaces non-alphanumeric runs with `-`, and trims leading/trailing hyphens. Deterministic — same question text always yields the same slug.
+- `findQuestionBySlug(slug)` walks `CATEGORIES` in declared order so duplicate question text resolves to the first match (per spec).
+- Each `FAQItem` is `<div id={slug}>` with the slug derived from its question.
+- `toggleItem` writes the hash via `history.replaceState` (no extra entries in the back stack — no one wants to hit back 12 times to leave the FAQ). Opening sets `#slug`, closing strips the hash back to `pathname + search`. `handleCategoryChange` also clears the hash.
+- On mount, if `window.location.hash` matches a slug, the effect sets the corresponding category, opens the matching item, and scrolls it into view via two stacked `requestAnimationFrame`s (first commits the state update, second waits for the new category's DOM to lay out before reading `getBoundingClientRect`). Scroll target is `top - 96 px` to clear the 72 px sticky NavBar with breathing room. Hash that doesn't match any slug is ignored — page loads on the default category.
+
+**Share affordance.** Each question row has a small chain-link icon button between the question text and the chevron. Subtle at rest (`opacity: 0.4`), full opacity on row hover. Click copies `origin + pathname + #slug` via `navigator.clipboard.writeText`, then briefly swaps the icon for a "Copied" label for 1.5 s with a CSS keyframe fade so the swap doesn't snap. Always visible at `opacity: 0.7` on touch viewports where `:hover` doesn't apply.
+
+**Accessibility.** The question is still a real `<button>` (canonical interactive element). The share affordance is a separate `<button>` sibling — focusable via Tab after the question, never the default focus target. The chevron is a duplicate-trigger `<button>` with `tabIndex={-1}` and `aria-hidden="true"` so it's clickable as a visual indicator without polluting tab order or AT output. Question button gets `aria-controls={\`${slug}-answer\`}` pointing at its answer panel.
+
+**Files modified:**
+- `app/faq/FAQContent.js`
+- `app/faq/page.module.css`
+
+**claude-upload synced:** `faq-FAQContent.js` (new), `faq-page.module.css`.
+
+---
+
+### Auth card glow → radial-gradient pseudo-element
+
+The gold halo behind the auth card was a `box-shadow` blur. Box-shadow is fundamentally rectangular, so even with heavy blur the long sides have a different falloff than the corners and the halo reads as a soft rectangle instead of a true circular glow. Replaced it with a blurred radial gradient on a `.authCard::before` pseudo-element so the halo is genuinely radial.
+
+- `app/auth/page.js`: dropped the `0 0 120px 60px rgba(201,168,76,0.025)` term from the form's inline `boxShadow`, leaving only the dark drop shadow `0 4px 24px rgba(0,0,0,0.3)`. The form's `position: relative` and `zIndex: 1` are unchanged — they're load-bearing for the pseudo-element.
+- `app/auth/page.module.css`: added a base `.authCard { position: relative; }` rule and a `.authCard::before` rule with `inset: -80px`, a 3-stop ellipse radial gradient (`rgba(201,168,76,0.32) → 0.18 → 0` from 0% → 30% → 70%), `filter: blur(60px)`, `z-index: -1`, `pointer-events: none`. Placed alongside the other component class definitions, above the existing `@media (max-width: 767px)` block whose `.authCard` rule (mobile padding/border-radius) is unchanged.
+
+The form has both `position: relative` and `zIndex: 1`, so it forms its own stacking context — the `z-index: -1` pseudo paints above the form's own background and below all form content per the CSS stacking spec, which keeps the glow visible (rather than being clipped behind the page background) without needing `isolation: isolate` on the wrapper.
+
+**Files modified:**
+- `app/auth/page.js`
+- `app/auth/page.module.css`
+
+**claude-upload synced:** `auth-page.js`, `auth-page.module.css`.
+
+---
+
+### Revert scroll-position parallax → restore scroll-velocity drift
+
+The position-based parallax (where each layer's Y offset was `scrollY × factor`) breaks on long pages: the Rulebook is ~41,000 px tall, so the near layer would translate ~20,500 px off baseline by the end. That fights the float animation, leaves the layers visually disconnected from the document, and produces an accumulating offset that has no relationship to what the player can see. Reverted to the velocity-based drift that fades back to zero when scrolling stops.
+
+- Removed `SCROLL_PARALLAX_FACTOR`, `window.scrollY` reads in the rAF loop, and the position-based offset term in the transform.
+- Restored the lerped velocity drift: `LAYER_SCROLL_MAX = [2, 5, 8]`, `SCROLL_DECAY = 0.85`, `SCROLL_INPUT_DIVISOR = 8`, `SCROLL_LERP = 0.02`. Per-layer `currentScrollOffset` ref lerps toward a velocity-derived target each frame.
+- The scroll listener stays — it computes `deltaY = scrollY - lastScrollY` between events. This is a passive listener and doesn't interfere with native scroll handling.
+- Layer transform is back to mouse parallax + scroll-velocity offset only, additive on Y.
+
+End-state behavior matches the original intent of the scroll enhancement: particles drift briefly opposite the scroll direction during active scrolling and settle back to neutral when the user stops, with no accumulating offset based on position.
+
+**Files modified:**
+- `components/ParticleField.js`
+
+**claude-upload synced:** `component-ParticleField.js`.
+
+---
+
+### Fix scroll wheel + GameplayShowcase z-index
+
+**Scroll wheel was dead.** Commit `3ccbb72` ("Harden mobile dock horizontal lock", from a parallel session) added `overflow-x: hidden; max-width: 100vw` to `html, body` in `globals.css` as a belt-and-suspenders mobile fix. That global declaration broke desktop wheel scrolling on multiple pages — the per-page rules in that same commit (`ActionPanel.module.css`, `play.module.css`) already cover the actual mobile horizontal-swipe issue without needing the global override. Removed the global declaration.
+
+**Particles overlay GameplayShowcase.** Pre-existing stacking issue made visible by the recent particle visibility bump. `<ParticleField />` is `position: fixed; z-index: 0`, which paints above non-positioned in-flow content per CSS painting order. The showcase's inner card uses a semi-transparent `rgba(21, 26, 44, 0.5)` background, so the gold particles painted right through it onto the dice and choice buttons. Targeted fix: `.showcase` gets `position: relative; z-index: 1` so it stacks above the field. Other sections on landing have opaque card backgrounds and don't show the bleed-through.
+
+**Files modified:**
+- `app/globals.css` (revert overflow-x/max-width on html, body)
+- `app/landing/GameplayShowcase.module.css` (position + z-index on `.showcase`)
+
+**claude-upload synced:** `globals.css`, `landing-GameplayShowcase.module.css`.
+
+---
+
+### Particle field: scroll-position parallax (replaces velocity-based drift)
+
+The previous velocity-based scroll system applied a transient offset proportional to scroll speed and decayed back to zero — particles bobbed during scroll but didn't *track* the page. Reworked to true parallax: each layer's Y offset is `-scrollY × factor`, so the field reads as a starfield embedded in the document (slower-moving = farther in the background) rather than a static overlay.
+
+- `SCROLL_PARALLAX_FACTOR = [0.15, 0.3, 0.5]` for far/mid/near. Far drifts slowest (deepest), near tracks scroll more closely. All factors below 1 so particles fall behind the rate of content scroll, giving the depth feel.
+- `scrollY` is read directly inside the existing `requestAnimationFrame` loop — no scroll event listener at all. The animate loop already ran every frame for the mouse-parallax lerp, so reading `scrollY` per frame is essentially free and can't interfere with native scroll handling.
+- Mouse parallax is unchanged and still combines additively on Y.
+
+Removed: `LAYER_SCROLL_MAX`, `SCROLL_DECAY`, `SCROLL_INPUT_DIVISOR`, `SCROLL_LERP`, `scrollVelocity` ref, `lastScrollY` ref, `currentScrollOffset` ref, and the `scroll` event listener. The new system is a single constant + one line of math per layer per frame.
+
+**Files modified:**
+- `components/ParticleField.js`
+
+**claude-upload synced:** `component-ParticleField.js`.
+
+---
+
+### Particle field: visibility floors + smoother scroll drift
+
+Two follow-on fixes to the earlier particle-field enhancements.
+
+**Visibility.** The dust tier (70 % of particles) was rendering at sizes 0.5–1.3 px and opacities 0.04–0.12, which effectively disappeared on the dark navy background. Raised all three tiers' floors so even dust reads as a faint but visible speck — the field should look like a sparse starfield, not empty space. New ranges:
+- Dust: 1.0–1.8 px, 0.10–0.20 opacity.
+- Motes: 1.8–2.6 px, 0.18–0.30 opacity.
+- Embers: 2.6–3.8 px, 0.30–0.50 opacity.
+
+**Scroll jitter.** The scroll-coupled drift was applying the velocity-derived offset directly in the transform, so every frame's new scroll delta produced a perceptible frame-to-frame jump — vibration, not wind. Three fixes, all per design spec:
+- Velocity decay tightened from `0.92 → 0.85`, so a single scroll event's influence fades in ~1/3 second instead of ~0.8 s.
+- Raw `deltaY` is now divided by `SCROLL_INPUT_DIVISOR = 8` at the source, scaling typical wheel ticks (30–100 + px) into a gentler velocity range.
+- Added a per-layer `currentScrollOffset` ref that lerps toward the velocity-derived target at `SCROLL_LERP = 0.02` (same lazy feel as the mouse parallax). Previously the raw velocity was used as the offset directly; lerping smooths transitions across frames and is what eliminates the vibration.
+
+Combined effect: a quick scroll gesture produces a subtle drift that builds over a few frames, peaks sub-pixel-to-low-single-digit depending on layer, and eases back to neutral over ~1 s. Mouse parallax path is unchanged; count/palette/API/mobile cap unchanged.
+
+**Files modified:**
+- `components/ParticleField.js`
+
+**claude-upload synced:** `component-ParticleField.js`.
+
+---
+
+### Footer: standardize on the full footer everywhere
+
+Dropped the two-variant Footer. The `variant` prop, the minimal branch, and the `.minimal` CSS class are gone; every page now renders the same standard footer (brand mark, link row, copyright strip). Five pages that were explicitly passing `variant="minimal"` had that prop removed.
+
+**Files modified:**
+- `components/Footer.js` (removed prop + minimal branch)
+- `components/Footer.module.css` (removed `.minimal` rule)
+- `app/auth/page.js`, `app/menu/page.js`, `app/rulebook/page.js`, `app/settings/page.js`, `app/snapshot/[token]/page.js`
+
+**claude-upload synced:** `component-Footer.js`, `component-Footer.module.css`, `auth-page.js`, `menu-page.js`, `rulebook-page.js`, `settings-page.js`, `snapshot-page.js`.
+
+---
+
+### Particle field: weighted size tiers + scroll-coupled parallax
+
+Two visual upgrades to `components/ParticleField.js`. No API change (still just `count`).
+
+**Weighted size/brightness tiers.** The previous flat randomization over `size` and `opacity` made every particle look roughly the same. Replaced with a single `Math.random()` roll that bins each particle into one of three tiers:
+- **Dust (70%)** — 0.5–1.3 px, opacity 0.04–0.12, no blur, no twinkle. Atmospheric background.
+- **Motes (20%)** — 1.3–2.4 px, opacity 0.12–0.25, no blur, 30 % twinkle chance.
+- **Embers (10%)** — 2.4–3.8 px, opacity 0.25–0.45, `blur(0.5px)`, 80 % twinkle chance, plus a `box-shadow: 0 0 ${size*2}px ${color}4D` glow (8-digit hex alpha 0x4D ≈ 30 %). The glow uses each particle's own `EMBER_COLORS` entry, not a hardcoded tint.
+
+The existing `assignLayer(size)` thresholds (<1.4, <2.2, else) naturally sort dust into the far layer and embers into the near layer, so no layer-assignment changes were needed.
+
+**Scroll-coupled velocity.** When the user scrolls, particles drift in the opposite direction — downward scroll shifts them up — for a parallax-depth feel. Implementation:
+- A `scroll` listener computes `deltaY = window.scrollY - lastScrollY` per event and writes it into `scrollVelocity` (replace, not accumulate — the per-frame decay settles velocity back to zero on its own).
+- The existing animate rAF loop multiplies `scrollVelocity *= 0.92` each frame (drift fades to negligible in ~0.8 s at 60 fps once the user stops).
+- Per-layer offset = `clamp(-velocity × maxShift / 10, ±maxShift)` with `LAYER_SCROLL_MAX = [2, 5, 8]` px for far/mid/near. The `/ 10` reference gives each layer its full cap at a typical wheel-tick speed while still giving proportional parallax to gentler scrolls. The clamp keeps hard flicks from flinging particles offscreen.
+- Mouse parallax and scroll drift combine additively on Y: `translate(mouseX, mouseY + scrollY)`.
+- Same gate as the mouse parallax: `(hover: hover)` and not `prefers-reduced-motion`. Desktop only, accessibility-respecting.
+- `lastScrollY` is seeded from `window.scrollY` at mount so the first post-mount delta is 0 even if the user had already scrolled before the component appeared.
+- rAF cleanup (`cancelAnimationFrame` in the effect return) stops the loop on unmount; adding the scroll listener teardown here prevents listener leaks on component remount.
+
+Mobile cap (20 particles), reduced-motion CSS override, and `EMBER_COLORS` are untouched.
+
+**Files modified:**
+- `components/ParticleField.js`
+
+**claude-upload synced:** `component-ParticleField.js`, `component-ParticleField.module.css` (no CSS changes, but re-copied to keep the mirror flush).
+
+---
+
+### Smooth streaming text buffer
+
+Narrative text was rendering the instant each SSE chunk arrived, which gave the classic "jittery chunk" feel — words popping in groups at the speed of the model, not the speed of reading. Added a client-side drain buffer that decouples chunk arrival from screen rendering: chunks push into a ref instantly (no re-render), and a `requestAnimationFrame` loop pulls words out at a steady pace that feels like ChatGPT/Claude's typing effect.
+
+**Pacing.**
+- Base rate: **30 words/sec** — a hair above comfortable reading speed.
+- Catchup rate: **50 words/sec** — kicks in when the buffer has more than 50 words queued, so the model outrunning the render doesn't leave the player watching text trickle in long after generation finishes.
+- Flush rate: **60 words/sec** — engages once `turn:complete` fires so any remaining buffered text drains promptly without an abrupt dump.
+
+**Key implementation details.**
+- Fractional `wordDebt` accumulator gives accurate per-frame pacing (a naive `Math.round` at 60 fps would lock the base rate at 60 wps instead of 30 wps).
+- `takeWords` holds back the last partial word of each half while the stream is open so chunks that end mid-word don't flash half-written words; once the stream is complete, it flushes everything.
+- Pre-roll drains before post-roll so narrative order is preserved even if the backend interleaves chunks.
+- `generation` counter lets buffer resets retire any in-flight RAF loop from a prior turn before it can write into the new placeholder (replaces what would otherwise need AbortController plumbing).
+- Loop parks (stops RAF-ing) when the buffer is empty or stalled on a partial word, then restarts when a new `turn:narrative` chunk arrives — no wasted frames while idle.
+- `dt` clamped to 100ms so a backgrounded tab waking up doesn't dump the buffer in one frame.
+- Cleanup on unmount bumps the generation and flips `draining=false` so no orphan RAF survives navigation.
+- Cursor (the blinking caret at the end of narrative) still ties to `turn._isStreaming`, so it disappears when `turn:complete` fires even if text is still flushing — by design; the player is reading and the action panel is already back. Plan explicitly accepted this trade-off.
+
+**Handler changes (`app/play/page.js`).**
+- `turn:narrative` now appends to the buffer ref instead of `setTurns`, and kicks off the drain loop if one isn't already running.
+- `turn:complete` sets `buf.complete = true` (switches drain to FLUSH rate) and restarts a parked drain loop if the buffer is still non-empty. The rest of the handler (stateChanges, nextActions, clock merges, `setSubmitting(false)`) runs immediately as before.
+- `turn:discard` clears the buffer and bumps generation so the retry stream starts clean.
+- `turn:error` clears the buffer and retires any in-flight drain loop.
+- Fresh-game auto-trigger uses the same streaming path (via `handleTurnResponse`) and inherits buffer init.
+
+**Files modified:**
+- `app/play/page.js`
+
+**claude-upload synced:** `play-full.js` (regenerated), `play-page.js`.
+
+---
+
+## Recent Work (Prior Session: 2026-04-23)
 
 ### SSE streaming: preserve dice across silent retries
 

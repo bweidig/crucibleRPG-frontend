@@ -463,6 +463,7 @@ function PlayPage() {
         resolution: response.resolution || null,
         stateChanges: response.stateChanges || null,
         reflection,
+        cutParagraph: response.cutParagraph ?? null, // AD-726 — scene-cut closing prose (undefined pre-AD-726)
         playerAction: playerActionText,
         clock: turnClock,
         weather: turnClock?.weather || null,
@@ -1047,6 +1048,7 @@ function PlayPage() {
                   ...updated[idx],
                   stateChanges: data.stateChanges || null,
                   reflection,
+                  cutParagraph: data.cutParagraph ?? null, // AD-726
                   clock: turnClock,
                   weather: turnClock?.weather || null,
                   _isStreaming: false,
@@ -1806,6 +1808,12 @@ export default function ActionPanel({
     setCustomText('');
   }, [customText, onSubmit]);
 
+  // AD-725: cut-turn Continue affordance. Single-tap submit (no two-tap commit).
+  // Wire shape per AD-723/AD-725: lowercase literal "continue" string.
+  const handleContinue = useCallback(() => {
+    onSubmit({ custom: 'continue' });
+  }, [onSubmit]);
+
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -1842,6 +1850,10 @@ export default function ActionPanel({
   const options = Array.isArray(actions.options) ? actions.options : [];
   const customAllowed = actions.customAllowed !== false;
 
+  // AD-725: detect a scene-cut turn. Backend collapses options to a single
+  // Continue affordance when the engagement clock fires a cut.
+  const isCutTurn = options.length === 1 && options[0]?.id === 'Continue';
+
   return (
     <div className={styles.actionPanel} ref={panelRef}>
       <div className={styles.actionInner}>
@@ -1866,26 +1878,36 @@ export default function ActionPanel({
                   <span className={styles.yourMoveLabel}>YOUR MOVE</span>
                   <div className={`${styles.yourMoveRule} ${styles.yourMoveRuleRight}`} />
                 </div>
-                <div className={styles.options}>
-                  {options.map(opt => {
-                    const isSelected = selectedChoice === opt.id;
-                    const isDimmed = selectedChoice && !isSelected;
-                    return (
-                      <button
-                        key={opt.id}
-                        className={`${styles.optionButton} ${isSelected ? styles.optionSelected : ''} ${isDimmed ? styles.optionDimmed : ''}`}
-                        onClick={() => handleChoice(opt.id)}
-                        disabled={submitting}
-                        aria-pressed={isSelected}
-                        data-choice-id={opt.id}
-                      >
-                        <span className={styles.optionKey}>{opt.id}</span>
-                        <span className={styles.optionText}>{opt.text}</span>
-                        <OptionTag stat={opt.stat} flavor={opt.flavor} />
-                      </button>
-                    );
-                  })}
-                </div>
+                {isCutTurn ? (
+                  <button
+                    className={styles.continueButton}
+                    onClick={handleContinue}
+                    disabled={submitting}
+                  >
+                    Continue
+                  </button>
+                ) : (
+                  <div className={styles.options}>
+                    {options.map(opt => {
+                      const isSelected = selectedChoice === opt.id;
+                      const isDimmed = selectedChoice && !isSelected;
+                      return (
+                        <button
+                          key={opt.id}
+                          className={`${styles.optionButton} ${isSelected ? styles.optionSelected : ''} ${isDimmed ? styles.optionDimmed : ''}`}
+                          onClick={() => handleChoice(opt.id)}
+                          disabled={submitting}
+                          aria-pressed={isSelected}
+                          data-choice-id={opt.id}
+                        >
+                          <span className={styles.optionKey}>{opt.id}</span>
+                          <span className={styles.optionText}>{opt.text}</span>
+                          <OptionTag stat={opt.stat} flavor={opt.flavor} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </>
             )}
 
@@ -1895,7 +1917,7 @@ export default function ActionPanel({
                 <input
                   type="text"
                   className={styles.customInput}
-                  placeholder="Write your own action — the GM adapts"
+                  placeholder={isCutTurn ? 'Describe your next move' : 'Write your own action — the GM adapts'}
                   value={customText}
                   onChange={e => setCustomText(e.target.value)}
                   onFocus={() => setSelectedChoice(null)}
@@ -8708,6 +8730,15 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
           {turn._isStreaming && !preRoll && !postRoll && (
             <div className={styles.narrativeText}>
               <span className={styles.streamingCursor} />
+            </div>
+          )}
+
+          {/* AD-726: scene-cut closing prose. Renders inline as a continuation of
+              the post-roll narrative — same styling, no divider/callout. Silenced
+              cuts (empty string) and non-cut turns (null/undefined) render nothing. */}
+          {turn.cutParagraph && typeof turn.cutParagraph === 'string' && turn.cutParagraph.trim().length > 0 && (
+            <div className={styles.narrativeText}>
+              {renderNarrative(turn.cutParagraph, glossaryTerms, onEntityClick)}
             </div>
           )}
 

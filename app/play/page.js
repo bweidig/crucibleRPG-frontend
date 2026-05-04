@@ -460,6 +460,7 @@ function PlayPage() {
         resolution: response.resolution || null,
         stateChanges: response.stateChanges || null,
         reflection,
+        cutParagraph: response.cutParagraph ?? null, // AD-726 — scene-cut closing prose (undefined pre-AD-726)
         playerAction: playerActionText,
         clock: turnClock,
         weather: turnClock?.weather || null,
@@ -1044,6 +1045,7 @@ function PlayPage() {
                   ...updated[idx],
                   stateChanges: data.stateChanges || null,
                   reflection,
+                  cutParagraph: data.cutParagraph ?? null, // AD-726
                   clock: turnClock,
                   weather: turnClock?.weather || null,
                   _isStreaming: false,

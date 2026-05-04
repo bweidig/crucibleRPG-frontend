@@ -391,6 +391,15 @@ const TurnBlock = forwardRef(function TurnBlock({ turn, isNew, glossaryTerms, on
             </div>
           )}
 
+          {/* AD-726: scene-cut closing prose. Renders inline as a continuation of
+              the post-roll narrative — same styling, no divider/callout. Silenced
+              cuts (empty string) and non-cut turns (null/undefined) render nothing. */}
+          {turn.cutParagraph && typeof turn.cutParagraph === 'string' && turn.cutParagraph.trim().length > 0 && (
+            <div className={styles.narrativeText}>
+              {renderNarrative(turn.cutParagraph, glossaryTerms, onEntityClick)}
+            </div>
+          )}
+
           {turn.sceneImage && (
             <div className={styles.sceneImageBlock}>
               <button
