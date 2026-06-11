@@ -1,6 +1,6 @@
 # CrucibleRPG Frontend — Status Tracker
 
-**Last Updated:** 2026-05-04 (scene-cut rendering: Continue button + cut paragraph, AD-725 / AD-726)
+**Last Updated:** 2026-06-11 (init wizard: experience tier now forwarded to adjust-proposal, AD-712)
 
 > **For Claude Code:** Read this file at the start of every new conversation before responding. After completing any frontend task, update this file with changes to page status, new site-wide rules, copy audit status, bug fixes, or deferred items. When fixing a bug, update its status to "Fixed" and fill in the "Fixed in" column. When discovering a new bug during implementation, add it to the Known Bugs table with the next available FE- number. Keep the "Last Updated" line current.
 
@@ -33,7 +33,20 @@
 
 ---
 
-## Recent Work (This Session: 2026-05-04)
+## Recent Work (This Session: 2026-06-11)
+
+### Init Wizard — Experience Tier Forwarded to adjust-proposal (AD-712)
+
+**Root cause.** The generate-proposal response includes the AI-detected experience tier as `proposal.tier` (`novice` | `competent` | `veteran` | `legendary`), but `generateProposal()` in `app/init/page.js` dropped the field when building the proposal state object, and `saveAttributes()` never sent it to `POST /api/init/:gameId/adjust-proposal`. Since the backend defaults a missing `tier` to novice, every character seeded `starting_experience_tier` as green — AI-proposed veteran and legendary characters silently lost their experience tier.
+
+**Fix.** Flow: response → proposal state → request body. Both `setProposal` call sites (main path and empty-stats retry path) now carry `tier: typeof p.tier === 'string' ? p.tier : null`. `saveAttributes()` appends `body.tier = proposal.tier.trim().toLowerCase()` only when the stored tier is a non-empty string — the key is omitted entirely otherwise (never `null` or `''`). No client-side validation against the allowed list; the backend defaults unknown values to novice per contract.
+
+**Files modified:**
+- `app/init/page.js` — tier captured in both `setProposal` objects; conditionally appended to the adjust-proposal body.
+- `claude-upload/init-page.js` — re-synced.
+- `docs/FRONTEND_STATUS.md`
+
+## Recent Work (Session: 2026-05-04)
 
 ### Scene Cut Rendering — Continue Button + Cut Paragraph (AD-725 / AD-726)
 

@@ -3387,6 +3387,7 @@ function InitWizardInner() {
           narrativeBackstory: retry.p.narrativeBackstory || null,
           innateTraits: Array.isArray(retry.p.innateTraits) ? retry.p.innateTraits : [],
           species: retry.p.species || null,
+          tier: typeof retry.p.tier === 'string' ? retry.p.tier : null,
         });
         setProposalValidation({ hardErrors: Array.isArray(retry.validation.hardErrors) ? retry.validation.hardErrors : [], softWarnings: Array.isArray(retry.validation.softWarnings) ? retry.validation.softWarnings : [] });
         setRequestsRegenerated(true);
@@ -3408,6 +3409,7 @@ function InitWizardInner() {
         narrativeBackstory: p.narrativeBackstory || null,
         innateTraits: Array.isArray(p.innateTraits) ? p.innateTraits : [],
         species: p.species || null,
+        tier: typeof p.tier === 'string' ? p.tier : null,
       });
       setProposalValidation({ hardErrors: Array.isArray(validation.hardErrors) ? validation.hardErrors : [], softWarnings: Array.isArray(validation.softWarnings) ? validation.softWarnings : [] });
       setRequestsRegenerated(true);
@@ -3435,6 +3437,9 @@ function InitWizardInner() {
     if (proposal?.startingLoadout?.length) body.startingLoadout = proposal.startingLoadout;
     if (proposal?.factionStandings?.length) body.factionStandings = proposal.factionStandings;
     if (proposal?.innateTraits?.length) body.innateTraits = proposal.innateTraits;
+    if (typeof proposal?.tier === 'string' && proposal.tier.trim()) {
+      body.tier = proposal.tier.trim().toLowerCase();
+    }
     await api.post(`/api/init/${gameId}/adjust-proposal`, body);
   };
 
