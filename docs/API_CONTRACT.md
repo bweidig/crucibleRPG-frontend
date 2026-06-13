@@ -2,7 +2,13 @@
 
 > **This contract is verified against backend code as of 2026-03-17. The frontend uses this as its single source of truth. Do not change response shapes without updating this document.**
 
-**Last Updated:** 2026-04-26 (AD-704 + AD-705 — Custom Start scenario prompt + backstory preservation. AD-704: `POST /api/init/:gameId/select-scenario` `customStart` accepts new optional `scenarioDescription` field (string, max 2000 chars). When present, server writes `scene_state.opening_scenario` so per-turn context curator emits the canonical "place the character INTO this scenario" directive on turn 1. ADDITIVE — pre-AD-704 the field was unrepresentable. AD-705: `POST /api/init/:gameId/adjust-proposal` `narrativeBackstory` field ignored on the server. Pre-AD-705 the field destructively overwrote `characters.backstory` with the AI tier-reasoning summary; post-AD-705 the player's prose at POST /character is canonical and preserved through every downstream prompt. BREAKING semantic change to the `backstory` field returned by `/games/:id`, `/admin/...`, and per-turn context — frontends that displayed the AI summary will now display the player's prose.)
+**Last Updated:** 2026-06-12 (AD-896 — `GET /api/game/:id/glossary` now returns the union of world glossary entries and the player's personal knowledge (Assess reveals + research completions from knowledge_flags): new `source` discriminator (`"glossary"` | `"knowledge"`) on every row; knowledge rows carry category `lore` with server-formatted dated definitions; both rows returned on term collisions; `knowledge_skill` and `__`-internal rows excluded; search/category apply to the merged set. Read-path union only — no writes to glossary_entries, AI context untouched. ADDITIVE.)
+
+**Previously:** 2026-06-11 (AD-892 — NEW endpoint `GET /api/game/:id/talk-to-gm/meta/history`: read-only GM meta conversation thread (oldest-first, capped at 20 exchanges, derived from the same loader that feeds the GM AI call) + current directive state in the standard `directives` shape. No game-status gate, no rate limit. ADDITIVE.)
+
+**Previously:** 2026-05-27 (AD-861 — NEW admin endpoint `GET /api/admin/games/:id/narrative-quality?turns=100` for narrative-quality aggregates over the last N turns. Admin-only; not a frontend wire change. Additive only.)
+
+**Previously:** 2026-05-17 (AD-800 — End-of-day events wire emission. Closes silent-damage from the wire-drop deferred fields investigation (`audits/wire-drop-deferred-fields-investigation-2026-05-17.md`, Ruling C → design-chat ruled wire-fix 2026-05-17): `endOfDayResults` (§XIV.6.2 Passive Faction Drift + §XXI.6 Quest Expiry) was produced by `processTurn` Step 11c and silently dropped between engine and wire. Same failure class as AD-726 / AD-727. Two additive wire surfaces: (1) `POST /api/game/:id/action` sync response gains `endOfDay: object|null`, always-present (null on non-day-boundary turns; object with possibly-empty `factionDrifts` + `expiredQuests` arrays on day-boundary turns); (2) Streaming `turn:complete` SSE event gains the same field; explicitly NOT on the streaming POST body per AD-685 split. Server resolves faction names, §XIV.4 tier names (oldTier/newTier), quest titles, and §XXI.7.2 faction penalties — frontend never parses IDs. Frontend renders into GM aside panel; §XXI.6.2 Objectives-panel strikethrough affordance supported via `expiredQuests[].questId`. ADDITIVE — pre-AD-800 the field was absent from the wire, so frontends adding it gain new functionality without breaking old reads. **PREVIOUSLY:** 2026-05-04 (AD-727 — T4 Insight Bonus wire emission. Closes a silent-damage shipped bug from AD-503: the mechanic has been writing `scene_state.insight_bonuses` on every Tier 4 turn since 2026-04-03 but the frontend has never received any of it. Same failure class as AD-726 (cutParagraph) — field generated server-side, persisted, silently dropped between `processTurn` and the wire. Three additive wire surfaces: (1) `POST /api/game/:id/action` sync response gains `insightBonusGranted: object|null` and `insightBonusApplied: object|null`, both always-present (null when no event); (2) Streaming `turn:complete` SSE event gains the same two fields; both are explicitly NOT on the streaming POST body per AD-685 split; (3) `GET /api/game/:id/state` `character.insightBonuses[]` now exposes the persistent active list per system manual II.9.4 / line 4741 mandate. Server resolves NPC names + task action labels into a human-readable `target` field on every entry — frontend never parses targetKey strings. ADDITIVE — pre-AD-727 these fields were absent from the wire, so frontends adding them gain new functionality without breaking old reads. **PREVIOUSLY:** 2026-04-26 (AD-704 + AD-705 — Custom Start scenario prompt + backstory preservation. AD-704: `POST /api/init/:gameId/select-scenario` `customStart` accepts new optional `scenarioDescription` field (string, max 2000 chars). When present, server writes `scene_state.opening_scenario` so per-turn context curator emits the canonical "place the character INTO this scenario" directive on turn 1. ADDITIVE — pre-AD-704 the field was unrepresentable. AD-705: `POST /api/init/:gameId/adjust-proposal` `narrativeBackstory` field ignored on the server. Pre-AD-705 the field destructively overwrote `characters.backstory` with the AI tier-reasoning summary; post-AD-705 the player's prose at POST /character is canonical and preserved through every downstream prompt. BREAKING semantic change to the `backstory` field returned by `/games/:id`, `/admin/...`, and per-turn context — frontends that displayed the AI summary will now display the player's prose.)
 
 Base URL: `https://<host>` (Railway production or `http://localhost:3000` local)
 
@@ -1211,7 +1217,7 @@ Server-Sent Events connection. Used for (a) initial connection confirmation, (b)
 | `turn:discard` | `{ turnNumber }` | AD-685: fires on silent retry. Frontend must clear any already-rendered narrative chunks for that turn and prepare to receive a fresh `turn:narrative` sequence. |
 | `turn:npc_states` | `{ turnNumber, npcStates }` | AD-685: combat turns only. Fires after narrative streaming completes. |
 | `turn:gm_aside` | `{ turnNumber, content }` | AD-685: fires when a GM aside is present. `content` is the aside text. Omitted entirely when no aside. |
-| `turn:complete` | `{ turnNumber, stateChanges, nextActions, rewindAvailable, directivesRemoved, mechanicalResults, cutParagraph, groupAction?, groupDefend?, groupUtilityAction?, _debug? }` | AD-685: fires once when the turn fully resolves. `mechanicalResults` is always `null` in streaming mode (resolution already delivered via POST response). `cutParagraph` (AD-726, additive) carries the AD-719 scene-cut prose contract on every turn (`null` / `""` / non-empty string). Frontend uses this to finalize the turn and re-enable the action panel. |
+| `turn:complete` | `{ turnNumber, stateChanges, nextActions, rewindAvailable, directivesRemoved, mechanicalResults, cutParagraph, insightBonusGranted, insightBonusApplied, groupAction?, groupDefend?, groupUtilityAction?, _debug? }` | AD-685: fires once when the turn fully resolves. `mechanicalResults` is always `null` in streaming mode (resolution already delivered via POST response). `cutParagraph` (AD-726, additive) carries the AD-719 scene-cut prose contract on every turn (`null` / `""` / non-empty string). `insightBonusGranted` and `insightBonusApplied` (AD-727, additive) carry the per-turn T4 Insight Bonus signals — both always present, `null` on turns where the corresponding event did not fire. See POST `/action` Notes for full shape. Frontend uses this to finalize the turn and re-enable the action panel. |
 | `turn:error` | `{ turnNumber, error, retryable }` | AD-685: fires if the turn fails after the POST already returned `streaming: true`. `retryable: true` means the player can safely re-submit the same action. |
 | `: heartbeat` | (comment, no data) | Every 30s |
 
@@ -1266,7 +1272,11 @@ Full current game state snapshot.
       "encumbrance": "light",
       "items": [{ "name": "Longsword", "slotCost": 1.5, "entropy": "intact", "readiness": "ready", "quality": 0.0, "equipped": true }],
       "currency": { "display": "15 coins", "raw": 15 }
-    }
+    },
+    "insightBonuses": [
+      { "targetKey": "task:42:Lockpick", "target": "Lockpick", "bonusDisplay": 0.5, "actionLabel": "Lockpick", "stat": "DEX", "grantedOnTurn": 11 },
+      { "targetKey": "npc:7", "target": "Goblin Captain", "bonusDisplay": 0.5, "actionLabel": "Attack", "stat": "STR", "grantedOnTurn": 9 }
+    ]
   },
   "narrative": {
     "currentScene": "The market square bustles...",
@@ -1297,6 +1307,7 @@ Full current game state snapshot.
 - `narrative.availableActions.options[].stat` / `.flavor` (AD-671, **additive**) — same display-hint semantics as `nextActions.options[].stat` / `.flavor` (see POST `/action` notes below). Hints for pre-stored options persist across `/state` reads.
 - `rewindAvailable` (boolean) — whether a single-turn rewind is available. `true` after any successful advancing turn, `false` initially and after rewind is consumed. (AD-553)
 - `directives.recentlyFulfilled` (array) — Auto-removed directives with text, lane, reason, and removedAtTurn. Max 5 entries, pruned after 20 turns. Frontend uses for "removed, restore?" UI. (AD-554)
+- `character.insightBonuses` (array, AD-727, **additive**) — persistent T4 Insight Bonuses currently active for this character per system manual II.9.4 / line 4741. Always present; empty array `[]` when no bonuses are active. Each entry: `{ targetKey, target, bonusDisplay, actionLabel, stat, grantedOnTurn }`. `target` is the server-resolved human-readable label — for combat-target keys (`npc:${id}`) it's the NPC's name (or `"NPC #${id}"` when the NPC was deleted between grant and emit), for task-target keys (`task:${zoneId}:${actionLabel}`) it's the actionLabel. Frontend renders `target` directly as the HUD line "[Insight: +0.5 to next attempt on {target}]" and never parses `targetKey`. `bonusDisplay` is the display value (currently always `0.5`). `actionLabel` and `stat` describe what the bonus was granted on. `grantedOnTurn` is the turn the bonus was granted or last refreshed (per AD-503's non-stacking rule). Internal entry fields `characterId` (implicit — response is character-scoped) and `attemptCount` (AD-617 Phase 1 Approach Variety AI signal, not player HUD) are intentionally not on the wire. The reads in `src/ai/context-curator.js` feed AI prompt context separately via `formatInsightBonusesForAI` — different shape, different consumer.
 
 **Status Codes:**
 | Code | Meaning |
@@ -1320,6 +1331,7 @@ Unified action endpoint — player choices, custom actions, and bracket commands
 | `custom` | string | Free-text action, max 500 chars. Bracket-wrapped text (`[Short Rest]`, `[Long Rest]`, `[Status Report]`, `[Briefing]`, `[Help]`, `[Use Skill: Name]`) is auto-translated to the equivalent structured `command` before dispatch (AD-592, AD-666). |
 | `command` | string | Bracket command name (see below) |
 | `target` | string | For `travel_to`, `forced_march`, `restore_checkpoint`, `delete_checkpoint` |
+| `method` | string | **AD-879, optional** — travel method for `travel_to`/`forced_march`. One of `foot` (default), `mounted`, `cart`, `ground_vehicle`, `watercraft_river`, `watercraft_sea`, `aerial`, `magical`. A faster (fractional-speed) method shortens the journey. An unknown method or a method restricted by the route's terrain returns 400. |
 | `text` | string | For `set_objective`, `checkpoint` |
 | `name` | string | For `checkpoint` |
 
@@ -1339,8 +1351,8 @@ Unified action endpoint — player choices, custom actions, and bracket commands
 | `short_rest` | no | — | Mechanical Short Rest — reduces condition penalties by 0.3, +0.5 POT (1/day), advances clock 1h. Bypasses AI. (AD-592) |
 | `long_rest` | no | — | Mechanical Long Rest — threshold recovery, Wellspring POT, resets strain counter, companion/group recovery, advances clock 6h. Bypasses AI. (AD-592) |
 | `use_skill` | no | `target` (skill name) | Invoke an Active Skill by name. Fuzzy-matches `target` against `narrativeSkin` or the template name. Applies cooldown via `useActiveSkill`. Template 11 (Assess) rejected with `error: 'assess_requires_context'` — needs a dedicated flow. Bracket form: `[Use Skill: Name]` (AD-666). |
-| `travel_to` | **yes** | `target` (location) | Travel to location |
-| `forced_march` | **yes** | `target` (location) | Forced march to location |
+| `travel_to` | no | `target` (location) | **AD-879 (breaking):** structured run-to-arrival travel. Resolves the whole journey OUTSIDE the turn loop — advances the clock day-by-day, ages the Living World (threads + schemes) for the elapsed time, consumes supplies per full day, applies travel fatigue, delivers the player to the destination, populates it on arrival, and narrates one montage. Non-advancing (`turnAdvanced: false`). Requires a known destination connected by a route (else 400). |
+| `forced_march` | no | `target` (location) | **AD-879 (breaking):** same structured run-to-arrival resolver as `travel_to`, with a "pushing hard" flag passed only to the montage narration. Its distinct >10h/day mechanic is deferred (2b). Non-advancing. |
 | `[Adrenaline Surge: STAT]` | no | — | Declare an Adrenaline Surge for the named stat (free text through `custom`). STAT is one of `STR|DEX|CON|INT|WIS|CHA|POT`. Validates that the stat is at 0.0 or below and that the character hasn't already surged this Long Rest. Writes `scene_state.pending_surge`; consumed by the next resolution that uses the surged stat (overrides effective stat to 1.0 for one action, then applies `[Deeply Fatigued: -1.0 STAT \| Until Long Rest]`). See AD-675. |
 
 **Response — Non-advancing command (200):**
@@ -1373,6 +1385,33 @@ Unified action endpoint — player choices, custom actions, and bracket commands
 }
 ```
 Error variants (200, `used: false`, `error` populated): `on_cooldown`, `disoriented` (XVI.12 blocks Active Skills), `skill_not_found` (no match for `target`), `assess_requires_context` (Template 11 invoked without the dedicated flow).
+
+**Response — `travel_to` / `forced_march` command (AD-879, additive shape; the command itself is now non-advancing — see the breaking note in the command table):**
+```json
+{
+  "turnAdvanced": false,
+  "command": "travel_to",
+  "data": {
+    "travel": "travel_to",
+    "narrative": "The trail unspooled beneath your boots through a long grey afternoon, and you came down toward the gates as the light went amber.",
+    "worldDispatches": [],
+    "travelStatus": {
+      "origin": "Ironhaven",
+      "destination": "Riverside",
+      "daysElapsed": 3.0,
+      "rationsConsumed": 3,
+      "waterConsumed": 3,
+      "conditionsApplied": ["Road Weary"],
+      "destinationPopulated": true,
+      "arrived": true
+    },
+    "clockAdvancedMinutes": 4320,
+    "clock": "Day 4, 14:00",
+    "warnings": ["..."]
+  }
+}
+```
+Notes: `data.narrative` is the montage prose (render it like a turn narrative; it is also stored to the story log). `worldDispatches` is always present (`[]` here — matured world beats deliver on the next normal turn, like after a rest). `travelStatus.daysElapsed` is the adjusted journey length (a multiple of 0.5). `conditionsApplied` lists any travel-fatigue conditions gained (empty on Standard normal-pace). `destinationPopulated` is `false` only when on-arrival population was deferred after a failure (a warning is then present in `data.warnings`). `forced_march` returns the identical shape with `travel: "forced_march"`. Errors: `400` with `{ message }` for a missing `target`, an unknown destination, or a destination with no known route.
 
 **`mechanicalResults.passive_mastery_unlocked` (AD-666):** Advancing turns may include `passive_mastery_unlocked: { templateId, templateName, scope, domainStat }` in the resolution payload when a T1-3 success crossed the randomized threshold (XI.4.1) and a mastery was unlocked server-side. Absent when no unlock fires. Template derivation follows `(domainStat, domainCategory)`: combat → Armor Breaker (#2), medical → Medical Mastery #4 option A, social → Social Leverage (#5), crafting → Craft Excellence (#8), counseling → Social Leverage (#5), default → Efficiency Gain (#1).
 
@@ -1511,13 +1550,46 @@ These replace the old `## NPC Attack Phase` / `## NPC Attack Result` headers. Ea
       { "id": "C", "text": "Browse and leave", "stat": null, "flavor": "safe" }
     ],
     "customAllowed": true
-  }
+  },
+  "cutParagraph": null,
+  "insightBonusGranted": null,
+  "insightBonusApplied": null,
+  "endOfDay": {
+    "factionDrifts": [
+      {
+        "factionId": 42,
+        "factionName": "Iron Wardens",
+        "oldStanding": 3,
+        "newStanding": 2,
+        "oldTier": "Respected",
+        "newTier": "Recognized",
+        "tierCrossed": true
+      }
+    ],
+    "expiredQuests": [
+      {
+        "questId": "117",
+        "questTitle": "Retrieve the lost ledger",
+        "factionId": 42,
+        "factionName": "Iron Wardens",
+        "factionPenalty": -2
+      }
+    ]
+  },
+  "worldDispatches": [
+    { "kind": "thread_bite", "text": "Word reaches you near Hollowmere — the granary fire was no accident.", "threadId": 88, "schemeId": null },
+    { "kind": "scheme_payoff", "text": "Word reaches you that Maric Vol has finally made the move concerning the Saltmongers Guild: corner the salt trade.", "threadId": null, "schemeId": 12 }
+  ]
 }
 ```
+
+`worldDispatches` is an always-present array (`[]` when nothing delivered this turn) of server-authored, out-of-narrative "world beat" lines for the GM-aside panel. Each entry: `{ kind, text, threadId, schemeId }`. Render `text` directly. `kind` ∈ `"thread_bite"` (AD-866 world-thread bite) | `"scheme_payoff"` (AD-877 NPC scheme came to fruition) | `"scheme_collapse"` (AD-877 NPC scheme fell apart). `threadId` and `schemeId` are structural references for keying/dedup — exactly one is non-null per entry (`threadId` for `thread_bite`, `schemeId` for the two scheme kinds); the other is `null`. **AD-877 additive, non-breaking:** the `scheme_payoff`/`scheme_collapse` kinds and the `schemeId` field were added alongside the existing `thread_bite`/`threadId` shape; a frontend that renders by `text` needs no change.
 
 **Streaming response (AD-685, when `ENABLE_STREAMING=true` AND an active SSE connection exists):**
 
 When streaming is active, advancing-turn responses return a minimal body and the rest of the turn data arrives via SSE events on the existing `/api/game/:id/stream` channel:
+
+**Response (200):**
 
 ```json
 {
@@ -1528,9 +1600,11 @@ When streaming is active, advancing-turn responses return a minimal body and the
 }
 ```
 
+The streaming response uses HTTP 200 (not 202) because the body contains the complete turn-resolution result; SSE events are progressive enrichment during processing, not async-job result delivery (AD-788).
+
 - `streaming: true` is the signal for the frontend to consume the rest via SSE. When absent or `false`, the response is the full synchronous shape documented above (includes `narrative`, `stateChanges`, `nextActions`, etc.).
 - `resolution` is the same shape as the synchronous response (lowercase `stat`, `null` on no-roll turns). It's always included in the streaming response so the frontend can render the dice animation immediately, before narrative text arrives.
-- `narrative`, `stateChanges`, `nextActions`, `rewindAvailable`, `directivesRemoved`, `gmAside`, `npcStates`, and `cutParagraph` are **omitted** from the POST body and arrive via `turn:narrative`, `turn:complete`, `turn:gm_aside`, and `turn:npc_states` SSE events respectively. (AD-726: `cutParagraph` rides on `turn:complete` alongside `stateChanges` / `nextActions` per the AD-685 split.)
+- `narrative`, `stateChanges`, `nextActions`, `rewindAvailable`, `directivesRemoved`, `gmAside`, `npcStates`, `cutParagraph`, `insightBonusGranted`, `insightBonusApplied`, `endOfDay`, and `worldDispatches` are **omitted** from the POST body and arrive via `turn:narrative`, `turn:complete`, `turn:gm_aside`, and `turn:npc_states` SSE events respectively. (AD-726: `cutParagraph` rides on `turn:complete` alongside `stateChanges` / `nextActions` per the AD-685 split. AD-727: `insightBonusGranted` and `insightBonusApplied` ride on `turn:complete` per the same split. AD-800: `endOfDay` rides on `turn:complete` per the same split. AD-866: `worldDispatches` rides on `turn:complete` per the same split.)
 - Event order on the wire: POST returns → `turn:start` → `turn:narrative` chunks (phase `pre` then `post`) → optional `turn:gm_aside` / `turn:npc_states` → `turn:complete`. On failure post-POST: `turn:error`. On silent retry: `turn:discard` followed by a fresh `turn:narrative` sequence.
 
 **Notes:**
@@ -1552,6 +1626,10 @@ When streaming is active, advancing-turn responses return a minimal body and the
 - `rewindAvailable` (boolean) — `true` after any successful advancing turn. Frontend uses to enable/disable the Rewind button. (AD-553)
 - `directivesRemoved` (array or null) — Auto-fulfilled directives removed this turn. Each entry: `{ text, lane, reason }`. `null` when nothing was removed. Only present on advancing turns after Turn 6 (when summarization fires). (AD-554)
 - `cutParagraph` (string or null, **AD-719 / Prompt C.0, additive**) — When the engagement layer fires a server-authoritative scene cut on this turn, contains the AI-narrated 1-2 sentence environmental closing prose. `null` means no cut occurred this turn. Empty string `""` means a cut did fire but the AI's prose failed validation (invented player thought/feeling, length cap, or forbidden meta-words per the AD-725 validator scope) and was silenced per the AD-718 cut-prose contract — the cut still happened, the next scene begins on the next turn, but there is no narratable cut text. Frontend should render non-null non-empty values inline before transitioning to the next scene's opening narrative. The cut paragraph is bounded by `MAX_CUT_SENTENCES = 2` and `MAX_CUT_TOKENS = 80` (see `src/scene-cut-prose.js`). NOTE: `bookmarkSurfaced` is NOT included in C.0 — it lands in the C.1 follow-up AD alongside the bookmark-creation pipeline.
+- `insightBonusGranted` (object or null, **AD-727, additive**) — Per-turn signal: a T4 Insight Bonus was just granted (or refreshed). Always present on every advancing turn; `null` when the turn was not Tier 4 or no grant fired. When non-null: `{ granted: true, refreshed: boolean, targetKey: string, target: string, bonusDisplay: 0.5, actionLabel: string|null, stat: string|null }`. `granted` is always `true` when the field is non-null (the AD-503 grant codepath always sets granted=true; the field is kept for explicit signal). `refreshed: true` means the same target already had an active bonus and it was refreshed (per AD-503's non-stacking rule); `refreshed: false` means a brand-new grant. **The canonical "T4 → same target → T4 again" retry case correctly emits `refreshed: true`** — this is the frequent, expected signal, not an edge case. The consume path inside `runResolution` removes the matching entry before the grant block runs, then the grant block detects the just-consumed entry via an internal stash and treats the re-insert as a refresh (also incrementing `attemptCount` for AD-617 Phase 1's Approach Variety AI-prompt injection). `targetKey` is the raw internal key (`"npc:${id}"` for combat, `"task:${zoneId}:${actionLabel}"` for non-combat per AD-617 Phase 1) included for diagnostics and dedupe against the `GET /state` persistent list — the frontend should render `target` (the human-readable label), never `targetKey`. `bonusDisplay` is currently always `0.5`; emit as a field rather than hardcoding so future calibration changes propagate. Reference: AD-503 (mechanic origin) + system manual II.9.4 (player-transparency requirement) + system manual II.9.6 (escalating-consequence framing for refresh case).
+- `insightBonusApplied` (object or null, **AD-727, additive**) — Per-turn signal: a previously-stored T4 Insight Bonus was consumed by this turn's roll. Always present; `null` on turns where no bonus was applied. When non-null: `{ targetKey: string, target: string, bonusDisplay: 0.5, actionLabel: string|null, stat: string|null }`. Smaller shape than `insightBonusGranted` (no `granted`/`refreshed` keys) — different event class. **Both fields can be non-null on the same turn:** if the player has a stored bonus on Lock A, attempts to pick Lock A again, the resolver applies the bonus (consume → `insightBonusApplied` populated) and the result still rolls T4 (refresh → `insightBonusGranted` populated with `refreshed: true`). This is by design per AD-503 (refresh on second T4, never stack); frontend should render both notifications when they co-occur. Render guidance per system manual II.9.4: apply notification → "[Insight applied: +0.5 to {actionLabel} check]"; grant notification distinguishes `refreshed: false` ("Insight gained for next attempt") from `refreshed: true` ("Insight refreshed").
+- `endOfDay` (object or null, **AD-800, additive**) — Per-turn signal for end-of-day events fired during processTurn Step 11c (§XIV.6.2 Passive Faction Drift + §XXI.6 Quest Expiry). Always present on every advancing turn. `null` on every non-day-boundary turn (the common case — `clockResult.clock.after.currentDay` did not advance). On day-boundary turns: `{ factionDrifts: Array<{factionId: number, factionName: string, oldStanding: number, newStanding: number, oldTier: string, newTier: string, tierCrossed: boolean}>, expiredQuests: Array<{questId: string, questTitle: string, factionId: number|null, factionName: string|null, factionPenalty: number|null}> }`. `questId` is the `quest_id` TEXT primary key (numeric-looking but typed string). Both sub-arrays are always non-null arrays — empty `[]` is the no-events sentinel so the frontend can iterate without nullchecking the arrays themselves. `factionName`, `oldTier`/`newTier` (§XIV.4 named tiers — Nemesis / Hostile / Distrusted / Wary / Neutral / Recognized / Respected / Trusted / Honored / Exalted), and `questTitle` are server-resolved so the frontend never parses IDs. `tierCrossed: true` means the standing change crossed a §XIV.4 tier boundary — the canonical "this is a meaningful event" signal; design ruling 2026-05-17 ships every drift event including small non-tier-crossing ones, frontend may default to filtering `tierCrossed: false` events out and surface them only on a "show all" toggle. `factionPenalty` is the standing penalty applied to the player per §XXI.7.2 when the quest was faction-originated (negative integer); `null` for non-faction quests. Faction rows can be deleted between drift and emit (and quest rows between expiry and emit), so missing lookups fall back to `"Faction #${id}"` / `"Quest #${id}"` rather than throwing — matches `resolveInsightTarget`'s NPC-deleted fallback. **Frontend rendering contract:** Frontend renders these into the GM aside panel. §XXI.6.2 "struck-through briefly before removal" Objectives-panel affordance is supported by `expiredQuests[].questId` — frontend matches against currently-displayed Objectives entries and applies strikethrough animation before removing on next state poll. Reference: investigation `audits/wire-drop-deferred-fields-investigation-2026-05-17.md` (Ruling C, design-chat ruled wire-fix 2026-05-17).
+- `worldDispatches` (array, **AD-866, additive**) — Per-turn guaranteed delivery channel for short, server-authored, out-of-narrative "world beat" lines. Always present on every advancing turn; `[]` (empty array, never `null`) when nothing was delivered this turn — the common case. Each element: `{ kind: string, text: string, threadId: number }`. `kind` is the beat source class; the first sender (AD-866) emits `kind: "thread_bite"` (a world thread "biting" — narrating its aftermath as it expires). `text` is a complete, player-facing sentence with no raw IDs and no mechanical vocabulary (no tier names, DCs, stats, or the word "thread"); the server composes it from a deterministic template bank keyed by thread type, so a given thread always renders the same beat. `threadId` is a structural reference for frontend dedupe/diagnostics — render `text`, never `threadId`. Multiple beats may arrive on a single turn (no per-day cap, no slot arbitration — design ruling 2026-05-30). Beats are deferred while the player is mid-combat (an active encounter is present) and delivered on the next calm turn; once delivered, a beat is never re-sent (say-once). **Frontend rendering contract:** render each `text` into the existing GM-aside panel, same surface as `gmAside` and `endOfDay`. No new SSE event — `worldDispatches` rides on `turn:complete` alongside the other turn-complete fields. Reference: AD-866 (Living World delivery channel + threads biting, first sender).
 - `nextActions.options` shape on cut turns (**AD-723 / AD-725, additive**) — When `cutParagraph !== null` (a cut fired this turn), the `options` array contains exactly one element with the standard 4-field option shape produced by `mapOptionForResponse`: `{ "id": "Continue", "text": "continue", "stat": null, "flavor": "narrative" }`. Detection: `options[0].id === "Continue"` identifies the cut-turn Continue affordance. Submission: when the player taps Continue, the frontend submits `options[0].text` (the literal string `"continue"`, lowercase) as the next turn's `playerAction`; the engine re-enters the system prompt with `sceneOpenerMode=true` and generates the new scene's opening beat. The Continue option is narrow because every option on every turn is narrow — `mapOptionForResponse` strips internal mechanical fields (`requiresRoll`, `secondStat`, `skill`, `dc`, `dcReason`, `primaryTag`, `targetNpcName`, `equipmentRelevant`, `targetZone`) uniformly across all turns, surfacing only the 4 fields above on the wire (`id` is the option's stable identifier; `text` carries the player-action string; `stat` / `flavor` are display hints). The Continue option has no mechanical metadata to surface (no roll, no DC, no target NPC) so the stripping doesn't lose anything. Frontend should render the cut paragraph (when non-empty) followed by the single Continue button. Existing AI-generated A/B/C options do NOT appear on cut turns; on non-cut turns the options array remains the existing 3-element A/B/C shape (D is filtered server-side; freeform input replaces it) — this contract addition narrows the array on cut turns only.
 
 **Condition entry shape (in `stateChanges.conditions.added`):**
@@ -1741,23 +1819,31 @@ Full character sheet with per-stat condition breakdowns.
 
 ### GET /api/game/:id/glossary
 
-Discovered glossary entries with optional filtering.
+Discovered glossary entries with optional filtering. **ADDITIVE (AD-896):** results are now the union of world glossary entries and the player's personal knowledge (Assess discoveries + completed research from `knowledge_flags`), discriminated by a new `source` field on every row.
 
 **Query Parameters:**
 | Param | Type | Notes |
 |-------|------|-------|
-| `category` | string | Filter by category (case-insensitive) |
-| `search` | string | Search term/definition (case-insensitive) |
+| `category` | string | Filter by category (case-insensitive). Applies to the merged set — knowledge-derived rows always carry category `lore`. |
+| `search` | string | Search term/definition (case-insensitive). Applies to the merged set. |
 
 **Response (200):**
 ```json
 {
   "entries": [
-    { "id": 1, "term": "Crucible Roll", "definition": "A contested die roll...", "category": "mechanics", "discoveredAt": "Turn 3" }
+    { "id": 1, "term": "Crucible Roll", "definition": "A contested die roll...", "category": "mechanics", "discoveredAt": "Turn 3", "source": "glossary" },
+    { "id": 7, "term": "Warden Brask", "definition": "Assessed on turn 12: disposition read at +3.", "category": "lore", "discoveredAt": "Turn 12", "source": "knowledge" }
   ],
-  "count": 1
+  "count": 2
 }
 ```
+
+| Field | Notes |
+|-------|-------|
+| `source` | **ADDITIVE (AD-896).** `"glossary"` (world glossary entry — prior behavior) or `"knowledge"` (the player's personal knowledge: Assess reveals and research completions). `id` is unique only within its source. |
+| `definition` (source `knowledge`) | Server-formatted, dated observation of what the player learned (e.g. the Assess reveal value with the turn it was learned, or a research summary) — a point-in-time record, not live state. Rows recorded before the payload existed render a generic line ("Learned through close study."). Sanitized like every glossary writer (taxonomy strip + dash normalization). |
+
+**Knowledge-row rules (AD-896):** only `knowledge_flags` categories `glossary` and `research_completion` are surfaced; `knowledge_skill` rows are excluded (the skill already has its own real glossary entry) and internal `__`-prefixed bookkeeping rows (field-study counters) never appear. **On a term collision** (e.g. an Assessed NPC who also has a world glossary entry) **both rows are returned** — they are different kinds of information (world fact vs. what the player personally learned); group by `term` client-side using `source` if desired. The merged list is ordered by term (case-insensitive ascending) and `count` counts the merged set. Read-path union only — nothing is written to `glossary_entries`, and the AI's context is unaffected.
 
 ---
 
@@ -1779,14 +1865,18 @@ Hierarchical location map with zoom levels.
   "breadcrumbs": [],
   "currentLocationId": 42,
   "locations": [
-    { "id": 10, "name": "Ironhaven", "type": "settlement", "dangerLevel": null, "status": "current", "controllingFaction": "The Iron Guard", "hasChildren": true },
-    { "id": 11, "name": "The Thornwood", "type": "wilderness", "dangerLevel": 2, "status": "discovered", "controllingFaction": null, "hasChildren": false }
+    { "id": 10, "name": "Ironhaven", "type": "settlement", "dangerLevel": null, "status": "current", "controllingFaction": "The Iron Guard", "hasChildren": true, "knownPeople": ["Old Tom", "Warden Brask"] },
+    { "id": 11, "name": "The Thornwood", "type": "wilderness", "dangerLevel": 2, "status": "discovered", "controllingFaction": null, "hasChildren": false, "knownPeople": [] }
   ],
   "routes": [
     { "id": "route_5_1", "origin": 10, "destination": 11, "travelDays": 1.0, "dangerLevel": 1, "terrain": "trail", "known": true }
   ]
 }
 ```
+
+**Field `type` valid values (AD-805).** The `type` field on each `locations[]` entry is one of `"settlement"`, `"dungeon"`, `"wilderness"`, `"interior"`, or `null` (matching the backend `locations.zone_type` enum, now enforced by CHECK constraint `zone_type_valid`). Pre-AD-805, the off-enum value `"district"` could appear here for 57 production-class rows whose two writer sites in `init.js` confused `zone_type` with `zone_scale`; migration 080 corrected those rows and the writers. If frontend logic branches on `type === "district"` it can be removed — no row will carry that value post-AD-805. Districts (AD-707 backstory_extraction; custom_start) are now correctly represented as `type: "settlement"` with `zoneScale` (if exposed) `= "district"`.
+
+**Field `knownPeople` (additive — AD-898).** Each `locations[]` entry carries `knownPeople: string[]` — always present, `[]` when none. It lists the **names** of met (introduced) and alive NPCs at their **LAST-KNOWN** location, container-propagated up the hierarchy: an NPC known in a tavern inside a district inside a town appears on whichever of those cards is currently rendered. Deduplicated, sorted alphabetically. **Semantics are last-known, not live.** The location is where the player *last learned* the NPC to be — by direct observation (`witnessed`) or by a server-delivered Living World note (`informed`); both count equally. The line can be deliberately stale when an NPC has moved offscreen (the engine never exposes the NPC's live position on the map — that is correct to the character's knowledge), and a future Living-World note can move a name onto a card **without the player visiting anywhere** (intended). A fleeing NPC drops off the map (the player watched them leave but does not know where they went). Existing saves were backfilled, so the field is populated day one. Names are the same strings already player-visible as glossary terms and narration — no sanitization is applied. Card copy ("last seen" / "last heard") is the frontend's choice; the wire is always `string[]` and will never become an array of objects. A future *additive* parallel field could expose a per-name `witnessed`-vs-`informed` distinction if a seen/rumored visual treatment is ever wanted.
 
 **Status Codes:**
 | Code | Meaning |
@@ -2261,6 +2351,37 @@ Remove a player directive by lane and index.
 ```
 
 **Status Codes:** 200, 400 (invalid lane/index/out of bounds).
+
+---
+
+### GET /api/game/:id/talk-to-gm/meta/history
+
+**ADDITIVE (AD-892).** Read-only GM meta conversation thread plus current directive state, for rendering the persistent GM chat panel. The thread is derived from the same server-side loader that feeds conversation history into the GM meta AI call, so the visible thread always equals exactly what the GM remembers (last 20 exchanges).
+
+No request body, no query parameters. Standard auth + ownership only — **no game-status gate** (the thread stays readable on completed/dead games) and **no rate limit** (no AI call is made).
+
+**Response (200):**
+```json
+{
+  "messages": [
+    { "role": "user", "text": "What does the merchant guild want?", "timestamp": "2026-06-10T18:22:05.000Z" },
+    { "role": "assistant", "text": "Great question! The merchant guild controls trade...", "timestamp": "2026-06-10T18:22:05.000Z" }
+  ],
+  "directives": {
+    "goals": [{ "text": "..." }],
+    "preferences": [{ "text": "..." }],
+    "limits": { "goalsMax": 10, "preferencesMax": 10 }
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `messages` | array | Oldest-first, capped at the server's history limit (20 exchanges → up to 40 messages). Each exchange produces up to two messages: a `user` message (the player's question) then an `assistant` message (the GM's reply). Both carry the exchange's log `created_at` as an ISO 8601 `timestamp`, so the two messages of one exchange share a timestamp. A message is omitted (never emitted with empty text) if its side of the exchange is missing on an old log row. `[]` when the thread is empty — the endpoint never 404s on an empty thread. |
+| `messages[].role` | string | `"user"` or `"assistant"`. Message objects carry exactly `role`, `text`, `timestamp` — no model/token/cost metadata. |
+| `directives` | object | Same wire shape as `GET /state` and the directive DELETE response: `goals`/`preferences` arrays of `{ text }` plus `limits`. Always present; empty arrays when none stored. |
+
+**Status Codes:** 200, 401 (no/invalid token), 403 (not the owner), 404 (unknown game). No 400 cases (no inputs).
 
 ---
 
@@ -2840,6 +2961,35 @@ Full narrative log for spectator/read-only view. Returns all entries (not capped
 ```
 
 **Status Codes:** 200, 404 (game not found).
+
+---
+
+### GET /api/admin/games/:id/narrative-quality
+
+**AD-861.** Admin tuning instrument. Aggregates per-turn narrative-quality metrics from `engagement_telemetry` over the last N turns for a single world. Used to spot phrase-suppression trends and "scene stuck" patterns without scanning narrative_log directly.
+
+**Query params:**
+| Param | Type | Default | Notes |
+|-------|------|---------|-------|
+| `turns` | integer | `100` | Window size, clamped to `[1, 5000]` |
+
+**Response (200):**
+```json
+{
+  "worldId": 5,
+  "windowTurns": 100,
+  "trackedTurns": 42,
+  "cleanTurnCount": 28,
+  "cleanRate": 0.6666666666666666,
+  "repeatedPhraseCount":        { "avg": 0.5, "max": 3 },
+  "repeatedPhraseOccurrences":  { "avg": 1.2, "max": 7 },
+  "turnsSinceLastActiveSignal": { "avg": 1.8, "max": 9 }
+}
+```
+
+`trackedTurns` counts only rows with the AD-861 columns populated (pre-migration rows show NULL and are excluded). `cleanRate` is `cleanTurnCount / trackedTurns`, null when `trackedTurns === 0`. All aggregate `avg`/`max` fields are null when no tracked rows fall in the window.
+
+**Status Codes:** 200, 400 (invalid `gameId`), 404 (game not found).
 
 ---
 
